@@ -511,7 +511,22 @@ window.addEventListener('arquivo-online-ready',async()=>{
  }catch(e){toast('Falha ao sincronizar',e.message,true)}
 });
 window.addEventListener('arquivo-online-snapshot',e=>applyOnlineSnapshot(e.detail));
-setInterval(async()=>{syncSharedMusic();const st=window.ARQUIVO_SYNC;if(!st?.state.enabled)return;try{const identity=await st.state.client.rpc('ae_session_info');if(identity.error)return;const info=identity.data?.id?identity.data:null;if(st.state.identity?.id&&!info){await st.logout();return}if(info?.id)st.state.identity=info;if(st.state.identity)await loadVerifiedHistory()}catch(e){}},3000);
+// Música mantém seu ritmo, mas histórico e sessão de login não fazem consultas contínuas desnecessárias.
+let lastIdentityCheck=0,identityCheckBusy=false;
+setInterval(async()=>{
+ if(document.hidden)return;
+ syncSharedMusic();
+ const st=window.ARQUIVO_SYNC;
+ if(!st?.state.enabled||identityCheckBusy||Date.now()-lastIdentityCheck<15000)return;
+ lastIdentityCheck=Date.now();identityCheckBusy=true;
+ try{
+  const identity=await st.state.client.rpc('ae_session_info');
+  if(identity.error)return;
+  const info=identity.data?.id?identity.data:null;
+  if(st.state.identity?.id&&!info){await st.logout();return}
+  if(info?.id)st.state.identity=info;
+ }catch(e){}finally{identityCheckBusy=false}
+},3000);
 window.addEventListener('arquivo-sync-error',e=>{const msg=e.detail||'';if(msg!==lastOnlineWarning){lastOnlineWarning=msg;toast('Sincronização',msg,true)}onlineStatus()});
 window.addEventListener('arquivo-online-empty',()=>onlineStatus());
 
@@ -576,8 +591,8 @@ function historyContents(scope){
 }
 function refreshHistoryPanels(scope){document.querySelectorAll('[data-history-scope]').forEach(box=>{if(box.dataset.historyScope!==scope)return;const focus=document.activeElement;if(focus&&box.contains(focus)&&focus.matches('input'))return;box.innerHTML=historyContents(scope)})}
 async function loadHistoryScope(scope,force=false){
- const sync=window.ARQUIVO_SYNC;if(!sync?.state.enabled||!sync.state.identity?.id||scope==='local')return;
- const st=historyState(scope),now=Date.now();if(st.loading||(!force&&st.loaded&&now-st.stamp<8000))return;
+ const sync=window.ARQUIVO_SYNC;if(document.hidden||!sync?.state.enabled||!sync.state.identity?.id||scope==='local'||!document.querySelector('[data-history-scope]'))return;
+ const st=historyState(scope),now=Date.now();if(st.loading||(!force&&st.loaded))return;
  st.loading=true;st.error='';refreshHistoryPanels(scope);
  const epoch=historyEpoch,page=st.page;
  try{
@@ -599,6 +614,7 @@ function refreshRollHistorySoon(){
  },100);
 }
 async function loadVerifiedHistory(force=false){
+ if(document.hidden)return;
  const scopes=[...new Set([...document.querySelectorAll('[data-history-scope]')].map(box=>box.dataset.historyScope))];
  await Promise.all(scopes.filter(scope=>scope!=='local').map(scope=>loadHistoryScope(scope,force)));
 }
