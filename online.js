@@ -5,11 +5,37 @@ const apiUrl=String(config.url||'').trim().replace(/\/rest\/v1\/?$/,'').replace(
 const apiKey=String(config.anonKey||'').replace(/\s/g,'');
 const isSecret=apiKey.startsWith('sb_secret_')||(/^[^.]+\.[^.]+\.[^.]+$/.test(apiKey)&&(()=>{try{return JSON.parse(atob(apiKey.split('.')[1])).role==='service_role'}catch(e){return false}})());
 const ready=/^https:\/\/[^ ]+\.supabase\.co$/.test(apiUrl) && !isSecret && /^(sb_publishable_|eyJ)/.test(apiKey);
-const state={configured:ready,enabled:false,connecting:false,error:isSecret?'Chave secreta recusada. Use a chave pública.':!apiUrl?'Configuração ausente: falta a URL.':!apiKey?'Configuração ausente: falta a chave pública.':!ready?'Chave pública inválida ou URL incorreta.':'',client:null,identity:null,revision:0,keys:[],pending:Promise.resolve(),saving:false,busyUntil:0,appliedOnce:false};
+const state={configured:ready,enabled:false,connecting:false,error:isSecret?'Chave secreta recusada. Use a chave pública.':!apiUrl?'Configuração ausente: falta a URL.':!apiKey?'Configuração ausente: falta a chave pública.':!ready?'Chave pública inválida ou URL incorreta.':'',client:null,identity:null,revision:0,keys:[],pending:Promise.resolve(),saving:false,busyUntil:0,appliedOnce:false,lastPushError:null,documentRealtime:'disconnected'};
 function stripDoc(db){const c=JSON.parse(JSON.stringify(db));delete c.keys;delete c.keysChanged;return c}
 function assignments(db){return (db.keys||[]).filter(k=>k.kind==='player').map(k=>({id:k.id,sheetId:k.sheetId||''}))}
 function stateOnly(s){return {resources:Object.fromEntries(['vida','estabilidade','alma'].map(k=>[k,{current:s.resources[k].current}])),conditions:s.conditions||[],notes:s.notes||'',noteImages:s.noteImages||[],inventory:s.inventory||{items:[],currencies:[]},restCount:s.restCount||0,desgaste:s.desgaste||0,exposures:s.exposures||{}}}
 async function rpc(fn,args={}){const {data,error}=await state.client.rpc(fn,args);if(error)throw Error(error.message||'Erro de conexão');return data}
+let docChannel=null,docNoticeTimer=null;
+function disconnectDocumentChannel(){
+ if(docNoticeTimer){clearTimeout(docNoticeTimer);docNoticeTimer=null}
+ if(docChannel){state.client?.removeChannel(docChannel).catch(()=>{});docChannel=null}
+ state.documentRealtime='disconnected';
+}
+function scheduleDocumentRefresh(revision){
+ if(!state.identity?.id||document.hidden)return;
+ if(Number(revision)<=Number(state.revision))return;
+ if(docNoticeTimer)clearTimeout(docNoticeTimer);
+ docNoticeTimer=setTimeout(async()=>{
+  docNoticeTimer=null;
+  try{await state.pending.catch(()=>{});await refresh(false)}
+  catch(e){state.error=e.message}
+ },180);
+}
+function connectDocumentChannel(){
+ if(!state.enabled||!state.identity?.id||docChannel)return;
+ const ch=state.client.channel('ae-live-notify',{config:{private:true}});
+ docChannel=ch;
+ ch.on('broadcast',{event:'document-changed'},({payload})=>scheduleDocumentRefresh(payload?.revision))
+   .subscribe(status=>{
+    state.documentRealtime=status==='SUBSCRIBED'?'connected':status==='CHANNEL_ERROR'||status==='TIMED_OUT'?'unavailable':'connecting';
+    if(status==='SUBSCRIBED')refresh(false).catch(()=>{});
+   });
+}
 async function init(){if(!ready)return false;
  if(!window.supabase?.createClient){state.error='Biblioteca de conexão indisponível. Verifique a internet.';return false}
  state.connecting=true;
@@ -18,7 +44,7 @@ async function init(){if(!ready)return false;
   let {data:{session},error}=await state.client.auth.getSession();if(error)throw error;
   if(!session){const res=await state.client.auth.signInAnonymously();if(res.error)throw res.error}
   state.identity=await rpc('ae_session_info');if(!state.identity?.id)state.identity=null;
-  state.enabled=true;await refresh(true);
+  state.enabled=true;await refresh(true);connectDocumentChannel();
   // Fichas em uso: sincronização frequente. Demais páginas: consultas leves e espaçadas.
 let nextDocumentRefresh=0;
 setInterval(()=>{
@@ -31,7 +57,7 @@ setInterval(()=>{
  refresh(false).catch(e=>{state.error=e.message;window.dispatchEvent(new CustomEvent('arquivo-sync-error',{detail:e.message}))});
 },3000);
 document.addEventListener('visibilitychange',()=>{
- if(!document.hidden){nextDocumentRefresh=0;refresh(false).catch(()=>{})}
+ if(!document.hidden){nextDocumentRefresh=0;if(state.identity?.id)connectDocumentChannel();refresh(false).catch(()=>{})}
 });
   window.dispatchEvent(new Event('arquivo-online-ready'));
   return true;
@@ -48,15 +74,16 @@ async function refresh(force=false){if(!state.enabled)return;
  window.dispatchEvent(new CustomEvent('arquivo-online-snapshot',{detail:{data:data.data,identity:state.identity,keys:state.keys,revision:state.revision}}));
  state.appliedOnce=true;
 }
-async function login(name,code){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_login',{p_name:name,p_code:code});await keys();await refresh(true);return state.identity}
-async function bootstrap(token,code,name){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_bootstrap_master',{p_token:token,p_code:code,p_name:name});await keys();return state.identity}
-async function logout(){mediaSignedCache.clear();if(state.enabled)await rpc('ae_logout');state.identity=null;state.keys=[];await refresh(true);window.dispatchEvent(new Event('arquivo-logged-out'))}
+async function login(name,code){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_login',{p_name:name,p_code:code});await keys();await refresh(true);connectDocumentChannel();return state.identity}
+async function bootstrap(token,code,name){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_bootstrap_master',{p_token:token,p_code:code,p_name:name});await keys();connectDocumentChannel();return state.identity}
+async function logout(){mediaSignedCache.clear();disconnectDocumentChannel();if(state.enabled)await rpc('ae_logout');state.identity=null;state.keys=[];await refresh(true);window.dispatchEvent(new Event('arquivo-logged-out'))}
 async function removeAccount(id){return rpc('ae_master_remove_account',{p_id:id})}
 async function keys(){if(state.identity?.kind==='master')state.keys=await rpc('ae_master_keys');else if(state.identity)state.keys=[state.identity];else state.keys=[];return state.keys}
 async function createKey(name,kind,sheetId){const created=await rpc('ae_master_create_key',{p_name:name,p_kind:kind,p_sheet_id:sheetId||null});await keys();return created}
 async function changeKey(id,action){await rpc('ae_master_change_key',{p_id:id,p_action:action});await keys()}
 async function manageKey(id,action,name=null,sheetId=null){const result=await rpc('ae_master_manage_key',{p_id:id,p_action:action,p_name:name,p_sheet_id:sheetId});await keys();return result}
 function push(db,role,sheetId){if(!state.enabled)return;
+ state.lastPushError=null;
  state.busyUntil=Date.now()+1700;
  const snapshot=stripDoc(db), links=assignments(db), sheet=snapshot.sheets.find(s=>s.id===sheetId), payload=sheet?stateOnly(sheet):null;
  state.pending=state.pending.catch(()=>{}).then(async()=>{
@@ -64,9 +91,10 @@ function push(db,role,sheetId){if(!state.enabled)return;
   try{
    if(role==='master')state.revision=await rpc('ae_master_replace',{p_data:snapshot,p_assignments:links});
    else if(role==='player' && payload)state.revision=await rpc('ae_player_update',{p_sheet_id:sheetId,p_state:payload});
-  }catch(e){state.error=e.message;window.dispatchEvent(new CustomEvent('arquivo-sync-error',{detail:'Alteração NÃO sincronizada: '+e.message}));}
+  }catch(e){state.lastPushError=e.message;state.error=e.message;window.dispatchEvent(new CustomEvent('arquivo-sync-error',{detail:'Alteração NÃO sincronizada: '+e.message}));}
   finally{state.saving=false;state.busyUntil=Date.now()+800}
  });
+ return state.pending;
 }
 async function saveAppearance(sheetId,appearance){if(!state.enabled)throw Error('Conexão online indisponível.');
  state.busyUntil=Date.now()+3000;
