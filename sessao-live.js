@@ -143,10 +143,11 @@
   else updateBadges();
  }
  function updateBadges(){
-  if(!logged()||isMaster()){document.getElementById('ae25TopBadge')?.remove();return}
   const toolbar=document.querySelector('.toolbar-right'),old=document.getElementById('ae25TopBadge');
-  if(live.session&&toolbar&&!old){const node=document.createElement('button');node.id='ae25TopBadge';node.textContent='● Sessão em andamento · ENTRAR';node.className='ae25-top-badge';node.setAttribute('data-ae25','joinFromBadge');toolbar.prepend(node)}
-  if(!live.session&&old)old.remove();
+  if(live.session&&logged()&&!isMaster()&&toolbar&&!old){
+   const node=document.createElement('button');node.id='ae25TopBadge';node.textContent='● SESSÃO AO VIVO · ENTRAR';node.className='ae25-top-badge';node.setAttribute('data-ae25','joinFromBadge');toolbar.prepend(node)
+  }
+  if((!live.session||!logged()||isMaster())&&old)old.remove();
   const nav=[...document.querySelectorAll('[data-page]')].find(x=>x.dataset.page==='session');
   if(nav){nav.classList.toggle('ae25-nav-live',!!live.session);const tag=nav.querySelector('.ae25-live-mark');
    if(live.session&&!tag){const span=document.createElement('span');span.className='ae25-live-mark';span.textContent='● AO VIVO';nav.append(span)}
