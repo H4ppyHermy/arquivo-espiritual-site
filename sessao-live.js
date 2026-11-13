@@ -3,7 +3,7 @@
  const htmlEscape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const value=(key,defaultVal)=>{try{const v=JSON.parse(localStorage.getItem('ae_live_'+key));return v===null?defaultVal:v}catch(e){return defaultVal}};
  const config={layout:value('layout','grid'),hud:value('hud','below'),density:value('density','normal'),opacity:value('opacity',75),position:value('position','bottom'),scale:value('scale','medium'),quality:value('quality','standard'),mirror:value('mirror',true),camera:value('camera',''),notification:value('notification',false),alertSound:value('alertSound',true),receivePaused:value('receivePaused',false)};
- const live={session:null,participants:[],joined:false,room:null,noticeId:null,sessionId:null,polling:false,peers:new Map(),remotes:new Map(),stream:null,preview:null,transmitting:false,selected:'',focused:'',drawer:true,history:[],rollSeen:null,rollBanner:null,serverSheets:[],lastBeat:0,channelReady:false,alertedId:null,closedMessage:'',lastCamera:false,lastResources:new Map()};
+ const live={session:null,participants:[],joined:false,room:null,noticeChannel:null,noticeId:null,sessionId:null,polling:false,peers:new Map(),remotes:new Map(),stream:null,preview:null,transmitting:false,selected:'',focused:'',drawer:true,history:[],rollSeen:null,rollBanner:null,serverSheets:[],lastBeat:0,channelReady:false,alertedId:null,closedMessage:'',lastCamera:false,lastResources:new Map(),resourceFx:new Map()};
  const host=()=>window.ARQUIVO_SYNC;
  const client=()=>host()?.state?.client;
  const identity=()=>host()?.state?.identity;
@@ -49,11 +49,12 @@
   const focused=live.focused===id?' focused':'';
   const mode=config.hud;
   const status=statusFor(s),r=live.remotes.get(id);
-  const banner=live.rollBanner?.account_id===id&&Date.now()<live.rollBanner.until?live.rollBanner:null;
-  return '<article class="ae25-tile ae25-hud-'+htmlEscape(mode)+(focused?' ae25-focused':'')+(status?' ae25-incapacitated':'')+'" data-tile="'+htmlEscape(id)+'" style="--ae25-hud-opacity:'+(config.opacity/100)+';--ae25-scale:'+(config.scale==='large'?1.16:config.scale==='small'?.85:1)+'">'+
+  const banner=live.rollBanner?.account_id===id&&Date.now()<live.rollBanner.until?live.rollBanner:null;const effect=live.resourceFx.get(id);
+  return '<article class="ae25-tile ae25-hud-'+htmlEscape(mode)+(focused?' ae25-focused':'')+(status?' ae25-incapacitated':'')+(config.position==='top'?' ae25-pos-top':'')+(effect&&effect.until>Date.now()?' ae25-impact-'+effect.type:'')+'" data-tile="'+htmlEscape(id)+'" style="--ae25-hud-opacity:'+(config.opacity/100)+';--ae25-scale:'+(config.scale==='large'?1.16:config.scale==='small'?.85:1)+'">'+
   '<div class="ae25-tile-media">'+(video?'<video data-peer-video="'+htmlEscape(id)+'" autoplay muted playsinline '+(own&&config.mirror?'class="ae25-mirror"':'')+'></video>':
    '<div class="ae25-character-card">'+(art?'<img src="'+htmlEscape(art)+'" alt="">':'<span>魂</span>')+'</div>')+
-   (banner?'<div class="ae25-roll-banner" role="status">'+htmlEscape(banner.text)+'</div>':'')+
+   (banner?'<div class="ae25-roll-banner '+(banner.special==='CRÍTICO'?'ae25-roll-critical':banner.special==='FALHA CRÍTICA'?'ae25-roll-failure':'')+'" role="status">'+htmlEscape(banner.text)+'</div>':'')+
+   '<span class="ae25-avatar">'+(art?'<img src="'+htmlEscape(art)+'" alt="">':'魂')+'</span>'+
    (mode==='overlay'||mode==='cinema'||mode==='compact'||mode==='lateral'?'<div class="ae25-hud-overlay">'+hud(p,mode)+'</div>':'')+'</div>'+
    '<div class="ae25-person-head"><b>'+htmlEscape(p.account_name)+'</b><span>'+htmlEscape(p.is_master?'Mestre':p.character_name||'Sem personagem')+'</span><em>'+(p.camera_on?'● TRANSMITINDO':r?.connectionState==='connecting'?'RECONECTANDO':'SEM CÂMERA')+'</em></div>'+
    ((mode==='below'||mode==='only')?'<div class="ae25-hud-below">'+hud(p,mode)+'</div>':'')+
@@ -140,8 +141,18 @@
   if(!silent)updateBadges();
  }
  const originalTitle=document.title;
+ function connectNotice(){
+  if(!logged()||live.noticeChannel)return;
+  const c=client();if(!c)return;
+  const ch=c.channel('ae-live-notify',{config:{private:true}});
+  live.noticeChannel=ch;
+  ch.on('broadcast',{event:'session-start'},()=>{poll().catch(()=>{})})
+    .on('broadcast',{event:'session-end'},()=>{poll().catch(()=>{})})
+    .subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('Avisos Realtime indisponíveis; continuando por consulta periódica.')});
+ }
  async function poll(){
   if(live.polling||!logged())return;
+  connectNotice();
   live.polling=true;
   try{
    const data=await rpc('ae_live_state'),old=live.session?.id;
@@ -170,16 +181,36 @@
   const st=client();if(!st||!live.session)return;
   try{
    const [{data:doc,error:err},{data:rows,error:historyErr}]=await Promise.all([
-    st.rpc('ae_read_document'),
+    st.rpc('ae_live_hud'),
     st.from('ae_rolls').select('id,account_id,account_name,character_name,sheet_id,label,dice,total,special,created_at,hidden')
      .eq('hidden',false).gte('created_at',live.session.started_at).order('created_at',{ascending:false}).limit(10)
    ]);
-   if(!err&&Array.isArray(doc?.data?.sheets))live.serverSheets=doc.data.sheets;
+   if(!err&&Array.isArray(doc)){
+    for(const p of live.participants){
+     const sheet=doc.find(s=>s.id===p.sheet_id);
+     if(!sheet)continue;
+     const previous=live.lastResources.get(sheet.id),now=sheet.resources;
+     if(previous){
+      const before=Number(previous?.vida?.current),after=Number(now?.vida?.current);
+      if(Number.isFinite(before)&&Number.isFinite(after)&&before!==after){
+       live.resourceFx.set(String(p.account_id),{type:after<before?'damage':'heal',until:Date.now()+1000});
+      }
+      for(const [key,stateText] of [['vida','DESMAIADO'],['estabilidade','ACORRENTADO'],['alma','DESMAIADO']]){
+       if(Number(previous?.[key]?.current)>0&&Number(now?.[key]?.current)===0){
+        const aria=document.getElementById('ae25Announce');
+        if(aria)aria.textContent=(sheet.name||'Personagem')+' entrou no estado '+stateText;
+       }
+      }
+     }
+     live.lastResources.set(sheet.id,now);
+    }
+    live.serverSheets=doc;
+   }
    if(!historyErr&&Array.isArray(rows)){
     const newest=rows[0];
     if(newest&&live.rollSeen!==null&&newest.id!==live.rollSeen){
      const line=newest.dice.map(d=>'d'+d.sides+' ('+d.value+')').join(' + ')+' = '+newest.total;
-     live.rollBanner={account_id:newest.account_id,text:line+(newest.special?' · '+newest.special:''),until:Date.now()+4000};
+     live.rollBanner={account_id:newest.account_id,text:line+(newest.special?' · '+newest.special:''),special:newest.special,until:Date.now()+4000};
     }
     if(newest)live.rollSeen=newest.id;live.history=rows;
    }
@@ -406,7 +437,7 @@
   else if(action==='notify'){if('Notification'in window){const permission=await Notification.requestPermission();pref('notification',permission==='granted')}}
  },true);
  document.addEventListener('change',async e=>{
-  const node=e.target;if(node.id==='ae25CameraSelect'){pref('camera',node.value);return}
+  const node=e.target;if(node.id==='ae25CameraSelect'){pref('camera',node.value);if(live.transmitting){await stopCamera();tell('Câmera alterada','Ative a câmera novamente para escolher o novo dispositivo.')}return}
   const key=node.dataset.ae25Pref;if(!key)return;
   const val=node.type==='checkbox'?node.checked:node.type==='range'?Number(node.value):node.value;
   if(key==='notification'&&val&&'Notification'in window){
@@ -421,9 +452,11 @@
   if(a==='ae25Cancel'){e.preventDefault();e.stopImmediatePropagation();cancelPreview()}
   if(a==='closeModal'&&live.preview){live.preview.getTracks().forEach(t=>t.stop());live.preview=null}
  },true);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&live.preview){live.preview.getTracks().forEach(t=>t.stop());live.preview=null}},{capture:true});
  window.addEventListener('pagehide',()=>{live.stream?.getTracks().forEach(t=>t.stop());live.preview?.getTracks().forEach(t=>t.stop());for(const p of live.peers.values())p.pc.close()});
- window.addEventListener('arquivo-logged-out',()=>{cleanup();live.session=null;live.participants=[];document.getElementById('ae25Invite')?.remove();updateBadges()});
+ window.addEventListener('arquivo-logged-out',()=>{if(live.noticeChannel){client()?.removeChannel(live.noticeChannel).catch(()=>{});live.noticeChannel=null}cleanup();live.session=null;live.participants=[];document.getElementById('ae25Invite')?.remove();updateBadges()});
  setInterval(()=>{poll();if(window.ARQUIVO_INTERNAL?.page==='session'){const timer=document.getElementById('ae25Timer');if(timer)timer.textContent=duration();if(live.rollBanner&&Date.now()>live.rollBanner.until){live.rollBanner=null;refreshTiles()}}},2600);
  setTimeout(poll,500);
+ if(!document.getElementById('ae25Announce')){const liveNode=document.createElement('div');liveNode.id='ae25Announce';liveNode.setAttribute('role','status');liveNode.setAttribute('aria-live','polite');liveNode.className='ae25-sr-only';document.body.append(liveNode)}
  window.ARQUIVO_LIVE={state:live,poll,leave,camera,stopCamera,config};
 })();
