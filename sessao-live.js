@@ -27,7 +27,7 @@
  };
  const resource=(s,k)=>{const v=s?.resources?.[k]||{};return {cur:Number(v.current)||0,max:Number(v.max)||0}};
  const statusFor=s=>{if(!s)return '';if(resource(s,'vida').cur<=0||resource(s,'alma').cur<=0)return 'DESMAIADO';if(resource(s,'estabilidade').cur<=0)return 'ACORRENTADO';return ''};
- const getArt=s=>typeof s?.image==='string'&&/^(data:image\/|https:\/\/)/i.test(s.image)?s.image:'';
+ const getArt=s=>{const v=s?.image;if(typeof v!=='string')return '';if(/^https:\/\//i.test(v)||/^data:image\/(png|jpeg|webp|gif);base64,/i.test(v))return v;return window.mediaSrc?.(v)||''};
  function hud(p,mode){
   if(p.is_master)return '<div class="ae25-master-mark">MESTRE</div>';
   const s=sheetFor(p);if(!s)return '<div class="ae25-unbound">SEM FICHA VINCULADA</div>';
@@ -65,8 +65,8 @@
   const ses=live.session,join=live.joined&&live.sessionId===ses?.id;
   if(!ses)return '<div class="panel ae25-start"><h1>SESSÃO</h1><p>'+htmlEscape(live.closedMessage||'Nenhuma sessão em andamento.')+'</p>'+
    (isMaster()?'<div class="field"><label for="ae25Title">Título da sessão (opcional)</label><input id="ae25Title" maxlength="90" placeholder="Ex.: Arena de Karakura"></div>'+button('INICIAR SESSÃO','start','main'):'<p>Aguardando o mestre iniciar.</p>')+'</div>';
-  const all=live.participants.length,scene=window.db?.site?.session?.scene;
-  return '<div class="ae25-screen" id="ae25Room"><header class="ae25-room-head"><div><span class="eyebrow">SESSÃO AO VIVO</span><h1>'+htmlEscape(ses.title)+'</h1><p>Iniciada por '+htmlEscape(ses.master_name)+' · <time id="ae25Timer">'+duration()+'</time> · '+all+' participante(s)</p></div>'+
+  const all=live.participants.length,scene=window.ARQUIVO_INTERNAL?.db?.site?.session?.scene;
+  return '<div class="ae25-screen" id="ae25Room" data-session="'+htmlEscape(ses.id)+'"><header class="ae25-room-head"><div><span class="eyebrow">SESSÃO AO VIVO</span><h1>'+htmlEscape(ses.title)+'</h1><p>Iniciada por '+htmlEscape(ses.master_name)+' · <time id="ae25Timer">'+duration()+'</time> · '+all+' participante(s)</p></div>'+
     '<div class="ae25-head-actions"><span id="ae25Quality">QUALIDADE '+quality().toUpperCase()+'</span>'+button('⛶','fullscreen','small')+(join?button('SAIR DA SESSÃO','leave','danger'):'')+
     (isMaster()?button('ENCERRAR','end','danger'):'')+'</div></header>'+
     (!join?'<section class="panel"><p>Entrar não liga sua câmera. Você poderá assistir sem transmitir.</p>'+button('ENTRAR NA SESSÃO','join','main')+'</section>':
@@ -105,7 +105,7 @@
  }
  function applyPresentation(){
   document.documentElement.style.setProperty('--ae25-opacity',config.opacity/100);
-  if(window.page==='session')window.render();
+  if(window.ARQUIVO_INTERNAL?.page==='session')window.render();
   else updateBadges();
  }
  function updateBadges(){
@@ -129,7 +129,7 @@
   document.body.append(node);
   if(document.hidden){
    document.title='● SESSÃO ABERTA';
-   if(config.alertSound&&!window.prefs?.effectsMuted&&typeof window.sound==='function')window.sound('click');
+   if(config.alertSound&&!window.ARQUIVO_INTERNAL?.prefs?.effectsMuted&&typeof window.sound==='function')window.sound('click');
    if(config.notification&&window.Notification?.permission==='granted')try{new Notification('Sessão iniciada',{body:live.session.title})}catch(e){}
   }
  }
@@ -157,9 +157,9 @@
     if(live.channelReady)syncPeers();
    }
    await updateServerData();
-   if(window.page==='session'&&!document.activeElement?.matches('input,select,textarea')){
+   if(window.ARQUIVO_INTERNAL?.page==='session'&&!document.activeElement?.matches('input,select,textarea')){
     const area=document.getElementById('ae25Room'),phase=area?.dataset?.session;
-    if(!area||area.dataset.session!==s?.id){window.render()}
+    if(!area||area.dataset.session!==s?.id){window.render();refreshTiles()}
     else{refreshTiles();const timer=document.getElementById('ae25Timer');if(timer)timer.textContent=duration();}
    }
    updateBadges();
@@ -186,7 +186,7 @@
   }catch(e){console.warn('Leitura de HUD indisponível',e)}
  }
  function refreshTiles(){
-  if(window.page!=='session')return;
+  if(window.ARQUIVO_INTERNAL?.page!=='session')return;
   const stage=document.querySelector('.ae25-stage');if(!stage)return;
   const isTyping=!!document.activeElement?.closest('.ae25-controls');
   stage.className='ae25-stage ae25-layout-'+config.layout;
@@ -204,8 +204,8 @@
  async function enter(){
   if(!live.session)return warn('Sessão indisponível','O mestre ainda não iniciou.');
   try{
-   const sheet=window.db?.sheets?.find(x=>!x.masterOnly&&window.canEditSheet?.(x.id))?.id||null;
-   await rpc('ae_live_join',{p_character_id:isMaster()?null:sheet});
+   const sheet=window.ARQUIVO_INTERNAL?.db?.sheets?.find(x=>!x.masterOnly&&window.canEditSheet?.(x.id))?.id||null;
+   window.stopSessionCamera?.();await rpc('ae_live_join',{p_character_id:isMaster()?null:sheet});
    live.joined=true;live.sessionId=live.session.id;live.closedMessage='';dismissInvite(true);
    await pollForce();
    await connectChannel();
@@ -239,7 +239,7 @@
  async function cleanup(message='Sessão encerrada'){
   if(live.preview){live.preview.getTracks().forEach(t=>t.stop());live.preview=null;}
   await stopCamera(false);
-  for(const peer of live.peers.values())try{peer.pc.close()}catch(e){}
+  window.stopSessionCamera?.();for(const peer of live.peers.values())try{peer.pc.close()}catch(e){}
   live.peers.clear();live.remotes.clear();
   if(live.room){try{await client()?.removeChannel(live.room)}catch(e){}live.room=null}
   live.joined=false;live.sessionId=null;live.channelReady=false;live.closedMessage=message;live.lastBeat=0;
@@ -383,7 +383,7 @@
  const originalSettings=window.settings,originalNav=window.navRender,originalSetPage=window.setPage;
  window.sessionPage=sessionPage;
  window.settings=function(){return originalSettings()+settingsExtra()};
- window.navRender=function(){originalNav();updateBadges();for(const node of document.querySelectorAll('[data-page="session"]'))node.hidden=!logged()};
+ window.navRender=function(){originalNav();updateBadges();for(const node of document.querySelectorAll('[data-page="session"]')){node.hidden=!logged();node.style.display=logged()?'':'none'}};
  window.setPage=function(p){if(p==='session'&&!logged())return warn('Sessão restrita','Entre com sua chave para acessar.');originalSetPage(p);if(p==='session'){refreshTiles();listCameras()}};
  document.addEventListener('click',async e=>{
   const node=e.target.closest('[data-ae25]');if(!node)return;
@@ -423,7 +423,7 @@
  },true);
  window.addEventListener('pagehide',()=>{live.stream?.getTracks().forEach(t=>t.stop());live.preview?.getTracks().forEach(t=>t.stop());for(const p of live.peers.values())p.pc.close()});
  window.addEventListener('arquivo-logged-out',()=>{cleanup();live.session=null;live.participants=[];document.getElementById('ae25Invite')?.remove();updateBadges()});
- setInterval(()=>{poll();if(window.page==='session'){const timer=document.getElementById('ae25Timer');if(timer)timer.textContent=duration();if(live.rollBanner&&Date.now()>live.rollBanner.until){live.rollBanner=null;refreshTiles()}}},2600);
+ setInterval(()=>{poll();if(window.ARQUIVO_INTERNAL?.page==='session'){const timer=document.getElementById('ae25Timer');if(timer)timer.textContent=duration();if(live.rollBanner&&Date.now()>live.rollBanner.until){live.rollBanner=null;refreshTiles()}}},2600);
  setTimeout(poll,500);
  window.ARQUIVO_LIVE={state:live,poll,leave,camera,stopCamera,config};
 })();
