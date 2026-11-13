@@ -177,7 +177,7 @@
     if(now-live.lastBeat>12000){live.lastBeat=now;try{await rpc('ae_live_heartbeat',{p_camera:live.transmitting})}catch(e){warn('Falha de presença',e.message);await cleanup('Conexão da sessão encerrada.');}}
     if(live.channelReady)syncPeers();
    }
-   await updateServerData();
+   if(!document.hidden)await updateServerData();
    if(window.ARQUIVO_INTERNAL?.page==='session'&&!document.activeElement?.matches('input,select,textarea')){
     const area=document.getElementById('ae25Room'),phase=area?.dataset?.session;
     if(!area||area.dataset.session!==s?.id){window.render();refreshTiles()}
@@ -507,8 +507,18 @@
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&live.preview){live.preview.getTracks().forEach(t=>t.stop());live.preview=null}},{capture:true});
  window.addEventListener('pagehide',()=>{live.stream?.getTracks().forEach(t=>t.stop());live.preview?.getTracks().forEach(t=>t.stop());for(const p of live.peers.values())p.pc.close()});
  window.addEventListener('arquivo-logged-out',()=>{if(live.noticeChannel){client()?.removeChannel(live.noticeChannel).catch(()=>{});live.noticeChannel=null}cleanup();live.session=null;live.participants=[];document.getElementById('ae25Invite')?.remove();updateBadges()});
- setInterval(()=>{poll();if(window.ARQUIVO_INTERNAL?.page==='session'){const timer=document.getElementById('ae25Timer');if(timer)timer.textContent=duration();if(live.rollBanner&&Date.now()>live.rollBanner.until){live.rollBanner=null;refreshTiles()}}},2600);
- setTimeout(poll,500);
+ // Sem sala: consulta eventual e aviso Realtime. Com participantes: HUD a cada ~3 s.
+function livePulse(){
+ poll().catch(()=>{});
+ if(window.ARQUIVO_INTERNAL?.page==='session'){
+  const timer=document.getElementById('ae25Timer');if(timer)timer.textContent=duration();
+  if(live.rollBanner&&Date.now()>live.rollBanner.until){live.rollBanner=null;refreshTiles()}
+ }
+ const delay=live.joined?(document.hidden?10000:2900):(live.session?(document.hidden?30000:12000):(document.hidden?45000:20000));
+ setTimeout(livePulse,delay);
+}
+window.addEventListener('visibilitychange',()=>{if(!document.hidden)poll().catch(()=>{})});
+setTimeout(livePulse,500);
  if(!document.getElementById('ae25Announce')){const liveNode=document.createElement('div');liveNode.id='ae25Announce';liveNode.setAttribute('role','status');liveNode.setAttribute('aria-live','polite');liveNode.className='ae25-sr-only';document.body.append(liveNode)}
  window.ARQUIVO_LIVE={state:live,poll,leave,camera,stopCamera,config};
 })();
