@@ -793,8 +793,8 @@ function formatBook(source){
  const term=query.trim(),search=term?new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
  function inline(text){
   let t=esc(text||'');
-  t=t.replace(/\\([*_~`])/g,'$1').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/__([^_]+)__/g,'<strong>$1</strong>').replace(/~~([^~]+)~~/g,'<del>$1</del>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>').replace(/`([^`]+)`/g,'<code>$1</code>');
   if(search)t=t.replace(search,m=>'<mark>'+m+'</mark>');
+  t=t.replace(/\\([*_~`])/g,'$1').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/__([^_]+)__/g,'<strong>$1</strong>').replace(/~~([^~]+)~~/g,'<del>$1</del>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>').replace(/`([^`]+)`/g,'<code>$1</code>');
   return t;
  }
  let html='',paragraph=[],listType=null,code=[],table=[],quote=[];
