@@ -439,7 +439,7 @@ function requestModalClose(){if(hasModalChanges()){
  return;}closeModal();}
 function discardModal(){modalGuard=false;modalDirty=false;modalSaved=null;closeModal()}
 function returnModal(){if(modalSaved){el('dialogRoot').replaceChildren(modalSaved);modalDirty=true;modalSaved=null;modalGuard=false;el('dialogRoot').querySelector('input,textarea,select,button')?.focus()}}
-let modalOrigin=null;function closeModal(){el('dialogRoot').innerHTML='';modalDirty=false;modalGuard=false;modalSaved=null;pendingAction=null;modalOrigin?.focus?.();modalOrigin=null}function confirmSite(title,detail,callback){pendingAction=callback;modal(title,`<p>${esc(detail)}</p>`,[['Confirmar','confirmPending','alert'],['Cancelar','closeModal']])}function confirmPending(){const fn=pendingAction;closeModal();if(fn)fn()}
+let modalOrigin=null;function closeModal(){el('dialogRoot').innerHTML='';modalDirty=false;modalGuard=false;modalSaved=null;pendingAction=null;modalOrigin?.focus?.();modalOrigin=null;queueMicrotask(flushPendingOnlineSnapshot)}function confirmSite(title,detail,callback){pendingAction=callback;modal(title,`<p>${esc(detail)}</p>`,[['Confirmar','confirmPending','alert'],['Cancelar','closeModal']])}function confirmPending(){const fn=pendingAction;closeModal();if(fn)fn()}
 
 const signedSheetMedia=new Map(),pendingMediaSigns=new Set();
 function sheetMediaRef(value){return typeof value==='string'&&/^ae-media:\/\/[a-zA-Z0-9_-]{1,100}\/[0-9a-f-]{36}\.(gif|png|jpg|jpeg|webp)$/.test(value)}
@@ -488,8 +488,26 @@ function applyTextOverrides(){
 function editTextDialog(key,original){if(!master())return;editingTextKey=key;const override=db.site.textOverrides||{};const current=Object.prototype.hasOwnProperty.call(override,key)?override[key]:original;
  modal('EDITAR TEXTO',`<p>O texto pode ser restaurado individualmente.</p><div class="field"><label>Conteúdo<textarea id="textEditorValue" rows="5">${esc(current)}</textarea></label></div>`,[['SALVAR','saveEditedText','main'],['RESTAURAR ORIGINAL','restoreEditedText'],['CANCELAR','closeModal']]);
 }
-function saveEditedText(){if(!requireMaster())return;const value=el('textEditorValue')?.value??'';db.site.textOverrides??={};db.site.textOverrides[editingTextKey]=value;save();closeModal();render();toast('Texto atualizado')}
-function restoreEditedText(){if(!requireMaster())return;delete (db.site.textOverrides||{})[editingTextKey];save();closeModal();render();toast('Texto original restaurado')}
+async function saveEditedText(){
+ if(!requireMaster())return;
+ const value=el('textEditorValue')?.value??'';
+ db.site.textOverrides??={};db.site.textOverrides[editingTextKey]=value;
+ save();closeModal();render();
+ const sync=window.ARQUIVO_SYNC;
+ if(!sync?.state.enabled){toast('Texto salvo localmente','Não sincronizado com os jogadores.',true);return}
+ await sync.state.pending;
+ if(sync.state.lastPushError){toast('Texto não publicado',sync.state.lastPushError,true);return}
+ toast('Texto publicado','Jogadores conectados receberão a alteração.');
+}
+async function restoreEditedText(){
+ if(!requireMaster())return;
+ delete (db.site.textOverrides||{})[editingTextKey];save();closeModal();render();
+ const sync=window.ARQUIVO_SYNC;
+ if(!sync?.state.enabled){toast('Texto restaurado localmente','Sem sincronização online.',true);return}
+ await sync.state.pending;
+ if(sync.state.lastPushError){toast('Restauração não publicada',sync.state.lastPushError,true);return}
+ toast('Texto original publicado');
+}
 function onlineStatus(){const elStatus=el('onlineStatus');if(!elStatus)return;const st=window.ARQUIVO_SYNC?.state;
  elStatus.classList.toggle('connected',!!st?.enabled);elStatus.textContent=st?.enabled?'ONLINE · '+(st.identity?.kind==='master'?'MESTRE':st.identity?.kind==='player'?'JOGADOR':'VISITANTE'):st?.configured?'CONEXÃO INDISPONÍVEL':'LOCAL';
  elStatus.title=st?.error||'Sincronização com servidor';
@@ -508,11 +526,35 @@ async function onlineBootstrapSave(){const st=window.ARQUIVO_SYNC;if(!st?.state.
  try{const identity=await st.bootstrap(el('bootstrapToken').value,el('bootstrapCode').value,el('bootstrapName').value);
   onlineApplyIdentity(identity);closeModal();render();toast('Mestre inicial criado','Salvando o conteúdo atual no servidor.');save();
  }catch(e){toast('Não foi possível ativar',e.message,true)}}
-function applyOnlineSnapshot(detail){const snap=detail.data;if(!snap?.site||!Array.isArray(snap.sheets)||!Array.isArray(snap.rules))return;
- const active=document.activeElement;if(active&&['INPUT','TEXTAREA','SELECT'].includes(active.tagName)&&active.closest('#page'))return;
- if(el('dialogRoot')?.querySelector('[role="dialog"]'))return;
- const oldPrefs=prefs;db={...clone(snap),keys:window.ARQUIVO_SYNC.state.keys};
- onlineApplyIdentity(detail.identity);prefs=oldPrefs;DATASTORE.save(db);render();}
+let pendingOnlineSnapshot=null,appliedOnlineRevision=-1;
+function onlineSnapshotIsBlocked(){
+ const active=document.activeElement;
+ return !!(active&&['INPUT','TEXTAREA','SELECT'].includes(active.tagName)&&active.closest('#page'))
+  ||!!el('dialogRoot')?.querySelector('[role="dialog"]');
+}
+function flushPendingOnlineSnapshot(){
+ if(!pendingOnlineSnapshot||onlineSnapshotIsBlocked())return;
+ const detail=pendingOnlineSnapshot;pendingOnlineSnapshot=null;
+ applyOnlineSnapshot(detail);
+}
+function applyOnlineSnapshot(detail){
+ const snap=detail?.data;
+ if(!snap?.site||!Array.isArray(snap.sheets)||!Array.isArray(snap.rules))return;
+ const revision=Number(detail.revision||0);
+ if(revision<appliedOnlineRevision)return;
+ if(onlineSnapshotIsBlocked()){
+  if(!pendingOnlineSnapshot||revision>=Number(pendingOnlineSnapshot.revision||0))pendingOnlineSnapshot=detail;
+  return;
+ }
+ pendingOnlineSnapshot=null;appliedOnlineRevision=revision;
+ const oldPrefs=prefs;
+ db={...clone(snap),keys:window.ARQUIVO_SYNC.state.keys};
+ onlineApplyIdentity(detail.identity);prefs=oldPrefs;
+ DATASTORE.save(db);render();
+}
+document.addEventListener('focusout',()=>queueMicrotask(flushPendingOnlineSnapshot),true);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)flushPendingOnlineSnapshot()});
+setInterval(()=>{if(pendingOnlineSnapshot&&!document.hidden)flushPendingOnlineSnapshot()},1200);
 window.addEventListener('arquivo-online-ready',async()=>{
  const st=window.ARQUIVO_SYNC;try{const inf=st.state.identity;
   if(inf?.kind==='master')await st.keys();else if(inf)await st.keys();
@@ -1206,7 +1248,19 @@ function sheetExport(){const s=db.sheets.find(x=>x.id===currentSheet);if(!s)retu
 function copyText(text,label){const fallback=()=>modal(label,`<p>Copie o conteúdo abaixo manualmente.</p><textarea rows="14" readonly id="copyFallback">${esc(text)}</textarea>`,[['Fechar','closeModal']]);try{if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(()=>toast('Copiado para a área de transferência')).catch(fallback)}else fallback()}catch(e){fallback()}}
 function copyInstruction(){const sample=clone(SHEET_SAMPLE);sample.id='';sample.image='';sample.conditions=[];const message=`Crie uma ficha para o RPG Arquivo Espiritual em JSON puro, sem explicação. Modelo:\n${JSON.stringify(sample,null,2)}\nObrigatório: name texto, level inteiro >=1, resources.vida/estabilidade/alma com current e max inteiros 0..max; groups Corpo, Mente, Espírito com valores numéricos 4,6,8,10,12,20; skills com as 18 perícias de Corpo (Vigor, Fortitude, Destreza, Atenção, Sigilo, Precisão), Mente (Cultura, Determinação, Raciocínio, Tática, Instinto, Lábia), Espírito (Presença, Sensibilidade, Integridade, Disciplina, Manipulação, Liberação), valores 4,6,8,10,12,20. abilities lista com name, cost (inteiro não negativo) e description. subtitle, image, notes e conditions são opcionais. Não invente regras não fornecidas; quando faltar referência, identifique habilidades como ilustrativas. Para múltiplas fichas, devolva array JSON. Não inclua comentários no JSON.`;copyText(message,'INSTRUÇÃO PARA IA')}
 function deleteSheet(){if(!requireMaster())return;if(!requireMaster())return;confirmSite('EXCLUIR FICHA','Excluir este personagem do arquivo local?',()=>{db.sheets=db.sheets.filter(x=>x.id!==currentSheet);currentSheet=null;save();render()})}
-function saveSite(){if(!requireMaster())return;db.site.title=el('siteTitle').value.trim()||'Arquivo Espiritual';db.site.subtitle=el('siteSubtitle').value;db.site.defaultPalette=el('siteDefaultPalette').value;save();applyPrefs();render();toast('Identidade salva')}
+async function saveSite(){
+ if(!requireMaster())return;
+ const title=el('siteTitle')?.value.trim()||'Arquivo Espiritual';
+ const subtitle=el('siteSubtitle')?.value||'';
+ const palette=el('siteDefaultPalette')?.value||'padrao';
+ db.site.title=title;db.site.subtitle=subtitle;db.site.defaultPalette=palette;
+ save();applyPrefs();render();
+ const sync=window.ARQUIVO_SYNC;
+ if(!sync?.state.enabled){toast('Identidade salva localmente','Conecte-se para publicar aos jogadores.',true);return}
+ await sync.state.pending;
+ if(sync.state.lastPushError){toast('Publicação não concluída',sync.state.lastPushError,true);return}
+ toast('Identidade publicada','A atualização foi enviada aos jogadores conectados.');
+}
 async function compressImage(file){if(!file||!file.type.startsWith('image/'))throw Error('Escolha um arquivo de imagem.');if(file.type==='image/gif'){if(file.size>320000)throw Error('GIF acima de 320 KB: use um GIF menor para preservar a animação.');return new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=()=>reject(Error('Falha ao ler GIF.'));r.onload=()=>resolve(r.result);r.readAsDataURL(file)})}if(file.size>18000000)throw Error('A imagem deve ter até 18 MB.');const src=await new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=()=>reject(Error('Não foi possível ler a imagem'));r.onload=()=>resolve(r.result);r.readAsDataURL(file)});const im=new Image();await new Promise((resolve,reject)=>{im.onload=resolve;im.onerror=()=>reject(Error('Imagem inválida'));im.src=src});const width=Math.min(1200,im.naturalWidth),height=Math.max(1,Math.round(im.naturalHeight*width/im.naturalWidth));const c=document.createElement('canvas');c.width=width;c.height=height;const ctx=c.getContext('2d');ctx.drawImage(im,0,0,width,height);let data;try{data=c.toDataURL('image/webp',.78);if(!data.startsWith('data:image/webp'))throw Error('') }catch(e){data=c.toDataURL('image/jpeg',.78)}return data}
 async function imageFile(input,field){if(!requireMaster())return;const f=input.files?.[0];if(!f)return;try{let image;if(field==='sheet'){acceptedImage(f);image=await window.ARQUIVO_SYNC.uploadSheetMedia(currentSheet,f)}else image=await compressImage(f);if(field==='cover'){db.site.cover=image}else if(field==='sheet'){const s=db.sheets.find(x=>x.id===currentSheet);if(s)s.image=image}save();closeModal();render();toast('Imagem salva','Arquivo externo vinculado à ficha.')}catch(e){toast('Erro na imagem',e.message,true)}}
 function imageDialog(){if(!requireMaster())return;modal('IMAGEM DO PERSONAGEM',`<p>Escolha JPG, PNG, WebP ou GIF de até 15 MB. O arquivo será salvo separadamente no Storage privado.</p><div class="field"><label>Arquivo de imagem</label><input type="file" id="sheetImageFile" accept="image/gif,image/png,image/jpeg,image/webp"></div>`,[['Fechar','closeModal']])}
