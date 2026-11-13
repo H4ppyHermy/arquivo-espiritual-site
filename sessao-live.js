@@ -68,7 +68,7 @@
    (isMaster()?'<div class="field"><label for="ae25Title">Título da sessão (opcional)</label><input id="ae25Title" maxlength="90" placeholder="Ex.: Arena de Karakura"></div>'+button('INICIAR SESSÃO','start','main'):'<p>Aguardando o mestre iniciar.</p>')+'</div>';
   const all=live.participants.length,scene=window.ARQUIVO_INTERNAL?.db?.site?.session?.scene;
   return '<div class="ae25-screen" id="ae25Room" data-session="'+htmlEscape(ses.id)+'"><header class="ae25-room-head"><div><span class="eyebrow">SESSÃO AO VIVO</span><h1>'+htmlEscape(ses.title)+'</h1><p>Iniciada por '+htmlEscape(ses.master_name)+' · <time id="ae25Timer">'+duration()+'</time> · '+all+' participante(s)</p></div>'+
-    '<div class="ae25-head-actions"><span id="ae25Quality">QUALIDADE '+quality().toUpperCase()+'</span>'+button('⛶','fullscreen','small')+(join?button('SAIR DA SESSÃO','leave','danger'):'')+
+    '<div class="ae25-head-actions"><span id="ae25Quality">ENVIO '+quality().toUpperCase()+'</span><span id="ae25Connection" role="status">CONEXÃO: '+(live.channelReady?'OK':'CONECTANDO')+'</span>'+button('⛶','fullscreen','small')+(join?button('SAIR DA SESSÃO','leave','danger'):'')+
     (isMaster()?button('ENCERRAR','end','danger'):'')+'</div></header>'+
     (!join?'<section class="panel"><p>Entrar não liga sua câmera. Você poderá assistir sem transmitir.</p>'+button('ENTRAR NA SESSÃO','join','main')+'</section>':
     '<div class="ae25-layout"><section class="ae25-stage ae25-layout-'+htmlEscape(config.layout)+'">'+
@@ -155,9 +155,16 @@
   connectNotice();
   live.polling=true;
   try{
-   const data=await rpc('ae_live_state'),old=live.session?.id;
+   const data=await rpc('ae_live_state'),old=live.session?.id,previousParticipants=new Set(live.participants.map(p=>String(p.account_id)));
    const s=data?.session||null;
    live.session=s;live.participants=Array.isArray(data?.participants)?data.participants:[];
+   if(old===s?.id&&live.joined){
+    const nowPeople=new Set(live.participants.map(p=>String(p.account_id))),aria=document.getElementById('ae25Announce');
+    const entered=live.participants.find(p=>!previousParticipants.has(String(p.account_id)));
+    const left=[...previousParticipants].find(id=>!nowPeople.has(id));
+    if(aria&&entered)aria.textContent=entered.account_name+' entrou na sessão.';
+    else if(aria&&left)aria.textContent='Um participante saiu da sessão.';
+   }
    if(old!==s?.id){live.alertedId=null;live.rollSeen=null;live.history=[];if(old)await cleanup('Sessão encerrada');}
    if(s&&live.joined&&live.sessionId===s.id&&!myParticipant()){await cleanup('Você saiu ou foi removido da sessão.');}
    if(s&&!isMaster())showInvite();
@@ -230,6 +237,11 @@
   }
   quickSheet();
   const history=document.getElementById('ae25History');if(history)history.innerHTML=historyHtml();
+  const connection=document.getElementById('ae25Connection');
+  if(connection){const failing=[...live.peers.values()].some(p=>['disconnected','failed'].includes(p.pc.connectionState));
+   const connecting=[...live.peers.values()].some(p=>['connecting','new'].includes(p.pc.connectionState));
+   connection.textContent='CONEXÃO: '+(failing?'RECONECTANDO':connecting?'CONECTANDO':live.channelReady?'OK':'INDISPONÍVEL');
+  }
   if(config.hud==='compact')document.querySelectorAll('.ae25-circle').forEach(x=>x.title=x.getAttribute('aria-label'));
  }
  async function enter(){
@@ -303,7 +315,7 @@
   if(live.peers.has(id))return live.peers.get(id);
   const ice=window.ARQUIVO_ONLINE_CONFIG?.iceServers||[{urls:'stun:stun.l.google.com:19302'}];
   const pc=new RTCPeerConnection({iceServers:ice}),initiator=me()<id;
-  const transceiver=pc.addTransceiver('video',{direction:'recvonly'});
+  const transceiver=pc.addTransceiver('video',{direction:config.receivePaused?'inactive':'recvonly'});
   const peer={pc,transceiver,initiator,stream:null,makingOffer:false};
   live.peers.set(id,peer);
   pc.ontrack=e=>{let stream=e.streams?.[0];if(!stream){stream=live.remotes.get(id)?.stream||new MediaStream();stream.addTrack(e.track)}live.remotes.set(id,{stream,connectionState:pc.connectionState});refreshTiles()};
@@ -314,7 +326,7 @@
    refreshTiles();
   };
   pc.onnegotiationneeded=()=>{if(initiator)negotiate(id);else send('renegotiate',id)};
-  if(live.stream){transceiver.sender.replaceTrack(live.stream.getVideoTracks()[0]).then(()=>{transceiver.direction='sendrecv';capBitrate(peer)}).catch(()=>{})}
+  if(live.stream){transceiver.sender.replaceTrack(live.stream.getVideoTracks()[0]).then(()=>{transceiver.direction=config.receivePaused?'sendonly':'sendrecv';capBitrate(peer)}).catch(()=>{})}
   return peer;
  }
  async function negotiate(id){
@@ -343,6 +355,14 @@
   params.encodings=params.encodings?.length?params.encodings:[{}];
   params.encodings[0].maxBitrate=videoProfile().bitrate;
   sender.setParameters(params).catch(()=>{});
+ }
+ function setReceivePaused(paused){
+  pref('receivePaused',paused);
+  for(const [id,peer] of live.peers){
+   try{peer.transceiver.direction=paused?(live.stream?'sendonly':'inactive'):(live.stream?'sendrecv':'recvonly');
+   if(!peer.initiator)send('renegotiate',id)}catch(e){}
+  }
+  refreshTiles();
  }
  async function applyCameraQuality(){
   if(!live.stream)return;
@@ -373,7 +393,7 @@
    await rpc('ae_live_heartbeat',{p_camera:true});
    live.stream=live.preview;live.preview=null;live.transmitting=true;
    const t=live.stream.getVideoTracks()[0];if(t)t.onended=()=>stopCamera();
-   for(const [id,peer] of live.peers){await peer.transceiver.sender.replaceTrack(t);peer.transceiver.direction='sendrecv';capBitrate(peer);if(!peer.initiator)send('renegotiate',id)}
+   for(const [id,peer] of live.peers){await peer.transceiver.sender.replaceTrack(t);peer.transceiver.direction=config.receivePaused?'sendonly':'sendrecv';capBitrate(peer);if(!peer.initiator)send('renegotiate',id)}
    await applyCameraQuality();window.closeModal();tell('TRANSMITINDO','Câmera ligada, sem microfone.');
    refreshTiles();window.render();
   }catch(e){warn('Não foi possível transmitir',e.message);cancelPreview()}
@@ -383,7 +403,7 @@
   live.preview?.getTracks().forEach(t=>t.stop());live.preview=null;
   if(live.stream){for(const t of live.stream.getTracks())t.stop();live.stream=null}
   live.transmitting=false;
-  for(const [id,peer] of live.peers){try{await peer.transceiver.sender.replaceTrack(null);peer.transceiver.direction='recvonly';if(!peer.initiator)send('renegotiate',id)}catch(e){}}
+  for(const [id,peer] of live.peers){try{await peer.transceiver.sender.replaceTrack(null);peer.transceiver.direction=config.receivePaused?'inactive':'recvonly';if(!peer.initiator)send('renegotiate',id)}catch(e){}}
   if(doHeartbeat&&live.joined)rpc('ae_live_heartbeat',{p_camera:false}).catch(()=>{});
   refreshTiles();
  }
@@ -424,7 +444,7 @@
   else if(action==='later'){dismissInvite();}
   else if(action==='end')finish();else if(action==='leave')leave();else if(action==='kick')kick(id);
   else if(action==='camera')camera();else if(action==='mirror')pref('mirror',!config.mirror);
-  else if(action==='pauseReceive'){pref('receivePaused',!config.receivePaused);refreshTiles()}
+  else if(action==='pauseReceive'){setReceivePaused(!config.receivePaused)}
   else if(action==='scene')document.getElementById('sessionSceneInput')?.click();
   else if(action==='removeScene')window.removeSessionScene?.();
   else if(action==='drawer'){live.drawer=!live.drawer;window.render();refreshTiles()}
