@@ -19,7 +19,20 @@ async function init(){if(!ready)return false;
   if(!session){const res=await state.client.auth.signInAnonymously();if(res.error)throw res.error}
   state.identity=await rpc('ae_session_info');if(!state.identity?.id)state.identity=null;
   state.enabled=true;await refresh(true);
-  setInterval(()=>{if(state.enabled&&document.visibilityState==='visible')refresh(false).catch(e=>{state.error=e.message;window.dispatchEvent(new CustomEvent('arquivo-sync-error',{detail:e.message}))})},5000);
+  // Fichas em uso: sincronização frequente. Demais páginas: consultas leves e espaçadas.
+let nextDocumentRefresh=0;
+setInterval(()=>{
+ if(!state.enabled||document.hidden)return;
+ const page=window.ARQUIVO_INTERNAL?.page||'home';
+ const period=page==='sheets'?5000:page==='admin'?8000:20000;
+ const now=Date.now();
+ if(now<nextDocumentRefresh)return;
+ nextDocumentRefresh=now+period;
+ refresh(false).catch(e=>{state.error=e.message;window.dispatchEvent(new CustomEvent('arquivo-sync-error',{detail:e.message}))});
+},3000);
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden){nextDocumentRefresh=0;refresh(false).catch(()=>{})}
+});
   window.dispatchEvent(new Event('arquivo-online-ready'));
   return true;
  }catch(e){state.error=e.message;state.enabled=false;window.dispatchEvent(new CustomEvent('arquivo-sync-error',{detail:e.message}));return false}
