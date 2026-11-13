@@ -139,3 +139,21 @@ do $$ declare r record;begin for r in select p.oid::regprocedure::text signature
  where n.nspname='public' and p.proname in ('ae_live_start','ae_live_state','ae_live_join','ae_live_heartbeat','ae_live_leave','ae_live_kick','ae_live_end')
  loop execute 'revoke all on function '||r.signature||' from public,anon';execute 'grant execute on function '||r.signature||' to authenticated';end loop;end $$;
 -- Verificação: select status,title,started_at from public.ae_live_sessions order by started_at desc limit 5;
+
+
+-- Sinalização de convites e encerramento: eventos privados; conteúdo sempre relido do servidor.
+create or replace function public.ae_live_session_notification()
+returns trigger language plpgsql security definer set search_path='' as $$
+begin
+ if tg_op='INSERT' and new.status='open' then
+  perform realtime.send(jsonb_build_object('session_id',new.id),'session-start','ae-live-notify',true);
+ elsif tg_op='UPDATE' and old.status='open' and new.status='ended' then
+  perform realtime.send(jsonb_build_object('session_id',new.id),'session-end','ae-live-notify',true);
+ end if;
+ return new;
+end $$;
+revoke all on function public.ae_live_session_notification() from public,anon,authenticated;
+drop trigger if exists ae_live_session_notification_trigger on public.ae_live_sessions;
+create trigger ae_live_session_notification_trigger
+after insert or update of status on public.ae_live_sessions
+for each row execute function public.ae_live_session_notification();
