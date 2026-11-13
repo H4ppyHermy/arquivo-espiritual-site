@@ -1,5 +1,6 @@
 (function setupAELive(){
  'use strict';
+ const tileRenderCache=new Map();
  const htmlEscape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const value=(key,defaultVal)=>{try{const v=JSON.parse(localStorage.getItem('ae_live_'+key));return v===null?defaultVal:v}catch(e){return defaultVal}};
  const config={layout:value('layout','grid'),hud:value('hud','below'),density:value('density','normal'),lateralSide:value('lateralSide','right'),opacity:value('opacity',75),position:value('position','bottom'),scale:value('scale','medium'),quality:value('quality','standard'),mirror:value('mirror',true),camera:value('camera',''),notification:value('notification',false),alertSound:value('alertSound',true),receivePaused:value('receivePaused',false)};
@@ -99,10 +100,12 @@
  function quickSheet(){
   const selected=live.participants.find(p=>String(p.account_id)===live.selected)||live.participants[0],s=sheetFor(selected);
   const quick=document.getElementById('ae25Quick');if(!quick)return;
-  quick.innerHTML='<h3>FICHA RÁPIDA</h3>'+(selected?'<p><b>'+htmlEscape(selected.account_name)+'</b></p>':'')+
+  const previousMarkup=quick.innerHTML;
+  const newMarkup='<h3>FICHA RÁPIDA</h3>'+(selected?'<p><b>'+htmlEscape(selected.account_name)+'</b></p>':'')+
     (s?'<p>'+htmlEscape(s.name)+'</p>'+hud(selected,'only')+
     ((String(selected.account_id)===me()||isMaster())?button('ABRIR FICHA','openSheet','small'):'<p class="subtitle">Somente leitura</p>'):
     '<p class="subtitle">Sem ficha vinculada.</p>');
+  if(newMarkup!==previousMarkup)quick.innerHTML=newMarkup;
  }
  function applyPresentation(){
   document.documentElement.style.setProperty('--ae25-opacity',config.opacity/100);
@@ -226,23 +229,46 @@
  function refreshTiles(){
   if(window.ARQUIVO_INTERNAL?.page!=='session')return;
   const stage=document.querySelector('.ae25-stage');if(!stage)return;
-  const isTyping=!!document.activeElement?.closest('.ae25-controls');
   stage.className='ae25-stage ae25-layout-'+config.layout;
-  stage.innerHTML=live.participants.map(tile).join('');
-  for(const p of live.participants){
-   const id=String(p.account_id),video=stage.querySelector('[data-peer-video="'+id+'"]');
-   if(!video)continue;
-   const stream=id===me()?live.stream:live.remotes.get(id)?.stream;
-   if(stream){video.srcObject=stream;video.muted=true;video.playsInline=true;if(!config.receivePaused||id===me())video.play().catch(()=>{});else video.pause();}
+  // Preserva os elementos <video> quando os dados não mudam:
+  // recriar vídeos a cada 2,6 s provoca congelamentos e reconexões visuais.
+  const expected=new Set(live.participants.map(p=>String(p.account_id)));
+  for(const node of [...stage.querySelectorAll(':scope > [data-tile]')]){
+   if(!expected.has(node.dataset.tile))node.remove();
   }
+  for(let i=0;i<live.participants.length;i++){
+   const p=live.participants[i],id=String(p.account_id),markup=tile(p);
+   let existing=[...stage.children].find(node=>node.dataset?.tile===id);
+   if(!existing||tileRenderCache.get(id)!==markup){
+    const holder=document.createElement('div');holder.innerHTML=markup;
+    const next=holder.firstElementChild;
+    if(!next)continue;
+    if(existing)existing.replaceWith(next);else stage.appendChild(next);
+    existing=next;tileRenderCache.set(id,markup);
+   }
+   if(stage.children[i]!==existing)stage.insertBefore(existing,stage.children[i]||null);
+   const video=existing.querySelector('[data-peer-video]');
+   if(video){
+    const stream=id===me()?live.stream:live.remotes.get(id)?.stream;
+    if(stream&&video.srcObject!==stream){
+     video.srcObject=stream;video.muted=true;video.playsInline=true;
+     video.play().catch(()=>{});
+    }
+   }
+  }
+  for(const key of tileRenderCache.keys())if(!expected.has(key))tileRenderCache.delete(key);
+  // Histórico e ficha rápida não precisam ser recriados quando o conteúdo é idêntico.
   quickSheet();
-  const history=document.getElementById('ae25History');if(history)history.innerHTML=historyHtml();
+  const history=document.getElementById('ae25History');
+  if(history){const markup=historyHtml();if(history.innerHTML!==markup)history.innerHTML=markup}
   const connection=document.getElementById('ae25Connection');
-  if(connection){const failing=[...live.peers.values()].some(p=>['disconnected','failed'].includes(p.pc.connectionState));
+  if(connection){
+   const failing=[...live.peers.values()].some(p=>['disconnected','failed'].includes(p.pc.connectionState));
    const connecting=[...live.peers.values()].some(p=>['connecting','new'].includes(p.pc.connectionState));
-   connection.textContent='CONEXÃO: '+(failing?'RECONECTANDO':connecting?'CONECTANDO':live.channelReady?'OK':'INDISPONÍVEL');
+   const status='CONEXÃO: '+(failing?'RECONECTANDO':connecting?'CONECTANDO':live.channelReady?'OK':'INDISPONÍVEL');
+   if(connection.textContent!==status)connection.textContent=status;
   }
-  if(config.hud==='compact')document.querySelectorAll('.ae25-circle').forEach(x=>x.title=x.getAttribute('aria-label'));
+  if(config.hud==='compact')stage.querySelectorAll('.ae25-circle').forEach(x=>{if(!x.title)x.title=x.getAttribute('aria-label')});
  }
  async function enter(){
   if(!live.session)return warn('Sessão indisponível','O mestre ainda não iniciou.');
@@ -283,7 +309,7 @@
   if(live.preview){live.preview.getTracks().forEach(t=>t.stop());live.preview=null;}
   await stopCamera(false);
   window.stopSessionCamera?.();for(const peer of live.peers.values())try{peer.pc.close()}catch(e){}
-  live.peers.clear();live.remotes.clear();
+  live.peers.clear();live.remotes.clear();tileRenderCache.clear();
   if(live.room){try{await client()?.removeChannel(live.room)}catch(e){}live.room=null}
   live.joined=false;live.sessionId=null;live.channelReady=false;live.closedMessage=message;live.lastBeat=0;
  }
