@@ -442,6 +442,11 @@ input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;b
 .ae26-page .ae25-tile-tools button{border-color:var(--theme-structure)}
 .ae26-page .ae25-privacy{font-size:11px;margin:0;padding:5px;color:var(--theme-text);opacity:.6}
 @media(max-width:650px){.ae26-lobby{min-height:260px;padding:25px 19px}.ae26-lobby h1{font-size:42px}.ae26-room-header{padding:14px}.ae26-room-header .btn{flex:1}.ae26-scene-placeholder{min-height:150px}.ae26-tools-primary .btn{flex:1}.ae26-quality{margin-left:0;width:100%;text-align:center}.ae26-start-controls{display:grid;width:100%}.ae26-sidebar{max-height:none}}
+/* Identidade visual da Sessão no menu lateral */
+#navigation [data-page="session"]{position:relative}
+#navigation [data-page="session"].ae25-nav-live{border-left:3px solid var(--theme-accent);background:color-mix(in srgb,var(--theme-accent) 8%,transparent)}
+#navigation [data-page="session"] .ae25-live-mark{margin-left:auto;white-space:nowrap;font-size:9px;color:var(--theme-accent)}
+#navigation [data-page="session"]:focus-visible{outline:3px solid var(--theme-accent);outline-offset:2px}
 </style><style id="ability-custom-style">.custom-die-row{display:flex;align-items:end;flex-wrap:wrap;gap:10px;padding:9px 0;border-bottom:1px solid var(--theme-cold)}.custom-die-row label{flex:1;min-width:105px}.custom-die-row input[type=color]{width:100%;min-height:44px}.ability-custom-editor{padding:12px;background:var(--theme-raised);margin:12px 0}.ability-plus{font-weight:800;opacity:.75}.ability-dice{flex-wrap:wrap}.ability-dice .die-figure{vertical-align:middle}
 /* Beta 2.3.1: destaque explícito de rerrolagens no histórico */
 
@@ -544,7 +549,8 @@ function legacyTextKey(node,root){
  return (root.id||'shell')+'|'+(root.id==='page'?page+'|'+(currentSheet||'')+'|'+tab+'|':'')+bits.join('/');
 }
 function textKey(node,root){
- const scope=(root.id||'shell')+'|'+(root.id==='page'?page+'|'+(currentSheet||'')+'|'+tab+'|':'');
+ const rootName=root.id||(root.classList?.contains('brand')?'brand':root.classList?.contains('toolbar')?'toolbar':'shell');
+ const scope=rootName+'|'+(root.id==='page'?page+'|'+(currentSheet||'')+'|'+tab+'|':'');
  let p=node,relative=[];
  while(p&&p!==root){
   const parent=p.parentElement;if(!parent)break;
@@ -565,7 +571,7 @@ function applyTextOverrides(){
   if(!root)continue;
   const all=[...root.querySelectorAll('*')].filter(n=>n.children.length===0&&n.textContent.trim()&&
     !['SCRIPT','STYLE','SVG','PATH','INPUT','TEXTAREA','OPTION','SELECT','CODE'].includes(n.tagName)&&
-    !n.closest('.dice,.history,.roll-number,.resources,.progress,.character-art,.music,.key-row,[role=dialog],[data-action="toggleEditText"]'));
+    !n.closest('.dice,.history,.roll-number,.resources,.progress,.character-art,.music,.key-row,.ae25-live-mark,.ae25-roll-banner,[role=dialog],[data-action="toggleEditText"]'));
   for(const n of all){
     const k=textKey(n,root),legacy=legacyTextKey(n,root),original=n.textContent;
     n.dataset.editText=k;n.dataset.originalText=original;
