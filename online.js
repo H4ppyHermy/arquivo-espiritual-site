@@ -98,7 +98,7 @@ async function uploadSheetMedia(sheetId,file){
  if(!/^[a-zA-Z0-9_-]{1,100}$/.test(String(sheetId||'')))throw Error('Identificador de ficha inválido.');
  const ext={'image/gif':'gif','image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[file?.type];
  if(!ext)throw Error('Envie um GIF, PNG, JPG ou WebP.');
- if(file.size>5*1024*1024)throw Error('A imagem ultrapassa 5 MB.');
+ if(file.size>15*1024*1024)throw Error('A imagem ultrapassa 15 MB.');
  if(file.size<1)throw Error('Arquivo vazio.');
  const path=sheetId+'/'+crypto.randomUUID()+'.'+ext;
  const {error}=await state.client.storage.from('fichas').upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
