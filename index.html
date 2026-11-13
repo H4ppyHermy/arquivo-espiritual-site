@@ -531,6 +531,50 @@ input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;b
 @media(max-width:1050px){.toolbar-right{gap:7px}.toolbar-account{max-width:220px}.toolbar-account #rolePill{font-size:10px;padding:8px 9px}.toolbar-right .toolbar-logout{padding-inline:11px}}
 @media(max-width:680px){.toolbar-right{flex:1 1 100%;justify-content:flex-end;gap:7px}.toolbar-account{max-width:170px}.toolbar-account #rolePill{font-size:10px}.toolbar-account #onlineStatus{font-size:9px;max-width:100%}.toolbar-right .toolbar-key,.toolbar-right .toolbar-logout{padding-inline:10px;font-size:10px}.toolbar-right .version-top{font-size:10px}}
 @media(max-width:430px){.toolbar-right{justify-content:center;gap:6px}.toolbar-account{max-width:150px}.toolbar-right .toolbar-key,.toolbar-right .toolbar-logout,.toolbar-right .toolbar-settings{min-height:40px}.toolbar-right .toolbar-settings{min-width:40px;padding:8px 10px}.toolbar-account #rolePill{max-width:150px}}
+
+/* Beta 2.8.4 — Biblioteca editorial com capítulos recolhidos e glossário contextual */
+.library-layout{align-items:start;gap:22px}
+.library-body{min-width:0}
+.chapter-index{position:sticky;top:18px;max-height:calc(100vh - 36px);overflow-y:auto}
+.chapter-index>b{font:900 17px 'Barlow Condensed',sans-serif;letter-spacing:.07em}
+.ae-lib-aside-help{font-size:12px;line-height:1.6;color:var(--theme-cold);margin:10px 0 16px}
+.chapter-index nav{display:grid;gap:5px}
+.chapter-index .ae-lib-index-link{display:flex;align-items:center;gap:10px;text-align:left;white-space:normal;min-height:42px;width:100%;padding:9px 8px;color:var(--theme-text);background:transparent;border:1px solid transparent;font-weight:700;line-height:1.4;cursor:pointer}
+.chapter-index .ae-lib-index-link span{font:900 12px 'Barlow Condensed',sans-serif;color:var(--theme-cold);flex:none}
+.chapter-index .ae-lib-index-link:hover,.chapter-index .ae-lib-index-link:focus-visible{border-color:var(--theme-structure);background:var(--theme-raised);outline-offset:2px}
+.ae-library-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:10px 0 6px;border-top:1px solid var(--theme-structure);padding-top:12px}
+.ae-library-toolbar>span{font-size:12px;color:var(--theme-cold)}
+.ae-library-toolbar>span b{display:inline-grid;place-items:center;width:18px;height:18px;font:900 11px 'Barlow Condensed',sans-serif;border:1px solid var(--theme-cold);border-radius:50%;margin:0 3px}
+.ae-library-toolbar .actions{margin:0;gap:8px}
+.ae-library-toolbar .btn{min-height:40px;font-size:11px}
+.ae-library-chapter{scroll-margin-top:18px}
+.ae-library-chapter .sectionhead{align-items:center}
+.ae-library-chapter .sectionhead h3{flex:1;min-width:0;margin:0}
+.ae-library-chapter .chapter-toggle{display:flex;justify-content:space-between;align-items:center;gap:20px;width:100%;text-align:left;min-height:65px;line-height:1.25}
+.ae-chapter-heading{display:flex;align-items:center;gap:14px;min-width:0;overflow-wrap:anywhere}
+.ae-chapter-num{font:900 13px 'Barlow Condensed',sans-serif;flex:none;color:var(--theme-cold)}
+.ae-chapter-toggle-icon{min-width:39px;min-height:39px;display:grid;place-items:center;font:900 24px 'Barlow Condensed',sans-serif;color:var(--theme-accent);border:1px solid var(--theme-structure);background:var(--theme-panel);flex:0 0 auto}
+.ae-library-chapter .chapter-toggle:hover .ae-chapter-toggle-icon{border-color:var(--theme-cold)}
+.ae-library-chapter .book-text[hidden]{display:none!important}
+.ae-library-chapter .book-text{padding:clamp(20px,3.6vw,44px);border-top:1px solid var(--theme-structure)}
+.ae-library-chapter .book-paragraph{line-height:1.92;max-width:78ch;margin:0 0 1.4em}
+.ae-book-heading{font-family:'Barlow Condensed',sans-serif;letter-spacing:.035em;line-height:1.2;margin:1.55em 0 .7em}
+.ae-book-heading:first-child{margin-top:0}
+.ae-book-definitions{display:grid;gap:10px;margin:14px 0 23px;max-width:84ch}
+.ae-book-definition{border-left:3px solid var(--theme-structure);background:color-mix(in srgb,var(--theme-raised) 55%,transparent);padding:12px 17px}
+.ae-book-definition dt{font-weight:900;letter-spacing:.015em;margin:0 0 5px;color:var(--theme-text);line-height:1.5}
+.ae-book-definition dd{margin:0;line-height:1.75;font-size:14px}
+.ae-library-help{position:relative;display:inline-grid;place-items:center;vertical-align:super;min-width:20px;width:20px;height:20px;margin:0 3px 0 5px;padding:0;border:1px solid var(--theme-cold);border-radius:50%;color:var(--theme-cold);background:var(--theme-panel);font:900 11px/1 'Barlow Condensed',sans-serif;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.ae-library-help:hover,.ae-library-help:focus-visible{color:var(--accent-ink);background:var(--theme-cold);border-color:var(--theme-cold);outline:2px solid var(--theme-cold);outline-offset:2px}
+.ae-mechanic-explanation{padding:8px 1px 0}
+.ae-mechanic-explanation p:not(.subtitle){margin:14px 0 16px;line-height:1.85;font-size:15px;max-width:70ch}
+.ae-mechanic-explanation .eyebrow{line-height:1.6}
+.ae-mechanic-explanation .subtitle{line-height:1.7;font-size:12px}
+.book-text .book-quote,.book-text .book-code,.book-text .book-table-wrap{margin-block:16px 22px}
+.book-text .book-readable-list{padding-left:28px;margin-block:13px 22px}
+.book-text .book-readable-list li{padding-block:4px;line-height:1.8}
+@media(max-width:1000px){.chapter-index{position:static;max-height:none}.library-layout{gap:14px}}
+@media(max-width:680px){.ae-library-toolbar{align-items:start}.ae-library-toolbar .actions{width:100%}.ae-library-toolbar .actions .btn{flex:1}.ae-library-chapter .chapter-toggle{gap:8px;min-height:57px}.ae-chapter-heading{gap:8px}.ae-chapter-toggle-icon{min-width:34px;min-height:34px}.ae-library-chapter .book-text{padding:19px 16px}.ae-book-definition{padding:11px 12px}}
 </style><style id="ability-custom-style">.custom-die-row{display:flex;align-items:end;flex-wrap:wrap;gap:10px;padding:9px 0;border-bottom:1px solid var(--theme-cold)}.custom-die-row label{flex:1;min-width:105px}.custom-die-row input[type=color]{width:100%;min-height:44px}.ability-custom-editor{padding:12px;background:var(--theme-raised);margin:12px 0}.ability-plus{font-weight:800;opacity:.75}.ability-dice{flex-wrap:wrap}.ability-dice .die-figure{vertical-align:middle}
 /* Beta 2.3.1: destaque explícito de rerrolagens no histórico */
 
