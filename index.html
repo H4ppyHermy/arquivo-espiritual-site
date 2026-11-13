@@ -587,7 +587,7 @@ async function saveEditedText(){
  if(!requireMaster())return;
  const value=el('textEditorValue')?.value??'';
  db.site.textOverrides??={};db.site.textOverrides[editingTextKey]=value;
- save();closeModal();render();
+ pendingOnlineSnapshot=null;save();closeModal();render();
  const sync=window.ARQUIVO_SYNC;
  if(!sync?.state.enabled){toast('Texto salvo localmente','Não sincronizado com os jogadores.',true);return}
  await sync.state.pending;
@@ -596,7 +596,7 @@ async function saveEditedText(){
 }
 async function restoreEditedText(){
  if(!requireMaster())return;
- delete (db.site.textOverrides||{})[editingTextKey];save();closeModal();render();
+ delete (db.site.textOverrides||{})[editingTextKey];pendingOnlineSnapshot=null;save();closeModal();render();
  const sync=window.ARQUIVO_SYNC;
  if(!sync?.state.enabled){toast('Texto restaurado localmente','Sem sincronização online.',true);return}
  await sync.state.pending;
@@ -1352,7 +1352,7 @@ async function saveSite(){
  const subtitle=el('siteSubtitle')?.value||'';
  const palette=el('siteDefaultPalette')?.value||'padrao';
  db.site.title=title;db.site.subtitle=subtitle;db.site.defaultPalette=palette;
- save();applyPrefs();render();
+ pendingOnlineSnapshot=null;save();applyPrefs();render();
  const sync=window.ARQUIVO_SYNC;
  if(!sync?.state.enabled){toast('Identidade salva localmente','Conecte-se para publicar aos jogadores.',true);return}
  await sync.state.pending;
