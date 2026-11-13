@@ -112,7 +112,11 @@ async function useAbility(sheetId,abilityIndex){if(!state.enabled)throw Error('C
 async function rollSkill(sheetId,skill,abilityIndex=null){return rpc('ae_roll_skill_colored',{p_sheet_id:sheetId,p_skill:skill,p_ability_index:Number.isInteger(abilityIndex)?abilityIndex:null})}
 async function rerollSkill(previousId){if(!Number.isSafeInteger(previousId)||previousId<1)throw Error('Rolagem original inválida.');return rpc('ae_reroll_skill',{p_previous_id:previousId})}
 async function configureSkillRoll(previousId,groupSteps,skillSteps){if(!Number.isSafeInteger(previousId)||previousId<1)throw Error('Rolagem original inválida.');if(!Number.isInteger(groupSteps)||!Number.isInteger(skillSteps)||Math.abs(groupSteps)>2||Math.abs(skillSteps)>2||(!groupSteps&&!skillSteps))throw Error('Escolha de -2 a +2 passos, alterando pelo menos um dado.');return rpc('ae_configure_skill_roll',{p_previous_id:previousId,p_group_steps:groupSteps,p_skill_steps:skillSteps})}
-async function rollFree(count,faces,hidden=false,colors=[]){return rpc('ae_roll_free_colored',{p_count:count,p_faces:faces,p_hidden:hidden,p_colors:Array.isArray(colors)?colors:[]})}
+async function rollFree(count,faces,hidden=false,colors=[]){
+ if(!hidden&&Number.isInteger(faces)&&faces>=2&&faces<=1000&&Number.isInteger(count)&&count>=1&&count<=30)
+  return rpc('ae_roll_custom',{p_count:count,p_faces:faces,p_colors:Array.isArray(colors)?colors:[]});
+ return rpc('ae_roll_free_colored',{p_count:count,p_faces:faces,p_hidden:hidden,p_colors:Array.isArray(colors)?colors:[]});
+}
 async function rollHistory(limit=10,offset=0,sheetId=null){
  if(!state.enabled||!state.identity?.id)return {rows:[],total:0};
  const size=Math.max(1,Math.min(30,Math.trunc(Number(limit)||10)));
