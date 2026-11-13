@@ -71,8 +71,10 @@
  function updateScene(){
   const el=document.getElementById('ae25Scene');
   if(!el)return;
-  const markup=sceneMarkup();
-  if(el.dataset.sceneRendered!==markup){el.innerHTML=markup;el.dataset.sceneRendered=markup}
+  const src=window.ARQUIVO_INTERNAL?.db?.site?.session?.scene||'';
+  // Mantém somente a referência, não duplica imagens base64 como atributo HTML.
+  if(el._lastSceneSource===src)return;
+  el._lastSceneSource=src;el.innerHTML=sceneMarkup();
  }
  function sessionPage(){
   if(!logged())return '<section class="ae26-lobby"><div class="ae26-lobby-content"><span class="eyebrow">ARQUIVO ESPIRITUAL // MESA</span><h1>SESSÃO</h1><p>Acesse com sua chave para acompanhar a mesa, o cenário e os outros personagens.</p><button type="button" class="btn main" data-action="access">ENTRAR COM CHAVE</button></div><div class="ae26-lobby-symbol" aria-hidden="true">魂</div></section>';
