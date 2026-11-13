@@ -188,7 +188,7 @@
   finally{live.polling=false}
  }
  async function updateServerData(){
-  const st=client();if(!st||!live.session)return;
+  const st=client();if(!st||!live.session||!live.joined)return;
   try{
    const [{data:doc,error:err},{data:rows,error:historyErr}]=await Promise.all([
     st.rpc('ae_live_hud'),
@@ -233,6 +233,7 @@
   // Preserva os elementos <video> quando os dados não mudam:
   // recriar vídeos a cada 2,6 s provoca congelamentos e reconexões visuais.
   const expected=new Set(live.participants.map(p=>String(p.account_id)));
+  for(const orphan of [...stage.children])if(!orphan.matches('[data-tile]'))orphan.remove();
   for(const node of [...stage.querySelectorAll(':scope > [data-tile]')]){
    if(!expected.has(node.dataset.tile))node.remove();
   }
