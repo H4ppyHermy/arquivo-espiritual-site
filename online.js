@@ -68,6 +68,7 @@ async function saveOwnedSheet(sheet){if(!state.enabled||state.identity?.kind!=='
 async function useAbility(sheetId,abilityIndex){if(!state.enabled)throw Error('Conexão online indisponível.');return rpc('ae_use_ability',{p_sheet_id:sheetId,p_ability_index:abilityIndex})}
 async function rollSkill(sheetId,skill,abilityIndex=null){return rpc('ae_roll_skill_colored',{p_sheet_id:sheetId,p_skill:skill,p_ability_index:Number.isInteger(abilityIndex)?abilityIndex:null})}
 async function rerollSkill(previousId){if(!Number.isSafeInteger(previousId)||previousId<1)throw Error('Rolagem original inválida.');return rpc('ae_reroll_skill',{p_previous_id:previousId})}
+async function configureSkillRoll(previousId,groupSteps,skillSteps){if(!Number.isSafeInteger(previousId)||previousId<1)throw Error('Rolagem original inválida.');if(!Number.isInteger(groupSteps)||!Number.isInteger(skillSteps)||Math.abs(groupSteps)>2||Math.abs(skillSteps)>2||(!groupSteps&&!skillSteps))throw Error('Escolha de -2 a +2 passos, alterando pelo menos um dado.');return rpc('ae_configure_skill_roll',{p_previous_id:previousId,p_group_steps:groupSteps,p_skill_steps:skillSteps})}
 async function rollFree(count,faces,hidden=false,colors=[]){return rpc('ae_roll_free_colored',{p_count:count,p_faces:faces,p_hidden:hidden,p_colors:Array.isArray(colors)?colors:[]})}
 async function rollHistory(limit=10,offset=0,sheetId=null){
  if(!state.enabled||!state.identity?.id)return {rows:[],total:0};
@@ -130,5 +131,5 @@ async function mediaSignedUrl(ref){
  return data.signedUrl;
 }
 
-window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,saveAppearance,useAbility,rollSkill,rerollSkill,rollFree,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
+window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,saveAppearance,useAbility,rollSkill,rerollSkill,configureSkillRoll,rollFree,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
 })();
