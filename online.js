@@ -67,6 +67,7 @@ async function saveAppearance(sheetId,appearance){if(!state.enabled)throw Error(
 async function saveOwnedSheet(sheet){if(!state.enabled||state.identity?.kind!=='player')throw Error('Entre com uma chave de jogador.');return rpc('ae_player_save_sheet',{p_sheet:sheet})}
 async function useAbility(sheetId,abilityIndex){if(!state.enabled)throw Error('Conexão online indisponível.');return rpc('ae_use_ability',{p_sheet_id:sheetId,p_ability_index:abilityIndex})}
 async function rollSkill(sheetId,skill,abilityIndex=null){return rpc('ae_roll_skill_colored',{p_sheet_id:sheetId,p_skill:skill,p_ability_index:Number.isInteger(abilityIndex)?abilityIndex:null})}
+async function rerollSkill(previousId){if(!Number.isSafeInteger(previousId)||previousId<1)throw Error('Rolagem original inválida.');return rpc('ae_reroll_skill',{p_previous_id:previousId})}
 async function rollFree(count,faces,hidden=false,colors=[]){return rpc('ae_roll_free_colored',{p_count:count,p_faces:faces,p_hidden:hidden,p_colors:Array.isArray(colors)?colors:[]})}
 async function rollHistory(limit=10,offset=0,sheetId=null){
  if(!state.enabled||!state.identity?.id)return {rows:[],total:0};
@@ -129,5 +130,5 @@ async function mediaSignedUrl(ref){
  return data.signedUrl;
 }
 
-window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,saveAppearance,useAbility,rollSkill,rollFree,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
+window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,saveAppearance,useAbility,rollSkill,rerollSkill,rollFree,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
 })();
