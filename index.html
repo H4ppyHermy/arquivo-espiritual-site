@@ -538,7 +538,26 @@ function syncEditModeExit(){
  }else node?.remove();
 }
 
-function textKey(node,root){let bits=[],p=node;while(p&&p!==root){const parent=p.parentElement;if(!parent)break;bits.unshift(p.tagName.toLowerCase()+':'+[...parent.children].indexOf(p));p=parent}return (root.id||'shell')+'|'+(root.id==='page'?page+'|'+(currentSheet||'')+'|'+tab+'|':'')+bits.join('/')}
+function legacyTextKey(node,root){
+ let bits=[],p=node;
+ while(p&&p!==root){const parent=p.parentElement;if(!parent)break;bits.unshift(p.tagName.toLowerCase()+':'+[...parent.children].indexOf(p));p=parent}
+ return (root.id||'shell')+'|'+(root.id==='page'?page+'|'+(currentSheet||'')+'|'+tab+'|':'')+bits.join('/');
+}
+function textKey(node,root){
+ const scope=(root.id||'shell')+'|'+(root.id==='page'?page+'|'+(currentSheet||'')+'|'+tab+'|':'');
+ let p=node,relative=[];
+ while(p&&p!==root){
+  const parent=p.parentElement;if(!parent)break;
+  const stable=p.id?'id:'+p.id:p.dataset?.action?'action:'+p.dataset.action:
+   p.dataset?.page?'page:'+p.dataset.page:p.dataset?.ae25?'session:'+p.dataset.ae25+(p.dataset.id?':'+p.dataset.id:''):
+   p.dataset?.open?'open:'+p.dataset.open:p.dataset?.tab?'tab:'+p.dataset.tab:
+   p.dataset?.sheet?'sheet:'+p.dataset.sheet:null;
+  if(stable)return scope+stable+(relative.length?'|'+relative.join('/'):'');
+  relative.unshift(p.tagName.toLowerCase()+':'+[...parent.children].indexOf(p));
+  p=parent;
+ }
+ return legacyTextKey(node,root);
+}
 function applyTextOverrides(){
  document.body.classList.toggle('editing-text',editMode&&master());syncEditModeExit();
  const overrides=db.site.textOverrides||{};
@@ -546,9 +565,13 @@ function applyTextOverrides(){
   if(!root)continue;
   const all=[...root.querySelectorAll('*')].filter(n=>n.children.length===0&&n.textContent.trim()&&
     !['SCRIPT','STYLE','SVG','PATH','INPUT','TEXTAREA','OPTION','SELECT','CODE'].includes(n.tagName)&&
-    !n.closest('.dice,.history,.roll-number,.resources,.progress,.character-art,.music,.key-row,[role=dialog]'));
-  for(const n of all){const k=textKey(n,root);const original=n.textContent;n.dataset.editText=k;n.dataset.originalText=original;
-    if(Object.prototype.hasOwnProperty.call(overrides,k))n.textContent=overrides[k];}
+    !n.closest('.dice,.history,.roll-number,.resources,.progress,.character-art,.music,.key-row,[role=dialog],[data-action="toggleEditText"]'));
+  for(const n of all){
+    const k=textKey(n,root),legacy=legacyTextKey(n,root),original=n.textContent;
+    n.dataset.editText=k;n.dataset.originalText=original;
+    if(Object.prototype.hasOwnProperty.call(overrides,k))n.textContent=overrides[k];
+    else if(Object.prototype.hasOwnProperty.call(overrides,legacy))n.textContent=overrides[legacy];
+  }
  }
 }
 function editTextDialog(key,original){if(!master())return;editingTextKey=key;const override=db.site.textOverrides||{};const current=Object.prototype.hasOwnProperty.call(override,key)?override[key]:original;
