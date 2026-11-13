@@ -37,7 +37,7 @@ async function refresh(force=false){if(!state.enabled)return;
 }
 async function login(name,code){if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_login',{p_name:name,p_code:code});await keys();await refresh(true);return state.identity}
 async function bootstrap(token,code,name){if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_bootstrap_master',{p_token:token,p_code:code,p_name:name});await keys();return state.identity}
-async function logout(){if(state.enabled)await rpc('ae_logout');state.identity=null;state.keys=[];await refresh(true);window.dispatchEvent(new Event('arquivo-logged-out'))}
+async function logout(){mediaSignedCache.clear();if(state.enabled)await rpc('ae_logout');state.identity=null;state.keys=[];await refresh(true);window.dispatchEvent(new Event('arquivo-logged-out'))}
 async function removeAccount(id){return rpc('ae_master_remove_account',{p_id:id})}
 async function keys(){if(state.identity?.kind==='master')state.keys=await rpc('ae_master_keys');else if(state.identity)state.keys=[state.identity];else state.keys=[];return state.keys}
 async function createKey(name,kind,sheetId){const created=await rpc('ae_master_create_key',{p_name:name,p_kind:kind,p_sheet_id:sheetId||null});await keys();return created}
@@ -91,5 +91,31 @@ async function uploadMusic(file,onProgress){if(!state.enabled||state.identity?.k
 }
 async function listMusic(){const {data,error}=await state.client.storage.from('musica').list('',{limit:100});if(error)throw Error(error.message);return data||[]}
 async function deleteMusic(path){if(state.identity?.kind!=='master')throw Error('Somente mestre.');const {error}=await state.client.storage.from('musica').remove([path]);if(error)throw Error(error.message)}
-window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,saveAppearance,useAbility,rollSkill,rollFree,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic};
+
+const mediaSignedCache=new Map();
+async function uploadSheetMedia(sheetId,file){
+ if(!state.enabled||!state.identity?.id)throw Error('Faça login para enviar imagens.');
+ if(!/^[a-zA-Z0-9_-]{1,100}$/.test(String(sheetId||'')))throw Error('Identificador de ficha inválido.');
+ const ext={'image/gif':'gif','image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[file?.type];
+ if(!ext)throw Error('Envie um GIF, PNG, JPG ou WebP.');
+ if(file.size>5*1024*1024)throw Error('A imagem ultrapassa 5 MB.');
+ if(file.size<1)throw Error('Arquivo vazio.');
+ const path=sheetId+'/'+crypto.randomUUID()+'.'+ext;
+ const {error}=await state.client.storage.from('fichas').upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
+ if(error)throw Error('Envio não autorizado ou indisponível: '+error.message);
+ return 'ae-media://'+path;
+}
+async function mediaSignedUrl(ref){
+ if(!state.enabled)throw Error('Sem conexão online.');
+ const path=String(ref||'').replace(/^ae-media:\/\//,'');
+ if(!/^[a-zA-Z0-9_-]{1,100}\/[0-9a-f-]{36}\.(gif|png|jpg|jpeg|webp)$/.test(path))throw Error('Referência de imagem inválida.');
+ const hit=mediaSignedCache.get(path);
+ if(hit&&hit.until>Date.now())return hit.url;
+ const {data,error}=await state.client.storage.from('fichas').createSignedUrl(path,1800);
+ if(error||!data?.signedUrl)throw Error(error?.message||'Imagem não autorizada.');
+ mediaSignedCache.set(path,{url:data.signedUrl,until:Date.now()+24*60*1000});
+ return data.signedUrl;
+}
+
+window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,saveAppearance,useAbility,rollSkill,rollFree,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
 })();
