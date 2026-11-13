@@ -653,6 +653,14 @@ input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;b
  .library-body .ae-library-chapter .chapter-toggle>.ae-chapter-heading>.ae-chapter-title{font-size:17px;line-height:1.18}
  .library-body .ae-library-chapter .chapter-toggle>.ae-chapter-toggle-icon{width:34px;height:34px;min-width:34px;min-height:34px}
 }
+
+/* Destaques editoriais contidos por paleta; funciona com temas claro e alto contraste. */
+.ae-library-reading .ae-book-definition dt.ae-def-resource{color:var(--theme-cold)}
+.ae-library-reading .ae-book-definition dt.ae-def-risk{color:var(--theme-accent)}
+.ae-library-reading .ae-book-definition dt.ae-def-rule{color:var(--theme-text)}
+.ae-library-reading .ae-book-definition:has(dt.ae-def-resource){border-left-color:var(--theme-cold)}
+.ae-library-reading .ae-book-definition:has(dt.ae-def-risk){border-left-color:var(--theme-accent)}
+.ae-library-reading .ae-manual-color{font-weight:800;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 </style><style id="ability-custom-style">.custom-die-row{display:flex;align-items:end;flex-wrap:wrap;gap:10px;padding:9px 0;border-bottom:1px solid var(--theme-cold)}.custom-die-row label{flex:1;min-width:105px}.custom-die-row input[type=color]{width:100%;min-height:44px}.ability-custom-editor{padding:12px;background:var(--theme-raised);margin:12px 0}.ability-plus{font-weight:800;opacity:.75}.ability-dice{flex-wrap:wrap}.ability-dice .die-figure{vertical-align:middle}
 /* Beta 2.3.1: destaque explícito de rerrolagens no histórico */
 
@@ -984,6 +992,12 @@ function setAllLibraryChapters(open){
  const root=el('ruleResults');if(root)root.innerHTML=ruleItems(visible);
 }
 
+function libraryTermTone(name){
+ const x=String(name||'').toLocaleLowerCase('pt-BR');
+ if(['vida','estabilidade','alma','recuperação natural','recuperação especializada','descanso breve','descanso completo','meditação','tratamento','recomposição'].includes(x))return 'resource';
+ if(['desmaiado','acorrentado','morto','pressionado','ruptura da máscara','resistência hollow'].includes(x))return 'risk';
+ return 'rule';
+}
 function formatBook(source,chapterTitle=''){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
  const searchText=query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
@@ -1000,16 +1014,21 @@ function formatBook(source,chapterTitle=''){
    seen.add(found);helpCount++;
    const token='@@AEHELP'+markers.length+'@@';
    markers.push(found);
-   return prefix+term+token;
+   return prefix+'@@AETERM'+(markers.length-1)+'@@'+token;
   });
-  let t=esc(raw).replace(/\\([*_~`])/g,'$1')
+  let t=esc(raw)
+    .replace(/\[cor=(#[0-9a-f]{6})\]([\s\S]*?)\[\/cor\]/gi,(_,color,content)=>'<span class="ae-manual-color" style="color:'+color+'">'+content+'</span>')
+    .replace(/\\([*_~`])/g,'$1')
     .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
     .replace(/__([^_]+)__/g,'<strong>$1</strong>')
     .replace(/~~([^~]+)~~/g,'<del>$1</del>')
     .replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>')
     .replace(/`([^`]+)`/g,'<code>$1</code>');
   if(search)t=t.split(/(<[^>]*>)/g).map(segment=>segment.startsWith('<')?segment:segment.replace(search,match=>'<mark>'+match+'</mark>')).join('');
-  return t.replace(/@@AEHELP(\d+)@@/g,(_,index)=>libraryQuickHelp(markers[Number(index)]));
+  return t.replace(/@@AETERM(\d+)@@/g,(_,index)=>{
+    const name=markers[Number(index)];
+    return '<span class="ae-term ae-term-'+libraryTermTone(name)+'">'+esc(name)+'</span>';
+   }).replace(/@@AEHELP(\d+)@@/g,(_,index)=>libraryQuickHelp(markers[Number(index)]));
  }
  let html='',paragraph=[],listType=null,code=[],table=[],quote=[],defs=[];
  function flushPara(){if(paragraph.length){html+='<p class="book-paragraph">'+paragraph.map(inline).join(' ')+'</p>';paragraph=[]}}
@@ -1019,7 +1038,7 @@ function formatBook(source,chapterTitle=''){
   table.forEach((cells,i)=>{const tag=i===0&&table.length>1?'th':'td';html+='<tr>'+cells.map(c=>'<'+tag+'>'+inline(c.trim())+'</'+tag+'>').join('')+'</tr>'});
   html+='</table></div>';table=[]}
  function flushQuote(){if(quote.length){html+='<blockquote class="book-quote">'+quote.map(x=>'<p>'+inline(x)+'</p>').join('')+'</blockquote>';quote=[]}}
- function flushDefs(){if(!defs.length)return;html+='<dl class="ae-book-definitions">'+defs.map(([key,desc])=>'<div class="ae-book-definition"><dt>'+inline(key)+'</dt><dd>'+inline(desc)+'</dd></div>').join('')+'</dl>';defs=[]}
+ function flushDefs(){if(!defs.length)return;html+='<dl class="ae-book-definitions">'+defs.map(([key,desc])=>'<div class="ae-book-definition"><dt class="ae-def-'+libraryTermTone(key)+'">'+inline(key)+'</dt><dd>'+inline(desc)+'</dd></div>').join('')+'</dl>';defs=[]}
  function closeBlocks(){flushPara();flushList();flushTable();flushQuote();flushDefs()}
  let inCode=false,firstNonEmpty=true;
  for(const row of rows){
