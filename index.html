@@ -338,6 +338,23 @@ input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;b
 @media(max-width:550px){.ae25-stage{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}.ae25-tile-media{aspect-ratio:4/5}.ae25-hud-overlay{position:relative;opacity:1}.ae25-room-head h1{font-size:24px}}
 .reduce-motion .ae25-roll-banner,.no-sheet-motion .ae25-roll-banner{animation:none!important}
 @media(prefers-reduced-motion:reduce){.ae25-roll-banner,.ae25-track i{animation:none!important;transition:none!important}}
+
+/* Ajustes finais de acessibilidade e impacto da Beta 2.5 */
+.ae25-avatar{position:absolute;top:7px;left:7px;z-index:3;width:38px;height:38px;display:grid;place-items:center;border:2px solid var(--theme-accent);border-radius:50%;background:var(--theme-panel);color:var(--theme-text);font-weight:900;box-shadow:0 2px 9px var(--theme-bg);overflow:hidden}
+.ae25-avatar img{width:100%;height:100%;object-fit:cover}
+.ae25-impact-damage{animation:ae25-damage .38s ease-out;border-color:var(--theme-accent)!important}
+.ae25-impact-heal{animation:ae25-heal .6s ease-out;border-color:var(--theme-cold)!important}
+@keyframes ae25-damage{0%,100%{transform:translateX(0)}20%{transform:translateX(-3px)}40%{transform:translateX(3px)}60%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
+@keyframes ae25-heal{0%,100%{box-shadow:none}45%{box-shadow:0 0 22px var(--theme-cold)}}
+.ae25-roll-critical{box-shadow:0 0 24px var(--theme-accent);animation:ae25-flash .35s ease-out}
+.ae25-roll-failure{background:var(--theme-structure);color:var(--theme-text);animation:ae25-damage .36s ease-out}
+.ae25-hud-overlay{opacity:1!important;background:color-mix(in srgb,var(--theme-panel) calc(var(--ae25-hud-opacity, .75) * 100%),transparent)}
+.ae25-hud-overlay .ae25-hud-inner{background:var(--theme-panel);padding:5px 7px;border:1px solid var(--theme-structure)}
+.ae25-pos-top .ae25-hud-overlay{top:0;bottom:auto}
+.ae25-hud-cinema .ae25-hud-overlay{top:auto;bottom:0}
+.ae25-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(prefers-reduced-motion:reduce){.ae25-impact-damage,.ae25-impact-heal,.ae25-roll-critical,.ae25-roll-failure{animation:none!important}}
+.reduce-motion .ae25-impact-damage,.reduce-motion .ae25-impact-heal,.reduce-motion .ae25-roll-critical,.reduce-motion .ae25-roll-failure,.no-sheet-motion .ae25-impact-damage,.no-sheet-motion .ae25-impact-heal{animation:none!important}
 </style><style id="ability-custom-style">.custom-die-row{display:flex;align-items:end;flex-wrap:wrap;gap:10px;padding:9px 0;border-bottom:1px solid var(--theme-cold)}.custom-die-row label{flex:1;min-width:105px}.custom-die-row input[type=color]{width:100%;min-height:44px}.ability-custom-editor{padding:12px;background:var(--theme-raised);margin:12px 0}.ability-plus{font-weight:800;opacity:.75}.ability-dice{flex-wrap:wrap}.ability-dice .die-figure{vertical-align:middle}
 /* Beta 2.3.1: destaque explícito de rerrolagens no histórico */
 
