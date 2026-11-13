@@ -68,10 +68,22 @@ async function saveOwnedSheet(sheet){if(!state.enabled||state.identity?.kind!=='
 async function useAbility(sheetId,abilityIndex){if(!state.enabled)throw Error('Conexão online indisponível.');return rpc('ae_use_ability',{p_sheet_id:sheetId,p_ability_index:abilityIndex})}
 async function rollSkill(sheetId,skill,abilityIndex=null){return rpc('ae_roll_skill_colored',{p_sheet_id:sheetId,p_skill:skill,p_ability_index:Number.isInteger(abilityIndex)?abilityIndex:null})}
 async function rollFree(count,faces,hidden=false,colors=[]){return rpc('ae_roll_free_colored',{p_count:count,p_faces:faces,p_hidden:hidden,p_colors:Array.isArray(colors)?colors:[]})}
-async function rollHistory(limit=50,offset=0,includeHidden=false){if(!state.enabled)return [];
- const query=state.client.from('ae_rolls').select('*').order('created_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+limit-1);
- const {data,error}=await query;if(error)throw Error(error.message);return data||[]}
-async function clearRolls(){return rpc('ae_roll_clear')}
+async function rollHistory(limit=10,offset=0,sheetId=null){
+ if(!state.enabled||!state.identity?.id)return {rows:[],total:0};
+ const size=Math.max(1,Math.min(30,Math.trunc(Number(limit)||10)));
+ const first=Math.max(0,Math.trunc(Number(offset)||0));
+ let query=state.client.from('ae_rolls').select('*',{count:'exact'});
+ if(sheetId)query=query.eq('sheet_id',sheetId);
+ const {data,count,error}=await query.order('created_at',{ascending:false}).order('id',{ascending:false}).range(first,first+size-1);
+ if(error)throw Error('Não foi possível carregar o histórico: '+error.message);
+ return {rows:data||[],total:Number(count)||0};
+}
+async function clearRolls(){
+ if(!state.enabled||state.identity?.kind!=='master')throw Error('Somente o mestre conectado pode apagar o histórico.');
+ const result=await rpc('ae_roll_clear');
+ if(result!==true)throw Error('O servidor não confirmou a limpeza.');
+ return true;
+}
 async function musicNow(){return rpc('ae_music_now')}
 async function musicSet(kind,source,title,playing,position,loop=false){return rpc('ae_music_set',{p_kind:kind,p_source:source,p_title:title,p_playing:playing,p_position:position,p_loop:loop})}
 async function uploadMusic(file,onProgress){if(!state.enabled||state.identity?.kind!=='master')throw Error('Somente mestre.');
