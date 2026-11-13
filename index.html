@@ -550,7 +550,10 @@ function applyOnlineSnapshot(detail){
  const oldPrefs=prefs;
  db={...clone(snap),keys:window.ARQUIVO_SYNC.state.keys};
  onlineApplyIdentity(detail.identity);prefs=oldPrefs;
- DATASTORE.save(db);render();
+ DATASTORE.save(db);
+ if(page==='session'&&window.ARQUIVO_LIVE?.state?.joined){
+  navRender();applyTheme();onlineStatus();window.ARQUIVO_LIVE.refreshView?.();applyTextOverrides();
+ }else render();
 }
 document.addEventListener('focusout',()=>queueMicrotask(flushPendingOnlineSnapshot),true);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)flushPendingOnlineSnapshot()});
