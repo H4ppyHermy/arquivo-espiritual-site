@@ -256,11 +256,11 @@ const signedSheetMedia=new Map(),pendingMediaSigns=new Set();
 function sheetMediaRef(value){return typeof value==='string'&&/^ae-media:\/\/[a-zA-Z0-9_-]{1,100}\/[0-9a-f-]{36}\.(gif|png|jpg|jpeg|webp)$/.test(value)}
 function mediaSrc(value){
  if(!sheetMediaRef(value))return dataUrlOk(value)?value:'';
- if(signedSheetMedia.has(value))return signedSheetMedia.get(value)||'';
+ const cached=signedSheetMedia.get(value);if(cached&&cached.until>Date.now())return cached.url;if(cached)signedSheetMedia.delete(value);
  const sync=window.ARQUIVO_SYNC;
  if(sync?.state.enabled&&!pendingMediaSigns.has(value)){
   pendingMediaSigns.add(value);
-  sync.mediaSignedUrl(value).then(url=>{signedSheetMedia.set(value,url);window.dispatchEvent(new Event('arquivo-media-loaded'))})
+  sync.mediaSignedUrl(value).then(url=>{signedSheetMedia.set(value,{url,until:Date.now()+22*60*1000});window.dispatchEvent(new Event('arquivo-media-loaded'))})
    .catch(()=>{signedSheetMedia.set(value,'')}).finally(()=>pendingMediaSigns.delete(value));
  }
  return '';
