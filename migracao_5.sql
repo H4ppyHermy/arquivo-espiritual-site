@@ -157,3 +157,28 @@ drop trigger if exists ae_live_session_notification_trigger on public.ae_live_se
 create trigger ae_live_session_notification_trigger
 after insert or update of status on public.ae_live_sessions
 for each row execute function public.ae_live_session_notification();
+
+
+-- HUD resumida e autoritativa: nunca aceitar valores transmitidos pelos navegadores dos jogadores.
+create or replace function public.ae_live_hud() returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare v_session uuid;v_result jsonb;
+begin
+ if not public.ae_live_logged_in() then return '[]'::jsonb;end if;
+ select id into v_session from public.ae_live_sessions where status='open' limit 1;
+ if v_session is null then return '[]'::jsonb;end if;
+ select coalesce(jsonb_agg(jsonb_build_object(
+   'id',sh.value->>'id','name',left(coalesce(sh.value->>'name',''),100),
+   'image',coalesce(sh.value->'image','null'::jsonb),
+   'resources',coalesce(sh.value->'resources','{}'::jsonb),
+   'conditions',coalesce(sh.value->'conditions','[]'::jsonb)
+ )),'[]'::jsonb) into v_result
+ from public.ae_document d
+ cross join lateral jsonb_array_elements(coalesce(d.data->'sheets','[]'::jsonb)) sh(value)
+ where d.id=1 and exists(select 1 from public.ae_live_participants p
+   where p.session_id=v_session and p.sheet_id=sh.value->>'id'
+   and p.left_at is null and p.removed_at is null);
+ return v_result;
+end $$;
+revoke all on function public.ae_live_hud() from public,anon;
+grant execute on function public.ae_live_hud() to authenticated;
