@@ -62,35 +62,63 @@
    '<div class="ae25-tile-tools"><button data-ae25="select" data-id="'+htmlEscape(id)+'" aria-label="Abrir ficha rápida">FICHA</button><button data-ae25="focus" data-id="'+htmlEscape(id)+'" aria-label="Fixar este bloco">FIXAR</button><button data-ae25="tileFull" data-id="'+htmlEscape(id)+'" aria-label="Tela cheia deste bloco">⛶</button></div></article>';
  }
  const button=(name,action,extra='')=>'<button type="button" class="btn '+extra+'" data-ae25="'+action+'">'+name+'</button>';
+ function sceneMarkup(){
+  const scene=window.ARQUIVO_INTERNAL?.db?.site?.session?.scene;
+  const safe=typeof scene==='string'&&(/^(data:image\/(png|jpeg|webp|gif);base64,|https:\/\/)/i.test(scene))?scene:'';
+  return safe?'<img loading="lazy" decoding="async" src="'+htmlEscape(safe)+'" alt="Imagem do cenário da sessão"><div class="ae26-scene-caption"><span>◈ CENÁRIO EM EXIBIÇÃO</span><span>Imagem compartilhada pelo mestre</span></div>':
+   '<div class="ae26-scene-placeholder"><span class="ae26-scene-mark">景</span><strong>O CENÁRIO ESTÁ EM PREPARAÇÃO</strong><span>Quando o mestre enviar uma imagem, ela aparecerá aqui para todos.</span></div>';
+ }
+ function updateScene(){
+  const el=document.getElementById('ae25Scene');
+  if(!el)return;
+  const markup=sceneMarkup();
+  if(el.dataset.sceneRendered!==markup){el.innerHTML=markup;el.dataset.sceneRendered=markup}
+ }
  function sessionPage(){
-  if(!logged())return '<div class="panel"><h2>SESSÃO</h2><p>Entre com sua chave para acessar a sessão.</p></div>';
-  const ses=live.session,join=live.joined&&live.sessionId===ses?.id;
-  if(!ses)return '<div class="panel ae25-start"><h1>SESSÃO</h1><p>'+htmlEscape(live.closedMessage||'Nenhuma sessão em andamento.')+'</p>'+
-   (isMaster()?'<div class="field"><label for="ae25Title">Título da sessão (opcional)</label><input id="ae25Title" maxlength="90" placeholder="Ex.: Arena de Karakura"></div>'+button('INICIAR SESSÃO','start','main'):'<p>Aguardando o mestre iniciar.</p>')+'</div>';
-  const all=live.participants.length,scene=window.ARQUIVO_INTERNAL?.db?.site?.session?.scene;
-  return '<div class="ae25-screen" id="ae25Room" data-session="'+htmlEscape(ses.id)+'"><header class="ae25-room-head"><div><span class="eyebrow">SESSÃO AO VIVO</span><h1>'+htmlEscape(ses.title)+'</h1><p>Iniciada por '+htmlEscape(ses.master_name)+' · <time id="ae25Timer">'+duration()+'</time> · '+all+' participante(s)</p></div>'+
-    '<div class="ae25-head-actions"><span id="ae25Quality">ENVIO '+quality().toUpperCase()+'</span><span id="ae25Connection" role="status">CONEXÃO: '+(live.channelReady?'OK':'CONECTANDO')+'</span>'+button('⛶','fullscreen','small')+(join?button('SAIR DA SESSÃO','leave','danger'):'')+
-    (isMaster()?button('ENCERRAR','end','danger'):'')+'</div></header>'+
-    (!join?'<section class="panel"><p>Entrar não liga sua câmera. Você poderá assistir sem transmitir.</p>'+button('ENTRAR NA SESSÃO','join','main')+'</section>':
-    '<div class="ae25-layout"><section class="ae25-stage ae25-layout-'+htmlEscape(config.layout)+'">'+
-      (live.participants.length?live.participants.map(tile).join(''):'<p>Esperando participantes...</p>')+'</section>'+
-      (live.drawer?'<aside class="ae25-drawer"><div class="sectionhead"><h2>PARTICIPANTES</h2>'+button('RECOLHER','drawer','small')+'</div><div class="ae25-people">'+live.participants.map(p=>
-       '<div class="ae25-person"><button data-ae25="select" data-id="'+htmlEscape(p.account_id)+'">'+htmlEscape(p.account_name)+' · '+htmlEscape(p.character_name||'')+' '+(p.camera_on?'◉':'○')+'</button>'+
-       (isMaster()&&!p.is_master?'<button data-ae25="kick" data-id="'+htmlEscape(p.account_id)+'" class="btn danger small">REMOVER</button>':'')+'</div>').join('')+'</div>'+
-       '<div id="ae25Quick"></div><h3>ROLAGENS PÚBLICAS</h3><div id="ae25History">'+historyHtml()+'</div></aside>':
-       '<div class="ae25-drawer-collapsed">'+button('PARTICIPANTES','drawer','small')+'</div>')+'</div>'+
-    '<footer class="ae25-controls">'+button(live.transmitting?'DESLIGAR CÂMERA':'LIGAR CÂMERA','camera',live.transmitting?'danger':'main')+
-    '<label>DISPOSITIVO<select id="ae25CameraSelect"><option value="">Câmera padrão</option></select></label>'+
-    '<label>QUALIDADE<select data-ae25-pref="quality">'+opts([['economy','Economia 240p'],['standard','Padrão 360p'],['high','Alta 720p']],config.quality)+'</select></label>'+
-    button(config.mirror?'ESPELHO: SIM':'ESPELHO: NÃO','mirror','small')+
+  if(!logged())return '<section class="ae26-lobby"><div class="ae26-lobby-content"><span class="eyebrow">ARQUIVO ESPIRITUAL // MESA</span><h1>SESSÃO</h1><p>Acesse com sua chave para acompanhar a mesa, o cenário e os outros personagens.</p><button type="button" class="btn main" data-action="access">ENTRAR COM CHAVE</button></div><div class="ae26-lobby-symbol" aria-hidden="true">魂</div></section>';
+  const ses=live.session,join=live.joined&&live.sessionId===ses?.id,master=isMaster();
+  if(!ses)return '<div class="ae26-page"><div class="ae26-kicker"><span class="ae26-pip"></span> SALA DE SESSÃO <span class="ae26-kicker-right">ARQUIVO // AO VIVO</span></div>'+
+   '<section class="ae26-lobby"><div class="ae26-lobby-content"><span class="eyebrow">SALA FECHADA</span><h1>A MESA AINDA NÃO COMEÇOU.</h1><p>'+htmlEscape(live.closedMessage||'Os participantes poderão entrar quando o mestre abrir a sessão. Sua câmera sempre começa desligada.')+'</p>'+
+   (master?'<div class="ae26-start-controls"><label for="ae25Title">NOME DA PRÓXIMA SESSÃO<input id="ae25Title" maxlength="90" placeholder="Ex.: Capítulo 01 · A chegada"></label>'+button('◈ INICIAR SESSÃO','start','main')+'</div>':
+    '<div class="ae26-waiting"><span class="ae26-pip"></span> Aguardando o mestre iniciar</div>')+
+   '</div><div class="ae26-lobby-symbol" aria-hidden="true">魂</div></section>'+
+   '<div class="ae26-info-strip"><span>◉ CÂMERA OPCIONAL</span><span>◉ SEM MICROFONE</span><span>◉ HUD VINCULADA À FICHA</span></div></div>';
+  const people=live.participants.length,cams=cameraCount();
+  const header='<header class="ae25-room-head ae26-room-header"><div><div class="ae26-kicker"><span class="ae26-pip ae26-live"></span> SESSÃO EM ANDAMENTO</div><h1>'+htmlEscape(ses.title)+'</h1><p class="ae26-meta">MESTRE: '+htmlEscape(ses.master_name)+' <span>·</span> <time id="ae25Timer">'+duration()+'</time> <span>·</span> '+people+' PARTICIPANTES <span>·</span> '+cams+' CÂMERAS</p></div>'+
+    '<div class="ae25-head-actions"><span class="ae26-connected" id="ae25Connection" role="status">'+(live.channelReady?'● CONECTADO':'◌ CONECTANDO')+'</span>'+
+    (join?button('SAIR DA SALA','leave','small'): '')+
+    (master?button('ENCERRAR SESSÃO','end','danger'):'')+'</div></header>';
+  const scene='<section class="ae26-scene-section"><div class="ae26-section-title"><div><span class="eyebrow">VISUAL DA CAMPANHA</span><h2>CENÁRIO</h2></div>'+(master?button('ALTERAR IMAGEM','scene','small'):'<span class="ae26-caption">Compartilhado pelo mestre</span>')+'</div>'+
+    '<div class="ae26-scene-frame" id="ae25Scene">'+sceneMarkup()+'</div></section>';
+  if(!join)return '<div class="ae25-screen ae26-page" id="ae25Room" data-session="'+htmlEscape(ses.id)+'">'+header+
+   '<section class="ae26-enter-panel"><div><span class="eyebrow">ENTRADA LIBERADA</span><h2>SUA MESA ESTÁ PRONTA.</h2><p>Você pode entrar com a câmera desligada e decidir depois se quer transmitir vídeo. Nenhum microfone será solicitado.</p></div>'+button('ENTRAR NA SESSÃO','join','main')+'</section>'+scene+
+   (master?'<div class="ae26-master-row"><input id="sessionSceneInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>'+button('ENVIAR CENÁRIO','scene','small')+button('REMOVER CENÁRIO','removeScene','small')+'</div>':'')+
+   '<p class="ae25-privacy">Sua câmera só liga quando você confirmar. A mesa utiliza vídeo WebRTC sem gravação integrada.</p></div>';
+  const members=live.participants.map(p=>'<div class="ae25-person"><button data-ae25="select" data-id="'+htmlEscape(p.account_id)+'" aria-label="Ver personagem de '+htmlEscape(p.account_name)+'"><span class="ae26-user-dot '+(p.camera_on?'on':'')+'"></span><span>'+htmlEscape(p.account_name)+'</span><small>'+htmlEscape(p.is_master?'MESTRE':p.character_name||'SEM FICHA')+'</small></button>'+
+   (master&&!p.is_master?'<button data-ae25="kick" data-id="'+htmlEscape(p.account_id)+'" class="btn danger small" aria-label="Remover '+htmlEscape(p.account_name)+'">REMOVER</button>':'')+'</div>').join('');
+  const drawer=live.drawer?'<aside class="ae25-drawer ae26-sidebar"><div class="ae26-sidebar-head"><h2>PARTICIPANTES <span>'+people+'</span></h2>'+button('RECOLHER','drawer','small')+'</div>'+
+   '<div class="ae25-people">'+members+'</div><div class="ae26-quick-panel" id="ae25Quick"></div>'+
+   '<div class="ae26-sidebar-head"><h2>ROLAGENS RECENTES</h2></div><div id="ae25History">'+historyHtml()+'</div></aside>':
+   '<aside class="ae26-sidebar-closed">'+button('MOSTRAR PARTICIPANTES','drawer','small')+'</aside>';
+  const tools='<section class="ae26-tools"><div class="ae26-tools-primary">'+button(live.transmitting?'◉ DESLIGAR CÂMERA':'◉ LIGAR CÂMERA','camera',live.transmitting?'danger':'main')+
     button(config.receivePaused?'RETOMAR VÍDEOS':'PAUSAR VÍDEOS','pauseReceive','small')+
+    button('⛶ TELA CHEIA','fullscreen','small')+
+    '<span class="ae26-quality" id="ae25Quality">ENVIO '+quality().toUpperCase()+'</span></div>'+
+    '<details class="ae26-tools-extra"><summary>⚙ AJUSTES DE VÍDEO E HUD</summary><div class="ae25-controls ae26-adjustments">'+
+    '<label>CÂMERA<select id="ae25CameraSelect"><option value="">Câmera padrão</option></select></label>'+
+    '<label>QUALIDADE<select data-ae25-pref="quality">'+opts([['economy','Economia · 240p'],['standard','Padrão · 360p'],['high','Alta · 720p']],config.quality)+'</select></label>'+
     '<label>LAYOUT<select data-ae25-pref="layout">'+opts([['grid','Grade'],['focus','Foco'],['cinema','Cinema']],config.layout)+'</select></label>'+
     '<label>HUD<select data-ae25-pref="hud">'+opts([['overlay','Sobre a câmera'],['below','Embaixo'],['lateral','Lateral'],['cinema','Terço inferior'],['compact','Compacto'],['only','Só HUD']],config.hud)+'</select></label>'+
-    button('⛶ TELA CHEIA','fullscreen','small')+'</footer>')+
-    (scene?'<section class="ae25-scene"><img src="'+htmlEscape(scene)+'" alt="Imagem do cenário compartilhada"></section>':'')+
-    (isMaster()?'<div class="ae25-master-panel"><h3>CONTROLES DO MESTRE</h3><p>O aviso só chega a quem está com o site aberto. Quem não estiver precisa ser chamado no Discord.</p>'+
-     '<input id="sessionSceneInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>'+button('ENVIAR CENÁRIO','scene','small')+button('REMOVER CENÁRIO','removeScene','small')+'</div>':'')+
-    '<p class="ae25-privacy">Vídeo entre participantes via WebRTC. Não solicitamos microfone. Nenhum vídeo é gravado nem passa por servidor próprio. Sem TURN, certas redes móveis podem impedir a conexão.</p></div>';
+    button(config.mirror?'ESPELHO: LIGADO':'ESPELHO: DESLIGADO','mirror','small')+'</div></details></section>';
+  const admin=master?'<div class="ae26-master-row"><input id="sessionSceneInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>'+
+   '<strong>CONTROLE DO MESTRE</strong>'+button('ENVIAR CENÁRIO','scene','small')+button('REMOVER CENÁRIO','removeScene','small')+
+   '<span>Somente o mestre pode remover participantes ou encerrar a sessão.</span></div>':'';
+  return '<div class="ae25-screen ae26-page" id="ae25Room" data-session="'+htmlEscape(ses.id)+'">'+header+scene+
+    '<div class="ae26-section-title"><div><span class="eyebrow">PARTICIPANTES CONECTADOS</span><h2>MESA AO VIVO</h2></div><span class="ae26-caption">'+people+' presentes · '+cams+' câmeras</span></div>'+
+    '<div class="ae25-layout"><section class="ae25-stage ae25-layout-'+htmlEscape(config.layout)+'" aria-label="Vídeos e retratos da mesa">'+
+    (live.participants.length?live.participants.map(tile).join(''):'<p class="ae26-waiting">Aguardando participantes...</p>')+'</section>'+drawer+'</div>'+
+    tools+admin+
+    '<p class="ae25-privacy">Câmera opcional · Microfone desativado · Sem gravação no Arquivo. Redes restritas podem exigir TURN.</p></div>';
  }
  function historyHtml(){return live.history.slice(0,10).map(x=>{
   const p=live.participants.find(p=>p.account_id===x.account_id);
@@ -520,5 +548,5 @@ function livePulse(){
 window.addEventListener('visibilitychange',()=>{if(!document.hidden)poll().catch(()=>{})});
 setTimeout(livePulse,500);
  if(!document.getElementById('ae25Announce')){const liveNode=document.createElement('div');liveNode.id='ae25Announce';liveNode.setAttribute('role','status');liveNode.setAttribute('aria-live','polite');liveNode.className='ae25-sr-only';document.body.append(liveNode)}
- window.ARQUIVO_LIVE={state:live,poll,leave,camera,stopCamera,config};
+ window.ARQUIVO_LIVE={state:live,poll,leave,camera,stopCamera,config,refreshView:()=>{refreshTiles();updateScene();updateBadges()}};
 })();
