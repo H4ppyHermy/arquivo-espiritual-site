@@ -265,7 +265,7 @@ function mediaSrc(value){
  }
  return '';
 }
-window.addEventListener('arquivo-media-loaded',()=>{if(!el('dialogRoot')?.querySelector('[role="dialog"]')&&currentSheet)render()});
+window.addEventListener('arquivo-media-loaded',()=>{if(!el('dialogRoot')?.querySelector('[role="dialog"]'))render()});
 window.addEventListener('arquivo-logged-out',()=>{signedSheetMedia.clear()});
 const CLEAR_IMAGE='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
 function acceptedImage(file){if(!file||!['image/gif','image/png','image/jpeg','image/webp'].includes(file.type))throw Error('Aceitos apenas GIF, JPG, PNG e WebP.');if(file.size>5*1024*1024)throw Error('Limite: 5 MB por arquivo.');if(!file.size)throw Error('Arquivo vazio.');if(!window.ARQUIVO_SYNC?.state.enabled)throw Error('É necessária conexão online para enviar imagens de até 5 MB.')}
@@ -714,7 +714,8 @@ async function saveSheetForm(){
      db.sheets.push(sheet);
      save();
      await st.state.pending;
-     if(st.state.error)throw Error('Não foi possível registrar a ficha antes do envio. Confira a sincronização.');
+     const confirmation=await st.state.client.rpc('ae_read_document');
+     if(confirmation.error||!confirmation.data?.data?.sheets?.some(x=>x.id===sheet.id))throw Error('A ficha não foi registrada no servidor antes do envio.');
     }else sheet=await st.saveOwnedSheet(sheet);
     editorDraft.id=sheet.id;
    }
