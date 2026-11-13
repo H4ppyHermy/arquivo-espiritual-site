@@ -500,6 +500,8 @@
   live.selected=tile.dataset.tile;quickSheet();
  },true);
  document.addEventListener('click',async e=>{
+  // No modo de edição, deixar o editor do mestre receber o clique.
+  if(document.body.classList.contains('editing-text'))return;
   const node=e.target.closest('[data-ae25]');if(!node)return;
   e.preventDefault();e.stopImmediatePropagation();
   const action=node.dataset.ae25,id=node.dataset.id;
