@@ -22,8 +22,10 @@ function scheduleDocumentRefresh(revision){
  if(docNoticeTimer)clearTimeout(docNoticeTimer);
  docNoticeTimer=setTimeout(async()=>{
   docNoticeTimer=null;
-  try{await state.pending.catch(()=>{});await refresh(false)}
-  catch(e){state.error=e.message}
+  try{
+   await state.pending.catch(()=>{});
+   if(Number(revision)>Number(state.revision))await refresh(true);
+  }catch(e){state.error=e.message}
  },180);
 }
 function connectDocumentChannel(){
