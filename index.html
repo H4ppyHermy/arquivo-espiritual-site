@@ -862,41 +862,80 @@ function setAllLibraryChapters(open){
  const root=el('ruleResults');if(root)root.innerHTML=ruleItems(visible);
 }
 
-function formatBook(source){
+function formatBook(source,chapterTitle=''){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
- const term=query.trim(),search=term?new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
+ const searchText=query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
+ const seen=new Set();
+ let helpCount=0;
+ const names=[...libraryGlossary.keys()].sort((a,b)=>b.length-a.length);
+ const pattern=names.length?new RegExp('(^|[^\\p{L}\\p{N}])('+names.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?![\\p{L}\\p{N}])','giu'):null;
  function inline(text){
-  let t=esc(text||'');
-  if(search)t=t.replace(search,m=>'<mark>'+m+'</mark>');
-  t=t.replace(/\\([*_~`])/g,'$1').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/__([^_]+)__/g,'<strong>$1</strong>').replace(/~~([^~]+)~~/g,'<del>$1</del>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>').replace(/`([^`]+)`/g,'<code>$1</code>');
-  return t;
+  const markers=[];
+  let raw=String(text||'');
+  if(pattern&&helpCount<8)raw=raw.replace(pattern,(all,prefix,term)=>{
+   const found=names.find(name=>name.toLocaleLowerCase('pt-BR')===term.toLocaleLowerCase('pt-BR'));
+   if(!found||seen.has(found)||helpCount>=8)return all;
+   seen.add(found);helpCount++;
+   const token='@@AEHELP'+markers.length+'@@';
+   markers.push(found);
+   return prefix+term+token;
+  });
+  let t=esc(raw).replace(/\\([*_~`])/g,'$1')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/__([^_]+)__/g,'<strong>$1</strong>')
+    .replace(/~~([^~]+)~~/g,'<del>$1</del>')
+    .replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>');
+  if(search)t=t.split(/(<[^>]*>)/g).map(segment=>segment.startsWith('<')?segment:segment.replace(search,match=>'<mark>'+match+'</mark>')).join('');
+  return t.replace(/@@AEHELP(\d+)@@/g,(_,index)=>libraryQuickHelp(markers[Number(index)]));
  }
- let html='',paragraph=[],listType=null,code=[],table=[],quote=[];
+ let html='',paragraph=[],listType=null,code=[],table=[],quote=[],defs=[];
  function flushPara(){if(paragraph.length){html+='<p class="book-paragraph">'+paragraph.map(inline).join(' ')+'</p>';paragraph=[]}}
  function flushList(){if(listType){html+='</'+listType+'>';listType=null}}
  function flushCode(){if(code.length){html+='<pre class="book-code"><code>'+esc(code.join('\n'))+'</code></pre>';code=[]}}
  function flushTable(){if(!table.length)return;html+='<div class="book-table-wrap"><table class="book-table">';
-  table.forEach((cells,i)=>{const th=i===0&&table.length>1?'th':'td';html+='<tr>'+cells.map(c=>'<'+th+'>'+inline(c.trim())+'</'+th+'>').join('')+'</tr>'});
+  table.forEach((cells,i)=>{const tag=i===0&&table.length>1?'th':'td';html+='<tr>'+cells.map(c=>'<'+tag+'>'+inline(c.trim())+'</'+tag+'>').join('')+'</tr>'});
   html+='</table></div>';table=[]}
  function flushQuote(){if(quote.length){html+='<blockquote class="book-quote">'+quote.map(x=>'<p>'+inline(x)+'</p>').join('')+'</blockquote>';quote=[]}}
- function closeBlocks(){flushPara();flushList();flushTable();flushQuote()}
- let inCode=false;
+ function flushDefs(){if(!defs.length)return;html+='<dl class="ae-book-definitions">'+defs.map(([key,desc])=>'<div class="ae-book-definition"><dt>'+inline(key)+'</dt><dd>'+inline(desc)+'</dd></div>').join('')+'</dl>';defs=[]}
+ function closeBlocks(){flushPara();flushList();flushTable();flushQuote();flushDefs()}
+ let inCode=false,firstNonEmpty=true;
  for(const row of rows){
   const line=row.trim(),heading=line.match(/^(#{1,6})\s+(.+)$/);
   if(line.startsWith('```')){closeBlocks();if(inCode)flushCode();inCode=!inCode;continue}
   if(inCode){code.push(row);continue}
   if(!line){closeBlocks();continue}
-  if(/^\|/.test(line)&&line.includes('|',1)){flushPara();flushList();flushQuote();if(/^\|?[\s:|\-]+\|?$/.test(line))continue;table.push(line.replace(/^\||\|$/g,'').split('|'));continue}
+  if(firstNonEmpty){
+   firstNonEmpty=false;
+   if(line.toLocaleUpperCase('pt-BR')===String(chapterTitle).trim().toLocaleUpperCase('pt-BR'))continue;
+  }
+  if(/^\|/.test(line)&&line.includes('|',1)){
+   flushPara();flushList();flushQuote();flushDefs();
+   if(/^\|?[\s:|\-]+\|?$/.test(line))continue;
+   table.push(line.replace(/^\||\|$/g,'').split('|'));continue;
+  }
   flushTable();
-  if(heading){closeBlocks();const level=Math.min(6,Math.max(2,heading[1].length+1));html+='<h'+level+'>'+inline(heading[2])+'</h'+level+'>';continue}
+  const namedSection=line.match(/^[✱✦✧❖]\s*(.{2,110})$/);
+  const upper=line.length<70&&/^[\p{Lu}\p{N}\s&/–—'.-]+$/u.test(line)&&/[\p{Lu}]/u.test(line);
+  if(heading||namedSection||upper){
+   closeBlocks();
+   const level=heading?Math.min(6,Math.max(2,heading[1].length+1)):3;
+   const title=heading?heading[2]:namedSection?namedSection[1]:line;
+   html+='<h'+level+' class="ae-book-heading">'+inline(title)+'</h'+level+'>';
+   continue;
+  }
   if(/^[-=_]{3,}$/.test(line)){closeBlocks();html+='<hr class="book-divider">';continue}
-  if(/^>\s?/.test(line)){flushPara();flushList();quote.push(line.replace(/^>\s?/,''));continue}
+  if(/^>\s?/.test(line)){flushPara();flushList();flushDefs();quote.push(line.replace(/^>\s?/,''));continue}
   flushQuote();
   const list=line.match(/^(\s*)([-*+]|[0-9]+[.)])\s+(.+)$/);
-  if(list){flushPara();const type=/^[0-9]/.test(list[2])?'ol':'ul';if(listType!==type){flushList();html+='<'+type+' class="book-readable-list">';listType=type}html+='<li>'+inline(list[3])+'</li>';continue}
-  flushList();paragraph.push(line);
+  if(list){flushPara();flushDefs();const type=/^\d/.test(list[2])?'ol':'ul';if(listType!==type){flushList();html+='<'+type+' class="book-readable-list">';listType=type}html+='<li>'+inline(list[3])+'</li>';continue}
+  flushList();
+  const definition=line.match(/^([^—\n]{2,65})\s+—\s+(.{12,})$/);
+  if(definition){flushPara();defs.push([definition[1].trim(),definition[2].trim()]);continue}
+  flushDefs();paragraph.push(line);
  }
- closeBlocks();flushCode();return html||'<p class="book-paragraph">Sem conteúdo neste capítulo.</p>';
+ closeBlocks();flushCode();
+ return html||'<p class="book-paragraph">Sem conteúdo neste capítulo.</p>';
 }
 function sheets(onlyMaster=false){if(onlyMaster&&!master())return headline('ACESSO RESTRITO','SOMENTE MESTRES','');const items=db.sheets.filter(s=>!!s.masterOnly===onlyMaster);if(window.ARQUIVO_SYNC?.state.connecting)return headline('FICHAS','CONECTANDO','Carregando permissões do servidor.');return headline(onlyMaster?'ARQUIVO RESTRITO':'ARQUIVO DE PERSONAGENS',onlyMaster?'FICHAS DO MESTRE':'FICHAS',onlyMaster?'Personagens e inimigos visíveis exclusivamente para mestres.':'Escolha um personagem para visualizar ou jogar.',onlyMaster?btn('+ NOVA FICHA DO MESTRE','newMasterSheet','main'):(player()?btn('+ NOVA FICHA','newSheet','main')+btn('IMPORTAR JSON','import'):''))+`<div class="panel"><div class="sectionhead"><h2>${onlyMaster?'FICHAS EXCLUSIVAS':'PERSONAGENS CADASTRADOS'}</h2><span class="tag">${items.length} ${items.length===1?'REGISTRO':'REGISTROS'}</span></div><div class="grid2">${items.map(s=>s.locked&&(!canEditSheet(s.id)||s.redacted)?`<article class="sheet-entry sheet-entry-locked" aria-label="Ficha desconhecida"><div class="thumb unknown-art" aria-hidden="true">?</div><div><div class="eyebrow">ACESSO RESTRITO</div><h3>FICHA DESCONHECIDA</h3><p>Você não possui acesso a esta ficha.</p><span class="tag">PRIVADA</span></div></article>`:`<article class="sheet-entry" data-sheet="${esc(s.id)}"><div class="thumb ${s.image?'hasimage':''}" style="${imgStyle(s.image)}"></div><div><div class="eyebrow">NÍVEL ${esc(s.level)}</div><h3>${esc(s.name)}</h3><p>${esc(s.subtitle||'Personagem')}</p><span class="tag">ABRIR FICHA ${icon('arrow','pill-icon')}</span></div></article>`).join('')}</div>${!items.length?`<p class="empty">${onlyMaster?'Nenhuma ficha exclusiva cadastrada.':'Nenhuma ficha cadastrada.'}</p>`:''}</div>`+(master()&&!onlyMaster?`<div class="master-below">${sheets(true)}</div>`:'')}
 function viewSheet(id){const target=db.sheets.find(s=>s.id===id);if(target?.masterOnly&&!master()){toast('Acesso restrito','Esta ficha é exclusiva do mestre.',true);return;}if(target?.locked&&(!canEditSheet(id)||target.redacted)){toast('FICHA DESCONHECIDA','Você não tem permissão para abrir esta ficha.',true);return;}currentSheet=id;tab='summary';page='sheets';render();window.scrollTo({top:0,behavior:'instant'})}
