@@ -1110,10 +1110,10 @@ function finishRollFeedback(){
  if(!b)return;b.classList.remove('ae-roll-pending');b.removeAttribute('aria-busy');b.removeAttribute('data-roll-pending');
 }
 function historyDiceColors(x){const safe=c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c)?c:null;return (Array.isArray(x.colors)?x.colors:[]).map(safe)}
-function historyDie(d,i,colors){const color=colors[i],sides=Number(d.sides),value=Number(d.value);return `<span class="history-die" ${color?`style="--history-die:${color}"`:''} aria-label="d${sides}, resultado ${value}"><span class="history-die-faces">d${sides}</span><b class="history-die-value">${value}</b></span>`}
+function historyDie(d,i,colors){const color=colors[i],sides=Number(d.sides),value=Number(d.value),eff=d.effective===undefined?value:Number(d.effective);return `<span class="history-die" ${color?`style="--history-die:${color}"`:''} aria-label="d${sides}, resultado ${value}, efetivo ${eff}"><span class="history-die-faces">d${sides}</span><b class="history-die-value">${value}${value!==eff?' → '+eff:''}</b></span>`}
 function historyRollCard(x,unverified=false){
- const dice=Array.isArray(x.dice)?x.dice:[],colors=historyDiceColors(x),base=dice.reduce((a,d)=>a+Number(d.value||0),0),special=x.special||'',critical=special==='CRÍTICO',failure=special==='FALHA CRÍTICA';
- const total=Number(x.total||base),account=x.account_name||'',character=x.character_name||'',kind=x.kind||'',label=x.label||'';
+ const dice=Array.isArray(x.dice)?x.dice:[],colors=historyDiceColors(x),base=dice.reduce((a,d)=>a+Number(d.effective??d.value??0),0),special=x.special||'',critical=special==='CRÍTICO',failure=special==='FALHA CRÍTICA';
+ const total=Number(x.total??base),account=x.account_name||'',character=x.character_name||'',kind=x.kind||'',label=x.label||'';
  const head=account?`${esc(account)}${character?' ('+esc(character)+')':''}`:(character?esc(character):'Rolagem local');
  const date=x.created_at?`<time datetime="${esc(x.created_at)}">${new Date(x.created_at).toLocaleString('pt-BR')}</time>`:'';
  const badge=special?`<span class="history-special">${critical?'✦ ': '⚠ '}${esc(special)}</span>`:'';
@@ -1580,7 +1580,7 @@ function showRollImpact(special){
  if(special==='CRÍTICO')node.innerHTML='<svg viewBox="0 0 1000 700" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M500 345 L450 240 360 138 275 0 M500 345 L590 258 670 141 755 0 M500 345 L700 315 870 251 1000 225 M500 345 L651 452 764 545 1000 670 M500 345 L453 482 394 608 359 700 M500 345 L350 372 176 421 0 530 M500 345 L369 283 230 214 0 162"/><path class="fine" d="M450 240 L531 166 548 35 M360 138 L280 168 180 144 M590 258 L661 265 713 314 M670 141 L633 65 603 0 M700 315 L774 372 844 367 M651 452 L610 543 629 700 M764 545 L759 633 785 700 M453 482 L335 491 275 578 M394 608 L476 663 490 700 M350 372 L297 293 216 300 M176 421 L149 564 114 700 M369 283 L391 188 351 61"/><path d="M500 345 l-22 -38 17 -40 -29 -43 M500 345 l32 -22 22 6 35 -27 M500 345 l14 43 34 24 12 42 M500 345 l-46 9 -22 37 -46 15"/></svg>';
  document.body.appendChild(node);activeRollImpact=node;rollImpactTimeout=setTimeout(()=>{node.remove();if(activeRollImpact===node)activeRollImpact=null},1150)
 }
-function rollStage(r){return `<div class="roll-stage ${r.special==='CRÍTICO'?'critical':r.special==='FALHA CRÍTICA'?'failure':''}"><span class="eyebrow">${esc(r.label)} ${r.special?'// '+esc(r.special):''}</span><div class="roll-number" data-counter="${r.total}">${r.total}</div><div class="dice">${r.dice.map((d,i)=>`<div class="die ${sheetMotionOff()?'':'spin'}" data-sides="${d.sides}" style="animation-delay:${i*60}ms;${r.colors?.[i]&&SHEET_HEX.test(r.colors[i])?'--roll-die:'+r.colors[i]:''}"><small>d${d.sides}</small><b>${d.value}</b></div>`).join('')}</div><p class="subtitle">${esc(r.summary)}</p></div>`}
+function rollStage(r){return `<div class="roll-stage ${r.special==='CRÍTICO'?'critical':r.special==='FALHA CRÍTICA'?'failure':''}"><span class="eyebrow">${esc(r.label)} ${r.special?'// '+esc(r.special):''}</span><div class="roll-number" data-counter="${r.total}">${r.total}</div><div class="dice">${r.dice.map((d,i)=>`<div class="die ${sheetMotionOff()?'':'spin'}" data-sides="${d.sides}" style="animation-delay:${i*60}ms;${r.colors?.[i]&&SHEET_HEX.test(r.colors[i])?'--roll-die:'+r.colors[i]:''}"><small>d${d.sides}</small><b>${d.value}${d.effective!==undefined&&Number(d.effective)!==Number(d.value)?` <small>→ ${d.effective}</small>`:''}</b></div>`).join('')}</div><p class="subtitle">${esc(r.summary)}</p></div>`}
 let sharedMusic=null,musicReady=false,musicSoundUnlocked=false,ytPlayer=null,ytLastId='',musicBusy=false;
 function parseMusicLink(url){let u;try{u=new URL(url)}catch(e){return null}if(!['https:','http:'].includes(u.protocol))return null;
  const host=u.hostname.toLowerCase();
@@ -1733,18 +1733,46 @@ async function migrateLegacyKeys(){if(Array.isArray(db.keys))return;const old=db
 function stepDown(d){const idx=VALID_DICE.indexOf(Number(d));return idx<=0?4:VALID_DICE[idx-1]}
 function randomDie(sides){const arr=new Uint32Array(1);try{crypto.getRandomValues(arr);return arr[0]%sides+1}catch(e){return Math.floor(Math.random()*sides)+1}}
 function rollColorsForSkill(skill,abilityIndex){const s=db.sheets.find(x=>x.id===currentSheet);if(!s)return [];const p=sheetPalette(s.id);if(Number.isInteger(abilityIndex)){const ab=s.abilities?.[abilityIndex];if(ab)return Object.values(abilityDicePalette(s,ab))}return [p.diceGroup,p.diceSkill]}
+
+function fichaLocalTest(s,dice){
+ const c=s.combat||{},raw=dice.map(d=>({...d})),bonus=Number(c.nextBonusDie)||0;
+ if([4,6,8,10,12,20].includes(bonus)){raw.push({sides:bonus,value:randomDie(bonus),bondBonus:true});c.nextBonusDie=0}
+ let effect=null,active=raw;
+ if(c.hollowActive){
+  const n=randomDie(6);effect={mode:'hollow',sides:6,value:n,broken:n===6,advance:n===1};
+  if(n===6){c.hollowActive=false;c.hollowLost=true}
+  if(n===1)c.hollowProgress=Number(c.hollowProgress||0)+1;
+  for(const d of raw)d.effective=d.value>n?d.sides:d.value;
+ }else if([4,6,8,10,12,20].includes(Number(c.fearDie))){
+  const sides=Number(c.fearDie),n=randomDie(sides);
+  effect={mode:'fear',sides,value:n,cleared:n===1};
+  for(const d of raw)d.effective=d.value<n?0:d.value;
+  active=raw.filter(d=>d.effective>0);
+  if(n===1){c.fearDie=0;s.conditions=(s.conditions||[]).filter(x=>String(x).toLowerCase()!=='amedrontado')}
+ }else for(const d of raw)d.effective=d.value;
+ let special='',total=raw.reduce((a,d)=>a+Number(d.effective),0);
+ if(!active.length){special='FALHA CRÍTICA';total=0}
+ else{special=avaliarResultadoDados(effect?.mode==='fear'?active:raw).special;if(special==='CRÍTICO')total*=2}
+ s.combat=c;
+ return {dice:raw,total,special,effect};
+}
+function formatRollEffect(r,verified){
+ const parts=(r.dice||[]).map(d=>'d'+d.sides+' ('+d.value+(d.effective!==undefined&&Number(d.effective)!==Number(d.value)?' → '+d.effective:'')+')');
+ const e=r.effect,info=e?(e.mode==='hollow'?'HOLLOWFICAÇÃO':'PAVOR')+' d'+e.sides+' = '+e.value+(e.broken?' · MÁSCARA ROMPIDA':'')+(e.advance?' · DOMÍNIO +1':'')+(e.cleared?' · PAVOR SUPERADO':''):'';
+ return (verified?'VERIFICADA':'NÃO VERIFICADA')+' · '+parts.join(' + ')+' = '+r.total+(r.special?' · '+r.special:'')+(info?' · '+info:'');
+}
 async function skillRoll(skill,abilityIndex){if(!canEditSheet(currentSheet))return;
  if(window.ARQUIVO_SYNC?.state.enabled){if(rollingBusy)return;rollingBusy=true;
  try{const x=await window.ARQUIVO_SYNC.rollSkill(currentSheet,skill,Number.isInteger(abilityIndex)?abilityIndex:null);const r={id:x.id,label:x.label,total:x.total,special:x.special,dice:x.dice,
- summary:x.dice.map(d=>'d'+d.sides+' ('+d.value+')').join(' + ')+' = '+x.dice.reduce((a,d)=>a+Number(d.value),0)+(x.special==='CRÍTICO'?' × 2 = '+x.total:'')+(x.special?' · '+x.special:'')};
+ effect:x.effect,summary:formatRollEffect(x,true)};
  r.colors=Array.isArray(x.colors)?x.colors:rollColorsForSkill(skill,abilityIndex);lastRoll=r;showRollImpact(r.special);el('rollLive').textContent=`${skill}: ${r.total}. ${r.special||'Normal'}`;
  sound('dice');if(r.special==='CRÍTICO')sound('critical');refreshRollHistorySoon();
- verifiedSkillRollModal(r);}catch(e){toast('Rolagem não registrada',e.message,true)}finally{rollingBusy=false;finishRollFeedback()}return;}
+ await window.ARQUIVO_SYNC.refresh(true);verifiedSkillRollModal(r);}catch(e){toast('Rolagem não registrada',e.message,true)}finally{rollingBusy=false;finishRollFeedback()}return;}
  const s=db.sheets.find(x=>x.id===currentSheet),g=Object.keys(GROUPS).find(g=>GROUPS[g].includes(skill));if(!s||!g)return;
  const d1=Number(s.groups[g])||4,d2=Number(s.skills[skill])||4,a=randomDie(d1),b=randomDie(d2);
- const {special,total}=avaliarResultadoDados([{sides:d1,value:a},{sides:d2,value:b}]);
- const r={label:skill,total,special,dice:[{sides:d1,value:a},{sides:d2,value:b}],summary:`NÃO VERIFICADA · ${g} d${d1} (${a}) + ${skill} d${d2} (${b}) = ${total}`};
- r.colors=rollColorsForSkill(skill,abilityIndex);lastRoll=r;rollHistory.unshift(r);showRollImpact(special);el('rollLive').textContent=`${skill}: ${total}. ${special||'Resultado normal'} · NÃO VERIFICADA`;
+ const result=fichaLocalTest(s,[{sides:d1,value:a},{sides:d2,value:b}]);const {special,total}=result;
+ const r={label:skill,total,special,dice:result.dice,effect:result.effect,summary:formatRollEffect(result,false)};
+ r.colors=rollColorsForSkill(skill,abilityIndex);if(result.dice.length>2)r.colors.push('#E8C56D');save();lastRoll=r;rollHistory.unshift(r);showRollImpact(special);el('rollLive').textContent=`${skill}: ${total}. ${special||'Resultado normal'} · NÃO VERIFICADA`;
  sound('dice');if(special==='CRÍTICO')sound('critical');modal('RESULTADO NÃO VERIFICADO',rollStage(r),[]);finishRollFeedback()}
 
 // Regra única de críticos para todas as rolagens locais. No modo online o Supabase decide.
@@ -1791,12 +1819,12 @@ async function useAbility(i){if(!sheetPermission()||!requirePlayer())return;cons
  const item=inventoryItemForAbility(s,ab);if(abilityCategory(ab)==='item'&&ab.inventoryItemId&&!item){toast('ITEM NÃO ENCONTRADO','O item vinculado foi removido do inventário.',true);return}if(item&&inventoryItemHasQuantity(item)&&(!Number.isInteger(Number(item.quantity))||Number(item.quantity)<1)){toast('ITEM ESGOTADO','É preciso ter ao menos uma unidade para usar esta habilidade.',true);return}if(s.resources.alma.current<cost){const node=el('ability-'+i);node?.classList.remove('shake');void node?.offsetWidth;node?.classList.add('shake');toast('ALMA INSUFICIENTE',`${ab.name} exige ${cost} de Alma.`,true);sound('damage');finishRollFeedback();return}
  const custom=abilityHasTest(ab)?abilityCustomDice(ab):null,skill=abilityHasTest(ab)&&!custom?abilityTestSkill(ab):null;
  if(window.ARQUIVO_SYNC?.state.enabled){if(rollingBusy)return;rollingBusy=true;
- try{const x=await window.ARQUIVO_SYNC.useAbility(currentSheet,i);if(x.roll){const r=x.roll;r.colors=Array.isArray(r.colors)?r.colors:[];r.summary='VERIFICADA · '+r.dice.map(d=>`d${d.sides} (${d.value})`).join(' + ')+' = '+r.dice.reduce((a,d)=>a+Number(d.value),0)+(r.special==='CRÍTICO'?' × 2 = '+r.total:'')+(r.special?' · '+r.special:'');lastRoll=r;showRollImpact(r.special);el('rollLive').textContent=`${ab.name}: ${r.total}. ${r.special||'Normal'}`;sound('dice');if(r.special==='CRÍTICO')sound('critical');refreshRollHistorySoon();modal('TÉCNICA · ROLAGEM VERIFICADA',rollStage(r),[])}else{sound('click');toast('TÉCNICA UTILIZADA',`${ab.name} · ${cost>0?'−'+cost+' Alma':'SEM CUSTO'}`)}
+ try{const x=await window.ARQUIVO_SYNC.useAbility(currentSheet,i);if(x.roll){const r=x.roll;r.colors=Array.isArray(r.colors)?r.colors:[];r.summary=formatRollEffect(r,true);lastRoll=r;showRollImpact(r.special);el('rollLive').textContent=`${ab.name}: ${r.total}. ${r.special||'Normal'}`;sound('dice');if(r.special==='CRÍTICO')sound('critical');refreshRollHistorySoon();modal('TÉCNICA · ROLAGEM VERIFICADA',rollStage(r),[])}else{sound('click');toast('TÉCNICA UTILIZADA',`${ab.name} · ${cost>0?'−'+cost+' Alma':'SEM CUSTO'}`)}
  s.resources.alma.current=Number(x.alma);await window.ARQUIVO_SYNC.refresh(true);render();
  }catch(e){toast('Técnica não utilizada',e.message,true)}finally{rollingBusy=false;finishRollFeedback()}return}
  // Modo local: resultado não verificado e custo descontado no mesmo clique.
  let dice=[],colors=[];if(custom){dice=custom.map(d=>({sides:Number(d.sides),value:randomDie(Number(d.sides))}));colors=custom.map(d=>ABILITY_HEX.test(d.color||'')?d.color:sheetPalette(s.id).diceGroup)}else if(skill){const g=Object.keys(GROUPS).find(g=>GROUPS[g].includes(skill));const sides=[s.groups[g],s.skills[skill]];dice=sides.map(n=>({sides:Number(n),value:randomDie(Number(n))}));colors=Object.values(abilityDicePalette(s,ab))}
- s.resources.alma.current-=cost;if(item&&inventoryItemHasQuantity(item))item.quantity=Number(item.quantity)-1;save();if(dice.length){const {base,total,special}=avaliarResultadoDados(dice);const r={label:ab.name,total,special,dice,colors,summary:'NÃO VERIFICADA · '+dice.map(d=>d.value).join(' + ')+' = '+base+(special==='CRÍTICO'?' × 2 = '+total:'')+(special?' · '+special:'')};lastRoll=r;rollHistory.unshift(r);showRollImpact(special);sound('dice');modal('TÉCNICA · RESULTADO LOCAL',rollStage(r),[])}else{sound('click');toast('TÉCNICA UTILIZADA',`${ab.name} · ${cost>0?'−'+cost+' Alma':'SEM CUSTO'}`);render()}finishRollFeedback()}
+ const result=dice.length?fichaLocalTest(s,dice):null;if(result&&result.dice.length>dice.length)colors.push('#E8C56D');s.resources.alma.current-=cost;if(item&&inventoryItemHasQuantity(item))item.quantity=Number(item.quantity)-1;save();if(result){const {total,special}=result;dice=result.dice;const r={label:ab.name,total,special,dice,colors,effect:result.effect,summary:formatRollEffect(result,false)};lastRoll=r;rollHistory.unshift(r);showRollImpact(special);sound('dice');modal('TÉCNICA · RESULTADO LOCAL',rollStage(r),[])}else{sound('click');toast('TÉCNICA UTILIZADA',`${ab.name} · ${cost>0?'−'+cost+' Alma':'SEM CUSTO'}`);render()}finishRollFeedback()}
 function restDialog(){if(!sheetPermission())return;if(!requirePlayer())return;const s=db.sheets.find(x=>x.id===currentSheet);modal('RECUPERAÇÃO',`<p>Descanso breve: 2 dados de Corpo e Mente, 1 de Espírito. Completo: 4, 4 e 2. A atividade escolhida acrescenta 1 dado ao recurso correspondente.</p><p>Descansos breves usados neste ciclo: ${Number(s.restCount)||0} / 2.</p><div class="field"><label>Atividade</label><select id="restActivity"><option value="vida">Tratamento · Vida</option><option value="estabilidade">Recomposição · Estabilidade</option><option value="alma">Meditação · Alma</option></select></div><p class="subtitle">O mestre decide se a cena oferece tempo e segurança para descansar.</p>`,[['BREVE','restShort','main'],['COMPLETO','restFull'],['Cancelar','closeModal']])}
 function rest(kind){if(!sheetPermission())return;if(!requirePlayer())return;const s=db.sheets.find(x=>x.id===currentSheet),activity=el('restActivity')?.value;if(!s)return;if(kind==='breve'&&(Number(s.restCount)||0)>=2){toast('Limite atingido','Realize um descanso completo antes de obter benefícios de outro breve.',true);return}const base=kind==='breve'?{vida:2,estabilidade:2,alma:1}:{vida:4,estabilidade:4,alma:2};const result=[];for(const [k,g] of Object.entries({vida:'Corpo',estabilidade:'Mente',alma:'Espírito'})){let sides=Number(s.groups[g])||4;if(kind==='breve'&&Number(s.restCount)===1)sides=stepDown(sides);const count=base[k]+(k===activity?1:0),rolls=Array.from({length:count},()=>randomDie(sides)),total=rolls.reduce((a,b)=>a+b,0),before=s.resources[k].current;s.resources[k].current=before>s.resources[k].max?before:Math.min(s.resources[k].max,before+total);result.push(`${k}: ${count}d${sides} [${rolls.join(', ')}] → +${s.resources[k].current-before}`)}if(kind==='breve'){s.restCount=(Number(s.restCount)||0)+1;s.desgaste=Math.max(0,(s.desgaste||0)-2);if(s.exposures){for(const k of Object.keys(s.exposures)){if(s.exposures[k]>0){s.exposures[k]--;break}}}}else{s.restCount=0;s.desgaste=0;s.exposures={}}save();closeModal();render();toast('DESCANSO '+kind.toUpperCase(),result.join(' · '));sound('click')}
 function addCondition(){if(!sheetPermission()||!requirePlayer())return;modal('ADICIONAR ESTADO OU CONDIÇÃO',`<div class="field"><label>Condições do sistema<select id="conditionPreset"><option value="">Escolha uma condição…</option>${CONDITIONS_CATALOG.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('')}<option value="__custom">Outra condição (personalizada)</option></select></label></div><div class="field"><label>Condição personalizada<input id="conditionName" placeholder="Digite apenas para condição extra" maxlength="70"></label></div>`,[['ADICIONAR','confirmCondition','main'],['Cancelar','closeModal']])}
