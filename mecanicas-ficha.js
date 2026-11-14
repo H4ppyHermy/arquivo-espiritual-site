@@ -152,6 +152,7 @@ function renderBonds(s){
  const c=combat(s),items=bonds(s),all=(app()?.db?.sheets||[]).filter(x=>!x.redacted&&!x.masterOnly&&x.id!==s.id),m=app()?.master?.()||false;
  return `<div class="ae-rpg-panel"><section class="panel"><div class="sectionhead"><h2>VÍNCULOS NARRATIVOS</h2><span class="tag">CENA ${esc(c.scene)} · ${items.length} RELAÇÕES</span></div>
  <p class="subtitle">Afinidade (I), Vínculo (II) e Devoção (III). Cada relação pode ser invocada uma vez por cena, mediante justificativa narrativa. O mestre reconhece as evoluções de grau.</p>
+ ${c.nextBonusDie?`<p class="color-hint">Bônus aguardando o próximo teste: +1d${c.nextBonusDie}.</p>`:''}${c.lastBondHeal?.scene===c.scene?`<p class="color-hint">Última motivação: +${Number(c.lastBondHeal.amount)||0} de Estabilidade para ${esc(c.lastBondHeal.name)}. Aplique ao destinatário na ficha correspondente.</p>`:''}
  ${items.length?items.map((b,i)=>{const grade=Math.max(1,Math.min(3,Number(b.grade)||1)),used=Number(b.usedScene)===Number(c.scene),die=[0,6,8,12][grade];
  const benefits=[['teste','Bônus próprio +1d'+die],['ajuda','Auxílio +1d'+die],...(grade>=2?[['motivar',`Motivar · ${grade===2?'2d4':'2d6'} Estabilidade`]]:[]),...(grade===3?[['proteger','Ação extra para proteger/auxiliar']]:[])];
  return `<article class="ae-bond"><div class="sectionhead"><h3>${esc(b.name||'Relação sem nome')}</h3><span class="tag">${['','Ⅰ · AFINIDADE','Ⅱ · VÍNCULO','Ⅲ · DEVOÇÃO'][grade]}</span></div>
