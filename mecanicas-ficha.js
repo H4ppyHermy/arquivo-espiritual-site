@@ -28,9 +28,28 @@ function getMovement(s){
  if(c.rhythmRestriction>=1){move=0;status.push('Exposição rítmica: sem movimento nesta rodada')}
  return {base:die,move:move,perAction:move*2,status};
 }
+function extraCombat(s,c){
+ const used=!!c.mainUsed,lock=Number(c.rhythmRestriction)>=3;
+ const skills=Object.entries(s.skills||{}).filter(([name,v])=>Number(v)>=6);
+ return `<section class="panel"><div class="sectionhead"><h2>AUXÍLIO, PROGRESSO & SOBREVIVÊNCIA</h2></div>
+ <details class="ae-rule-detail"><summary>Auxílio · perícias d6 ou superior</summary><p class="color-hint">Auxílio exige perícia ≥d6 e normalmente uma ação principal. d6/d8: +1 passo; d10/d12: +2 passos no dado de perícia do aliado.</p>
+ ${can()?`<label>Perícia utilizada<select id="aeAidSkill">${skills.map(([name,die])=>`<option value="${esc(name)}">${esc(name)} · d${die}</option>`).join('')}</select></label>${actionBtn('REGISTRAR AUXÍLIO','aid','small',used||lock)}`:''}
+ ${c.aidResult?`<p class="color-hint">Último auxílio: ${esc(c.aidResult.skill)} · +${c.aidResult.steps} passo(s) ao aliado.</p>`:''}</details>
+ <details class="ae-rule-detail"><summary>Testes progressivos · RO, RA e RB</summary><p class="color-hint">O mestre define a RO. Sucesso acrescenta RA; falha só acrescenta RB quando houver progresso parcial.</p>
+ <div class="ae-rpg-grid"><label>RO<input type="number" min="0" max="100000" data-ae-field="progressGoal" value="${esc(c.progressGoal||'')}"></label>
+ <label>Progresso<input type="number" min="0" max="100000" data-ae-field="progressCurrent" value="${esc(c.progressCurrent||0)}"></label>
+ <label>RA ou RB obtido<input type="number" min="0" max="100000" id="aeProgressDie" value="0"></label></div>
+ ${actionBtn('SOMAR AO PROGRESSO','progress','small')}<p class="color-hint">${Number(c.progressCurrent)||0} / ${Number(c.progressGoal)||'?'}${c.progressGoal&&Number(c.progressCurrent)>=Number(c.progressGoal)?' · OBJETIVO ALCANÇADO':''}</p></details>
+ <details class="ae-rule-detail"><summary>Verificações de Desmaiado e Acorrentado</summary>
+ <p class="color-hint">Desmaiado: teste de Corpo ≥ metade do resultado responsável. Acorrentado: teste da raça/classe ≥ dobro. No quarto episódio, consequências definitivas. Esgotamento de Alma não mata diretamente.</p>
+ <div class="ae-rpg-grid"><label>Resultado que provocou o estado<input type="number" min="0" max="99999" id="aeCollapseSource" value="0"></label>
+ <label>Resultado do teste<input type="number" min="0" max="99999" id="aeCollapseRoll" value="0"></label></div>
+ <div class="ae-rpg-controls">${actionBtn('VERIFICAR VIDA','survive:vida','small')}${actionBtn('VERIFICAR ESTABILIDADE','survive:estabilidade','small')}</div>
+ <p class="color-hint">Sobrevivências: Vida ${Number(c.lifeSurvivals)||0}/3 · Estabilidade ${Number(c.stabilitySurvivals)||0}/3. ${c.raceStatePending?'Estado racial pendente (decisão do mestre).':''}</p></details></section>`;
+}
 function renderCombat(s){
  const c=combat(s),mv=getMovement(s),ex=s.exposures||{},wear=Number(s.desgaste)||0;
- const used=!!c.mainUsed,react=!!c.reactionUsed,lock=c.rhythmRestriction>=3,defLock=c.rhythmRestriction>=2||Number(ex.defensiva)>0&&c.committedUsed;
+ const used=!!c.mainUsed,react=!!c.reactionUsed,lock=c.rhythmRestriction>=3,defLock=c.rhythmRestriction>=2;
  const wearLimit=Number.isInteger(Number(c.wearPoints))&&Number(c.wearPoints)>0?2+Number(c.wearPoints):null;
  const res=c.resistance||{};
  const defPenalty=(Number(ex.defensiva)>1?Number(ex.defensiva)-1:0)+(Number(c.pressuredUntil)>=Number(c.round)?1:0)+(isCondition(s,'ATORDOADO')?1:0);
@@ -72,7 +91,7 @@ function renderCombat(s){
   <section class="panel"><div class="sectionhead"><h2>PAVOR & HOLLOWFICAÇÃO</h2><span class="tag">PAVOR ${fear}</span></div>
   <p class="color-hint">Pavor: dados abaixo do d${c.fearDie||6} são anulados. Pavor 1: supera o medo.</p>
   <div class="ae-rpg-controls">${actionBtn(c.fearDie?'AGRAVAR PAVOR':'APLICAR PAVOR','fearAdd','small')}${actionBtn('ENCERRAR PAVOR','fearClear','small quiet',!c.fearDie)}</div>
-  ${c.fearDie?`<p class="color-hint">A condição Amedrontado usa o mesmo dado; novos efeitos aumentam um passo.</p>`:''}
+  ${c.fearDie?`<p class="color-hint">A condição Amedrontado usa o mesmo dado; novos efeitos aumentam um passo.</p>`:''}${c.fearDie&&c.hollowActive?'<p class="color-hint">O texto-base ainda não define sobreposição entre pavor comum e máscara. Nesta ficha, a rolagem aplica apenas a influência da máscara enquanto ela estiver ativa.</p>':''}
   <p class="color-hint">Máscara: resultados acima do dado de influência são maximizados. Resultado 1: avanço. Máximo: ruptura e perda de controle.</p>
   <div class="ae-rpg-controls">${actionBtn(c.hollowActive?'REMOVER MÁSCARA':'HOLLOWFICAR','maskToggle','small main',!c.hollowActive&&!c.hollowUnlocked&&String(s.race||'').toLowerCase()!=='visored')}${actionBtn('RECUPERAR CONTROLE','maskRecover','small quiet',!c.hollowLost)}</div>
   <p class="color-hint">Máscara: ${c.hollowActive?'ATIVA':c.hollowLost?'RUPTURA · SEM CONTROLE':'INATIVA'}. Avanços de domínio: ${Number(c.hollowProgress)||0}. Os benefícios do domínio dependem de habilidades ainda a definir.</p>
@@ -91,8 +110,8 @@ function renderCombat(s){
  <div class="ae-rpg-controls">${actionBtn('MANTER SUSTENTAÇÃO','sustain','small')}${actionBtn('ENCERRAR','sustainEnd','small quiet')}</div>
  <p class="color-hint">Esforço extra: +1 passo em teste pertinente, custo crescente de 1d4 Vida por utilização na cena; não concede ação.</p>
  <div class="ae-rpg-controls">${actionBtn('ESFORÇO EXTRA','effort','small')}<span class="tag">USOS NA CENA ${c.extraEfforts}</span></div>
- ${c.nextBonusDie?`<p class="color-hint">Bônus de vínculo preparado: +1d${c.nextBonusDie} no próximo teste.</p>`:''}
- </section></div></div>`;
+ ${c.nextBonusDie?`<p class="color-hint">Bônus de vínculo preparado: +1d${c.nextBonusDie} no próximo teste.</p>`:''}${c.devotionExtraAction?`<p class="color-hint">Ação adicional de Devoção disponível somente para proteger/auxiliar. ${actionBtn('USAR AÇÃO DE DEVOÇÃO','devotionAction','small main')}</p>`:''}
+ </section></div>${extraCombat(s,c)}</div>`;
 }
 function renderBonds(s){
  const c=combat(s),items=bonds(s),all=(app()?.db?.sheets||[]).filter(x=>!x.redacted&&!x.masterOnly&&x.id!==s.id),m=app()?.master?.()||false;
@@ -132,15 +151,16 @@ async function runAction(key,param){
  const v=(id)=>document.getElementById(id)?.value;
  const num=(id)=>Number(v(id))||0;
  if(key==='phaseNext')return movePhase();
- if(key==='newScene'){c.scene++;c.extraEfforts=0;c.nextBonusDie=0;return sync('Nova cena iniciada')}
+ if(key==='newScene'){c.scene++;c.extraEfforts=0;c.nextBonusDie=0;c.devotionExtraAction=false;return sync('Nova cena iniciada')}
  if(key==='resetRound'){c.mainUsed=false;c.reactionUsed=false;c.committedUsed=false;c.pressureHits=0;c.resistance={};c.preparedTrigger='';return sync('Oportunidades da rodada reiniciadas')}
  if(key==='mainAction'){if(c.mainUsed||c.rhythmRestriction>=3)return wrong('Ação principal indisponível.');c.mainUsed=true;return sync('Ação principal utilizada')}
+ if(key==='devotionAction'){if(!c.devotionExtraAction)return wrong('Ação adicional de Devoção indisponível.');c.devotionExtraAction=false;return sync('Ação de Devoção utilizada para proteger/auxiliar')}
  if(key==='reaction'){if(c.reactionUsed||c.rhythmRestriction>=2)return wrong('Reação indisponível.');c.reactionUsed=true;return sync('Reação utilizada')}
  if(key==='prepareAction'){if(c.mainUsed||c.reactionUsed)return wrong('É necessário ter ação principal e reação disponíveis.');const trigger=prompt('Qual acontecimento ativa a ação preparada?');if(!trigger)return;c.mainUsed=true;c.preparedTrigger=trigger.slice(0,220);return sync('Ação reservada')}
  if(key==='firePrepared'){if(!c.preparedTrigger||c.reactionUsed)return wrong('A preparação não pode ser disparada.');c.preparedTrigger='';c.reactionUsed=true;return sync('Ação preparada disparada')}
  if(key==='cancelPrepared'){c.preparedTrigger='';return sync('Preparação cancelada')}
  if(key==='commit'){const kind=v('aeExposure');if(!EXPOS.includes(kind))return wrong('Escolha uma exposição válida.');const limit=c.wearPoints?2+Number(c.wearPoints):null;if(c.committedUsed||c.rhythmRestriction>=3||Number(ex[kind])>=3||limit!==null&&Number(s.desgaste)>=limit)return wrong('Limite de ações comprometedoras ou exposição alcançado.');ex[kind]=Math.min(3,Number(ex[kind]||0)+1);s.desgaste=Number(s.desgaste||0)+1;c.committedUsed=true;if(kind==='defensiva')c.reactionUsed=true;if(kind==='ritmica')c.rhythmPending=ex[kind];return sync('Ação comprometedora registrada')}
- if(key==='fearAdd'){c.fearDie=c.fearDie?DICE[Math.min(DICE.length-1,DICE.indexOf(c.fearDie)+1)]:6;s.conditions??=[];if(!isCondition(s,'AMEDRONTADO'))s.conditions.push('Amedrontado');return sync('Pavor aplicado')}
+ if(key==='fearAdd'){c.fearDie=c.fearDie?[6,8,10,12][Math.min(3,[6,8,10,12].indexOf(c.fearDie)+1)]:6;s.conditions??=[];if(!isCondition(s,'AMEDRONTADO'))s.conditions.push('Amedrontado');return sync('Pavor aplicado')}
  if(key==='fearClear'){c.fearDie=0;s.conditions=(s.conditions||[]).filter(x=>String(x).toLowerCase()!=='amedrontado');return sync('Pavor encerrado')}
  if(key==='maskToggle'){if(!c.hollowActive&&!c.hollowUnlocked&&String(s.race||'').toLowerCase()!=='visored')return wrong('Hollowficação ainda não autorizada para a ficha.');if(c.hollowLost&&!c.hollowActive)return wrong('Recupere o controle antes de colocar a máscara.');c.hollowActive=!c.hollowActive;return sync(c.hollowActive?'Máscara ativada':'Máscara removida')}
  if(key==='maskRecover'){c.hollowLost=false;return sync('Controle restaurado pelo mestre/narrativa')}
@@ -152,6 +172,9 @@ async function runAction(key,param){
  if(key==='sustain'){if(!c.sustainText)return wrong('Informe o efeito sustentado.');c.sustainRounds++;return sync('Sustentação: rodada '+c.sustainRounds)}
  if(key==='sustainEnd'){c.sustainText='';c.sustainRounds=0;return sync('Sustentação encerrada')}
  if(key==='effort'){const count=Number(c.extraEfforts||0)+1;if(s.resources?.vida?.current===0)return wrong('Sem Vida disponível.');try{const r=await diceRoll(count,4),dmg=r.dice.reduce((a,b)=>a+b,0);c.extraEfforts=count;s.resources.vida.current=Math.max(0,Number(s.resources.vida.current)-dmg);c.nextStep=1;sync('Esforço extra: −'+dmg+' Vida; +1 passo em teste adequado (aplique no teste)');}catch(e){wrong(e.message)}return}
+ if(key==='aid'){const skill=v('aeAidSkill'),die=Number(s.skills?.[skill]);if(!skill||die<6||c.mainUsed||c.rhythmRestriction>=3)return wrong('Auxílio exige uma ação principal e perícia d6 ou maior.');c.mainUsed=true;c.aidResult={skill,steps:die>=10?2:1};return sync('Auxílio: '+skill+' · +'+c.aidResult.steps+' passo(s) ao aliado')}
+ if(key==='progress'){const amount=num('aeProgressDie');if(!Number.isInteger(amount)||amount<0||amount>100000)return wrong('Valor inválido.');c.progressCurrent=Math.min(100000,Number(c.progressCurrent||0)+amount);return sync('Progresso registrado: +'+amount)}
+ if(key==='survive'){if(!['vida','estabilidade'].includes(param))return;const incoming=num('aeCollapseSource'),rolled=num('aeCollapseRoll');if(incoming<0||rolled<0||incoming>99999||rolled>99999)return wrong('Informe resultados válidos.');const isLife=param==='vida',prev=Number(isLife?c.lifeSurvivals:c.stabilitySurvivals)||0;if(Number(s.resources[param].current)>0)return wrong('A verificação ocorre com o recurso a zero.');if(prev>=3){if(isLife&&!isCondition(s,'Morto'))s.conditions.push('Morto');else c.raceStatePending=true;return sync('Limite de sobrevivências alcançado')};const success=rolled>=(isLife?incoming/2:incoming*2);if(success){s.resources[param].current=1;if(isLife)c.lifeSurvivals=prev+1;else c.stabilitySurvivals=prev+1;return sync('Verificação bem-sucedida · recurso restaurado a 1')};if(isLife){if(!isCondition(s,'Morto'))s.conditions.push('Morto');return sync('Falha na verificação · Morto')};c.raceStatePending=true;return sync('Falha na verificação · estado racial pendente do mestre')}
  if(key==='bondAdd'){const name=v('aeBondName')?.trim(),relation=v('aeBondRelation')?.trim(),target=v('aeBondTarget')||'';if(!name||name.length>100||relation.length>200)return wrong('Preencha o nome e a natureza da relação.');s.bonds??=[];if(s.bonds.length>=20)return wrong('Limite de 20 vínculos por ficha.');s.bonds.push({id:crypto.randomUUID(),name,relation:relation||'',targetSheetId:target,grade:1,usedScene:0});return sync('Afinidade registrada')}
  if(key==='bondRemove'){const i=Number(param);if(!Number.isInteger(i)||!bonds(s)[i])return;if(!confirm('Remover este vínculo narrativo?'))return;s.bonds.splice(i,1);return sync('Vínculo removido')}
  if(key==='bondInvoke'){const i=Number(param),b=bonds(s)[i];if(!b)return;const mode=v('aeBondBenefit'+i);if(Number(b.usedScene)===c.scene)return wrong('Este vínculo já foi invocado na cena.');const grade=Math.max(1,Math.min(3,Number(b.grade)||1)),die=[0,6,8,12][grade];if(['teste','ajuda'].includes(mode)){if(c.nextBonusDie)return wrong('Há um bônus de vínculo aguardando o próximo teste.');b.usedScene=c.scene;c.nextBonusDie=die;return sync('Bônus +1d'+die+' preparado para o próximo teste')}
@@ -163,6 +186,7 @@ function updateField(key,value){
  const s=sheet();if(!s||!can())return;const c=control(s);
  if(key==='wearGroup'){if(!['','Corpo','Mente','Espírito'].includes(value))return;c.wearGroup=value}
  else if(key==='movementSkill'){if(!['Destreza','Disciplina'].includes(value))return;c.movementSkill=value}
+ else if(key==='progressGoal'||key==='progressCurrent'){const n=value===''?0:Number(value);if(!Number.isInteger(n)||n<0||n>100000)return;c[key]=n}
  else if(key==='wearPoints'){const n=value===''?0:Number(value);if(!Number.isInteger(n)||n<0||n>30)return;c.wearPoints=n}
  else if(key==='hollowUnlocked'){c.hollowUnlocked=!!value}
  else if(key==='sustainText')c.sustainText=String(value).slice(0,200);
