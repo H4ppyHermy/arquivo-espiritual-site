@@ -28,6 +28,40 @@ function getMovement(s){
  if(c.rhythmRestriction>=1){move=0;status.push('Exposição rítmica: sem movimento nesta rodada')}
  return {base:die,move:move,perAction:move*2,status};
 }
+function fichaConditionHints(s){
+ const texts={
+ 'derrubado':'−1 passo na defesa; sem deslocamento normal. Levantar consome metade da movimentação de uma ação principal.',
+ 'agarrado':'Não pode se afastar de quem agarra. Escapar exige ação principal e teste-clash.',
+ 'imobilizado':'Sem movimentação ou ataques corporais dependentes dos membros impedidos.',
+ 'atordoado':'−1 passo nos testes; nenhuma reação. Dura até o próximo Desfecho.',
+ 'sangrando':'−1d4 de Vida por Desfecho, ignorando resistência natural.',
+ 'exausto':'−1 passo em testes de Corpo; movimentação reduzida pela metade.',
+ 'queimando':'−1d6 de Vida por Desfecho, ignorando resistência natural.',
+ 'congelado':'−1 passo em Destreza; movimentação pela metade. Congelamento completo também imobiliza.',
+ 'envenenado':'−1 passo nos testes de Corpo e −1d4 Vida por Desfecho, ignorando resistência.',
+ 'eletrificado':'−1 passo nos testes de Destreza e Precisão; até próximo Desfecho ou enquanto a fonte permanecer.',
+ 'corroído':'−1 passo na proteção principal; sem proteção, −1 passo na resistência natural correspondente.',
+ 'sufocando':'−1 passo nos testes de Corpo. A partir do segundo Desfecho, −1d6 Vida por Desfecho.',
+ 'cego':'−2 passos em testes dependentes da visão; não identifica alvos exclusivamente pela visão.',
+ 'surdo':'Falha em ações exclusivamente auditivas; −1 passo quando audição é relevante.',
+ 'desorientado':'−1 passo no ataque e defesa; movimentação pela metade até próximo Desfecho.',
+ 'ofuscado':'−1 passo em testes dependentes da visão; não acumula com cegueira pelo mesmo comprometimento.',
+ 'iludido':'Percepção distorcida; Sensibilidade pode reconhecer o efeito contra a dificuldade ou teste da técnica.',
+ 'insensível':'−1 passo nos testes dependentes do sentido comprometido.',
+ 'amedrontado':'Dado de pavor em todos os testes; resultados menores são anulados. Pavor 1 encerra.',
+ 'confuso':'−1 passo em testes de Mente e não pode obter prioridade entre jogadores até próximo Desfecho.',
+ 'provocado':'−1 passo em ataques contra outros alvos enquanto o provocador for uma ameaça.',
+ 'silenciado':'Não pode executar técnicas dependentes da manifestação ou comunicação bloqueada.',
+ 'suprimido':'−1 passo em testes de Espírito; outras limitações dependem da fonte.',
+ 'dominado':'O responsável pode interferir nas decisões dentro dos limites de sua habilidade.',
+ 'desmaiado':'Incapacitado. Verificação específica no Desfecho, salvo incapacitação exclusivamente não letal.',
+ 'acorrentado':'Estabilidade zerada; verificação no Desfecho e consequência racial/classe se falhar.',
+ 'pressionado':'−1 passo no dado de perícia de defesas até o final da rodada seguinte.',
+ 'morto':'Participação normal no confronto encerrada.'
+ };
+ const conditions=(s.conditions||[]).filter(Boolean);
+ return `<details class="ae-rule-detail"><summary>Consultar efeitos das condições ativas (${conditions.length})</summary>${conditions.length?conditions.map(c=>`<div class="ae-condition-hint"><b>${esc(c)}</b><p>${esc(texts[String(c).toLowerCase()]||'Condição personalizada: consulte sua descrição.')}</p></div>`).join(''):'<p class="color-hint">Sem condições ativas.</p>'}</details>`;
+}
 function extraCombat(s,c){
  const used=!!c.mainUsed,lock=Number(c.rhythmRestriction)>=3;
  const skills=Object.entries(s.skills||{}).filter(([name,v])=>Number(v)>=6);
@@ -102,6 +136,7 @@ function renderCombat(s){
  <p class="color-hint">Efeitos contínuos ignoram resistência natural. O desfecho também resolve Desmaiado e Acorrentado.</p>
  <div class="ae-rpg-controls">${actionBtn('APLICAR DANOS CONTÍNUOS','continuous','small',c.phase!=='desfecho'||c.lastContinuousRound===c.round)}</div>
  <p class="color-hint">Condições: ${esc((s.conditions||[]).join(', ')||'Nenhuma')}. Aplique ou retire condições na aba Condições.</p>
+ ${fichaConditionHints(s)}
  <label>Exposição reduzida por contenção<select id="aeContainment"><option value="">Automática (primeira disponível)</option>${EXPOS.map(k=>`<option value="${k}">${k}</option>`).join('')}</select></label>
  </section>
  <section class="panel"><div class="sectionhead"><h2>OUTROS CONTROLES</h2></div>
