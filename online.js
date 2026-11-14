@@ -8,7 +8,7 @@ const ready=/^https:\/\/[^ ]+\.supabase\.co$/.test(apiUrl) && !isSecret && /^(sb
 const state={configured:ready,enabled:false,connecting:false,error:isSecret?'Chave secreta recusada. Use a chave pública.':!apiUrl?'Configuração ausente: falta a URL.':!apiKey?'Configuração ausente: falta a chave pública.':!ready?'Chave pública inválida ou URL incorreta.':'',client:null,identity:null,revision:0,keys:[],pending:Promise.resolve(),saving:false,busyUntil:0,appliedOnce:false,lastPushError:null,documentRealtime:'disconnected'};
 function stripDoc(db){const c=JSON.parse(JSON.stringify(db));delete c.keys;delete c.keysChanged;return c}
 function assignments(db){return (db.keys||[]).filter(k=>k.kind==='player').map(k=>({id:k.id,sheetId:k.sheetId||''}))}
-function stateOnly(s){return {resources:Object.fromEntries(['vida','estabilidade','alma'].map(k=>[k,{current:s.resources[k].current}])),conditions:s.conditions||[],notes:s.notes||'',noteImages:s.noteImages||[],inventory:s.inventory||{items:[],currencies:[]},restCount:s.restCount||0,desgaste:s.desgaste||0,exposures:s.exposures||{}}}
+function stateOnly(s){return {resources:Object.fromEntries(['vida','estabilidade','alma'].map(k=>[k,{current:s.resources[k].current}])),conditions:s.conditions||[],notes:s.notes||'',noteImages:s.noteImages||[],inventory:s.inventory||{items:[],currencies:[]},restCount:s.restCount||0,desgaste:s.desgaste||0,exposures:s.exposures||{},combat:s.combat||{},bonds:s.bonds||[]}}
 async function rpc(fn,args={}){const {data,error}=await state.client.rpc(fn,args);if(error)throw Error(error.message||'Erro de conexão');return data}
 let docChannel=null,docNoticeTimer=null;
 function disconnectDocumentChannel(){
