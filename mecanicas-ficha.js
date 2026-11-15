@@ -82,25 +82,6 @@ function extraCombat(s,c){
  <p class="color-hint">Sobrevivências: Vida ${Number(c.lifeSurvivals)||0}/3 · Estabilidade ${Number(c.stabilitySurvivals)||0}/3. ${c.nonLethalIncapacitated?'Incapacitado apenas por dano não letal: sem teste de morte. ':''}${c.raceStatePending?'Estado racial pendente (decisão do mestre).':''}</p></details></section>`;
 }
 
-function bookVictimPanel(s){
- const mirror=s.combat?.bookEndVictim;
- const cached=mirror&&Number(mirror.scene)===Number(s.combat?.scene||1);
- const mirrored=cached?'<section class="panel"><div class="sectionhead"><h3>BOOK OF THE END · PASSADO ALTERADO</h3><span class="tag">RELAÇÃO PLÁSTICA '+['—','I','II','III'][Math.max(0,Math.min(3,Number(mirror.grade)||0))]+'</span></div><p class="color-hint">Vínculo artificial implantado por '+esc(mirror.source||'Book of the End')+'.</p>'+(mirror.stolen?'<p><b>Perícia roubada: '+esc(mirror.stolen.skill)+'</b> (d'+esc(mirror.stolen.die)+'). Nas rolagens verificadas, o dado da perícia é retirado.</p>':'')+'</section>':'';
- const source=(app()?.db?.sheets||[]).find(x=>(x.abilities||[]).some(a=>a.abilityId==='tsukishima-book-of-the-end-manifestacao'));
- if(!source)return mirrored;if(source.id===s.id)return '';
- const manifest=source.abilityRuntime?.billing?.['tsukishima-book-of-the-end-manifestacao'];
- const book=source.abilityRuntime?.bookOfEnd;
- if(!manifest?.active||Number(manifest.scene)!==Number(source.combat?.scene||1)
-   ||Number(book?.scene)!==Number(source.combat?.scene||1))return '';
- const grade=Math.min(3,Math.max(0,Number(book.targets?.[s.id]?.grade)||0));
- const stolen=book.stolen?.targetId===s.id?book.stolen:null;
- if(!grade&&!stolen)return '';
- return '<section class="panel"><div class="sectionhead"><h3>BOOK OF THE END · PASSADO ALTERADO</h3>'
-  +'<span class="tag">RELAÇÃO PLÁSTICA '+['—','I','II','III'][grade]+'</span></div>'
-  +'<p class="color-hint">Sua ficha registra memórias artificiais ligadas a '+esc(source.name)+'. O grau desaparece ao fim da cena.</p>'
-  +(stolen?'<p><b>Perícia roubada: '+esc(stolen.skill)+'</b> (d'+esc(stolen.die)+'). Nas rolagens verificadas, você utiliza apenas o dado de grupo correspondente até a devolução da perícia.</p>':'')
-  +'</section>';
-}
 function expireBookConfusion(s,c){
  const x=c.bookEndConfusion;
  if(!x){if(c.bookEndVictim&&Number(c.bookEndVictim.scene)!==Number(c.scene))delete c.bookEndVictim;return;}
@@ -122,7 +103,7 @@ function renderCombat(s){
  const attackPenalty=(Number(ex.ofensiva)||0)+(isCondition(s,'DESORIENTADO')?1:0);
  const sust=Number(c.sustainRounds)||0;
  const fear=c.fearDie?`d${c.fearDie}`:'—';
- return `<div class="ae-rpg-panel">${bookVictimPanel(s)}
+ return `<div class="ae-rpg-panel">
  <div class="panel ae-rpg-hero"><div class="sectionhead"><h2>QUADRO DE COMBATE</h2><span class="tag">RODADA ${esc(c.round)} · ${esc(PHASES.find(x=>x[0]===c.phase)?.[1]||'Preparação').toUpperCase()}</span></div>
  <p class="subtitle">Preparação → Distância → Duelo → Desfecho. As ações dentro de uma mesma fase são simultâneas.</p>
  <div class="ae-phase-flow">${PHASES.map(([id,text])=>`<span class="${c.phase===id?'active':''}">${esc(text)}</span>`).join('')}</div>
@@ -183,7 +164,7 @@ function renderCombat(s){
 }
 function renderBonds(s){
  const c=combat(s),items=bonds(s),all=(app()?.db?.sheets||[]).filter(x=>!x.redacted&&!x.masterOnly&&x.id!==s.id),m=app()?.master?.()||false;
- return `<div class="ae-rpg-panel">${bookVictimPanel(s)}<section class="panel"><div class="sectionhead"><h2>VÍNCULOS NARRATIVOS</h2><span class="tag">CENA ${esc(c.scene)} · ${items.length} RELAÇÕES</span></div>
+ return `<div class="ae-rpg-panel"><section class="panel"><div class="sectionhead"><h2>VÍNCULOS NARRATIVOS</h2><span class="tag">CENA ${esc(c.scene)} · ${items.length} RELAÇÕES</span></div>
  <p class="subtitle">Afinidade (I), Vínculo (II) e Devoção (III). Cada relação pode ser invocada uma vez por cena, mediante justificativa narrativa. O mestre reconhece as evoluções de grau.</p>
  ${c.nextBonusDie?`<p class="color-hint">Bônus aguardando o próximo teste: +1d${c.nextBonusDie}.</p>`:''}${c.lastBondHeal?.scene===c.scene?`<p class="color-hint">Última motivação: +${Number(c.lastBondHeal.amount)||0} de Estabilidade para ${esc(c.lastBondHeal.name)}. Aplique ao destinatário na ficha correspondente.</p>`:''}
  ${items.length?items.map((b,i)=>{const grade=Math.max(1,Math.min(3,Number(b.grade)||1)),used=Number(b.usedScene)===Number(c.scene),die=[0,6,8,12][grade];
