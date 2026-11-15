@@ -243,7 +243,8 @@ async function runAction(key,param){
  if(s.id===SHINJI_SHEET_ID&&c.hollowActive&&c.shinjiMaskMode==='chaos'&&
   Number(c.shinjiMaskEndRound||0)>=Number(c.round||1)){
   const odd=Number(c.round||1)%2===1,master=!!app()?.master?.();
-  if(odd!==master&&key!=='phaseNext')return wrong(odd?'Descontrole: rodada do mestre.':'Descontrole: rodada do jogador.');
+  const fallback=!odd&&master&&!s.ownerKeyId&&!(s.linkedKeyIds||[]).length;
+  if(odd!==master&&!fallback&&key!=='phaseNext')return wrong(odd?'Descontrole: rodada do mestre.':'Descontrole: rodada do jogador.');
  }
  const v=(id)=>document.getElementById(id)?.value;
  const num=(id)=>Number(v(id))||0;
