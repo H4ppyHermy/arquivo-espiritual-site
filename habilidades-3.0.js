@@ -139,6 +139,74 @@ function editorToolbar(s){
   +'</details></div>';
 }
 
+
+/* Book of the End — confrontos automáticos, relações plásticas e roubo de perícias. */
+let bookSelectedTarget='',bookSelectedSkill='Precisão',bookResolving=false;
+const BOOK_ACTIONS=new Set(['tsukishima-inserir-presenca','tsukishima-vire-pagina']);
+function bookState(s){
+ const b=s?.abilityRuntime?.bookOfEnd;
+ return b&&Number(b.scene)===Number(s?.combat?.scene||1)?b:{targets:{}};
+}
+function bookPanel(s){
+ if(!(s.abilities||[]).some(ab=>ab.abilityId==='tsukishima-book-of-the-end-manifestacao'))return '';
+ const api=APP(),items=(api.db.sheets||[]).filter(t=>t.id!==s.id&&!t.redacted&&(!t.masterOnly||api.master?.()));
+ if(!items.length)return '<section class="panel"><h3>BOOK OF THE END · MEMÓRIAS</h3><p>Não há outras fichas visíveis para selecionar como alvo.</p></section>';
+ const target=items.find(x=>x.id===bookSelectedTarget)||items[0];
+ bookSelectedTarget=target.id;
+ const book=bookState(s),entry=book.targets?.[target.id]||{},grade=Math.max(0,Math.min(3,Number(entry.grade)||0));
+ const skillPairs=Object.entries(target.skills||{}).filter(([k,v])=>DICE.includes(Number(v)));
+ if(!skillPairs.some(([k])=>k===bookSelectedSkill))bookSelectedSkill=skillPairs.find(([k])=>k==='Precisão')?.[0]||skillPairs[0]?.[0]||'Precisão';
+ const opts=items.map(t=>'<option value="'+escape(t.id)+'" '+(t.id===target.id?'selected':'')+'>'+escape(t.name||t.id)+'</option>').join('');
+ const skillOpts=skillPairs.map(([k,d])=>'<option value="'+escape(k)+'" '+(k===bookSelectedSkill?'selected':'')+'>'+escape(k)+' · d'+d+'</option>').join('');
+ const active=gateOpen(s,{unlock:{mode:'hidden',requires:'tsukishima-book-of-the-end-manifestacao'}});
+ const ix=s.abilities.findIndex(a=>a.abilityId==='tsukishima-inserir-presenca');
+ const ux=s.abilities.findIndex(a=>a.abilityId==='tsukishima-vire-pagina');
+ const ins=ix>=0?costQuote(s,s.abilities[ix],ix):{blocked:true,cost:2,reason:'Técnica ausente'};
+ const ult=ux>=0?costQuote(s,s.abilities[ux],ux):{blocked:true,cost:7,reason:'Técnica ausente'};
+ const can=api.canEditSheet(s.id)&&!bookResolving&&active&&!!window.ARQUIVO_SYNC?.state?.enabled;
+ const all=Object.entries(book.targets||{}).filter(([,t])=>Number(t.grade)>0).map(([key,t])=>'<span class="tag">'+escape(t.name||key)+' · '+['—','I','II','III'][Math.min(3,Number(t.grade)||0)]+'</span>').join(' ');
+ const stolen=book.stolen;
+ const last=Number(entry.lastMemory)||0;
+ return '<section class="panel ae3-book-panel">'
+  +'<div class="sectionhead"><h3>BOOK OF THE END · MEMÓRIAS</h3><span class="tag">RELAÇÃO '+['—','I · AFINIDADE','II · VÍNCULO','III · DEVOÇÃO'][grade]+'</span></div>'
+  +'<p class="color-hint">Selecione o adversário. Os confrontos, os pontos de relação, o d10 de Memória e os efeitos são resolvidos e salvos automaticamente.</p>'
+  +'<div class="ae3-automation-grid"><label>Adversário<select id="aeBookTarget">'+opts+'</select></label>'
+  +'<label>Perícia a roubar se o d10 resultar em 10<select id="aeBookSkill">'+skillOpts+'</select></label></div>'
+  +'<p class="color-hint">Memória anterior: '+(last?'d10 = '+last:'nenhuma')+' · '+(entry.lastSuccess===true?'Último confronto vencido':entry.lastSuccess===false?'Último confronto perdido':'Ainda sem confronto')+'</p>'
+  +(stolen?'<p class="color-hint"><b>Perícia roubada:</b> '+escape(stolen.skill)+' · d'+escape(stolen.die)+' de '+escape(items.find(x=>x.id===stolen.targetId)?.name||stolen.targetId)+'</p>':'')
+  +'<div class="actions">'+
+   '<button type="button" class="btn main" data-ae3="bookUse:insert" '+(!can||ins.blocked?'disabled':'')+'>INSERIR PRESENÇA · '+ins.cost+' ALMA</button>'
+   +'<button type="button" class="btn small" data-ae3="bookUse:ultimate" '+(!can||ult.blocked||grade<2?'disabled':'')+'>ENTÃO, VIRE A PÁGINA · '+ult.cost+' ALMA</button></div>'
+  +(!active?'<p class="color-hint">Ative Book of the End para utilizar as técnicas.</p>':!window.ARQUIVO_SYNC?.state?.enabled?'<p class="color-hint">Conexão online necessária para rolagens verificadas.</p>':'')
+  +(grade<2?'<p class="color-hint">Ultimate disponível após atingir o grau II de relação.</p>':'')
+  +(all?'<p class="color-hint">Relações ativas: '+all+'</p>':'')+'</section>';
+}
+async function bookUse(action){
+ if(bookResolving)return;
+ const api=APP(),s=api?.db?.sheets.find(x=>x.id===api.currentSheet),st=window.ARQUIVO_SYNC;
+ if(!s||!api.canEditSheet(s.id)||!['insert','ultimate'].includes(action))return;
+ if(!st?.state?.enabled){api.toast('CONEXÃO NECESSÁRIA','Conecte a ficha para realizar o confronto automático.',true);return;}
+ const target=api.db.sheets.find(t=>t.id===bookSelectedTarget);
+ if(!target){api.toast('ALVO NECESSÁRIO','Selecione um adversário.',true);return;}
+ bookResolving=true;
+ try{
+  const {data,error}=await st.state.client.rpc('ae_book_of_end_action',{
+   p_source_id:s.id,p_target_id:target.id,p_action:action,p_steal_skill:bookSelectedSkill
+  });
+  if(error)throw Error(error.message);
+  await st.refresh(true);api.render();
+  const grade=['—','I','II','III'][Math.max(0,Math.min(3,Number(data.grade)||0))];
+  let body='<p><b>'+escape(s.name)+' '+(data.success?'venceu':'perdeu')+' o confronto contra '+escape(target.name)+'.</b></p>'
+   +'<p>Teste: '+escape(data.attack)+' contra '+escape(data.defense)+' · Relação Plástica: '+grade+'.</p>';
+  if(!data.success)body+='<p>Sem alterações de memória'+(action==='ultimate'?' além do grau consumido':'')+'.</p>';
+  if(data.success)body+='<p>'+ (action==='insert'?'Nenhum dano causado. ':'Dano automático à Estabilidade: '+escape(data.damage)+'. ')+'Dado de Memória: <b>d10 = '+escape(data.memory)+'</b>.</p>';
+  if(Number(data.memory)===1)body+='<p>Lucidez: um grau da relação foi removido.</p>';
+  if(Number(data.memory)===10&&data.stolen)body+='<p><b>Perícia roubada:</b> '+escape(data.stolen.skill)+' (d'+escape(data.stolen.die)+'). O alvo perde seu dado de perícia até o fim da cena.</p>';
+  api.modal('BOOK OF THE END · '+(action==='insert'?'INSERIR PRESENÇA':'VIRE A PÁGINA'),body,[]);
+ }catch(e){api.toast('CONFRONTO NÃO REALIZADO',e.message,true)}
+ finally{bookResolving=false;}
+}
+
 /* 3.1 — custos, pré-requisitos, limites e condições vinculadas à ficha. */
 function billingKey(ab,index){return String(ab?.abilityId||ab?.automation?.id||'legacy:'+index)}
 function costConfig(ab){
@@ -395,6 +463,7 @@ function abilityArticle(s,ab,i){
  +button('COPIAR','copyOne:'+i,'small quiet')
  +(isPassive?'<span class="ability-inactive">PASSIVA</span>':
   !can?'':
+  BOOK_ACTIONS.has(ab.abilityId)?'<span class="ability-inactive">AUTOMÁTICA · CONTROLES ABAIXO</span>':
   !api.inventoryItemCanUse(s,ab)?'<span class="ability-inactive">ITEM INDISPONÍVEL</span>':
   quote.active?'<span class="ability-inactive">ATIVA · ENCERRAR PARA REATIVAR</span>':
   quote.blocked?'<button type="button" class="btn main" disabled title="'+escape(quote.reason)+'">USO INDISPONÍVEL</button>':
@@ -411,7 +480,7 @@ function renderAbilityTab(s){
   groups.get(g.id).items.push([ab,i]);
  });
  const header='<div class="actions ae3-tab-toolbar">'+(can?'<button class="btn main" data-action="newAbilityDirect">+ CRIAR TÉCNICA</button><button class="btn small" data-action="editSheetSection:abilities">ORGANIZAR E TRANSFERIR</button>':'')+button('ABRIR GRUPOS','groupsOpen','small')+button('FECHAR GRUPOS','groupsClose','small')+(api.master?.()?button(masterReveal?'OCULTAR TÉCNICAS SECRETAS':'REVELAR TÉCNICAS SECRETAS','masterReveal','small quiet'):'')+'</div>';
- const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group" '+((lastUnlock?.sheetId===s.id?g.items.some(([ab])=>ab.unlock?.requires===lastUnlock.key):index===0)?'open':'')+'><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div></details>').join('');
+ const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group" '+((lastUnlock?.sheetId===s.id?g.items.some(([ab])=>ab.unlock?.requires===lastUnlock.key):index===0)?'open':'')+'><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div>'+(g.id==='tsukishima-grupo-fullbring'?bookPanel(s):'')+'</details>').join('');
  return header+(result||'<p class="empty">Nenhuma habilidade disponível neste estado.</p>')+api.historyHtml();
 }
 function exportSelected(abilities,source){
@@ -586,6 +655,7 @@ async function stopEffect(index){
 function dispatch(action){
  const parts=action.split(':'),cmd=parts[0],i=Number(parts[1]),api=APP(),draft=api?.editorDraft,editing=!!draft&&!!document.querySelector('.sheet-edit-scroll');
  if(['copyOne','copyAll','copyMarked'].includes(cmd)){copyActions(cmd,i);return}
+ if(cmd==='bookUse'){bookUse(parts[1]);return}
  if(cmd==='masterReveal'&&api.master?.()){masterReveal=!masterReveal;api.render();return}
  if(cmd==='groupsOpen'||cmd==='groupsClose'){document.querySelectorAll('.ae3-ability-group').forEach(g=>g.open=cmd==='groupsOpen');return}if(cmd==='hit'){progressHit(i);return}if(cmd==='prepare'){preparePassive(i);return}
  if(cmd==='miss'){api.toast('ATAQUE NÃO ACERTOU','O contador de dano permanece na mesma etapa.');return}
@@ -684,6 +754,8 @@ document.addEventListener('click',event=>{
  dispatch(btn.dataset.ae3);
 },true);
 document.addEventListener('change',event=>{
+ if(event.target.id==='aeBookTarget'){bookSelectedTarget=event.target.value;APP()?.render?.();return}
+ if(event.target.id==='aeBookSkill'){bookSelectedSkill=event.target.value;return}
  if(event.target.id==='ae3Source')useSourceList();
  if(event.target.dataset.ae3Field)editField(event.target);
  if(event.target.dataset.ae3Cost)editCostField(event.target);
