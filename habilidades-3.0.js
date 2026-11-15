@@ -167,6 +167,8 @@ function editorToolbar(s){
 /* Book of the End: painel e efeitos restritos à ficha de Shūkurō Tsukishima. */
 const BOOK_SHEET_ID='arquivo-tsukishima-arena-n3';
 const BOOK_ACTIONS=new Set(['tsukishima-inserir-presenca','tsukishima-vire-pagina']);
+const SHINJI_SHEET_ID='arquivo-shinji-hirako-arena-n3';
+const SHINJI_ACTION_IDS=new Set(['shinji-mascara-hollow','shinji-ressonancia-hollow','shinji-hollow-cero','shinji-hollow-passo-predatorio','shinji-hollow-pressao-instintiva','shinji-sakanade-liberar','shinji-sakanade-mundo-invertido','shinji-sakanade-troca-eixos','shinji-sakanade-corte-avesso']);
 const BOOK_SKILLS=Object.values(GROUPS).flat();
 let bookSelectedTarget='npc:new',bookSelectedSkill='Precisão',bookNpcName='';
 let bookNpcStats={corpo:6,destreza:6,mente:6,determinacao:6,pericia:6,estabilidade:20,vida:20};
@@ -612,6 +614,7 @@ function abilityArticle(s,ab,i){
  +(isPassive?'<span class="ability-inactive">PASSIVA</span>':
   !can?'':
   BOOK_ACTIONS.has(ab.abilityId)?'<span class="ability-inactive">USE PELO PAINEL BOOK OF THE END</span>':
+  s.id===SHINJI_SHEET_ID&&SHINJI_ACTION_IDS.has(ab.abilityId)?'<span class="ability-inactive">USE PELO PAINEL DE SHINJI</span>':
   !api.inventoryItemCanUse(s,ab)?'<span class="ability-inactive">ITEM INDISPONÍVEL</span>':
   quote.active?'<span class="ability-inactive">ATIVA · ENCERRAR PARA REATIVAR</span>':
   quote.blocked?'<button type="button" class="btn main" disabled title="'+escape(quote.reason)+'">USO INDISPONÍVEL</button>':
@@ -619,6 +622,148 @@ function abilityArticle(s,ab,i){
  +(can&&quote?.active&&auto?.kind!=='progressive'&&auto?.kind!=='step'?button('ENCERRAR ATIVAÇÃO','stop:'+i,'small danger'):'')
  +'</div></article>';
 }
+
+/* Shinji Hirako: máscara, descontrole alternado e Shikai Sakanade. */
+let shinjiTarget='npc:new',shinjiNpcName='',shinjiNpcStats={corpo:6,mente:6,destreza:6,determinacao:6,vida:24},shinjiBusy=false;
+function shinjiCurrent(s){
+ const v=s?.abilityRuntime?.shinji,scene=Number(s?.combat?.scene||1);
+ return v&&Number(v.scene)===scene?v:{targets:{},shikaiActive:false,history:[]};
+}
+function shinjiSound(kind){
+ const settings=APP()?.prefs||{};
+ if(settings.effectsMuted||settings.reduceMotion)return;
+ try{
+  const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+  const ctx=new C(),osc=ctx.createOscillator(),amp=ctx.createGain(),t=ctx.currentTime;
+  const base=kind==='mask'?155:kind==='release'?280:kind==='invert'?470:210;
+  osc.type=kind==='mask'?'sawtooth':'triangle';
+  osc.frequency.setValueAtTime(base,t);osc.frequency.exponentialRampToValueAtTime(base*2.1,t+.3);
+  amp.gain.setValueAtTime(.0001,t);amp.gain.exponentialRampToValueAtTime(.035,t+.04);
+  amp.gain.exponentialRampToValueAtTime(.0001,t+.47);
+  osc.connect(amp);amp.connect(ctx.destination);osc.start(t);osc.stop(t+.49);
+  osc.onended=()=>ctx.close().catch(()=>{});
+ }catch(e){}
+}
+function shinjiFx(kind){
+ if(APP()?.prefs?.reduceMotion||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+ const div=document.createElement('div');div.className='ae3-shinji-fx ae3-shinji-fx-'+kind;
+ div.setAttribute('aria-hidden','true');
+ div.innerHTML='<div class="ae3-shinji-fx-aura"></div><div class="ae3-shinji-fx-cross"></div><strong>'+
+ (kind==='mask'?'HOLLOWFICAÇÃO':kind==='invert'?'SAKASAMA NO SEKAI':kind==='release'?'SAKANADE':'SHINJI HIRAKO')+'</strong>';
+ document.body.append(div);window.setTimeout(()=>div.remove(),1350);
+}
+function shinjiPanel(s){
+ if(s?.id!==SHINJI_SHEET_ID)return '';
+ const api=APP(),state=shinjiCurrent(s),targets=state.targets||{},c=s.combat||{},scene=Number(c.scene||1),round=Number(c.round||1);
+ const mask=!!c.hollowActive&&Number(c.shinjiMaskEndRound||0)>=round;
+ const unctrl=mask&&c.shinjiMaskMode==='chaos',master=!!api.master?.();
+ const isPlayerTurn=!unctrl||(round%2===1?master:!master);
+ const can=api.canEditSheet(s.id)&&!shinjiBusy&&!!window.ARQUIVO_SYNC?.state?.enabled&&isPlayerTurn;
+ const shikai=state.shikaiActive===true&&s.abilityRuntime?.billing?.['shinji-sakanade-liberar']?.active===true&&Number(s.abilityRuntime.billing['shinji-sakanade-liberar'].scene)===scene;
+ const npcs=Object.entries(targets).filter(([id,e])=>id.startsWith('npc:')&&e?.npc);
+ const sheets=(api.db?.sheets||[]).filter(x=>x.id!==s.id&&!x.redacted&&(!x.masterOnly||master));
+ if(shinjiTarget!=='npc:new'&&!npcs.some(([id])=>id===shinjiTarget)&&!sheets.some(x=>x.id===shinjiTarget))shinjiTarget='npc:new';
+ const npc=shinjiTarget.startsWith('npc:'),newNpc=shinjiTarget==='npc:new',entry=targets[shinjiTarget]||{};
+ if(npc&&!newNpc&&entry.npcStats){shinjiNpcStats={...shinjiNpcStats,...entry.npcStats};shinjiNpcName=entry.name||shinjiNpcName;}
+ const maskBill=s.abilityRuntime?.billing?.['shinji-mascara-hollow'];
+ const maskUsed=Number(maskBill?.scene)===scene&&Number(maskBill?.uses)>0;
+ const available=(id,opts={})=>{
+  const i=(s.abilities||[]).findIndex(a=>a.abilityId===id);
+  if(i<0)return false;
+  const q=costQuote(s,s.abilities[i],i);
+  return !q.blocked&&(!opts.mask||mask)&&(!opts.shikai||shikai)&&(!opts.inverted||!!entry.inverted)&&can;
+ };
+ const selected=(value,label)=>'<option value="'+escape(value)+'" '+(shinjiTarget===value?'selected':'')+'>'+escape(label)+'</option>';
+ const options=selected('npc:new','+ Novo NPC sem ficha')
+  +(npcs.length?'<optgroup label="NPCs na cena">'+npcs.map(([id,e])=>selected(id,e.name||'NPC')).join('')+'</optgroup>':'')
+  +(sheets.length?'<optgroup label="Personagens cadastrados">'+sheets.map(sh=>selected(sh.id,sh.name)).join('')+'</optgroup>':'');
+ const stat=(field,title)=>'<label>'+title+'<select data-ae-shinji-stat="'+escape(field)+'">'+DICE.map(d=>'<option value="'+d+'" '+(Number(shinjiNpcStats[field])===d?'selected':'')+'>d'+d+'</option>').join('')+'</select></label>';
+ const npcInputs=npc?'<div class="ae3-shinji-npc"><label>NPC<input id="aeShinjiNpcName" maxlength="80" placeholder="Nome do adversário" value="'+escape(newNpc?shinjiNpcName:entry.name||'')+'" '+(newNpc?'':'readonly')+'></label>'
+ +'<details><summary>Dados do NPC · configuração rápida</summary><div class="ae3-shinji-npc-grid">'+stat('corpo','Grupo Corpo')+stat('mente','Grupo Mente')
+ +stat('destreza','Destreza')+stat('determinacao','Determinação')
+ +'<label>Vida inicial<input type="number" min="0" max="999" data-ae-shinji-stat="vida" value="'+escape(shinjiNpcStats.vida)+'"></label></div></details></div>':'';
+ const btn=(action,label,cost,enabled,style='')=>'<button type="button" class="btn '+style+'" data-ae3="shinjiUse:'+action+'" '+(enabled?'':'disabled')+'>'+label+' <small>'+cost+'</small></button>';
+ const canMain=can&&!c.mainUsed,canReact=can&&!c.reactionUsed;
+ const wasShift=entry.shiftRound===round;
+ const targetReady=shinjiTarget!=='npc:new'||!!shinjiNpcName.trim();
+ const history=Array.isArray(state.history)?state.history.slice(-5).reverse():[];
+ return '<section class="ae3-shinji-panel">'
+ +'<div class="ae3-shinji-header"><div><p>ARENA · VIS<ORED></p><h3>Hollowficação & Sakanade</h3></div><span class="ae3-shinji-sigil">逆撫</span></div>'
+ +'<div class="ae3-shinji-states"><div class="'+(mask?'active mask':'')+'"><small>MÁSCARA</small><strong>'+(!mask?'INATIVA':unctrl?'DESCONTROLE':'CONTROLADA')+'</strong></div>'
+ +'<div class="'+(shikai?'active shikai':'')+'"><small>SAKANADE</small><strong>'+(shikai?'LIBERADA':'SELADA')+'</strong></div>'
+ +'<div><small>RODADA</small><strong>'+round+(mask?' / máscara até '+escape(c.shinjiMaskEndRound):'')+'</strong></div></div>'
+ +(unctrl?'<div class="ae3-shinji-turn"><b>CONTROLE ALTERNADO</b> · '+(round%2?'MESTRE':'JOGADOR')+' controla a rodada '+round+'. '+(can?'Você pode agir.':'Ações de combate bloqueadas para este perfil.')+'</div>':'')
+ +'<div class="ae3-shinji-controls"><div class="ae3-shinji-control-group"><strong>HOLLOWFICAÇÃO</strong><div class="ae3-shinji-buttons">'
+ +btn('mask_control','MANIFESTAR MÁSCARA','4 ALMA',canMain&&!mask&&!maskUsed&&Number(s.level)>=3&&!c.hollowLost,'main')
+ +btn('mask_chaos','DECLARAR DESCONTROLE','4 ALMA',canMain&&!mask&&!maskUsed&&!c.hollowLost)
+ +btn('mask_end','ENCERRAR MÁSCARA','SEM CUSTO',can&&mask)
+ +'</div></div>'
+ +'<div class="ae3-shinji-control-group"><strong>SHIKAI · SAKANADE</strong><div class="ae3-shinji-buttons">'
+ +btn('release','DESMORONE, SAKANADE','5 ALMA',canMain&&!shikai&&available('shinji-sakanade-liberar'))
+ +btn('release_end','SELAR SAKANADE','SEM CUSTO',can&&shikai)
+ +'</div></div></div>'
+ +'<div class="ae3-shinji-target"><label>Adversário<select id="aeShinjiTarget">'+options+'</select></label>'
+ +npcInputs
+ +(entry.inverted&&shikai?'<p class="ae3-shinji-condition"><b>INVERTIDO</b> · −1 passo nos testes de ataque e defesa</p>':'')
+ +(Number(entry.fearRound)>0?'<p class="ae3-shinji-condition">PAVOR APLICADO · RODADA '+escape(entry.fearRound)+'</p>':'')
+ +(npc&&!newNpc?'<p class="color-hint">Vida do NPC: <b>'+escape(entry.life??shinjiNpcStats.vida)+'</b>'+(wasShift?' · Defesa reduzida por Troca de Eixos':'')+'</p>':'')
+ +'</div>'
+ +'<div class="ae3-shinji-dual"><section><div class="ae3-shinji-subtitle"><b>TÉCNICAS HOLLOW</b><small>Exigem máscara ativa</small></div><div class="ae3-shinji-buttons">'
+ +btn('cero','CERO','5 ALMA',canMain&&mask&&targetReady&&available('shinji-hollow-cero'))
+ +btn('predator','PASSO PREDATÓRIO','2 ALMA',can&&mask&&available('shinji-hollow-passo-predatorio'))
+ +btn('fear','PRESSÃO INSTINTIVA','3 ALMA',canMain&&mask&&targetReady&&available('shinji-hollow-pressao-instintiva'))
+ +btn('resonance','RESSONÂNCIA HOLLOW','NÍVEL 4',canMain&&mask&&targetReady&&available('shinji-ressonancia-hollow'))
+ +'</div></section><section><div class="ae3-shinji-subtitle"><b>MUNDO INVERTIDO</b><small>Exige Sakanade liberada</small></div><div class="ae3-shinji-buttons">'
+ +btn('invert','SAKASAMA NO SEKAI','3 ALMA',canMain&&shikai&&targetReady&&available('shinji-sakanade-mundo-invertido'))
+ +btn('shift','TROCA DE EIXOS','2 ALMA',canReact&&shikai&&targetReady&&entry.inverted&&available('shinji-sakanade-troca-eixos'))
+ +btn('slash','CORTE PELO AVESSO','3 ALMA',canMain&&shikai&&targetReady&&entry.inverted&&available('shinji-sakanade-corte-avesso'))
+ +btn('strike','GOLPE DE SAKANADE','1d8 VIDA',canMain&&shikai&&targetReady)
+ +'</div></section></div>'
+ +(history.length?'<details class="ae3-shinji-history"><summary>Últimas ações da cena</summary>'+history.map(h=>'<p>'+escape(String(h.action||'').replace(/_/g,' '))+(h.name?' · '+escape(h.name):'')+' · '+(h.success?'sucesso':'resistido')+(h.attack?' · '+escape(h.attack)+' × '+escape(h.defense):'')+(h.damage?' · '+escape(h.damage)+' Vida':'')+'</p>').join('')+'</details>':'')
+ +(!window.ARQUIVO_SYNC?.state?.enabled?'<p class="color-hint">Conecte-se para utilizar os confrontos verificados.</p>':'')
+ +'</section>';
+}
+async function shinjiUse(action){
+ if(shinjiBusy)return;
+ const api=APP(),s=api?.db?.sheets?.find(x=>x.id===api.currentSheet),st=window.ARQUIVO_SYNC;
+ if(!s||s.id!==SHINJI_SHEET_ID||!api.canEditSheet(s.id))return;
+ if(!st?.state?.enabled)return api.toast('CONEXÃO NECESSÁRIA','As técnicas de Shinji exigem conexão online.',true);
+ const needsTarget=['cero','fear','invert','shift','slash','strike','resonance'].includes(action);
+ const current=shinjiCurrent(s),saved=current.targets?.[shinjiTarget];
+ const isNpc=shinjiTarget.startsWith('npc:'),name=isNpc?String(saved?.name||shinjiNpcName).trim():'';
+ if(needsTarget&&isNpc&&(!name||name.length>80))return api.toast('NPC INVÁLIDO','Informe um nome de até 80 caracteres.',true);
+ if(needsTarget&&!isNpc&&!api.db.sheets.some(x=>x.id===shinjiTarget))return api.toast('ALVO INVÁLIDO','Selecione um adversário.',true);
+ shinjiBusy=true;
+ try{
+  const {data,error}=await st.state.client.rpc('ae_shinji_action',{
+   p_action:action,p_target_id:needsTarget?(isNpc?'npc':shinjiTarget):null,
+   p_npc_name:needsTarget&&isNpc?name:null,
+   p_npc_stats:needsTarget&&isNpc?Object.fromEntries(Object.entries(shinjiNpcStats).map(([k,v])=>[k,Number(v)])):null
+  });
+  if(error)throw Error(error.message);
+  if(data?.targetId)shinjiTarget=data.targetId;
+  await st.refresh(true);shinjiBusy=false;api.render();
+  const kind=action.startsWith('mask')?'mask':action==='release'?'release':['invert','shift','slash'].includes(action)?'invert':'power';
+  shinjiFx(kind);shinjiSound(kind);
+  const labels={mask_control:'MÁSCARA HOLLOW',mask_chaos:'DESCONTROLE HOLLOW',mask_end:'MÁSCARA ENCERRADA',
+   release:'DESMORONE, SAKANADE',release_end:'SAKANADE SELADA',cero:'CERO',
+   predator:'PASSO PREDATÓRIO',fear:'PRESSÃO INSTINTIVA',resonance:'RESSONÂNCIA HOLLOW',
+   invert:'SAKASAMA NO SEKAI',shift:'TROCA DE EIXOS',slash:'CORTE PELO AVESSO',strike:'GOLPE DE SAKANADE'};
+  let html='<div class="ae3-shinji-result"><strong class="'+(data.success?'won':'lost')+'">'+
+    (data.success?'TÉCNICA EXECUTADA':'ALVO RESISTIU')+'</strong>';
+  if(needsTarget)html+='<p><b>'+escape(data.targetName||name)+'</b> · '+escape(data.attack)+' × '+escape(data.defense)+'</p>';
+  if(data.damage)html+='<p><b>'+escape(data.damage)+' de dano à Vida</b>'+(data.npc?' · Vida restante: '+escape(data.life):'')+'</p>';
+  if(action==='invert'&&data.success)html+='<p>O alvo entrou no Mundo Invertido.</p>';
+  if(action==='shift'&&data.success)html+='<p>A próxima defesa do alvo recebe uma redução adicional de passo.</p>';
+  if(data.effect?.mode==='hollow')html+='<p>Dado de Hollowficação: <b>d6 = '+escape(data.effect.value)+'</b>'+(data.effect.broken?' · MÁSCARA ROMPIDA':data.effect.advance?' · AVANÇO DE DOMÍNIO':'')+'</p>';
+  if(action==='mask_chaos')html+='<p>Nas rodadas ímpares, o mestre controla a ficha. Nas pares, o jogador.</p>';
+  if(action==='predator')html+='<p>+1 passo de Precisão preparado para o próximo ataque.</p>';
+  html+='<p>ALMA restante: <b>'+escape(data.alma)+'</b></p></div>';
+  api.modal(labels[action]||'TÉCNICA',html,[]);
+ }catch(e){api.toast('TÉCNICA NÃO REALIZADA',e.message,true)}
+ finally{shinjiBusy=false;}
+}
+
 function renderAbilityTab(s){
  const api=APP(),can=api.canEditSheet(s.id),groups=new Map();
  (s.abilities||[]).forEach((ab,i)=>{
@@ -629,7 +774,7 @@ function renderAbilityTab(s){
  });
  const header='<div class="actions ae3-tab-toolbar">'+(can?'<button class="btn main" data-action="newAbilityDirect">+ CRIAR TÉCNICA</button><button class="btn small" data-action="editSheetSection:abilities">ORGANIZAR E TRANSFERIR</button>':'')+button('ABRIR GRUPOS','groupsOpen','small')+button('FECHAR GRUPOS','groupsClose','small')+(api.master?.()?button(masterReveal?'OCULTAR TÉCNICAS SECRETAS':'REVELAR TÉCNICAS SECRETAS','masterReveal','small quiet'):'')+'</div>';
  const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group"><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div></details>').join('');
- return header+bookPanel(s)+(result||'<p class="empty">Nenhuma habilidade disponível neste estado.</p>')+api.historyHtml();
+ return header+bookPanel(s)+shinjiPanel(s)+(result||'<p class="empty">Nenhuma habilidade disponível neste estado.</p>')+api.historyHtml();
 }
 function exportSelected(abilities,source){
  const groups=[],refs=new Set();
@@ -804,6 +949,7 @@ function dispatch(action){
  const parts=action.split(':'),cmd=parts[0],i=Number(parts[1]),api=APP(),draft=api?.editorDraft,editing=!!draft&&!!document.querySelector('.sheet-edit-scroll');
  if(['copyOne','copyAll','copyMarked'].includes(cmd)){copyActions(cmd,i);return}
  if(cmd==='bookUse'){bookUse(parts[1]);return}
+ if(cmd==='shinjiUse'){shinjiUse(parts[1]);return}
  if(cmd==='masterReveal'&&api.master?.()){masterReveal=!masterReveal;api.render();return}
  if(cmd==='groupsOpen'||cmd==='groupsClose'){document.querySelectorAll('.ae3-ability-group').forEach(g=>g.open=cmd==='groupsOpen');return}if(cmd==='hit'){progressHit(i);return}if(cmd==='prepare'){preparePassive(i);return}
  if(cmd==='miss'){api.toast('ATAQUE NÃO ACERTOU','O contador de dano permanece na mesma etapa.');return}
@@ -906,6 +1052,8 @@ document.addEventListener('click',event=>{
 },true);
 document.addEventListener('change',event=>{
  if(event.target.id==='aeBookTarget'){bookSelectedTarget=event.target.value;APP()?.render?.();return}
+ if(event.target.id==='aeShinjiTarget'){shinjiTarget=event.target.value;APP()?.render?.();return}
+ if(event.target.dataset.aeShinjiStat){shinjiNpcStats[event.target.dataset.aeShinjiStat]=Number(event.target.value);return}
  if(event.target.id==='aeBookPreset'){
   const die=Number(event.target.value);
   if(DICE.includes(die)){
@@ -946,3 +1094,4 @@ document.addEventListener('input',event=>{if(event.target.id==='aeBookNpcName')b
 window.ARQUIVO_V3={version:'3.2',enhanceEditor,renderAbilityTab,activationFX,onActivated,gateOpen,unlockConfig,costQuote,costLabel,billingKey,commitLocalCharge,advanceScene,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
 if(APP()?.page==='sheets')APP().render?.();
 })();
+document.addEventListener('input',function(e){if(e.target?.id==='aeShinjiNpcName')shinjiNpcName=e.target.value;});
