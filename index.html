@@ -790,8 +790,83 @@ input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;b
 .ae32-editor-secret strong{font-size:.78rem;letter-spacing:.08em}
 .ae32-editor-secret p{font-size:.77rem;opacity:.75;margin:8px 0 0}
 </style>
+
+<style>
+/* Book of the End — exclusiva da ficha de Tsukishima. */
+.ae3-book-panel{--book:#8acfc6;--book-faint:rgba(138,207,198,.16);position:relative;isolation:isolate;overflow:hidden;margin:0 0 20px;border:1px solid rgba(138,207,198,.42);border-radius:15px;background:linear-gradient(122deg,color-mix(in srgb,var(--theme-panel) 91%,#236058 9%),var(--theme-panel) 72%);box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 11px 26px rgba(0,0,0,.12);padding:clamp(15px,2.6vw,25px);color:var(--theme-text)}
+.ae3-book-panel:before{position:absolute;pointer-events:none;content:'§';font-family:Georgia,serif;font-size:210px;right:-14px;top:-40px;line-height:1;opacity:.045;transform:rotate(-12deg)}
+.ae3-book-panel label{display:flex;flex-direction:column;gap:7px;font-size:.78rem;font-weight:700;letter-spacing:.02em;min-width:0}
+.ae3-book-panel input,.ae3-book-panel select{width:100%;min-width:0;border-radius:8px;border:1px solid rgba(138,207,198,.3);color:var(--theme-text);background:var(--theme-raised);padding:10px;font-size:.87rem}
+.ae3-book-panel input:focus-visible,.ae3-book-panel select:focus-visible{outline:2px solid var(--book);outline-offset:1px}
+.ae3-book-header{display:flex;align-items:start;justify-content:space-between;gap:16px;position:relative;z-index:1}
+.ae3-book-header p{color:var(--book);font-size:.65rem;font-weight:800;letter-spacing:.19em;margin:0 0 6px}
+.ae3-book-header h3{font-family:Georgia,'Times New Roman',serif;font-size:clamp(1.5rem,2.8vw,2.15rem);font-weight:700;line-height:1.16;margin:0}
+.ae3-book-seal{border:1px solid rgba(138,207,198,.48);border-radius:4px;background:rgba(138,207,198,.08);color:var(--book);font-size:.62rem;letter-spacing:.12em;font-weight:900;padding:6px 9px;white-space:nowrap}
+.ae3-book-idle .ae3-book-seal{color:var(--theme-text);opacity:.67;border-color:var(--theme-structure)}
+.ae3-book-help{font-size:.82rem;line-height:1.65;max-width:740px;opacity:.83;margin:12px 0 16px}
+.ae3-book-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ae3-book-npc{margin:12px 0}
+.ae3-book-npc-config{margin:11px 0 2px;border:1px solid rgba(138,207,198,.21);border-radius:9px;padding:10px 13px;background:rgba(138,207,198,.038)}
+.ae3-book-npc-config>summary{cursor:pointer;list-style:none;font-size:.8rem;font-weight:800}
+.ae3-book-npc-config>summary::-webkit-details-marker{display:none}
+.ae3-book-npc-config>summary:before{content:'▸';color:var(--book);margin-right:9px}
+.ae3-book-npc-config[open]>summary:before{content:'▾'}
+.ae3-book-npc-config summary small{display:block;margin-left:21px;opacity:.68;font-weight:500;margin-top:3px}
+.ae3-book-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:13px}
+.ae3-book-stat-grid select,.ae3-book-stat-grid input{padding:9px 10px}
+.ae3-book-progress{margin:18px 0 14px}
+.ae3-book-progress-top{display:flex;justify-content:space-between;gap:12px;font-size:.8rem;margin-bottom:9px}
+.ae3-book-progress-top small{opacity:.78}
+.ae3-book-grades{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ae3-book-grades span{padding:12px 8px;background:rgba(140,154,160,.065);border:1px solid rgba(153,174,185,.2);border-radius:7px;color:var(--theme-text);opacity:.56;text-align:center;font-weight:900;transition:border-color .22s,background .22s,opacity .22s}
+.ae3-book-grades span small{display:block;margin-top:3px;font-size:.65rem;font-weight:600;letter-spacing:.02em}
+.ae3-book-grades span.reached{opacity:1;background:var(--book-faint);border-color:rgba(138,207,198,.58);color:var(--book)}
+.ae3-book-stability{font-size:.8rem;margin:9px 0}
+.ae3-book-stolen{border-left:3px solid var(--book);background:rgba(138,207,198,.08);padding:9px 13px;font-size:.79rem;line-height:1.5;margin:10px 0}
+.ae3-book-buttons{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin-top:15px}
+.ae3-book-buttons button{min-height:43px;display:flex;flex:1 1 230px;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;font-size:.81rem;letter-spacing:.04em}
+.ae3-book-buttons button small{font-size:.69rem;opacity:.82}
+.ae3-book-buttons button:disabled{opacity:.46;cursor:not-allowed}
+.ae3-book-history{margin-top:15px;border-top:1px solid rgba(138,207,198,.22);padding-top:11px}
+.ae3-book-history summary{cursor:pointer;font-size:.79rem;font-weight:800}
+.ae3-book-history p{font-size:.78rem;line-height:1.55;margin:8px 0;opacity:.85}
+.ae3-book-result{display:grid;gap:9px}
+.ae3-book-result p{margin:0;line-height:1.6}
+.ae3-book-verdict{font-size:.72rem;font-weight:950;letter-spacing:.12em;color:var(--theme-cold)}
+.ae3-book-verdict.failed{opacity:.66}
+.ae3-book-memory-roll{display:flex;align-items:center;gap:13px;margin:4px 0;padding:14px 16px;border:1px solid rgba(138,207,198,.35);border-radius:10px;background:rgba(138,207,198,.07)}
+.ae3-book-memory-roll span{font-size:.68rem;font-weight:900;letter-spacing:.14em;flex:1}
+.ae3-book-memory-roll strong{font-family:Georgia,serif;color:#8acfc6;font-size:2.8rem;line-height:1}
+.ae3-book-memory-roll small{opacity:.66}
+.ae3-race{border-style:solid;border-color:rgba(138,207,198,.3);padding:13px;background:rgba(138,207,198,.035)}
+.ae3-race-head{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.ae3-race-head strong{font-size:.8rem;letter-spacing:.05em}
+.ae3-race-head span{opacity:.75;font-size:.72rem}
+.ae3-race-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:6px;margin:10px 0}
+.ae3-race-item{border:1px solid rgba(138,207,198,.23);border-radius:7px;padding:9px 10px;display:flex;flex-direction:column;gap:4px}
+.ae3-race-item>span{font-weight:800}
+.ae3-race-item small{font-size:.66rem;letter-spacing:.035em;color:var(--theme-cold)}
+.ae3-race-item.is-locked{opacity:.53}
+.ae3-race .actions{margin:9px 0}
+.ae3-race button{margin:0}
+.ae3-book-cinematic{position:fixed;inset:0;z-index:2147483002;pointer-events:none;display:grid;place-items:center;isolation:isolate;background:radial-gradient(ellipse at center,rgba(104,190,180,.28),rgba(6,18,22,.2) 55%,transparent);animation:aeBookFade 1.06s ease-out both}
+.ae3-book-ultimate,.ae3-book-steal{animation-duration:1.7s}
+.ae3-book-cinematic-title{position:relative;z-index:2;color:#ddfff8;text-shadow:0 0 15px rgba(120,247,229,.7),0 2px 18px black;font-family:Georgia,serif;font-size:clamp(1rem,3.8vw,2.5rem);letter-spacing:.21em;animation:aeBookTitle 1s ease both}
+.ae3-book-pages{position:absolute;inset:0;perspective:500px}
+.ae3-book-pages i{position:absolute;top:50%;left:50%;height:min(50vh,370px);width:min(28vw,270px);border:1px solid rgba(151,246,229,.75);background:linear-gradient(130deg,rgba(223,255,246,.23),rgba(90,193,179,.06));box-shadow:0 0 25px rgba(94,211,192,.2);transform-origin:left center;animation:aeBookPage 1.18s ease-in-out both}
+.ae3-book-pages i:nth-child(2){animation-delay:.08s;opacity:.65}
+.ae3-book-pages i:nth-child(3){animation-delay:.15s;opacity:.42}
+.ae3-book-pages i:nth-child(4){animation-delay:.23s;opacity:.26}
+@keyframes aeBookPage{0%{opacity:0;transform:translate(-10%,-50%) rotateY(30deg) scale(.45)}30%{opacity:1}100%{opacity:0;transform:translate(-10%,-50%) rotateY(-165deg) scale(1.15)}}
+@keyframes aeBookTitle{0%{opacity:0;transform:translateY(18px)}40%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-9px)}}
+@keyframes aeBookFade{0%{opacity:0}15%{opacity:.94}70%{opacity:.94}100%{opacity:0}}
+@media(max-width:700px){.ae3-book-fields{grid-template-columns:1fr}.ae3-book-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ae3-book-header h3{font-size:1.5rem}.ae3-book-panel{padding:14px}.ae3-book-grades span{font-size:.78rem}}
+@media(prefers-reduced-motion:reduce){.ae3-book-cinematic,.ae3-book-pages i,.ae3-book-cinematic-title{animation:none!important;display:none!important}}
+.reduce-motion .ae3-book-cinematic,.reduce-motion .ae3-book-pages i,.reduce-motion .ae3-book-cinematic-title{animation:none!important;display:none!important}
+</style>
+
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div id="entrance" class="entrance"><div class="entrance-inner"><span class="eyebrow">BLEACH · RPG DE MESA</span><h1 id="entranceTitle">Bleach CBB</h1><div class="line"></div><p>Estou aqui para te salvar.</p><button class="btn main" data-action="enter">ENTRAR NA MESA</button></div></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><button type="button" id="sidebarAudio" class="sidebar-audio" data-action="hudToggle" aria-label="Abrir ou fechar o painel de música" aria-expanded="false" title="Abrir música"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><rect x="2" y="13" width="4" height="8" rx="2"/><rect x="18" y="13" width="4" height="8" rx="2"/></svg><span>Música</span></button><div class="sidefoot"><span id="roleText">VISITANTE</span><p id="storageText"></p></div></aside><main class="shell"><div class="toolbar"><span class="mobile-title" id="mobileTitle">Bleach CBB</span><span class="status" id="headerStatus">REGISTRO // BLEACH CBB</span><div class="toolbar-right" aria-label="Conta e controles">
- <span class="version-tag version-top">VERSÃO 3.2</span>
+ <span class="version-tag version-top">VERSÃO 3.4</span>
  <div class="toolbar-account" aria-label="Identidade e conexão">
   <span id="rolePill" class="tag">VISITANTE</span>
   <span id="onlineStatus" class="online-status" title="Estado da sincronização">LOCAL</span>
@@ -2208,4 +2283,4 @@ async function init(){await migrateLegacyKeys();db.site??={};db.site.defaultPale
 window.ARQUIVO_INTERNAL={get page(){return page},get db(){return db},get prefs(){return prefs},get currentSheet(){return currentSheet},get role(){return role},get editorDraft(){return editorDraft},canEditSheet,master,save,render,toast,redrawSheetForm:drawSheetForm,modal,historyHtml,dataUrlOk,mediaSrc,inventoryItemCanUse,inventoryItemAbilityLabel,abilityBadge,abilityTestButton,sheetRich,conditionsCatalog:CONDITIONS_CATALOG};
 init();
 if(window.ARQUIVO_SYNC?.state.configured)window.ARQUIVO_SYNC.init();
-</script><script src="mecanicas-ficha.js?v=3.3.1"></script><script src="habilidades-3.0.js?v=3.3.0"></script><script src="sessao-live.js?v=2.6"></script></body></html>
+</script><script src="mecanicas-ficha.js?v=3.4.0"></script><script src="habilidades-3.0.js?v=3.4.0"></script><script src="sessao-live.js?v=2.6"></script></body></html>
