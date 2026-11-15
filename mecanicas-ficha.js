@@ -188,7 +188,7 @@ async function runAction(key,param){
  const v=(id)=>document.getElementById(id)?.value;
  const num=(id)=>Number(v(id))||0;
  if(key==='phaseNext')return movePhase();
- if(key==='newScene'){c.scene++;c.extraEfforts=0;c.nextBonusDie=0;c.devotionExtraAction=false;return sync('Nova cena iniciada')}
+ if(key==='newScene'){c.scene++;window.ARQUIVO_V3?.advanceScene(s);c.extraEfforts=0;c.nextBonusDie=0;c.devotionExtraAction=false;return sync('Nova cena iniciada')}
  if(key==='resetRound'){c.mainUsed=false;c.reactionUsed=false;c.committedUsed=false;c.pressureHits=0;c.resistance={};c.preparedTrigger='';return sync('Oportunidades da rodada reiniciadas')}
  if(key==='mainAction'){if(c.mainUsed||c.rhythmRestriction>=3||isCondition(s,'Desmaiado')||isCondition(s,'Morto'))return wrong('Ação principal indisponível.');c.mainUsed=true;return sync('Ação principal utilizada')}
  if(key==='devotionAction'){if(!c.devotionExtraAction)return wrong('Ação adicional de Devoção indisponível.');c.devotionExtraAction=false;return sync('Ação de Devoção utilizada para proteger/auxiliar')}
