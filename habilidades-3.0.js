@@ -138,6 +138,95 @@ function editorToolbar(s){
   +(accessible.length?'<label>Ou trazer da ficha existente<select id="ae3Source"><option value="">Selecione...</option>'+accessible.map(sh=>'<option value="'+escape(sh.id)+'">'+escape(sh.name)+'</option>').join('')+'</select></label><div id="ae3SourceList" class="ae3-source-list"></div><div class="actions">'+button('TRAZER SELECIONADAS','fromSheet','small main')+'</div>':'<p>Nenhuma outra ficha acessível para copiar.</p>')
   +'</details></div>';
 }
+
+/* 3.1 — custos, pré-requisitos, limites e condições vinculadas à ficha. */
+function billingKey(ab,index){return String(ab?.abilityId||ab?.automation?.id||'legacy:'+index)}
+function costConfig(ab){
+ const c=ab?.costConfig&&typeof ab.costConfig==='object'?ab.costConfig:{};
+ return {mode:['use','activation','progressive'].includes(c.mode)?c.mode:'use',
+ increase:Math.max(1,Math.min(99999,Number(c.increase)||1)),
+ limit:['none','round','scene'].includes(c.limit)?c.limit:'none',
+ requires:String(c.requires||''),selfCondition:String(c.selfCondition||'')};
+}
+function billingState(s,ab,index){
+ const c=s?.abilityRuntime?.billing?.[billingKey(ab,index)];
+ return c&&Number(c.scene)===Number(s?.combat?.scene||1)?c:null;
+}
+function costQuote(s,ab,index){
+ const cfg=costConfig(ab),state=billingState(s,ab,index);
+ const uses=Math.max(0,Number(state?.uses)||0),round=Number(s?.combat?.round||1);
+ const countRound=state&&Number(state.lastRound)===round?Math.max(0,Number(state.usesRound)||0):0;
+ const active=cfg.mode==='activation'&&state?.active===true;
+ const cost=Math.max(0,Number(ab.cost)||0)+(cfg.mode==='progressive'?cfg.increase*uses:0);
+ let reason='';
+ if(active)reason='Técnica ativa. Encerre o efeito antes de ativar novamente.';
+ else if(cfg.limit==='round'&&countRound>0)reason='Limite de uma utilização por rodada.';
+ else if(cfg.limit==='scene'&&uses>0)reason='Limite de uma utilização por cena.';
+ if(!reason&&cfg.requires){
+  const target=(s.abilities||[]).find((x,i)=>i!==index&&billingKey(x,i)===cfg.requires&&costConfig(x).mode==='activation');
+  if(!target||billingState(s,target,s.abilities.indexOf(target))?.active!==true)reason='Ative a habilidade pré-requisito primeiro.';
+ }
+ if(!reason&&cost>999999)reason='O custo ultrapassou o limite de Alma permitido.';
+ if(!reason&&Number(s.resources?.alma?.current||0)<cost)reason='Alma insuficiente: faltam '+(cost-Number(s.resources?.alma?.current||0))+' pontos.';
+ return {cfg,state,uses,countRound,active,cost,blocked:!!reason,reason};
+}
+function costLabel(ab){
+ const c=costConfig(ab),base=Math.max(0,Number(ab?.cost)||0);
+ if(c.mode==='activation')return base+' ALMA · ATIVAÇÃO';
+ if(c.mode==='progressive')return base+' ALMA +'+c.increase+'/USO';
+ return base>0?base+' ALMA':'SEM CUSTO';
+}
+function costEditor(s,ab,i){
+ if(ab.passive||ab.category==='passive')return '<p class="ae3-cost-note">Habilidade passiva: sem custo de Alma.</p>';
+ const c=costConfig(ab),select=(field,value,choices)=>'<select data-ae3-cost="'+i+':'+field+'">'+choices.map(([k,name])=>'<option value="'+escape(k)+'" '+(String(value)===String(k)?'selected':'')+'>'+escape(name)+'</option>').join('')+'</select>';
+ const requires=[['','Sem pré-requisito']];
+ (s.abilities||[]).forEach((other,j)=>{
+  if(i!==j&&costConfig(other).mode==='activation')requires.push([billingKey(other,j),other.name||'Técnica '+(j+1)]);
+ });
+ const conds=Array.isArray(APP()?.conditionsCatalog)?APP().conditionsCatalog:[];
+ return '<section class="ae3-cost-editor"><strong>ALMA & ATIVAÇÃO</strong><div class="ae3-automation-grid">'
+ +'<label>Modelo de cobrança'+select('mode',c.mode,[['use','Por uso · custo fixo'],['activation','Por ativação · apenas ao ligar'],['progressive','Progressivo · aumenta a cada uso na cena']])+'</label>'
+ +(c.mode==='progressive'?'<label>Aumento por uso na mesma cena<input data-ae3-cost="'+i+':increase" type="number" min="1" max="99999" step="1" value="'+escape(c.increase)+'"></label>':'')
+ +'<label>Limite automático'+select('limit',c.limit,[['none','Sem limite adicional'],['round','Uma vez por rodada'],['scene','Uma vez por cena']])+'</label>'
+ +'<label>Exige habilidade ativa'+select('requires',c.requires,requires)+'</label>'
+ +'<label>Condição automática em si mesmo'+select('selfCondition',c.selfCondition,[['','Nenhuma'],...conds.map(v=>[v,v])])+'</label>'
+ +'</div><p>Custo básico: o valor de Alma acima. Por ativação, o efeito permanece até o encerramento manual ou mudança de cena; reativar cobra novamente. Progressivo: custo básico + aumento × usos anteriores na cena. Pré-requisitos devem estar ativos no momento da ativação.</p></section>';
+}
+function costStatus(s,ab,index){
+ if(ab.passive||ab.category==='passive')return '';
+ const q=costQuote(s,ab,index),c=q.cfg;
+ const text=c.mode==='activation'?(q.active?'ATIVA · Alma já paga nesta ativação':'ATIVAÇÃO · '+q.cost+' Alma'):
+ c.mode==='progressive'?'PRÓXIMO CUSTO · '+q.cost+' Alma (uso '+(q.uses+1)+')':q.cost+' Alma por uso';
+ const limit=c.limit==='round'?' · 1/rodada':c.limit==='scene'?' · 1/cena':'';
+ return '<div class="ae3-cost-status '+(q.active?'running':q.blocked?'blocked':'')+'"><strong>'+escape(text)+'</strong>'+escape(limit)+(q.reason?'<p>'+escape(q.reason)+'</p>':'')+'</div>';
+}
+function commitLocalCharge(s,ab,index,quote){
+ const q=quote||costQuote(s,ab,index),rt=runtime(s),cfg=q.cfg,key=billingKey(ab,index);
+ const granted=cfg.selfCondition&&!((s.conditions||[]).some(c=>String(c).toLowerCase()===cfg.selfCondition.toLowerCase()))?cfg.selfCondition:'';
+ if(granted){s.conditions??=[];s.conditions.push(granted)}
+ rt.billing??={};
+ rt.billing[key]={scene:Number(s.combat?.scene||1),lastRound:Number(s.combat?.round||1),uses:q.uses+1,
+ usesRound:q.countRound+1,active:cfg.mode==='activation',lastCost:q.cost,grantedCondition:cfg.mode==='activation'?granted:''};
+}
+function stopLocally(s,ab,index){
+ const rt=runtime(s),key=billingKey(ab,index),old=rt.billing?.[key],autoId=ab.automation?.id;
+ if(old){
+  if(old.grantedCondition&&Number(old.scene)===Number(s.combat?.scene||1)){
+   s.conditions=(s.conditions||[]).filter(x=>String(x).toLowerCase()!==String(old.grantedCondition).toLowerCase());
+  }
+  rt.billing[key]={...old,active:false,grantedCondition:''};
+ }
+ if(autoId){delete rt.active[autoId];delete rt.progress[autoId];}
+}
+function advanceScene(s){
+ const rt=runtime(s),scene=Number(s.combat?.scene||1),expired=[];
+ for(const entry of Object.values(rt.billing||{})){
+  if(entry&&entry.active===true&&Number(entry.scene)!==scene&&entry.grantedCondition)expired.push(entry.grantedCondition.toLowerCase());
+  if(entry&&Number(entry.scene)!==scene)entry.active=false;
+ }
+ if(expired.length)s.conditions=(s.conditions||[]).filter(x=>!expired.includes(String(x).toLowerCase()));
+}
+
 function automationEditor(ab,i){
  const a=normalize(ab),kind=a?.kind||'none';
  const select=(key,value,opts)=>'<select data-ae3-field="'+i+':'+key+'">'+opts.map(pair=>'<option value="'+escape(pair[0])+'" '+(String(value)===String(pair[0])?'selected':'')+'>'+escape(pair[1])+'</option>').join('')+'</select>';
