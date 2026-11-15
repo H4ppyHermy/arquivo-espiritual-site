@@ -83,8 +83,11 @@ function extraCombat(s,c){
 }
 
 function bookVictimPanel(s){
+ const mirror=s.combat?.bookEndVictim;
+ const cached=mirror&&Number(mirror.scene)===Number(s.combat?.scene||1);
+ const mirrored=cached?'<section class="panel"><div class="sectionhead"><h3>BOOK OF THE END · PASSADO ALTERADO</h3><span class="tag">RELAÇÃO PLÁSTICA '+['—','I','II','III'][Math.max(0,Math.min(3,Number(mirror.grade)||0))]+'</span></div><p class="color-hint">Vínculo artificial implantado por '+esc(mirror.source||'Book of the End')+'.</p>'+(mirror.stolen?'<p><b>Perícia roubada: '+esc(mirror.stolen.skill)+'</b> (d'+esc(mirror.stolen.die)+'). Nas rolagens verificadas, o dado da perícia é retirado.</p>':'')+'</section>':'';
  const source=(app()?.db?.sheets||[]).find(x=>(x.abilities||[]).some(a=>a.abilityId==='tsukishima-book-of-the-end-manifestacao'));
- if(!source||source.id===s.id)return '';
+ if(!source)return mirrored;if(source.id===s.id)return '';
  const manifest=source.abilityRuntime?.billing?.['tsukishima-book-of-the-end-manifestacao'];
  const book=source.abilityRuntime?.bookOfEnd;
  if(!manifest?.active||Number(manifest.scene)!==Number(source.combat?.scene||1)
@@ -106,6 +109,7 @@ function expireBookConfusion(s,c){
   s.conditions=(s.conditions||[]).filter(v=>String(v).toLowerCase()!=='confuso');
   delete c.bookEndConfusion;
  }
+ if(c.bookEndVictim&&Number(c.bookEndVictim.scene)!==Number(c.scene))delete c.bookEndVictim;
 }
 
 function renderCombat(s){
