@@ -13,7 +13,7 @@ const button=(name,action,cls='small')=>'<button type="button" class="btn '+cls+
 const id=()=>crypto.randomUUID();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const rawGroup=ab=>{const m=/^\(([^)]{1,65})\)\s*/.exec(String(ab.name||''));return m?m[1]:''};
-const groupLabel=name=>name==='Fullbringer'?'Habilidades Raciais · Fullbringer':name==='Classe'?'Habilidades de Classe':name==='Shinigami'?'Habilidades Raciais · Shinigami':name==='Shikai'?'Habilidades de Shikai':name==='Bankai'?'Habilidades de Bankai':name==='Coração de Aço'?'Habilidades de Classe · Coração de Aço':name||'Sem grupo';
+const groupLabel=name=>name==='Fullbringer'?'Habilidades Raciais · Fullbringer':name==='Classe'?'Habilidades de Classe':name==='Shinigami'?'Habilidades Raciais · Shinigami':name==='Visored'?'Habilidades Raciais · Visored':name==='Shikai'?'Habilidades de Shikai':name==='Bankai'?'Habilidades de Bankai':name==='Coração de Aço'?'Habilidades de Classe · Coração de Aço':name||'Sem grupo';
 const assignedGroup=(s,ab)=>{
  if(ab.groupId){const g=(s.abilityGroups||[]).find(g=>g.id===ab.groupId);if(g)return {id:g.id,name:g.name};if(String(ab.groupId).startsWith('auto:'))return {id:ab.groupId,name:ab.groupId.slice(5)}}
  const label=rawGroup(ab);return {id:label?'auto:'+label:'__ungrouped',name:label||'Sem grupo'};
@@ -118,6 +118,16 @@ const RACIAL={
   {minLevel:1,cost:2,name:'(Shinigami) Shunpō',image:'https://static.wikia.nocookie.net/bleach/images/6/69/55Senka.png/revision/latest?cb=20200115051218&path-prefix=en',noTest:true,passive:false,category:'active',description:'Uma vez por rodada, você pode utilizar sua reação para se deslocar até sua movimentação, mesmo quando não estiver sendo atacado. Esse deslocamento não evita automaticamente ataques já declarados contra você.'},
   {minLevel:1,cost:0,name:'(Shinigami) Zankensōki: As Quatro Artes',image:'https://static.wikia.nocookie.net/bleach/images/7/7c/65Hozuri2.png/revision/latest?cb=20200119012302&path-prefix=en',noTest:true,passive:true,category:'passive',description:'Aumenta em um passo o dado de perícia dos seus ataques com espadas. (Opção Zanjutsu; escolha outra arte quando necessário.)',automation:{kind:'step',id:'modelo-zanjutsu',target:'skill',key:'Vigor',scope:'next',steps:1}},
   {minLevel:1,cost:0,name:'(Shinigami) Percepção Espiritual',image:'https://static.wikia.nocookie.net/bleach/images/e/ec/35Uryu_grabs.png/revision/latest?cb=20200107064156&path-prefix=en',noTest:true,passive:true,category:'passive',description:'Aumenta em um passo seu dado de Sensibilidade em testes para perceber, localizar ou distinguir presenças espirituais.',automation:{kind:'step',id:'modelo-percepcao',target:'skill',key:'Sensibilidade',scope:'next',steps:1}}
+ ],
+ Visored:[
+  {minLevel:1,cost:2,name:'(Visored) Shunpō',noTest:true,passive:false,category:'active',costConfig:{mode:'use',limit:'round'},
+   description:'Uma vez por rodada, você pode utilizar sua reação para se deslocar até sua movimentação, mesmo quando não estiver sendo atacado. Esse deslocamento não evita automaticamente ataques já declarados contra você.'},
+  {minLevel:1,cost:0,name:'(Visored) Zankensōki: As Quatro Artes',noTest:true,passive:true,category:'passive',
+   description:'Escolha uma das quatro artes dos Shinigami e receba seu benefício:\n(Zanjutsu) Aumenta em um passo o dado de perícia dos seus ataques com espadas.\n(Hakuda) Aumenta em um passo o dado de Vigor nos seus ataques desarmados.\n(Hohō) Ao utilizar Shunpō, você pode percorrer até o dobro de sua movimentação.\n(Kidō) Aumenta em um passo o dado de perícia dos seus testes de Kidō.'},
+  {minLevel:3,cost:4,name:'(Visored) Máscara Hollow',noTest:true,passive:false,category:'transformation',costConfig:{mode:'use',limit:'scene'},
+   description:'Uma vez por cena, utilize sua ação principal para manifestar sua máscara por até duas rodadas, entrando em Hollowficação. Independentemente do seu nível, você pode utilizar esta habilidade uma vez por cena em estado de Descontrole, alternando o controle de sua ficha entre o mestre, nas rodadas ímpares, e você, nas rodadas pares, até o término da Hollowficação.'},
+  {minLevel:4,cost:0,name:'(Visored) Ressonância Hollow',noTest:true,passive:false,category:'active',costConfig:{mode:'use',limit:'scene'},
+   description:'Uma vez por cena, enquanto estiver em Hollowficação, ao realizar um ataque, você pode aumentar em dois passos o dado de perícia desse ataque. Após sua resolução, a Hollowficação termina imediatamente.'}
  ],
  Fullbringer:[
   {minLevel:1,cost:2,name:'(Fullbringer) Bringer Light',
