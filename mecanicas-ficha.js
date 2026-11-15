@@ -93,6 +93,41 @@ function expireBookConfusion(s,c){
  if(c.bookEndVictim&&Number(c.bookEndVictim.scene)!==Number(c.scene))delete c.bookEndVictim;
 }
 
+
+const SHINJI_SHEET_ID='arquivo-shinji-hirako-arena-n3';
+function expireShinji(s,c){
+ const scene=Number(c.scene||1),round=Number(c.round||1);
+ if(s.id===SHINJI_SHEET_ID){
+  const end=Number(c.shinjiMaskEndRound||0),runtime=s.abilityRuntime?.shinji;
+  if(c.hollowActive&&(end<round||end<=0)){c.hollowActive=false;c.shinjiMaskMode='';}
+  if(runtime&&Number(runtime.scene)!==scene){
+   runtime.shikaiActive=false;c.hollowActive=false;c.shinjiMaskMode='';
+  }
+ }
+ const p=c.shinjiFearExpire;
+ if(p&&(Number(p.scene)!==scene||Number(p.round)<round
+    ||Number(p.round)===round&&c.phase==='desfecho')){
+  c.fearDie=0;s.conditions=(s.conditions||[]).filter(v=>String(v).toLowerCase()!=='amedrontado');
+  delete c.shinjiFearExpire;
+ }
+ const inv=c.shinjiInversion;
+ if(inv){
+  const src=app()?.db?.sheets?.find(x=>x.id===SHINJI_SHEET_ID);
+  const still=src&&Number(src.combat?.scene||1)===scene
+   &&src.abilityRuntime?.shinji?.shikaiActive===true
+   &&src.abilityRuntime?.billing?.['shinji-sakanade-liberar']?.active===true
+   &&Number(src.abilityRuntime.billing['shinji-sakanade-liberar'].scene)===scene;
+  if(Number(inv.scene)!==scene||!still){
+   delete c.shinjiInversion;delete c.shinjiDefensePending;
+   s.conditions=(s.conditions||[]).filter(v=>String(v).toLowerCase()!=='invertido');
+  }
+ }
+ if(c.shinjiDefensePending&&
+  (Number(c.shinjiDefensePending.scene)!==scene||Number(c.shinjiDefensePending.round)<round)){
+  delete c.shinjiDefensePending;
+ }
+}
+
 function renderCombat(s){
  const c=combat(s),mv=getMovement(s),ex=s.exposures||{},wear=Number(s.desgaste)||0;
  const used=!!c.mainUsed,react=!!c.reactionUsed,lock=c.rhythmRestriction>=3||isCondition(s,'Desmaiado')||isCondition(s,'Morto'),defLock=c.rhythmRestriction>=2||isCondition(s,'Atordoado')||isCondition(s,'Desmaiado')||isCondition(s,'Morto');
@@ -141,7 +176,7 @@ function renderCombat(s){
   <div class="ae-rpg-controls">${actionBtn(c.fearDie?'AGRAVAR PAVOR':'APLICAR PAVOR','fearAdd','small')}${actionBtn('ENCERRAR PAVOR','fearClear','small quiet',!c.fearDie)}</div>
   ${c.fearDie?`<p class="color-hint">A condição Amedrontado usa o mesmo dado; novos efeitos aumentam um passo.</p>`:''}${c.fearDie&&c.hollowActive?'<p class="color-hint">O texto-base ainda não define sobreposição entre pavor comum e máscara. Nesta ficha, a rolagem aplica apenas a influência da máscara enquanto ela estiver ativa.</p>':''}
   <p class="color-hint">Máscara: resultados acima do dado de influência são maximizados. Resultado 1: avanço. Máximo: ruptura e perda de controle.</p>
-  <div class="ae-rpg-controls">${actionBtn(c.hollowActive?'REMOVER MÁSCARA':'HOLLOWFICAR','maskToggle','small main',!c.hollowActive&&!c.hollowUnlocked&&String(s.race||'').toLowerCase()!=='visored')}${actionBtn('RECUPERAR CONTROLE','maskRecover','small quiet',!c.hollowLost||!app()?.master?.())}</div>
+  <div class="ae-rpg-controls">${s.id===SHINJI_SHEET_ID?'<span class="color-hint">Ative ou encerre a Máscara Hollow na aba Habilidades.</span>':actionBtn(c.hollowActive?'REMOVER MÁSCARA':'HOLLOWFICAR','maskToggle','small main',!c.hollowActive&&!c.hollowUnlocked&&String(s.race||'').toLowerCase()!=='visored')}${actionBtn('RECUPERAR CONTROLE','maskRecover','small quiet',!c.hollowLost||!app()?.master?.())}</div>
   <p class="color-hint">Máscara: ${c.hollowActive?'ATIVA':c.hollowLost?'RUPTURA · SEM CONTROLE':'INATIVA'}. Avanços de domínio: ${Number(c.hollowProgress)||0}. Os benefícios do domínio dependem de habilidades ainda a definir.</p>
   ${can()?`<label><input type="checkbox" data-ae-field="hollowUnlocked" ${c.hollowUnlocked?'checked':''}> Hollowficação concedida à ficha</label>`:''}
   </section>
@@ -184,7 +219,7 @@ async function diceRoll(count,faces){
 }
 function movePhase(){
  const s=sheet(),c=control(s),idx=Math.max(0,PHASES.findIndex(x=>x[0]===c.phase));
- expireBookConfusion(s,c);
+ expireBookConfusion(s,c);expireShinji(s,c);
  if(idx<3){if(c.pressureHits>=2){c.pressuredUntil=Math.max(c.pressuredUntil,c.round+1);s.conditions??=[];if(!isCondition(s,'Pressionado'))s.conditions.push('Pressionado')}c.phase=PHASES[idx+1][0];c.pressureHits=0;c.resistance={};}
  else{
   if(c.pressureHits>=2){c.pressuredUntil=Math.max(c.pressuredUntil,c.round+1);s.conditions??=[];if(!isCondition(s,'Pressionado'))s.conditions.push('Pressionado')}
@@ -195,20 +230,25 @@ function movePhase(){
   if(c.rhythmRestriction>=3)c.mainUsed=true;
   if(c.pressuredUntil<c.round){s.conditions=(s.conditions||[]).filter(x=>String(x).toLowerCase()!=='pressionado')}
  }
- expireBookConfusion(s,c);
+ expireBookConfusion(s,c);expireShinji(s,c);
  sync('Fase atualizada');
 }
 async function runAction(key,param){
  const s=sheet();if(!s||!can())return wrong('Você não pode modificar esta ficha.');
  const c=control(s),ex=s.exposures||{};s.exposures=ex;
+ if(s.id===SHINJI_SHEET_ID&&c.hollowActive&&c.shinjiMaskMode==='chaos'&&
+  Number(c.shinjiMaskEndRound||0)>=Number(c.round||1)){
+  const odd=Number(c.round||1)%2===1,master=!!app()?.master?.();
+  if(odd!==master&&key!=='phaseNext')return wrong(odd?'Descontrole: rodada do mestre.':'Descontrole: rodada do jogador.');
+ }
  const v=(id)=>document.getElementById(id)?.value;
  const num=(id)=>Number(v(id))||0;
  if(key==='phaseNext')return movePhase();
- if(key==='newScene'){c.scene++;expireBookConfusion(s,c);window.ARQUIVO_V3?.advanceScene(s);c.extraEfforts=0;c.nextBonusDie=0;c.devotionExtraAction=false;return sync('Nova cena iniciada')}
+ if(key==='newScene'){c.scene++;expireBookConfusion(s,c);expireShinji(s,c);window.ARQUIVO_V3?.advanceScene(s);c.extraEfforts=0;c.nextBonusDie=0;c.devotionExtraAction=false;return sync('Nova cena iniciada')}
  if(key==='resetCounter'){
   if(!confirm('Reiniciar o contador para a RODADA 1? Isso inicia uma nova cena para os limites das habilidades, mas não restaura Vida, Alma nem outros recursos.'))return;
   c.scene=Math.max(1,Number(c.scene)||1)+1;
-  expireBookConfusion(s,c);
+  expireBookConfusion(s,c);expireShinji(s,c);
   c.round=1;c.phase='preparacao';c.mainUsed=false;c.reactionUsed=false;c.committedUsed=false;
   c.preparedTrigger='';c.pressureHits=0;c.pressuredUntil=0;c.resistance={};
   c.rhythmPending=0;c.rhythmRestriction=0;c.extraEfforts=0;c.nextBonusDie=0;c.devotionExtraAction=false;
@@ -227,7 +267,7 @@ async function runAction(key,param){
  if(key==='commit'){if(isCondition(s,'Desmaiado')||isCondition(s,'Morto'))return wrong('Personagem incapacitado não pode realizar ações comprometedoras.');const kind=v('aeExposure');if(!EXPOS.includes(kind))return wrong('Escolha uma exposição válida.');const limit=c.wearPoints?2+Number(c.wearPoints):null;if(c.committedUsed||c.rhythmRestriction>=3||Number(ex[kind])>=3||limit!==null&&Number(s.desgaste)>=limit)return wrong('Limite de ações comprometedoras ou exposição alcançado.');ex[kind]=Math.min(3,Number(ex[kind]||0)+1);s.desgaste=Number(s.desgaste||0)+1;c.committedUsed=true;if(kind==='defensiva')c.reactionUsed=true;if(kind==='ritmica')c.rhythmPending=ex[kind];return sync('Ação comprometedora registrada')}
  if(key==='fearAdd'){c.fearDie=c.fearDie?[6,8,10,12][Math.min(3,[6,8,10,12].indexOf(c.fearDie)+1)]:6;s.conditions??=[];if(!isCondition(s,'AMEDRONTADO'))s.conditions.push('Amedrontado');return sync('Pavor aplicado')}
  if(key==='fearClear'){c.fearDie=0;s.conditions=(s.conditions||[]).filter(x=>String(x).toLowerCase()!=='amedrontado');return sync('Pavor encerrado')}
- if(key==='maskToggle'){if(!c.hollowActive&&!c.hollowUnlocked&&String(s.race||'').toLowerCase()!=='visored')return wrong('Hollowficação ainda não autorizada para a ficha.');if(c.hollowLost&&!c.hollowActive)return wrong('Recupere o controle antes de colocar a máscara.');c.hollowActive=!c.hollowActive;return sync(c.hollowActive?'Máscara ativada':'Máscara removida')}
+ if(key==='maskToggle'){if(s.id===SHINJI_SHEET_ID)return wrong('Utilize a Máscara Hollow no painel de habilidades de Shinji.');if(!c.hollowActive&&!c.hollowUnlocked&&String(s.race||'').toLowerCase()!=='visored')return wrong('Hollowficação ainda não autorizada para a ficha.');if(c.hollowLost&&!c.hollowActive)return wrong('Recupere o controle antes de colocar a máscara.');c.hollowActive=!c.hollowActive;return sync(c.hollowActive?'Máscara ativada':'Máscara removida')}
  if(key==='maskRecover'){if(!app()?.master?.())return wrong('A perda de controle depende do mestre.');c.hollowLost=false;return sync('Controle restaurado pelo mestre/narrativa')}
  if(key==='pressureHit'){c.pressureHits++;return sync(c.pressureHits>=2?'Pressionado será aplicado após a fase':'Acerto sofrido registrado')}
  if(key==='pressureReset'){c.pressureHits=0;return sync('Acertos da fase zerados')}
