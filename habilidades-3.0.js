@@ -44,7 +44,7 @@ function skillSteps(s,skill){
  let steps=0;
  for(const ab of s.abilities||[]){
   const a=normalize(ab);
-  if(a?.kind!=='step'||!matchStep(a,skill,group))continue;
+  if(a?.kind!=='step'||!gateOpen(s,ab)||!matchStep(a,skill,group))continue;
   const amount=Number(a.steps);
   if(!Number.isInteger(amount)||Math.abs(amount)>3)continue;
   if(a.scope==='passive'&&(ab.passive===true||ab.category==='passive')||a.scope!=='passive'&&activeStep(s,ab,a))steps+=amount;
@@ -54,7 +54,7 @@ function skillSteps(s,skill){
 function resistanceSteps(s,group){
  let value=0;
  for(const ab of s.abilities||[]){
-  const a=normalize(ab);if(a?.kind!=='step'||a.target!=='resistance'||a.key!==group)continue;
+  const a=normalize(ab);if(a?.kind!=='step'||!gateOpen(s,ab)||a.target!=='resistance'||a.key!==group)continue;
   const amount=Number(a.steps);if(!Number.isInteger(amount)||Math.abs(amount)>3)continue;
   if(a.scope==='passive'&&(ab.passive||ab.category==='passive')||a.scope!=='passive'&&activeStep(s,ab,a))value+=amount;
  }
@@ -189,7 +189,7 @@ function editUnlockField(el){
   if(el.value==='always'){delete ab.unlock;APP().redrawSheetForm();return}
   const options=(draft.abilities||[]).map((x,j)=>({x,j})).filter(o=>o.j!==index&&costConfig(o.x).mode==='activation');
   if(!options.length){APP().toast('LIBERAÇÃO NECESSÁRIA','Crie uma habilidade com custo por ativação antes de vincular técnicas.',true);el.value='always';return}
-  const target=options[0];target.x.abilityId??=id();
+  const target=options[0];if(!target.x.abilityId&&!target.x.automation?.id)target.x.abilityId=id();
   ab.unlock={mode:el.value,requires:ab.unlock?.requires||billingKey(target.x,target.j)};
   APP().redrawSheetForm();return;
  }
@@ -197,7 +197,7 @@ function editUnlockField(el){
   const target=(draft.abilities||[]).findIndex((x,j)=>j!==index&&billingKey(x,j)===el.value&&costConfig(x).mode==='activation');
   if(target<0){APP().toast('LIBERAÇÃO INVÁLIDA','Selecione uma liberação válida.',true);return}
   const source=draft.abilities[target];
-  if(!source.abilityId)source.abilityId=id();
+  if(!source.abilityId&&!source.automation?.id)source.abilityId=id();
   ab.unlock??={mode:'hidden'};ab.unlock.requires=billingKey(source,target);
   APP().redrawSheetForm();
  }
@@ -335,6 +335,11 @@ function enhanceEditor(){
 }
 function abilityArticle(s,ab,i){
  const api=APP(),auto=normalize(ab),can=api.canEditSheet(s.id),isPassive=ab.passive===true||ab.category==='passive';
+ const accessible=gateOpen(s,ab);
+ if(!accessible){
+  const kind=unlockConfig(ab).mode==='hidden'?'OCULTA ATÉ A LIBERAÇÃO':'BLOQUEADA ATÉ A LIBERAÇÃO';
+  return '<article class="ability ae3-ability ae32-locked"><div class="sectionhead"><h3>'+escape(ab.name)+'</h3><span class="tag">'+kind+'</span></div><p class="color-hint">Esta técnica depende de uma liberação que ainda não foi ativada.</p>'+(api.master?.()?'<button type="button" class="btn small" data-action="editAbilityDirect:'+i+'">EDITAR VÍNCULO</button>':'')+'</article>';
+ }
  const image=ab.image&&api.dataUrlOk(ab.image)?'<img class="ability-media" src="'+escape(api.mediaSrc(ab.image)||'')+'" alt="Imagem de '+escape(ab.name)+'" loading="lazy">':'';
  const badge=api.abilityBadge(ab),test=api.abilityTestButton(s,ab,i),item=api.inventoryItemAbilityLabel(s,ab),quote=isPassive?null:costQuote(s,ab,i);
  let dynamic='';
@@ -352,7 +357,7 @@ function abilityArticle(s,ab,i){
     +(can&&st?'<div class="actions">'+button('ACERTO · ROLAR DANO','hit:'+i,'small main')+button('ERRO · NÃO AVANÇAR','miss:'+i,'small')+button('ENCERRAR','stop:'+i,'small danger')+'</div>':'')+'</div>';
   }
  }
- return '<article class="ability ae3-ability" id="ability-'+i+'"><div class="sectionhead"><h3>'+escape(ab.name)+'</h3>'+badge+'</div>'+image
+ return '<article class="ability ae3-ability '+(['ultimate','release','transformation'].includes(ab.category)?'ae32-card-'+ab.category:'')+'" id="ability-'+i+'"><div class="sectionhead"><h3>'+escape(ab.name)+'</h3>'+badge+'</div>'+image
  +'<div class="sheet-rich">'+api.sheetRich(ab.description||'Sem descrição.')+'</div>'+test+item+costStatus(s,ab,i)+dynamic
  +'<div class="actions ae3-card-actions">'+(can?'<button type="button" class="btn small" data-action="editAbilityDirect:'+i+'">EDITAR TÉCNICA</button>':'')
  +button('COPIAR','copyOne:'+i,'small quiet')
@@ -368,11 +373,12 @@ function abilityArticle(s,ab,i){
 function renderAbilityTab(s){
  const api=APP(),can=api.canEditSheet(s.id),groups=new Map();
  (s.abilities||[]).forEach((ab,i)=>{
+  if(!gateOpen(s,ab)&&unlockConfig(ab).mode==='hidden'&&!(api.master?.()&&masterReveal))return;
   const g=assignedGroup(s,ab);
   if(!groups.has(g.id))groups.set(g.id,{...g,items:[]});
   groups.get(g.id).items.push([ab,i]);
  });
- const header='<div class="actions ae3-tab-toolbar">'+(can?'<button class="btn main" data-action="newAbilityDirect">+ CRIAR TÉCNICA</button><button class="btn small" data-action="editSheetSection:abilities">ORGANIZAR E TRANSFERIR</button>':'')+button('ABRIR GRUPOS','groupsOpen','small')+button('FECHAR GRUPOS','groupsClose','small')+'</div>';
+ const header='<div class="actions ae3-tab-toolbar">'+(can?'<button class="btn main" data-action="newAbilityDirect">+ CRIAR TÉCNICA</button><button class="btn small" data-action="editSheetSection:abilities">ORGANIZAR E TRANSFERIR</button>':'')+button('ABRIR GRUPOS','groupsOpen','small')+button('FECHAR GRUPOS','groupsClose','small')+(api.master?.()?button(masterReveal?'OCULTAR TÉCNICAS SECRETAS':'REVELAR TÉCNICAS SECRETAS','masterReveal','small quiet'):'')+'</div>';
  const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group" '+(index===0?'open':'')+'><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div></details>').join('');
  return header+(result||'<p class="empty">Nenhuma habilidade cadastrada.</p>')+api.historyHtml();
 }
@@ -462,6 +468,12 @@ function importAbilities(payload){
   if(matching)remap.set(item.__sourceCostKey,matching);
  }
  incoming.forEach(a=>{
+  if(a.unlock?.requires){
+   a.unlock.requires=remap.get(a.unlock.requires)||(
+    draft.abilities.some((ab,i)=>billingKey(ab,i)===a.unlock.requires)?a.unlock.requires:''
+   );
+   if(!a.unlock.requires)delete a.unlock;
+  }
   if(a.costConfig?.requires){
    a.costConfig.requires=remap.get(a.costConfig.requires)||(
     draft.abilities.some((ab,i)=>billingKey(ab,i)===a.costConfig.requires)?a.costConfig.requires:''
@@ -525,7 +537,7 @@ async function stopEffect(index){
  const api=APP(),s=api?.db?.sheets.find(sh=>sh.id===api.currentSheet),ab=s?.abilities?.[index];
  if(!s||!ab||!api.canEditSheet(s.id))return;
  const key=billingKey(ab,index);
- const depend=(s.abilities||[]).find((x,i)=>i!==index&&costConfig(x).requires===key&&billingState(s,x,i)?.active===true);
+ const depend=(s.abilities||[]).find((x,i)=>i!==index&&(costConfig(x).requires===key||unlockConfig(x).requires===key)&&billingState(s,x,i)?.active===true);
  if(depend){api.toast('LIBERAÇÃO EM USO','Encerre primeiro '+depend.name+'.',true);return}
  stopping.add(index);
  try{
@@ -541,6 +553,7 @@ async function stopEffect(index){
 function dispatch(action){
  const parts=action.split(':'),cmd=parts[0],i=Number(parts[1]),api=APP(),draft=api?.editorDraft,editing=!!draft&&!!document.querySelector('.sheet-edit-scroll');
  if(['copyOne','copyAll','copyMarked'].includes(cmd)){copyActions(cmd,i);return}
+ if(cmd==='masterReveal'&&api.master?.()){masterReveal=!masterReveal;api.render();return}
  if(cmd==='groupsOpen'||cmd==='groupsClose'){document.querySelectorAll('.ae3-ability-group').forEach(g=>g.open=cmd==='groupsOpen');return}if(cmd==='hit'){progressHit(i);return}if(cmd==='prepare'){preparePassive(i);return}
  if(cmd==='miss'){api.toast('ATAQUE NÃO ACERTOU','O contador de dano permanece na mesma etapa.');return}
  if(cmd==='stop'){stopEffect(i);return}
