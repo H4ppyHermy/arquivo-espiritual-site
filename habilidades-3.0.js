@@ -13,7 +13,7 @@ const button=(name,action,cls='small')=>'<button type="button" class="btn '+cls+
 const id=()=>crypto.randomUUID();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const rawGroup=ab=>{const m=/^\(([^)]{1,65})\)\s*/.exec(String(ab.name||''));return m?m[1]:''};
-const groupLabel=name=>name==='Classe'?'Habilidades de Classe':name==='Shinigami'?'Habilidades Raciais · Shinigami':name==='Shikai'?'Habilidades de Shikai':name==='Bankai'?'Habilidades de Bankai':name==='Coração de Aço'?'Habilidades de Classe · Coração de Aço':name||'Sem grupo';
+const groupLabel=name=>name==='Fullbringer'?'Habilidades Raciais · Fullbringer':name==='Classe'?'Habilidades de Classe':name==='Shinigami'?'Habilidades Raciais · Shinigami':name==='Shikai'?'Habilidades de Shikai':name==='Bankai'?'Habilidades de Bankai':name==='Coração de Aço'?'Habilidades de Classe · Coração de Aço':name||'Sem grupo';
 const assignedGroup=(s,ab)=>{
  if(ab.groupId){const g=(s.abilityGroups||[]).find(g=>g.id===ab.groupId);if(g)return {id:g.id,name:g.name};if(String(ab.groupId).startsWith('auto:'))return {id:ab.groupId,name:ab.groupId.slice(5)}}
  const label=rawGroup(ab);return {id:label?'auto:'+label:'__ungrouped',name:label||'Sem grupo'};
@@ -115,14 +115,37 @@ function seqText(sequence){
 function diceDescription(stage){return stage.map(d=>d.count+'d'+d.sides).join(' + ')}
 const RACIAL={
  Shinigami:[
-  {cost:2,name:'(Shinigami) Shunpō',image:'https://static.wikia.nocookie.net/bleach/images/6/69/55Senka.png/revision/latest?cb=20200115051218&path-prefix=en',noTest:true,passive:false,category:'active',description:'Uma vez por rodada, você pode utilizar sua reação para se deslocar até sua movimentação, mesmo quando não estiver sendo atacado. Esse deslocamento não evita automaticamente ataques já declarados contra você.'},
-  {cost:0,name:'(Shinigami) Zankensōki: As Quatro Artes',image:'https://static.wikia.nocookie.net/bleach/images/7/7c/65Hozuri2.png/revision/latest?cb=20200119012302&path-prefix=en',noTest:true,passive:true,category:'passive',description:'Aumenta em um passo o dado de perícia dos seus ataques com espadas. (Opção Zanjutsu; escolha outra arte quando necessário.)',automation:{kind:'step',id:'modelo-zanjutsu',target:'skill',key:'Vigor',scope:'next',steps:1}},
-  {cost:0,name:'(Shinigami) Percepção Espiritual',image:'https://static.wikia.nocookie.net/bleach/images/e/ec/35Uryu_grabs.png/revision/latest?cb=20200107064156&path-prefix=en',noTest:true,passive:true,category:'passive',description:'Aumenta em um passo seu dado de Sensibilidade em testes para perceber, localizar ou distinguir presenças espirituais.',automation:{kind:'step',id:'modelo-percepcao',target:'skill',key:'Sensibilidade',scope:'next',steps:1}}
+  {minLevel:1,cost:2,name:'(Shinigami) Shunpō',image:'https://static.wikia.nocookie.net/bleach/images/6/69/55Senka.png/revision/latest?cb=20200115051218&path-prefix=en',noTest:true,passive:false,category:'active',description:'Uma vez por rodada, você pode utilizar sua reação para se deslocar até sua movimentação, mesmo quando não estiver sendo atacado. Esse deslocamento não evita automaticamente ataques já declarados contra você.'},
+  {minLevel:1,cost:0,name:'(Shinigami) Zankensōki: As Quatro Artes',image:'https://static.wikia.nocookie.net/bleach/images/7/7c/65Hozuri2.png/revision/latest?cb=20200119012302&path-prefix=en',noTest:true,passive:true,category:'passive',description:'Aumenta em um passo o dado de perícia dos seus ataques com espadas. (Opção Zanjutsu; escolha outra arte quando necessário.)',automation:{kind:'step',id:'modelo-zanjutsu',target:'skill',key:'Vigor',scope:'next',steps:1}},
+  {minLevel:1,cost:0,name:'(Shinigami) Percepção Espiritual',image:'https://static.wikia.nocookie.net/bleach/images/e/ec/35Uryu_grabs.png/revision/latest?cb=20200107064156&path-prefix=en',noTest:true,passive:true,category:'passive',description:'Aumenta em um passo seu dado de Sensibilidade em testes para perceber, localizar ou distinguir presenças espirituais.',automation:{kind:'step',id:'modelo-percepcao',target:'skill',key:'Sensibilidade',scope:'next',steps:1}}
+ ],
+ Fullbringer:[
+  {minLevel:1,cost:2,name:'(Fullbringer) Bringer Light',
+   image:'https://static.wikia.nocookie.net/bleach/images/0/04/429Bringer_Light.png/revision/latest?cb=20251130064823&path-prefix=en',
+   noTest:true,passive:false,category:'active',costConfig:{mode:'use',limit:'round'},
+   description:'Uma vez por rodada, ao se deslocar durante sua ação principal, você pode aumentar sua movimentação em metade do valor original, utilizando paredes, líquidos e o ar como pontos de apoio. Se percorrer pelo menos sua movimentação original antes de realizar um ataque físico corpo a corpo na mesma ação, aumenta em um passo o dado de perícia desse ataque.'},
+  {minLevel:2,cost:2,name:'(Fullbringer) Alma da Matéria',
+   noTest:true,passive:false,category:'active',costConfig:{mode:'use',limit:'none'},
+   description:'Utilize sua ação principal para manipular a alma de um objeto inanimado próximo que não esteja sendo empunhado por um adversário, alterando sua rigidez, aderência ou movimento até o próximo Desfecho. Aumenta em um passo seu dado de Destreza ou Manipulação no primeiro teste diretamente relacionado ao objeto. Essa habilidade não causa dano diretamente.'},
+  {minLevel:3,cost:0,name:'(Fullbringer) Objeto de Afinidade',
+   noTest:true,passive:true,category:'passive',
+   description:'Seu Fullbring se manifesta através de um objeto de grande significado pessoal. Enquanto essa manifestação estiver ativa, aumenta em um passo o dado de perícia utilizado nos testes das habilidades concedidas por ela.'}
  ]
 };
 function racePrompt(s){
- const options=RACIAL[s.race];
- return '<div id="ae3RacePrompt" class="ae3-race">'+(options?'<strong>'+escape(s.race)+'</strong><span> · '+options.length+' habilidades raciais de referência disponíveis.</span> '+button('ADICIONAR À FICHA','racial','small')+'<p>Não substitui nem duplica habilidades já cadastradas. Zankensōki utiliza a opção Zanjutsu e pode ser personalizada.</p>':'<span>Kit racial: '+escape(s.race||'Selecione uma raça')+'. Somente Shinigami possui habilidades confirmadas nesta biblioteca.</span>')+'</div>';
+ const options=RACIAL[s.race],level=Math.max(1,Number(s.level)||1);
+ if(!options)return '<div id="ae3RacePrompt" class="ae3-race"><span>Escolha uma raça com habilidades padronizadas para importar técnicas raciais.</span></div>';
+ const available=options.filter(a=>Number(a.minLevel||1)<=level);
+ const already=new Set((s.abilities||[]).map(a=>String(a.name||'').trim().toLowerCase()));
+ const pending=available.filter(a=>!already.has(a.name.toLowerCase()));
+ return '<div id="ae3RacePrompt" class="ae3-race"><div class="ae3-race-head"><strong>HABILIDADES RACIAIS · '+escape(s.race.toUpperCase())+'</strong><span>Nível '+level+' · '+pending.length+' disponível(is) para adicionar</span></div>'
+ +'<div class="ae3-race-list">'+options.map(a=>{
+  const unlocked=Number(a.minLevel||1)<=level,obtained=already.has(a.name.toLowerCase());
+  return '<div class="ae3-race-item '+(!unlocked?'is-locked':'')+'"><span>'+escape(a.name.replace(/^\([^)]+\)\s*/,''))
+   +'</span><small>'+(obtained?'NA FICHA':unlocked?'DISPONÍVEL':'REQUER NÍVEL '+escape(a.minLevel||1))+'</small></div>';
+ }).join('')+'</div>'
+ +'<div class="actions">'+(pending.length?button('ADICIONAR '+pending.length+' HABILIDADE'+(pending.length===1?'':'S'),'racial','small main'):'<span class="color-hint">Nenhuma habilidade nova liberada neste nível.</span>')+'</div>'
+ +'<p>O kit respeita o nível da ficha, não inclui técnicas ainda bloqueadas e evita duplicações.</p></div>';
 }
 function editorToolbar(s){
  const accessible=(APP()?.db?.sheets||[]).filter(sh=>sh.id!==s.id&&!sh.redacted&&(!sh.locked||APP().canEditSheet(sh.id)));
@@ -234,6 +257,7 @@ function unlockConfig(ab){
  return {mode:['hidden','locked'].includes(u?.mode)?u.mode:'always',requires:String(u?.requires||'')};
 }
 function gateOpen(sheet,ability){
+ if(Number(ability?.minLevel||1)>Number(sheet?.level||1))return false;
  const u=unlockConfig(ability);
  if(u.mode==='always')return true;
  if(!u.requires)return false;
@@ -416,10 +440,9 @@ function automationEditor(ab,i){
 function enhanceEditor(){
  const api=APP(),s=api?.editorDraft,root=document.querySelector('.sheet-edit-scroll');if(!s||!root)return;
  const first=root.querySelector('select[data-edit="race"]');
- if(first)first.closest('label').insertAdjacentHTML('afterend',racePrompt(s));
  const h=[...root.querySelectorAll(':scope > h3')].find(x=>x.textContent.trim()==='HABILIDADES');
  if(!h)return;
- h.insertAdjacentHTML('afterend',editorToolbar(s));
+ h.insertAdjacentHTML('afterend',racePrompt(s)+editorToolbar(s));
  const blocks=[...root.querySelectorAll('.ability-edit')];
  blocks.forEach((block,i)=>{
   const ab=s.abilities?.[i];if(!ab)return;
@@ -437,8 +460,9 @@ function abilityArticle(s,ab,i){
  const api=APP(),auto=normalize(ab),can=api.canEditSheet(s.id),isPassive=ab.passive===true||ab.category==='passive';
  const accessible=gateOpen(s,ab);
  if(!accessible){
-  const kind=unlockConfig(ab).mode==='hidden'?'OCULTA ATÉ A LIBERAÇÃO':'BLOQUEADA ATÉ A LIBERAÇÃO';
-  return '<article class="ability ae3-ability ae32-locked"><div class="sectionhead"><h3>'+escape(ab.name)+'</h3><span class="tag">'+kind+'</span></div><p class="color-hint">Esta técnica depende de uma liberação que ainda não foi ativada.</p>'+(api.master?.()?'<button type="button" class="btn small" data-action="editAbilityDirect:'+i+'">EDITAR VÍNCULO</button>':'')+'</article>';
+  const requiredLevel=Math.max(1,Number(ab.minLevel)||1),tooLow=Number(s.level||1)<requiredLevel;
+  const kind=tooLow?'BLOQUEADA · NÍVEL '+requiredLevel:unlockConfig(ab).mode==='hidden'?'OCULTA ATÉ A LIBERAÇÃO':'BLOQUEADA ATÉ A LIBERAÇÃO';
+  return '<article class="ability ae3-ability ae32-locked"><div class="sectionhead"><h3>'+escape(ab.name)+'</h3><span class="tag">'+kind+'</span></div><p class="color-hint">'+(tooLow?'Esta técnica exige nível '+requiredLevel+'.':'Esta técnica depende de uma liberação que ainda não foi ativada.')+'</p>'+(api.master?.()?'<button type="button" class="btn small" data-action="editAbilityDirect:'+i+'">EDITAR VÍNCULO</button>':'')+'</article>';
  }
  const image=ab.image&&api.dataUrlOk(ab.image)?'<img class="ability-media" src="'+escape(api.mediaSrc(ab.image)||'')+'" alt="Imagem de '+escape(ab.name)+'" loading="lazy">':'';
  const badge=api.abilityBadge(ab),test=api.abilityTestButton(s,ab,i),item=api.inventoryItemAbilityLabel(s,ab),quote=isPassive?null:costQuote(s,ab,i);
@@ -664,7 +688,10 @@ function dispatch(action){
  if(cmd==='racial'){
   const from=RACIAL[draft.race];
   if(!from){api.toast('RAÇA SEM KIT','Ainda não existem habilidades raciais padronizadas para '+draft.race,true);return}
-  importAbilities({format:AE3,abilities:from});return;
+  const level=Math.max(1,Number(draft.level)||1);
+  const eligible=from.filter(a=>Number(a.minLevel||1)<=level);
+  if(!eligible.length){api.toast('NÍVEL INSUFICIENTE','Nenhuma habilidade racial disponível para o nível '+level+'.',true);return}
+  importAbilities({format:AE3,abilities:eligible});return;
  }
  if(cmd==='groupAdd'){
   const name=(document.getElementById('ae3GroupName')?.value||'').trim();
@@ -757,6 +784,7 @@ document.addEventListener('change',event=>{
  if(event.target.id==='aeBookTarget'){bookSelectedTarget=event.target.value;APP()?.render?.();return}
  if(event.target.id==='aeBookSkill'){bookSelectedSkill=event.target.value;return}
  if(event.target.id==='ae3Source')useSourceList();
+ if(event.target.dataset.edit==='level'){const box=document.getElementById('ae3RacePrompt');if(box&&APP()?.editorDraft)box.outerHTML=racePrompt(APP().editorDraft)}
  if(event.target.dataset.ae3Field)editField(event.target);
  if(event.target.dataset.ae3Cost)editCostField(event.target);
  if(event.target.dataset.ae32Unlock)editUnlockField(event.target);
