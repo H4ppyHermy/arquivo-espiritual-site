@@ -586,7 +586,7 @@ function renderAbilityTab(s){
   groups.get(g.id).items.push([ab,i]);
  });
  const header='<div class="actions ae3-tab-toolbar">'+(can?'<button class="btn main" data-action="newAbilityDirect">+ CRIAR TÉCNICA</button><button class="btn small" data-action="editSheetSection:abilities">ORGANIZAR E TRANSFERIR</button>':'')+button('ABRIR GRUPOS','groupsOpen','small')+button('FECHAR GRUPOS','groupsClose','small')+(api.master?.()?button(masterReveal?'OCULTAR TÉCNICAS SECRETAS':'REVELAR TÉCNICAS SECRETAS','masterReveal','small quiet'):'')+'</div>';
- const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group" '+(lastUnlock?.sheetId===s.id&&g.items.some(([ab])=>ab.unlock?.requires===lastUnlock.key)?'open':'')+'><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div></details>').join('');
+ const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group"><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div></details>').join('');
  return header+bookPanel(s)+(result||'<p class="empty">Nenhuma habilidade disponível neste estado.</p>')+api.historyHtml();
 }
 function exportSelected(abilities,source){
@@ -692,7 +692,7 @@ function importAbilities(payload){
  const unique=incoming.filter(a=>!existing.has(a.name.trim().toLocaleLowerCase('pt-BR'))&&(existing.add(a.name.trim().toLocaleLowerCase('pt-BR')),true));
  draft.abilities.push(...unique);
  APP().redrawSheetForm();
- APP().toast('IMPORTAÇÃO PREPARADA',unique.length+' habilidades adicionadas sem duplicação. Clique SALVAR para publicar.');
+ APP().toast('IMPORTAÇÃO PREPARADA',unique.length+' habilidade'+(unique.length===1?'':'s')+' adicionada'+(unique.length===1?'':'s')+' sem duplicação. Clique SALVAR para publicar.');
 }
 function useSourceList(){
  const source=APP()?.db?.sheets?.find(s=>s.id===document.getElementById('ae3Source')?.value),wrap=document.getElementById('ae3SourceList');if(!wrap)return;
