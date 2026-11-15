@@ -667,7 +667,9 @@ function shinjiPanel(s){
  const api=APP(),state=shinjiCurrent(s),targets=state.targets||{},c=s.combat||{},scene=Number(c.scene||1),round=Number(c.round||1);
  const mask=!!c.hollowActive&&Number(c.shinjiMaskEndRound||0)>=round;
  const unctrl=mask&&c.shinjiMaskMode==='chaos',master=!!api.master?.();
- const isPlayerTurn=!unctrl||(round%2===1?master:!master);
+ const noPlayerLinked=!s.ownerKeyId&&!(s.linkedKeyIds||[]).length;
+ const fallbackTurn=unctrl&&round%2===0&&master&&noPlayerLinked;
+ const isPlayerTurn=!unctrl||(round%2===1?master:!master||fallbackTurn);
  const can=api.canEditSheet(s.id)&&!shinjiBusy&&!!window.ARQUIVO_SYNC?.state?.enabled&&isPlayerTurn;
  const shikai=state.shikaiActive===true&&s.abilityRuntime?.billing?.['shinji-sakanade-liberar']?.active===true&&Number(s.abilityRuntime.billing['shinji-sakanade-liberar'].scene)===scene;
  const npcs=Object.entries(targets).filter(([id,e])=>id.startsWith('npc:')&&e?.npc);
@@ -702,7 +704,7 @@ function shinjiPanel(s){
  +'<div class="ae3-shinji-states"><div class="'+(mask?'active mask':'')+'"><small>MÁSCARA</small><strong>'+(!mask?'INATIVA':unctrl?'DESCONTROLE':'CONTROLADA')+'</strong></div>'
  +'<div class="'+(shikai?'active shikai':'')+'"><small>SAKANADE</small><strong>'+(shikai?'LIBERADA':'SELADA')+'</strong></div>'
  +'<div><small>RODADA</small><strong>'+round+(mask?' / máscara até '+escape(c.shinjiMaskEndRound):'')+'</strong></div></div>'
- +(unctrl?'<div class="ae3-shinji-turn"><b>CONTROLE ALTERNADO</b> · '+(round%2?'MESTRE':'JOGADOR')+' controla a rodada '+round+'. '+(can?'Você pode agir.':'Ações de combate bloqueadas para este perfil.')+'</div>':'')
+ +(unctrl?'<div class="ae3-shinji-turn"><b>CONTROLE ALTERNADO</b> · '+(round%2?'MESTRE':fallbackTurn?'JOGADOR · SUBSTITUÍDO PELO MESTRE':'JOGADOR')+' controla a rodada '+round+'. '+(can?'Você pode agir.':'Ações de combate bloqueadas para este perfil.')+'</div>':'')
  +'<p class="ae3-shinji-mastery">DOMÍNIO HOLLOW · <b>'+escape(Number(c.hollowProgress)||0)+' AVANÇO(S)</b>'+(c.hollowLost?' · <b>MÁSCARA ROMPIDA</b> · O mestre deve restaurar o controle.':'')+'</p>'
  +'<div class="ae3-shinji-controls"><div class="ae3-shinji-control-group"><strong>HOLLOWFICAÇÃO</strong><div class="ae3-shinji-buttons">'
  +btn('mask_control','MANIFESTAR MÁSCARA','4 ALMA',canMain&&!mask&&!maskUsed&&Number(s.level)>=3&&!c.hollowLost,'main')
