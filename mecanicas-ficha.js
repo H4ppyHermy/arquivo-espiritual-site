@@ -84,6 +84,7 @@ function extraCombat(s,c){
 function renderCombat(s){
  const c=combat(s),mv=getMovement(s),ex=s.exposures||{},wear=Number(s.desgaste)||0;
  const used=!!c.mainUsed,react=!!c.reactionUsed,lock=c.rhythmRestriction>=3||isCondition(s,'Desmaiado')||isCondition(s,'Morto'),defLock=c.rhythmRestriction>=2||isCondition(s,'Atordoado')||isCondition(s,'Desmaiado')||isCondition(s,'Morto');
+ const blockingReasons=[isCondition(s,'Desmaiado')?'Desmaiado (Vida ou Alma esgotada)':null,isCondition(s,'Morto')?'Morto':null,isCondition(s,'Atordoado')?'Atordoado (impede reações)':null,c.rhythmRestriction>=2?'Restrição rítmica '+(c.rhythmRestriction>=3?'III':'II'):null].filter(Boolean);
  const wearLimit=Number.isInteger(Number(c.wearPoints))&&Number(c.wearPoints)>0?2+Number(c.wearPoints):null;
  const res=c.resistance||{};
  const defPenalty=(Number(ex.defensiva)>1?Number(ex.defensiva)-1:0)+(Number(c.pressuredUntil)>=Number(c.round)?1:0)+(isCondition(s,'ATORDOADO')?1:0)+(isCondition(s,'DESORIENTADO')?1:0)+(isCondition(s,'DERRUBADO')?1:0);
@@ -96,6 +97,7 @@ function renderCombat(s){
  <div class="ae-phase-flow">${PHASES.map(([id,text])=>`<span class="${c.phase===id?'active':''}">${esc(text)}</span>`).join('')}</div>
  <div class="ae-rpg-controls">${actionBtn('AVANÇAR FASE','phaseNext','main')}${actionBtn('NOVA CENA','newScene','small quiet')}${actionBtn('REINICIAR AÇÕES','resetRound','small quiet')}${actionBtn('ZERAR CONTADOR · RODADA 1','resetCounter','small quiet')}</div>
  <div class="ae-kpis">${labelValue('Ação principal',lock?'BLOQUEADA':used?'USADA':'DISPONÍVEL')}${labelValue('Reação',defLock?'BLOQUEADA':react?'USADA':'DISPONÍVEL')}${labelValue('Ação comprometedora',c.committedUsed?'USADA':wearLimit!==null&&wear>=wearLimit?'LIMITE':'DISPONÍVEL')}</div>
+ ${blockingReasons.length?'<p class="color-hint" role="status"><b>Motivo do bloqueio:</b> '+esc(blockingReasons.join(' · '))+'. Reiniciar rodadas não remove condições ou restrições ainda vigentes.</p>':''}
  <div class="ae-rpg-controls">${actionBtn('USAR AÇÃO','mainAction','small',used||lock)}${actionBtn('USAR REAÇÃO','reaction','small',react||defLock)}${actionBtn('AÇÃO PREPARADA','prepareAction','small',used||react||lock)}</div>
  ${c.preparedTrigger?`<p class="color-hint">Ação preparada: ${esc(c.preparedTrigger)}. Exige reação para disparar; é perdida se não ocorrer na rodada. ${actionBtn('DISPARAR','firePrepared','small',react||defLock)} ${actionBtn('CANCELAR','cancelPrepared','small quiet')}</p>`:''}
  </div>
