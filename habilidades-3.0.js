@@ -293,45 +293,65 @@ function bookPanel(s){
  +'</section>';
 }
 async function bookUse(action){
- if(bookResolving||!['insert','ultimate'].includes(action))return;
+ if(bookResolving||!['insert','ultimate','attack'].includes(action))return;
  const api=APP(),s=api?.db?.sheets.find(x=>x.id===api.currentSheet),st=window.ARQUIVO_SYNC;
  if(!s||s.id!==BOOK_SHEET_ID||!api.canEditSheet(s.id))return;
- if(!st?.state?.enabled){api.toast('CONEXÃO NECESSÁRIA','Os confrontos automáticos exigem conexão online.',true);return}
- const npc=bookSelectedTarget.startsWith('npc:');
- const state=bookState(s),saved=state.targets?.[bookSelectedTarget];
- const npcName=npc?(saved?.name||bookNpcName).trim():'';
- if(npc&&(!npcName||npcName.length>80)){api.toast('NOME DO NPC','Informe o nome do alvo.',true);return}
+ if(!st?.state?.enabled){api.toast('CONEXÃO NECESSÁRIA','Os confrontos automáticos exigem conexão online.',true);return;}
+ const npc=bookSelectedTarget.startsWith('npc:'),state=bookState(s),saved=state.targets?.[bookSelectedTarget];
+ const npcName=npc?String(saved?.name||bookNpcName).trim():'';
+ if(npc&&(!npcName||npcName.length>80)){api.toast('NOME DO NPC','Informe um nome de até 80 caracteres.',true);return}
  const target=api.db.sheets.find(x=>x.id===bookSelectedTarget);
  if(!npc&&!target){api.toast('ALVO NÃO ENCONTRADO','Escolha um adversário válido.',true);return}
- const skill=bookSelectedSkill;
  const npcData=npc?Object.fromEntries(Object.entries(bookNpcStats).map(([k,v])=>[k,Number(v)])):null;
- if(npc&&!DICE.includes(Number(npcData.pericia))){api.toast('DADO INVÁLIDO','Escolha um dado válido para o NPC.',true);return}
+ if(npc&&(!DICE.includes(Number(npcData.pericia))||!Number.isInteger(npcData.vida)||npcData.vida<0||npcData.vida>999)){
+  api.toast('DADOS DO NPC','Confira a perícia e os pontos de Vida.',true);return;
+ }
+ const stolen=Array.isArray(state.stolen)?state.stolen:state.stolen&&typeof state.stolen==='object'?[state.stolen]:[];
+ const selected=stolen.filter(x=>!bookDisabledBonuses.has(String(x.targetId)+'|'+String(x.skill)))
+   .map(x=>String(x.targetId)+'|'+String(x.skill));
  bookResolving=true;
- bookSound(action==='ultimate'?'ultimate':'activate');
+ bookSound(action==='ultimate'?'ultimate':action==='attack'?'attack':'activate');
  try{
-  const {data,error}=await st.state.client.rpc('ae_book_of_end_action_v2',{
+  const {data,error}=await st.state.client.rpc('ae_book_of_end_action_v3',{
    p_source_id:s.id,p_target_id:npc?'npc':target.id,p_action:action,
-   p_steal_skill:skill,p_npc_name:npc?npcName:null,p_npc_stats:npc?npcData:null
+   p_steal_skill:bookSelectedSkill,p_npc_name:npc?npcName:null,p_npc_stats:npc?npcData:null,
+   p_selected_bonuses:selected
   });
   if(error)throw Error(error.message);
   if(data?.targetId)bookSelectedTarget=data.targetId;
   await st.refresh(true);
-  bookResolving=false;
-  api.render();
+  bookResolving=false;api.render();
+  const success=!!data.success;
+  const kind=Number(data.memory)===10?'steal':action==='ultimate'?'ultimate':action==='attack'?'strike':'memory';
+  if(success){bookEffect(kind);bookSound(kind);}
+  const label=action==='ultimate'?'ENTÃO, VIRE A PÁGINA':action==='attack'?'GOLPE DO LIVRO':'INSERIR PRESENÇA';
   const grade=['—','I','II','III'][Math.max(0,Math.min(3,Number(data.grade)||0))];
-  if(data.success){bookEffect(Number(data.memory)===10?'steal':action==='ultimate'?'ultimate':'memory');bookSound(Number(data.memory)===10?'steal':'memory');}
-  let body='<div class="ae3-book-result"><p class="ae3-book-verdict '+(data.success?'success':'failed')+'">'+(data.success?'MEMÓRIA INSERIDA':'MEMÓRIA RESISTIDA')+'</p>'
-   +'<p><b>'+escape(data.targetName||npcName||target?.name)+'</b> · Teste '+escape(data.attack)+' contra '+escape(data.defense)+'</p>'
-   +'<p>Relação Plástica: <b>'+grade+'</b> / III.</p>';
-  if(data.success)body+='<div class="ae3-book-memory-roll"><span>DADO DE MEMÓRIA</span><strong>'+escape(data.memory)+'</strong><small>1d10</small></div>'
-   +(action==='ultimate'?'<p>Estabilidade: −'+escape(data.damage)+(npc?' · restante '+escape(data.stability):'')+'. Confuso até o próximo Desfecho.</p>':'<p>A técnica não causa dano.</p>');
-  else body+='<p>Sem efeito no alvo.'+(action==='ultimate'?' O grau foi consumido.':'')+'</p>';
-  if(Number(data.memory)===1)body+='<p>Lucidez: o alvo recuperou um grau de sua memória verdadeira.</p>';
-  if(Number(data.memory)===10&&data.stolen)body+='<p><b>Perícia roubada:</b> '+escape(data.stolen.skill)+' · d'+escape(data.stolen.die)+'.</p>';
-  body+='</div>';
-  api.modal(action==='ultimate'?'ENTÃO, VIRE A PÁGINA':'INSERIR PRESENÇA',body,[]);
+  let body='<div class="ae3-book-result"><p class="ae3-book-verdict '+(success?'success':'failed')+'">'
+   +(success?action==='attack'?'GOLPE BEM-SUCEDIDO':'MEMÓRIA INSERIDA':action==='attack'?'ATAQUE EVITADO':'MEMÓRIA RESISTIDA')
+   +'</p><p><b>'+escape(data.targetName||npcName||target?.name)+'</b> · Teste '+escape(data.attack)+' contra '+escape(data.defense)
+   +'</p><p>Relação Plástica: <b>'+grade+'</b> / III.</p>';
+  const bonus=Array.isArray(data.bonusDice)?data.bonusDice:[];
+  if(bonus.length){
+   body+='<div class="ae3-book-bonus-result"><strong>DADOS ROUBADOS · +'+escape(data.bonusTotal)+' NO TESTE</strong>';
+   for(const die of bonus)body+='<span>'+escape(die.skill)+' · d'+escape(die.sides)+' = <b>'+escape(die.value)+'</b></span>';
+   body+='</div>';
+  }
+  if(action==='ultimate')body+='<p><b>Limite ampliado para '+escape(data.stolenLimit)+' perícias.</b> O aumento dura até o fim da cena.</p>';
+  if(success){
+   if(action!=='attack')body+='<div class="ae3-book-memory-roll"><span>DADO DE MEMÓRIA</span><strong>'+escape(data.memory)+'</strong><small>1d10</small></div>';
+   if(action==='ultimate')body+='<p>Estabilidade: −'+escape(data.damage)+(npc?' · restante '+escape(data.stability):'')+'. Confuso até o próximo Desfecho.</p>';
+   else if(action==='attack')body+='<p>Vida: −'+escape(data.damage)+(npc?' · restante '+escape(data.life):'')+'.</p>';
+   else body+='<p>Inserir Presença não causa dano.</p>';
+  }else body+='<p>Sem efeito no alvo.'+(action==='ultimate'?' O grau da relação foi consumido.':'')+'</p>';
+  if(Number(data.memory)===1)body+='<p>Lucidez: o alvo recuperou um grau da memória verdadeira.</p>';
+  if(Number(data.memory)===10){
+   const captured=(Array.isArray(data.stolen)?data.stolen:[data.stolen]).filter(Boolean)
+    .find(x=>x.targetId===data.targetId&&x.skill===bookSelectedSkill);
+   if(captured)body+='<p><b>Perícia roubada:</b> '+escape(captured.skill)+' · d'+escape(captured.die)+'. Estoque: '+escape(data.stolen.length)+' / '+escape(data.stolenLimit)+'.</p>';
+  }
+  api.modal(label,body+'</div>',[]);
  }catch(e){bookSound('fail');api.toast('CONFRONTO NÃO REALIZADO',e.message,true)}
- finally{bookResolving=false}
+ finally{bookResolving=false;}
 }
 
 /* 3.1 — custos, pré-requisitos, limites e condições vinculadas à ficha. */
