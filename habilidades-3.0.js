@@ -355,6 +355,9 @@ function enhanceEditor(){
  const blocks=[...root.querySelectorAll('.ability-edit')];
  blocks.forEach((block,i)=>{
   const ab=s.abilities?.[i];if(!ab)return;
+  if(!api.master?.()&&!gateOpen(s,ab)&&unlockConfig(ab).mode==='hidden'){
+   block.innerHTML='<div class="ae32-editor-secret"><strong>TÉCNICA AINDA NÃO LIBERADA</strong><p>Esta habilidade será revelada após sua liberação espiritual.</p></div>';return;
+  }
   const options=groupOptions(s,ab.groupId||'');
   const content='<div class="ae3-edit-extras"><div class="ae3-ability-head"><label><input type="checkbox" data-ae3-select="'+i+'"> Selecionar para copiar</label>'+button('COPIAR ESTA','copyOne:'+i,'small')+'</div>'
    +'<label>Grupo de habilidades<select data-ae3-field="'+i+':groupId">'+options+'</select></label>'
@@ -434,7 +437,7 @@ function copyActions(action,index){
  if(!source)return;
  let list=[];
  if(action==='copyOne')list=[source.abilities?.[index]].filter(Boolean);
- if(action==='copyAll')list=[...(source.abilities||[])];
+ if(action==='copyAll')list=(source.abilities||[]).filter(ab=>APP().master?.()||gateOpen(source,ab)||unlockConfig(ab).mode==='locked');
  if(action==='copyMarked'){
   const selected=[...document.querySelectorAll('[data-ae3-select]:checked')].map(el=>Number(el.dataset.ae3Select));
   list=selected.map(i=>source.abilities?.[i]).filter(Boolean);
@@ -519,7 +522,8 @@ function importAbilities(payload){
 function useSourceList(){
  const source=APP()?.db?.sheets?.find(s=>s.id===document.getElementById('ae3Source')?.value),wrap=document.getElementById('ae3SourceList');if(!wrap)return;
  if(!source){wrap.innerHTML='';return}
- wrap.innerHTML=(source.abilities||[]).map((ab,i)=>'<label><input type="checkbox" data-ae3-source-select="'+i+'" checked> '+escape(ab.name)+'</label>').join('')||'<span>Sem habilidades nessa ficha.</span>';
+ const visible=(source.abilities||[]).map((ab,i)=>({ab,i})).filter(({ab})=>APP().master?.()||gateOpen(source,ab)||unlockConfig(ab).mode==='locked');
+ wrap.innerHTML=visible.map(({ab,i})=>'<label><input type="checkbox" data-ae3-source-select="'+i+'" checked> '+escape(ab.name)+'</label>').join('')||'<span>Sem habilidades disponíveis nessa ficha.</span>';
 }
 async function preparePassive(index){
  const api=APP(),s=api?.db?.sheets.find(sh=>sh.id===api.currentSheet),ab=s?.abilities?.[index],a=normalize(ab);
