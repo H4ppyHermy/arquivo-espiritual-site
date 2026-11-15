@@ -866,8 +866,35 @@ input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;b
 .reduce-motion .ae3-book-cinematic,.reduce-motion .ae3-book-pages i,.reduce-motion .ae3-book-cinematic-title{animation:none!important;display:none!important}
 </style>
 
+
+<style>
+/* Livro do Fim · inventário de perícias roubadas e dados extras. */
+.ae3-book-inventory{margin:16px 0 12px;border:1px solid rgba(138,207,198,.33);border-radius:11px;padding:12px 14px;background:linear-gradient(110deg,rgba(138,207,198,.06),transparent 65%)}
+.ae3-book-inventory>summary{display:flex;justify-content:space-between;gap:12px;align-items:center;cursor:pointer;list-style:none;color:var(--theme-text);font-size:.78rem;letter-spacing:.03em;font-weight:850}
+.ae3-book-inventory>summary::-webkit-details-marker{display:none}
+.ae3-book-inventory>summary span:before{content:'▸';color:#8acfc6;margin-right:8px}
+.ae3-book-inventory[open]>summary span:before{content:'▾'}
+.ae3-book-inventory>summary strong{margin-left:5px;color:#a2ecdf}
+.ae3-book-inventory>summary small{font-size:.69rem;opacity:.78;font-weight:650}
+.ae3-book-inventory-list{display:grid;gap:6px;margin:12px 0}
+.ae3-book-panel label.ae3-book-inventory-item{display:flex;flex-direction:row;align-items:center;gap:11px;padding:10px 11px;border:1px solid rgba(138,207,198,.2);background:rgba(138,207,198,.04);border-radius:8px;cursor:pointer;font-size:.82rem}
+.ae3-book-panel .ae3-book-inventory-item input[type=checkbox]{width:17px;height:17px;min-width:17px;accent-color:#83d6c8;cursor:pointer;padding:0}
+.ae3-book-inventory-item>span:nth-child(2){flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.ae3-book-inventory-item>span:nth-child(2) b{font-size:.82rem}
+.ae3-book-inventory-item>span:nth-child(2) small{opacity:.73;font-weight:500;font-size:.7rem;overflow-wrap:anywhere}
+.ae3-book-inventory-item .ae3-book-die{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--theme-text);font-size:.77rem;font-weight:700}
+.ae3-book-die b{color:#a2ecdf;font-size:.83rem;margin-left:3px}
+.ae3-book-inventory>.color-hint{font-size:.72rem;line-height:1.5;margin:9px 0 0}
+.ae3-book-buttons button.ae3-book-strike-btn{flex:1 1 100%;background:rgba(138,207,198,.07);color:var(--theme-text);border:1px solid rgba(138,207,198,.4)}
+.ae3-book-strike-btn:not(:disabled):hover{background:rgba(138,207,198,.17);border-color:#a2ecdf}
+.ae3-book-bonus-result{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0;padding:11px 12px;border:1px solid rgba(138,207,198,.3);border-radius:9px;background:rgba(138,207,198,.07)}
+.ae3-book-bonus-result strong{display:block;width:100%;font-size:.74rem;letter-spacing:.08em;margin-bottom:5px;color:#9bdfd2}
+.ae3-book-bonus-result span{display:inline-flex;gap:4px;align-items:center;padding:5px 8px;border:1px solid rgba(138,207,198,.22);border-radius:5px;font-size:.77rem}
+.ae3-book-bonus-result span b{color:#b7ffee}
+@media(max-width:520px){.ae3-book-inventory>summary{align-items:flex-start;flex-direction:column;gap:5px}.ae3-book-panel label.ae3-book-inventory-item{padding:9px 7px;gap:7px}.ae3-book-inventory{padding:11px 9px}}
+</style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div id="entrance" class="entrance"><div class="entrance-inner"><span class="eyebrow">BLEACH · RPG DE MESA</span><h1 id="entranceTitle">Bleach CBB</h1><div class="line"></div><p>Estou aqui para te salvar.</p><button class="btn main" data-action="enter">ENTRAR NA MESA</button></div></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><button type="button" id="sidebarAudio" class="sidebar-audio" data-action="hudToggle" aria-label="Abrir ou fechar o painel de música" aria-expanded="false" title="Abrir música"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><rect x="2" y="13" width="4" height="8" rx="2"/><rect x="18" y="13" width="4" height="8" rx="2"/></svg><span>Música</span></button><div class="sidefoot"><span id="roleText">VISITANTE</span><p id="storageText"></p></div></aside><main class="shell"><div class="toolbar"><span class="mobile-title" id="mobileTitle">Bleach CBB</span><span class="status" id="headerStatus">REGISTRO // BLEACH CBB</span><div class="toolbar-right" aria-label="Conta e controles">
- <span class="version-tag version-top">VERSÃO 3.4</span>
+ <span class="version-tag version-top">VERSÃO 3.5</span>
  <div class="toolbar-account" aria-label="Identidade e conexão">
   <span id="rolePill" class="tag">VISITANTE</span>
   <span id="onlineStatus" class="online-status" title="Estado da sincronização">LOCAL</span>
@@ -2284,4 +2311,4 @@ async function init(){await migrateLegacyKeys();db.site??={};db.site.defaultPale
 window.ARQUIVO_INTERNAL={get page(){return page},get db(){return db},get prefs(){return prefs},get currentSheet(){return currentSheet},get role(){return role},get editorDraft(){return editorDraft},canEditSheet,master,save,render,toast,redrawSheetForm:drawSheetForm,modal,historyHtml,dataUrlOk,mediaSrc,inventoryItemCanUse,inventoryItemAbilityLabel,abilityBadge,abilityTestButton,sheetRich,conditionsCatalog:CONDITIONS_CATALOG};
 init();
 if(window.ARQUIVO_SYNC?.state.configured)window.ARQUIVO_SYNC.init();
-</script><script src="mecanicas-ficha.js?v=3.4.0"></script><script src="habilidades-3.0.js?v=3.4.1"></script><script src="sessao-live.js?v=2.6"></script></body></html>
+</script><script src="mecanicas-ficha.js?v=3.4.0"></script><script src="habilidades-3.0.js?v=3.5.0"></script><script src="sessao-live.js?v=2.6"></script></body></html>
