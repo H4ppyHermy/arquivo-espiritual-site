@@ -169,11 +169,15 @@ const BOOK_SHEET_ID='arquivo-tsukishima-arena-n3';
 const BOOK_ACTIONS=new Set(['tsukishima-inserir-presenca','tsukishima-vire-pagina']);
 const BOOK_SKILLS=Object.values(GROUPS).flat();
 let bookSelectedTarget='npc:new',bookSelectedSkill='Precisão',bookNpcName='';
-let bookNpcStats={corpo:6,destreza:6,mente:6,determinacao:6,pericia:6,estabilidade:20};
+let bookNpcStats={corpo:6,destreza:6,mente:6,determinacao:6,pericia:6,estabilidade:20,vida:20};
+const bookDisabledBonuses=new Set();
+let bookBonusScene=0;
 let bookResolving=false,bookAudio=null;
 function bookState(s){
  const v=s?.abilityRuntime?.bookOfEnd;
- return v&&Number(v.scene)===Number(s?.combat?.scene||1)?v:{targets:{},history:[]};
+ const scene=Number(s?.combat?.scene||1);
+ if(bookBonusScene!==scene){bookDisabledBonuses.clear();bookBonusScene=scene;}
+ return v&&Number(v.scene)===scene?v:{targets:{},history:[],stolen:[],pageTurns:0};
 }
 function bookSound(kind){
  const api=APP(),prefs=api?.prefs||{};
@@ -247,13 +251,28 @@ function bookPanel(s){
   +'<div class="ae3-book-stat-grid">'+bookSelect('Grupo Corpo','corpo',diceOptions)+bookSelect('Destreza','destreza',diceOptions)
   +bookSelect('Grupo Mente','mente',diceOptions)+bookSelect('Determinação','determinacao',diceOptions)
   +bookSelect('Perícia a roubar','pericia',diceOptions)
-  +'<label>Estabilidade inicial<input type="number" min="0" max="999" data-ae-book-stat="estabilidade" value="'+escape(bookNpcStats.estabilidade)+'"></label></div>'
+  +'<label>Estabilidade inicial<input type="number" min="0" max="999" data-ae-book-stat="estabilidade" value="'+escape(bookNpcStats.estabilidade)+'"></label>'
+  +'<label>Vida inicial<input type="number" min="0" max="999" data-ae-book-stat="vida" value="'+escape(bookNpcStats.vida)+'"></label></div>'
   +'<p class="color-hint">O sistema registra os danos à Estabilidade e a progressão separadamente por nome. NPCs com nomes idênticos compartilham a mesma memória.</p></details></div>':'';
  const history=(Array.isArray(book.history)?book.history:[]).filter(h=>h.targetId===bookSelectedTarget).slice(-4).reverse();
  const streak=Array.from({length:3},(_,i)=>'<span class="'+(grade>i?'reached':'')+'">'+['I','II','III'][i]+' <small>'+['Afinidade','Vínculo','Devoção'][i]+'</small></span>').join('');
- const stolen=book.stolen&&typeof book.stolen==='object'?book.stolen:null;
+ const stolen=Array.isArray(book.stolen)?book.stolen:book.stolen&&typeof book.stolen==='object'?[book.stolen]:[];
+ const turns=Math.max(0,Math.min(17,Number(book.pageTurns)||0)),capacity=turns+1;
+ const selected=stolen.filter(x=>!bookDisabledBonuses.has(String(x.targetId)+'|'+String(x.skill)));
+ const stolenHtml='<details class="ae3-book-inventory" '+(stolen.length?'open':'')+'>'
+  +'<summary><span>PERÍCIAS ROUBADAS <strong>'+stolen.length+' / '+capacity+'</strong></span>'
+  +'<small>'+selected.length+' dado(s) extra(s) selecionado(s)</small></summary>'
+  +(stolen.length?'<div class="ae3-book-inventory-list">'+stolen.map(m=>{
+   const original=Number(m.die),reduced=DICE[Math.max(0,DICE.indexOf(original)-1)]||4;
+   const key=String(m.targetId)+'|'+String(m.skill);
+   return '<label class="ae3-book-inventory-item"><input type="checkbox" data-ae-book-bonus="'+escape(encodeURIComponent(key))+'" '+(bookDisabledBonuses.has(key)?'':'checked')+'>'
+    +'<span><b>'+escape(m.skill)+'</b><small>'+escape(m.targetName||m.targetId)+'</small></span>'
+    +'<span class="ae3-book-die">d'+original+' <b>→ d'+reduced+'</b></span></label>';
+  }).join('')+'</div>':'<p class="color-hint">Nenhuma perícia roubada nesta cena.</p>')
+  +'<p class="color-hint">A ultimate aumenta o limite em +1 por uso. Marque os dados extras para o próximo ataque; não são consumidos.</p>'
+  +'</details>';
  const last=Number(entry.lastMemory)||0;
- const stable=isNpc&&!isNew&&Number.isFinite(Number(entry.stability))?'<strong>Estabilidade do NPC: '+escape(entry.stability)+'</strong>':'';
+ const stable=isNpc&&!isNew&&Number.isFinite(Number(entry.stability))?'<strong>Estabilidade: '+escape(entry.stability)+' · Vida: '+escape(entry.life??bookNpcStats.vida)+'</strong>':'';
  return '<section class="ae3-book-panel'+(!active?' ae3-book-idle':'')+'">'
  +'<div class="ae3-book-header"><div><p>MEMÓRIAS REESCRITAS</p><h3>Book of the End</h3></div><span class="ae3-book-seal">'+(active?'MANIFESTADO':'INATIVO')+'</span></div>'
  +'<p class="ae3-book-help">'+(active?'Escolha o alvo e resolva o confronto. O d10, os graus da relação e o roubo de perícia serão registrados automaticamente.':'Ative a Manifestação: Book of the End para começar a reescrever memórias.')+'</p>'
@@ -263,7 +282,7 @@ function bookPanel(s){
  +'<div class="ae3-book-progress"><div class="ae3-book-progress-top"><strong>Relação Plástica</strong><small>Grau '+(grade?['','I','II','III'][grade]:'—')+' / III</small></div><div class="ae3-book-grades">'+streak+'</div></div>'
  +(stable?'<p class="ae3-book-stability">'+stable+(Number(entry.stability)===0?' · ACORRENTADO':'')+'</p>':'')
  +(isNpc&&!isNew&&Number(entry.confusedRound)===Number(s.combat?.round||1)?'<p class="ae3-book-stolen">CONDIÇÃO ATIVA · CONFUSO ATÉ O PRÓXIMO DESFECHO</p>':'')
- +(stolen?'<p class="ae3-book-stolen">MEMÓRIA ROUBADA · '+escape(stolen.skill)+' (d'+escape(stolen.die)+') de '+escape(stolen.targetName||stolen.targetId||'alvo')+'</p>':'')
+ +stolenHtml
  +(last?'<p class="color-hint">Último Dado de Memória: <b>d10 = '+last+'</b></p>':'')
  +'<div class="ae3-book-buttons"><button type="button" class="btn main" data-ae3="bookUse:insert" '+(!can||ins.blocked?'disabled':'')+'>INSERIR PRESENÇA <small>'+ins.cost+' ALMA</small></button>'
  +'<button type="button" class="btn" data-ae3="bookUse:ultimate" '+(!can||ult.blocked||grade<2?'disabled':'')+'>ENTÃO, VIRE A PÁGINA <small>'+ult.cost+' ALMA</small></button></div>'
