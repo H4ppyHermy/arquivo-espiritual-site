@@ -7,6 +7,7 @@ const DICE=[4,6,8,10,12,20];
 const GROUPS={Corpo:['Vigor','Fortitude','Destreza','Atenção','Sigilo','Precisão'],Mente:['Cultura','Determinação','Raciocínio','Tática','Instinto','Lábia'],Espírito:['Presença','Sensibilidade','Integridade','Disciplina','Manipulação','Liberação']};
 const ALL=Object.values(GROUPS).flat();
 const AE3='arquivo-espiritual-habilidades/3';
+const progressBusy=new Set();
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const button=(name,action,cls='small')=>'<button type="button" class="btn '+cls+'" data-ae3="'+escape(action)+'">'+escape(name)+'</button>';
 const id=()=>crypto.randomUUID();
@@ -134,7 +135,7 @@ function editorToolbar(s){
   +'<div class="actions">'+button('COPIAR MARCADAS','copyMarked')+button('COPIAR TODAS','copyAll')+'</div>'
   +'<label>Código para importar de outra ficha<textarea id="ae3Paste" rows="4" placeholder="Cole aqui o JSON das habilidades ou uma habilidade individual"></textarea></label>'
   +'<div class="actions">'+button('IMPORTAR CÓDIGO','paste','small main')+'</div>'
-  +(accessible.length?'<label>Ou trazer da ficha existente<select id="ae3Source"><option value="">Selecione...</option>'+accessible.map(sh=>'<option value="'+escape(sh.id)+'">'+escape(sh.name)+'</option>').join('')+'</select></label><div id="ae3SourceList" class="ae3-source-list"></div><div class="actions">'+button('TRA​ZER SELECIONADAS','fromSheet','small main')+'</div>':'<p>Nenhuma outra ficha acessível para copiar.</p>')
+  +(accessible.length?'<label>Ou trazer da ficha existente<select id="ae3Source"><option value="">Selecione...</option>'+accessible.map(sh=>'<option value="'+escape(sh.id)+'">'+escape(sh.name)+'</option>').join('')+'</select></label><div id="ae3SourceList" class="ae3-source-list"></div><div class="actions">'+button('TRAZER SELECIONADAS','fromSheet','small main')+'</div>':'<p>Nenhuma outra ficha acessível para copiar.</p>')
   +'</details></div>';
 }
 function automationEditor(ab,i){
@@ -204,8 +205,8 @@ function renderAbilityTab(s){
   if(!groups.has(g.id))groups.set(g.id,{...g,items:[]});
   groups.get(g.id).items.push([ab,i]);
  });
- const header=can?'<div class="actions ae3-tab-toolbar"><button class="btn main" data-action="newAbilityDirect">+ CRIAR TÉCNICA</button><button class="btn small" data-action="editSheetSection:abilities">ORGANIZAR E TRANSFERIR</button></div>':'';
- const result=[...groups.values()].map(g=>'<details class="ae3-ability-group" open><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div></details>').join('');
+ const header='<div class="actions ae3-tab-toolbar">'+(can?'<button class="btn main" data-action="newAbilityDirect">+ CRIAR TÉCNICA</button><button class="btn small" data-action="editSheetSection:abilities">ORGANIZAR E TRANSFERIR</button>':'')+button('ABRIR GRUPOS','groupsOpen','small')+button('FECHAR GRUPOS','groupsClose','small')+'</div>';
+ const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group" '+(index===0?'open':'')+'><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div></details>').join('');
  return header+(result||'<p class="empty">Nenhuma habilidade cadastrada.</p>')+api.historyHtml();
 }
 function exportSelected(abilities,source){
@@ -300,13 +301,15 @@ async function preparePassive(index){
    if(error)throw Error(error.message);
    await window.ARQUIVO_SYNC.refresh(true);
   }else{useLocally(s,ab);api.save();api.render()}
-  api.toast('BÔNUS PREPARADO','Será aplicado ao próximo teste compatível, conforme a habilidade.');
+  api.toast('BÔNUS PREPARADO',a.scope==='scene'?'Aplicado até o fim da cena ou ser encerrado.':'Será aplicado ao próximo teste compatível.');
  }catch(e){api.toast('NÃO FOI POSSÍVEL PREPARAR',e.message,true)}
 }
 async function progressHit(index){
+ if(progressBusy.has(index))return;
+ progressBusy.add(index);
  const api=APP(),s=api?.db?.sheets.find(sh=>sh.id===api.currentSheet),ab=s?.abilities?.[index],a=normalize(ab);
- if(!s||!api.canEditSheet(s.id)||a?.kind!=='progressive')return;
- if(!progressState(s,a)){api.toast('TÉCNICA INATIVA','Use a técnica antes de registrar os acertos.',true);return}
+ if(!s||!api.canEditSheet(s.id)||a?.kind!=='progressive'){progressBusy.delete(index);return;}
+ if(!progressState(s,a)){api.toast('TÉCNICA INATIVA','Use a técnica antes de registrar os acertos.',true);progressBusy.delete(index);return}
  const seq=progressSequences(a.sequence);
  const st=progressState(s,a);
  const stage=Number(st.hits||0)%seq.length;
@@ -323,7 +326,7 @@ async function progressHit(index){
    api.save();api.render();
   }
   api.modal('DANO PROGRESSIVO · ACERTO '+(stage+1),'<div class="ae3-damage-result"><strong>'+total+'</strong><span>DANO À VIDA · '+(online?'ROLAGEM VERIFICADA':'ROLAGEM LOCAL')+'</span><p>'+rolled.map(d=>'d'+d.sides+' = '+d.value).join(' + ')+'</p><small>Próximo acerto: '+escape(diceDescription(seq[(stage+1)%seq.length]))+'</small></div>');
- }catch(e){api.toast('NÃO FOI POSSÍVEL ROLAR',e.message,true)}
+ }catch(e){api.toast('NÃO FOI POSSÍVEL ROLAR',e.message,true)}finally{progressBusy.delete(index)}
 }
 function stopEffect(index){
  const api=APP(),s=api?.db?.sheets.find(sh=>sh.id===api.currentSheet),ab=s?.abilities?.[index],a=normalize(ab);
@@ -333,7 +336,7 @@ function stopEffect(index){
 function dispatch(action){
  const parts=action.split(':'),cmd=parts[0],i=Number(parts[1]),api=APP(),draft=api?.editorDraft,editing=!!draft&&!!document.querySelector('.sheet-edit-scroll');
  if(['copyOne','copyAll','copyMarked'].includes(cmd)){copyActions(cmd,i);return}
- if(cmd==='hit'){progressHit(i);return}if(cmd==='prepare'){preparePassive(i);return}
+ if(cmd==='groupsOpen'||cmd==='groupsClose'){document.querySelectorAll('.ae3-ability-group').forEach(g=>g.open=cmd==='groupsOpen');return}if(cmd==='hit'){progressHit(i);return}if(cmd==='prepare'){preparePassive(i);return}
  if(cmd==='miss'){api.toast('ATAQUE NÃO ACERTOU','O contador de dano permanece na mesma etapa.');return}
  if(cmd==='stop'){stopEffect(i);return}
  if(!editing)return;
