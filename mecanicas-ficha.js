@@ -103,7 +103,7 @@ function bookVictimPanel(s){
 }
 function expireBookConfusion(s,c){
  const x=c.bookEndConfusion;
- if(!x)return;
+ if(!x){if(c.bookEndVictim&&Number(c.bookEndVictim.scene)!==Number(c.scene))delete c.bookEndVictim;return;}
  if(Number(x.scene)!==Number(c.scene)||Number(c.round)>Number(x.round)
    ||(Number(c.round)===Number(x.round)&&c.phase==='desfecho')){
   s.conditions=(s.conditions||[]).filter(v=>String(v).toLowerCase()!=='confuso');
