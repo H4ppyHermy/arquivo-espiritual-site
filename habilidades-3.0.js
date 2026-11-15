@@ -152,6 +152,77 @@ function billingState(s,ab,index){
  const c=s?.abilityRuntime?.billing?.[billingKey(ab,index)];
  return c&&Number(c.scene)===Number(s?.combat?.scene||1)?c:null;
 }
+
+/* 3.2 — visibilidade dependente de liberações, sem filtrar os dados salvos da ficha. */
+let masterReveal=false;
+function unlockConfig(ab){
+ const u=ab?.unlock;
+ return {mode:['hidden','locked'].includes(u?.mode)?u.mode:'always',requires:String(u?.requires||'')};
+}
+function gateOpen(sheet,ability){
+ const u=unlockConfig(ability);
+ if(u.mode==='always'||!u.requires)return true;
+ const index=(sheet.abilities||[]).findIndex((a,i)=>billingKey(a,i)===u.requires&&costConfig(a).mode==='activation');
+ if(index<0)return false;
+ return billingState(sheet,sheet.abilities[index],index)?.active===true;
+}
+function unlockEditor(s,ab,i){
+ const u=unlockConfig(ab),links=[['','Selecione uma liberação...']];
+ (s.abilities||[]).forEach((other,index)=>{
+  if(index!==i&&costConfig(other).mode==='activation')
+   links.push([billingKey(other,index),other.name||'Liberação '+(index+1)]);
+ });
+ const sel=(field,value,items)=>'<select data-ae32-unlock="'+i+':'+field+'">'+items.map(([k,v])=>'<option value="'+escape(k)+'" '+(k===value?'selected':'')+'>'+escape(v)+'</option>').join('')+'</select>';
+ return '<section class="ae32-unlock-editor"><strong>HABILIDADE VINCULADA</strong><div class="ae3-automation-grid"><label>Disponibilidade '
+ +sel('mode',u.mode,[['always','Visível sempre'],['hidden','Ocultar até ativar a liberação'],['locked','Mostrar bloqueada até ativar a liberação']])+'</label>'
+ +(u.mode!=='always'?'<label>Liberação que desbloqueia '+sel('requires',u.requires,links)+'</label>':'')+'</div>'
+ +'<p>Funciona com habilidades normais, passivas e Ultimates. A ficha só revela e permite usar a técnica quando a liberação vinculada estiver ativa.</p>'
+ +(u.mode!=='always'&&!u.requires?'<p class="ae32-warning">Escolha uma liberação para ativar esse bloqueio.</p>':'')+'</section>';
+}
+function editUnlockField(el){
+ const draft=APP()?.editorDraft;
+ if(!draft||!document.querySelector('.sheet-edit-scroll'))return;
+ const [n,field]=(el.dataset.ae32Unlock||'').split(':'),index=Number(n),ab=draft.abilities?.[index];
+ if(!ab)return;
+ if(field==='mode'){
+  if(!['always','hidden','locked'].includes(el.value))return;
+  if(el.value==='always'){delete ab.unlock;APP().redrawSheetForm();return}
+  const options=(draft.abilities||[]).map((x,j)=>({x,j})).filter(o=>o.j!==index&&costConfig(o.x).mode==='activation');
+  if(!options.length){APP().toast('LIBERAÇÃO NECESSÁRIA','Crie uma habilidade com custo por ativação antes de vincular técnicas.',true);el.value='always';return}
+  const target=options[0];target.x.abilityId??=id();
+  ab.unlock={mode:el.value,requires:ab.unlock?.requires||billingKey(target.x,target.j)};
+  APP().redrawSheetForm();return;
+ }
+ if(field==='requires'){
+  const target=(draft.abilities||[]).findIndex((x,j)=>j!==index&&billingKey(x,j)===el.value&&costConfig(x).mode==='activation');
+  if(target<0){APP().toast('LIBERAÇÃO INVÁLIDA','Selecione uma liberação válida.',true);return}
+  const source=draft.abilities[target];
+  if(!source.abilityId)source.abilityId=id();
+  ab.unlock??={mode:'hidden'};ab.unlock.requires=billingKey(source,target);
+  APP().redrawSheetForm();
+ }
+}
+function scenePalette(sheet,ab){
+ const colors=[ab?.testDice?.[0]?.color,ab?.diceColors?.group,ab?.diceColors?.skill,sheet?.appearance?.diceGroup,sheet?.appearance?.accent,'#D6A15B'];
+ return colors.find(c=>typeof c==='string'&&/^#[\da-f]{6}$/i.test(c))||'#D6A15B';
+}
+function activationFX(sheet,ab){
+ const category=ab?.category;
+ if(!['ultimate','release','transformation'].includes(category))return;
+ if(typeof document==='undefined'||!document.body)return;
+ document.querySelectorAll('.ae32-impact').forEach(x=>x.remove());
+ const tone=scenePalette(sheet,ab),reduced=APP()?.prefs?.noSheetMotion||window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+ const heading=category==='ultimate'?'ULTIMATE':category==='release'?'LIBERAÇÃO ESPIRITUAL':'TRANSFORMAÇÃO';
+ const overlay=document.createElement('div');
+ overlay.className='ae32-impact ae32-'+category+(reduced?' ae32-reduced':'');
+ overlay.style.setProperty('--ae32-tone',tone);
+ overlay.setAttribute('aria-hidden','true');
+ overlay.innerHTML='<div class="ae32-halo"></div><div class="ae32-impact-copy"><span>'+heading+'</span><strong>'+escape(ab.name.replace(/^\([^)]+\)\s*/,'').slice(0,100))+'</strong></div>'
+ +(reduced?'':Array.from({length:category==='ultimate'?18:9},(_,i)=>'<i class="ae32-spark" style="--n:'+i+';--x:'+((i*47)%96-48)+'vw;--y:'+((i*31)%82-41)+'vh;--delay:'+((i%7)*-0.06)+'s"></i>').join(''));
+ document.body.append(overlay);
+ window.setTimeout(()=>overlay.remove(),reduced?1100:category==='ultimate'?2300:1600);
+}
+
 function costQuote(s,ab,index){
  const cfg=costConfig(ab),state=billingState(s,ab,index);
  const uses=Math.max(0,Number(state?.uses)||0),round=Number(s?.combat?.round||1);
@@ -159,7 +230,8 @@ function costQuote(s,ab,index){
  const active=cfg.mode==='activation'&&state?.active===true;
  const cost=Math.max(0,Number(ab.cost)||0)+(cfg.mode==='progressive'?cfg.increase*uses:0);
  let reason='';
- if(active)reason='Técnica ativa. Encerre o efeito antes de ativar novamente.';
+ if(!gateOpen(s,ab))reason='Ative a liberação vinculada para desbloquear esta técnica.';
+ else if(active)reason='Técnica ativa. Encerre o efeito antes de ativar novamente.';
  else if(cfg.limit==='round'&&countRound>0)reason='Limite de uma utilização por rodada.';
  else if(cfg.limit==='scene'&&uses>0)reason='Limite de uma utilização por cena.';
  if(!reason&&cfg.requires){
@@ -257,7 +329,7 @@ function enhanceEditor(){
   const options=groupOptions(s,ab.groupId||'');
   const content='<div class="ae3-edit-extras"><div class="ae3-ability-head"><label><input type="checkbox" data-ae3-select="'+i+'"> Selecionar para copiar</label>'+button('COPIAR ESTA','copyOne:'+i,'small')+'</div>'
    +'<label>Grupo de habilidades<select data-ae3-field="'+i+':groupId">'+options+'</select></label>'
-   +costEditor(s,ab,i)+automationEditor(ab,i)+'</div>';
+   +costEditor(s,ab,i)+unlockEditor(s,ab,i)+automationEditor(ab,i)+'</div>';
   block.insertAdjacentHTML('afterbegin',content);
  });
 }
@@ -569,10 +641,11 @@ document.addEventListener('change',event=>{
  if(event.target.id==='ae3Source')useSourceList();
  if(event.target.dataset.ae3Field)editField(event.target);
  if(event.target.dataset.ae3Cost)editCostField(event.target);
+ if(event.target.dataset.ae32Unlock)editUnlockField(event.target);
  if(event.target.matches('select[data-edit="race"]')){
   const old=document.getElementById('ae3RacePrompt');
   if(old&&APP()?.editorDraft)old.outerHTML=racePrompt(APP().editorDraft);
  }
 });
-window.ARQUIVO_V3={version:'3.1',enhanceEditor,renderAbilityTab,costQuote,costLabel,billingKey,commitLocalCharge,advanceScene,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
+window.ARQUIVO_V3={version:'3.2',enhanceEditor,renderAbilityTab,activationFX,gateOpen,unlockConfig,costQuote,costLabel,billingKey,commitLocalCharge,advanceScene,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
 })();
