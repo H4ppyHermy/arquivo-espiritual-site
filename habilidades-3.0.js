@@ -243,6 +243,7 @@ function bookPanel(s){
  const npcHtml=isNpc?
   '<div class="ae3-book-npc"><label>Nome do NPC<input id="aeBookNpcName" maxlength="80" placeholder="Ex.: Guarda do palácio" value="'+escape(isNew?bookNpcName:entry.name||'')+'" '+(isNew?'':'readonly')+'></label>'
   +'<details class="ae3-book-npc-config"><summary>Dados do NPC <small>Use os dados da criatura; não é necessária uma ficha</small></summary>'
+  +'<label class="ae3-book-preset">Preenchimento rápido<select id="aeBookPreset"><option value="">Escolha um dado para os cinco atributos</option>'+DICE.map(n=>'<option value="'+n+'">Usar d'+n+' em todos os dados</option>').join('')+'</select></label>'
   +'<div class="ae3-book-stat-grid">'+bookSelect('Grupo Corpo','corpo',diceOptions)+bookSelect('Destreza','destreza',diceOptions)
   +bookSelect('Grupo Mente','mente',diceOptions)+bookSelect('Determinação','determinacao',diceOptions)
   +bookSelect('Perícia a roubar','pericia',diceOptions)
@@ -260,7 +261,8 @@ function bookPanel(s){
  +'<label>Perícia desejada<select id="aeBookSkill">'+choices.map(([k,label])=>'<option value="'+escape(k)+'" '+(bookSelectedSkill===k?'selected':'')+'>'+escape(label)+'</option>').join('')+'</select></label></div>'
  +npcHtml
  +'<div class="ae3-book-progress"><div class="ae3-book-progress-top"><strong>Relação Plástica</strong><small>Grau '+(grade?['','I','II','III'][grade]:'—')+' / III</small></div><div class="ae3-book-grades">'+streak+'</div></div>'
- +(stable?'<p class="ae3-book-stability">'+stable+'</p>':'')
+ +(stable?'<p class="ae3-book-stability">'+stable+(Number(entry.stability)===0?' · ACORRENTADO':'')+'</p>':'')
+ +(isNpc&&!isNew&&Number(entry.confusedRound)===Number(s.combat?.round||1)?'<p class="ae3-book-stolen">CONDIÇÃO ATIVA · CONFUSO ATÉ O PRÓXIMO DESFECHO</p>':'')
  +(stolen?'<p class="ae3-book-stolen">MEMÓRIA ROUBADA · '+escape(stolen.skill)+' (d'+escape(stolen.die)+') de '+escape(stolen.targetName||stolen.targetId||'alvo')+'</p>':'')
  +(last?'<p class="color-hint">Último Dado de Memória: <b>d10 = '+last+'</b></p>':'')
  +'<div class="ae3-book-buttons"><button type="button" class="btn main" data-ae3="bookUse:insert" '+(!can||ins.blocked?'disabled':'')+'>INSERIR PRESENÇA <small>'+ins.cost+' ALMA</small></button>'
@@ -864,6 +866,17 @@ document.addEventListener('click',event=>{
 },true);
 document.addEventListener('change',event=>{
  if(event.target.id==='aeBookTarget'){bookSelectedTarget=event.target.value;APP()?.render?.();return}
+ if(event.target.id==='aeBookPreset'){
+  const die=Number(event.target.value);
+  if(DICE.includes(die)){
+   for(const k of ['corpo','destreza','mente','determinacao','pericia']){
+    bookNpcStats[k]=die;
+    const input=document.querySelector('[data-ae-book-stat="'+k+'"]');
+    if(input)input.value=String(die);
+   }
+  }
+  return;
+ }
  if(event.target.dataset.aeBookStat){
   const key=event.target.dataset.aeBookStat;
   if(Object.prototype.hasOwnProperty.call(bookNpcStats,key))bookNpcStats[key]=Number(event.target.value);
