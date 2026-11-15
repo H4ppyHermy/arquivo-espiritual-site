@@ -257,14 +257,14 @@ function enhanceEditor(){
   const options=groupOptions(s,ab.groupId||'');
   const content='<div class="ae3-edit-extras"><div class="ae3-ability-head"><label><input type="checkbox" data-ae3-select="'+i+'"> Selecionar para copiar</label>'+button('COPIAR ESTA','copyOne:'+i,'small')+'</div>'
    +'<label>Grupo de habilidades<select data-ae3-field="'+i+':groupId">'+options+'</select></label>'
-   +automationEditor(ab,i)+'</div>';
+   +costEditor(s,ab,i)+automationEditor(ab,i)+'</div>';
   block.insertAdjacentHTML('afterbegin',content);
  });
 }
 function abilityArticle(s,ab,i){
  const api=APP(),auto=normalize(ab),can=api.canEditSheet(s.id),isPassive=ab.passive===true||ab.category==='passive';
  const image=ab.image&&api.dataUrlOk(ab.image)?'<img class="ability-media" src="'+escape(api.mediaSrc(ab.image)||'')+'" alt="Imagem de '+escape(ab.name)+'" loading="lazy">':'';
- const badge=api.abilityBadge(ab),test=api.abilityTestButton(s,ab,i),item=api.inventoryItemAbilityLabel(s,ab);
+ const badge=api.abilityBadge(ab),test=api.abilityTestButton(s,ab,i),item=api.inventoryItemAbilityLabel(s,ab),quote=isPassive?null:costQuote(s,ab,i);
  let dynamic='';
  if(auto?.kind==='step'){
   const key=auto.target==='group'?auto.key: auto.key||'Vigor';
@@ -281,10 +281,16 @@ function abilityArticle(s,ab,i){
   }
  }
  return '<article class="ability ae3-ability" id="ability-'+i+'"><div class="sectionhead"><h3>'+escape(ab.name)+'</h3>'+badge+'</div>'+image
- +'<div class="sheet-rich">'+api.sheetRich(ab.description||'Sem descrição.')+'</div>'+test+item+dynamic
+ +'<div class="sheet-rich">'+api.sheetRich(ab.description||'Sem descrição.')+'</div>'+test+item+costStatus(s,ab,i)+dynamic
  +'<div class="actions ae3-card-actions">'+(can?'<button type="button" class="btn small" data-action="editAbilityDirect:'+i+'">EDITAR TÉCNICA</button>':'')
  +button('COPIAR','copyOne:'+i,'small quiet')
- +(isPassive?'<span class="ability-inactive">PASSIVA</span>':can&&api.inventoryItemCanUse(s,ab)?'<button type="button" class="btn main" data-action="useAbility:'+i+'">USAR TÉCNICA</button>':!api.inventoryItemCanUse(s,ab)?'<span class="ability-inactive">ITEM INDISPONÍVEL</span>':'')
+ +(isPassive?'<span class="ability-inactive">PASSIVA</span>':
+  !can?'':
+  !api.inventoryItemCanUse(s,ab)?'<span class="ability-inactive">ITEM INDISPONÍVEL</span>':
+  quote.active?'<span class="ability-inactive">ATIVA · ENCERRAR PARA REATIVAR</span>':
+  quote.blocked?'<button type="button" class="btn main" disabled title="'+escape(quote.reason)+'">USO INDISPONÍVEL</button>':
+  '<button type="button" class="btn main" data-action="useAbility:'+i+'">'+(quote.cfg.mode==='activation'?'ATIVAR':'USAR TÉCNICA')+' · '+quote.cost+' ALMA</button>')
+ +(can&&quote?.active&&auto?.kind!=='progressive'&&auto?.kind!=='step'?button('ENCERRAR ATIVAÇÃO','stop:'+i,'small danger'):'')
  +'</div></article>';
 }
 function renderAbilityTab(s){
@@ -456,6 +462,43 @@ function dispatch(action){
   importAbilities({format:AE3,abilities:ix.map(j=>source.abilities[j]).filter(Boolean),groups:source.abilityGroups||[]});return;
  }
 }
+
+function editCostField(el){
+ const draft=APP()?.editorDraft;
+ if(!draft||!document.querySelector('.sheet-edit-scroll'))return;
+ const [index,field]=(el.dataset.ae3Cost||'').split(':'),ab=draft.abilities?.[Number(index)];
+ if(!ab||ab.passive||ab.category==='passive')return;
+ ab.costConfig??={};
+ const c=ab.costConfig;
+ if(field==='mode'){
+  if(!['use','activation','progressive'].includes(el.value))return;
+  c.mode=el.value;
+  if(!ab.abilityId&&!ab.automation?.id&&c.mode!=='use')ab.abilityId=id();
+  if(c.mode==='progressive')c.increase=Math.max(1,Math.min(99999,Number(c.increase)||1));
+  APP().redrawSheetForm();return;
+ }
+ if(field==='increase'){
+  c.increase=Math.max(1,Math.min(99999,Math.trunc(Number(el.value)||1)));
+  el.value=String(c.increase);return;
+ }
+ if(field==='limit'){if(['none','round','scene'].includes(el.value))c.limit=el.value;return;}
+ if(field==='selfCondition'){
+  if(el.value===''||APP().conditionsCatalog?.includes(el.value))c.selfCondition=el.value;
+  return;
+ }
+ if(field==='requires'){
+  const selected=(draft.abilities||[]).findIndex((other,i)=>i!==Number(index)&&billingKey(other,i)===el.value);
+  if(el.value&&selected<0){APP().toast('PRÉ-REQUISITO INVÁLIDO','Selecione outra habilidade ativa.',true);return}
+  if(selected>=0){
+   const target=draft.abilities[selected];
+   if(costConfig(target).mode!=='activation'){APP().toast('CONFIGURAÇÃO NECESSÁRIA','A habilidade exigida deve cobrar por ativação.',true);return}
+   if(!target.abilityId&&!target.automation?.id)target.abilityId=id();
+   c.requires=billingKey(target,selected);
+  }else c.requires='';
+  APP().redrawSheetForm();
+ }
+}
+
 function editField(el){
  const draft=APP()?.editorDraft;
  if(!draft||!document.querySelector('.sheet-edit-scroll'))return;
@@ -487,10 +530,11 @@ document.addEventListener('click',event=>{
 document.addEventListener('change',event=>{
  if(event.target.id==='ae3Source')useSourceList();
  if(event.target.dataset.ae3Field)editField(event.target);
+ if(event.target.dataset.ae3Cost)editCostField(event.target);
  if(event.target.matches('select[data-edit="race"]')){
   const old=document.getElementById('ae3RacePrompt');
   if(old&&APP()?.editorDraft)old.outerHTML=racePrompt(APP().editorDraft);
  }
 });
-window.ARQUIVO_V3={version:'3.0',enhanceEditor,renderAbilityTab,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
+window.ARQUIVO_V3={version:'3.0',enhanceEditor,renderAbilityTab,costQuote,costLabel,billingKey,commitLocalCharge,advanceScene,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
 })();
