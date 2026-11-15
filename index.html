@@ -1265,7 +1265,7 @@ function abilityBadge(ab){
  const label=type==='mechanic'?'MECÂNICA':type==='item'?'ITEM':'';
  return `<span class="ability-labels">${label?`<span class="tag">${label}</span>`:''}<span class="tag">${abilityCostText(ab)}</span></span>`;
 }
-function abilityHasTest(ab){return abilityCategory(ab)!=='passive'&&ab?.noTest!==true}
+function abilityHasTest(ab){return abilityCategory(ab)!=='passive'&&ab?.noTest!==true&&ab?.automation?.kind!=='progressive'}
 function abilityCustomDice(ab){return Array.isArray(ab?.testDice)&&ab.testDice.length>=1&&ab.testDice.length<=12&&ab.testDice.every(d=>VALID_DICE.includes(Number(d.sides)))?ab.testDice:null}
 function abilityTestButton(s,ab,i){if(!abilityHasTest(ab))return '';const custom=abilityCustomDice(ab),skill=abilityTestSkill(ab),colors=abilityDicePalette(s,ab);let dice='';
  if(custom){dice=`<span class="eyebrow">TESTE PRÓPRIO</span>${custom.map((d,j)=>`<span style="--dice-tone:${ABILITY_HEX.test(d.color||'')?d.color:colors.group}" title="Dado ${j+1}">${dieShape(Number(d.sides),'group-die')}</span>`).join('<span class="ability-plus">+</span>')}`}
@@ -2131,4 +2131,4 @@ async function init(){await migrateLegacyKeys();db.site??={};db.site.defaultPale
 window.ARQUIVO_INTERNAL={get page(){return page},get db(){return db},get prefs(){return prefs},get currentSheet(){return currentSheet},get role(){return role},get editorDraft(){return editorDraft},canEditSheet,master,save,render,toast,redrawSheetForm:drawSheetForm,modal,historyHtml,dataUrlOk,mediaSrc,inventoryItemCanUse,inventoryItemAbilityLabel,abilityBadge,abilityTestButton,sheetRich};
 init();
 if(window.ARQUIVO_SYNC?.state.configured)window.ARQUIVO_SYNC.init();
-</script><script src="mecanicas-ficha.js?v=3.0.1"></script><script src="habilidades-3.0.js?v=3.0.1"></script><script src="sessao-live.js?v=2.6"></script></body></html>
+</script><script src="mecanicas-ficha.js?v=3.0.2"></script><script src="habilidades-3.0.js?v=3.0.2"></script><script src="sessao-live.js?v=2.6"></script></body></html>
