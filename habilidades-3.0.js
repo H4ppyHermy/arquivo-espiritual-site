@@ -358,9 +358,16 @@ function importAbilities(payload){
     else{
      fx.id=id();
      if(fx.kind==='progressive')fx.sequence=progressSequences(fx.sequence);
-     if(fx.kind==='step'&&(!['skill','group'].includes(fx.target)||!Number.isInteger(Number(fx.steps))||Math.abs(Number(fx.steps))>3))throw Error('Automação inválida em '+a.name);
+     if(fx.kind==='step'&&(!['skill','group','resistance'].includes(fx.target)||!Number.isInteger(Number(fx.steps))||Math.abs(Number(fx.steps))>3))throw Error('Automação inválida em '+a.name);
     }
    }
+   const originalKey=billingKey(item,abilities.indexOf(item));
+   a.abilityId=id();
+   if(a.costConfig){
+    a.costConfig={...costConfig(a)};
+    if(a.costConfig.selfCondition&&!APP().conditionsCatalog?.includes(a.costConfig.selfCondition))a.costConfig.selfCondition='';
+   }
+   Object.defineProperty(a,'__sourceCostKey',{value:originalKey,enumerable:false,configurable:true});
    incoming.push(a);
   }
  }catch(e){APP().toast('IMPORTAÇÃO RECUSADA',e.message,true);return}
@@ -375,6 +382,20 @@ function importAbilities(payload){
  }
  incoming.forEach(a=>{
   if(a.groupId&&!String(a.groupId).startsWith('auto:')&&!draft.abilityGroups.some(g=>g.id===a.groupId))delete a.groupId;
+ });
+ const destinationByName=new Map(draft.abilities.map((a,i)=>[a.name.trim().toLocaleLowerCase('pt-BR'),billingKey(a,i)]));
+ const remap=new Map(incoming.map(a=>[a.__sourceCostKey,a.abilityId]));
+ for(const item of incoming){
+  const matching=destinationByName.get(item.name.trim().toLocaleLowerCase('pt-BR'));
+  if(matching)remap.set(item.__sourceCostKey,matching);
+ }
+ incoming.forEach(a=>{
+  if(a.costConfig?.requires){
+   a.costConfig.requires=remap.get(a.costConfig.requires)||(
+    draft.abilities.some((ab,i)=>billingKey(ab,i)===a.costConfig.requires)?a.costConfig.requires:''
+   );
+  }
+  delete a.__sourceCostKey;
  });
  const existing=new Set(draft.abilities.map(a=>a.name.trim().toLocaleLowerCase('pt-BR')));
  const unique=incoming.filter(a=>!existing.has(a.name.trim().toLocaleLowerCase('pt-BR'))&&(existing.add(a.name.trim().toLocaleLowerCase('pt-BR')),true));
@@ -404,7 +425,9 @@ async function progressHit(index){
  progressBusy.add(index);
  const api=APP(),s=api?.db?.sheets.find(sh=>sh.id===api.currentSheet),ab=s?.abilities?.[index],a=normalize(ab);
  if(!s||!api.canEditSheet(s.id)||a?.kind!=='progressive'){progressBusy.delete(index);return;}
- if(!progressState(s,a)){api.toast('TÉCNICA INATIVA','Use a técnica antes de registrar os acertos.',true);progressBusy.delete(index);return}
+ if(!progressState(s,a)||costConfig(ab).mode==='activation'&&billingState(s,ab,index)?.active!==true){
+  api.toast('TÉCNICA INATIVA','Ative e pague a técnica antes de registrar os acertos.',true);progressBusy.delete(index);return
+ }
  const seq=progressSequences(a.sequence);
  const st=progressState(s,a);
  const stage=Number(st.hits||0)%seq.length;
@@ -423,10 +446,25 @@ async function progressHit(index){
   api.modal('DANO PROGRESSIVO · ACERTO '+(stage+1),'<div class="ae3-damage-result"><strong>'+total+'</strong><span>DANO À VIDA · '+(online?'ROLAGEM VERIFICADA':'ROLAGEM LOCAL')+'</span><p>'+rolled.map(d=>'d'+d.sides+' = '+d.value).join(' + ')+'</p><small>Próximo acerto: '+escape(diceDescription(seq[(stage+1)%seq.length]))+'</small></div>');
  }catch(e){api.toast('NÃO FOI POSSÍVEL ROLAR',e.message,true)}finally{progressBusy.delete(index)}
 }
-function stopEffect(index){
- const api=APP(),s=api?.db?.sheets.find(sh=>sh.id===api.currentSheet),ab=s?.abilities?.[index],a=normalize(ab);
- if(!s||!a||!api.canEditSheet(s.id))return;
- const r=runtime(s);delete r.active[a.id];delete r.progress[a.id];api.save();api.render();api.toast('EFEITO ENCERRADO',ab.name);
+
+const stopping=new Set();
+async function stopEffect(index){
+ if(stopping.has(index))return;
+ const api=APP(),s=api?.db?.sheets.find(sh=>sh.id===api.currentSheet),ab=s?.abilities?.[index];
+ if(!s||!ab||!api.canEditSheet(s.id))return;
+ const key=billingKey(ab,index);
+ const depend=(s.abilities||[]).find((x,i)=>i!==index&&costConfig(x).requires===key&&billingState(s,x,i)?.active===true);
+ if(depend){api.toast('LIBERAÇÃO EM USO','Encerre primeiro '+depend.name+'.',true);return}
+ stopping.add(index);
+ try{
+  if(window.ARQUIVO_SYNC?.state.enabled){
+   const {error}=await window.ARQUIVO_SYNC.state.client.rpc('ae_ability_deactivate',{p_sheet_id:s.id,p_ability_index:index});
+   if(error)throw Error(error.message);
+   await window.ARQUIVO_SYNC.refresh(true);
+  }else{stopLocally(s,ab,index);api.save()}
+  api.render();api.toast('EFEITO ENCERRADO',ab.name+' · Uma nova ativação poderá cobrar Alma novamente.');
+ }catch(e){api.toast('NÃO FOI POSSÍVEL ENCERRAR',e.message,true)}
+ finally{stopping.delete(index)}
 }
 function dispatch(action){
  const parts=action.split(':'),cmd=parts[0],i=Number(parts[1]),api=APP(),draft=api?.editorDraft,editing=!!draft&&!!document.querySelector('.sheet-edit-scroll');
