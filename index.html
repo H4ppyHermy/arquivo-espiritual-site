@@ -812,6 +812,7 @@ input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;b
 .ae3-book-npc-config>summary:before{content:'▸';color:var(--book);margin-right:9px}
 .ae3-book-npc-config[open]>summary:before{content:'▾'}
 .ae3-book-npc-config summary small{display:block;margin-left:21px;opacity:.68;font-weight:500;margin-top:3px}
+.ae3-book-preset{margin:12px 0 0;max-width:370px}
 .ae3-book-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:13px}
 .ae3-book-stat-grid select,.ae3-book-stat-grid input{padding:9px 10px}
 .ae3-book-progress{margin:18px 0 14px}
@@ -2283,4 +2284,4 @@ async function init(){await migrateLegacyKeys();db.site??={};db.site.defaultPale
 window.ARQUIVO_INTERNAL={get page(){return page},get db(){return db},get prefs(){return prefs},get currentSheet(){return currentSheet},get role(){return role},get editorDraft(){return editorDraft},canEditSheet,master,save,render,toast,redrawSheetForm:drawSheetForm,modal,historyHtml,dataUrlOk,mediaSrc,inventoryItemCanUse,inventoryItemAbilityLabel,abilityBadge,abilityTestButton,sheetRich,conditionsCatalog:CONDITIONS_CATALOG};
 init();
 if(window.ARQUIVO_SYNC?.state.configured)window.ARQUIVO_SYNC.init();
-</script><script src="mecanicas-ficha.js?v=3.4.0"></script><script src="habilidades-3.0.js?v=3.4.0"></script><script src="sessao-live.js?v=2.6"></script></body></html>
+</script><script src="mecanicas-ficha.js?v=3.4.0"></script><script src="habilidades-3.0.js?v=3.4.1"></script><script src="sessao-live.js?v=2.6"></script></body></html>
