@@ -12,7 +12,7 @@ const button=(name,action,cls='small')=>'<button type="button" class="btn '+cls+
 const id=()=>crypto.randomUUID();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const rawGroup=ab=>{const m=/^\(([^)]{1,65})\)\s*/.exec(String(ab.name||''));return m?m[1]:''};
-const groupLabel=name=>name==='Shinigami'?'Habilidades Raciais · Shinigami':name==='Shikai'?'Habilidades de Shikai':name==='Bankai'?'Habilidades de Bankai':name==='Coração de Aço'?'Habilidades de Classe · Coração de Aço':name||'Sem grupo';
+const groupLabel=name=>name==='Classe'?'Habilidades de Classe':name==='Shinigami'?'Habilidades Raciais · Shinigami':name==='Shikai'?'Habilidades de Shikai':name==='Bankai'?'Habilidades de Bankai':name==='Coração de Aço'?'Habilidades de Classe · Coração de Aço':name||'Sem grupo';
 const assignedGroup=(s,ab)=>{
  if(ab.groupId){const g=(s.abilityGroups||[]).find(g=>g.id===ab.groupId);if(g)return {id:g.id,name:g.name};if(String(ab.groupId).startsWith('auto:'))return {id:ab.groupId,name:ab.groupId.slice(5)}}
  const label=rawGroup(ab);return {id:label?'auto:'+label:'__ungrouped',name:label||'Sem grupo'};
@@ -49,6 +49,24 @@ function skillSteps(s,skill){
   if(a.scope==='passive'&&(ab.passive===true||ab.category==='passive')||a.scope!=='passive'&&activeStep(s,ab,a))steps+=amount;
  }
  return clamp(steps,-4,4);
+}
+function resistanceSteps(s,group){
+ let value=0;
+ for(const ab of s.abilities||[]){
+  const a=normalize(ab);if(a?.kind!=='step'||a.target!=='resistance'||a.key!==group)continue;
+  const amount=Number(a.steps);if(!Number.isInteger(amount)||Math.abs(amount)>3)continue;
+  if(a.scope==='passive'&&(ab.passive||ab.category==='passive')||a.scope!=='passive'&&activeStep(s,ab,a))value+=amount;
+ }
+ return clamp(value,-4,4);
+}
+function resistanceDie(s,group){return stepDie(s.groups?.[group]||4,resistanceSteps(s,group))}
+function consumeResistance(s,group){
+ for(const ab of s.abilities||[]){
+  const a=normalize(ab);
+  if(a?.kind==='step'&&a.target==='resistance'&&a.key===group&&a.scope==='next'&&activeStep(s,ab,a)){
+   if(s.abilityRuntime?.active?.[a.id])delete s.abilityRuntime.active[a.id];
+  }
+ }
 }
 function stepDie(die,steps){const i=DICE.indexOf(Number(die));return i<0?4:DICE[clamp(i+steps,0,DICE.length-1)]}
 function effectiveDie(s,skill){return stepDie(s.skills?.[skill]||4,skillSteps(s,skill))}
@@ -124,8 +142,8 @@ function automationEditor(ab,i){
  const select=(key,value,opts)=>'<select data-ae3-field="'+i+':'+key+'">'+opts.map(pair=>'<option value="'+escape(pair[0])+'" '+(String(value)===String(pair[0])?'selected':'')+'>'+escape(pair[1])+'</option>').join('')+'</select>';
  let html='<div class="ae3-automation"><strong>DINAMISMO DA HABILIDADE</strong><label>Automação '+select('kind',kind,[['none','Somente descrição (sem automação)'],['step','Modificar dado de perícia'],['progressive','Dano progressivo por acertos']])+'</label>';
  if(kind==='step'){
-  const target=a.target==='group'?'group':'skill',key=String(a.key||'Vigor'),scope=a.scope||'next';
-  html+='<div class="ae3-automation-grid"><label>Tipo de alvo '+select('target',target,[['skill','Perícia específica'],['group','Todas as perícias de um grupo']])+'</label>'
+  const target=a.target==='resistance'?'resistance':a.target==='group'?'group':'skill',key=String(a.key||(target==='skill'?'Vigor':'Corpo')),scope=a.scope||'next';
+  html+='<div class="ae3-automation-grid"><label>Tipo de alvo '+select('target',target,[['skill','Perícia específica'],['group','Todas as perícias de um grupo'],['resistance','Resistência natural de um grupo']])+'</label>'
    +'<label>Perícia ou grupo '+select('key',key,(target==='skill'?ALL:Object.keys(GROUPS)).map(x=>[x,x]))+'</label>'
    +'<label>Passos '+select('steps',a.steps||1,[[-3,'−3 passos'],[-2,'−2 passos'],[-1,'−1 passo'],[1,'+1 passo'],[2,'+2 passos'],[3,'+3 passos']])+'</label>'
    +'<label>Quando se aplica '+select('scope',scope,[['passive','Sempre (somente habilidade passiva)'],['next','Próximo teste aplicável'],['scene','Até mudar de cena ou desativar']])+'</label></div>'
@@ -162,7 +180,7 @@ function abilityArticle(s,ab,i){
   const key=auto.target==='group'?auto.key: auto.key||'Vigor';
   const on=auto.scope==='passive'?isPassive:activeStep(s,ab,auto);
   dynamic='<div class="ae3-effect '+(on?'enabled':'')+'"><span class="ae3-effect-dot"></span><b>EFEITO CONFIGURADO</b> · '+(Number(auto.steps)>0?'+':'')+escape(auto.steps)+' passo(s) em '+escape(key)+(on?' · APLICADO':' · INATIVO')+'</div>';
-  if(can&&on&&auto.scope!=='passive')dynamic+=button('ENCERRAR EFEITO','stop:'+i,'small');
+  if(can&&isPassive&&auto.scope!=='passive')dynamic+=button(on?'PREPARAR NOVAMENTE':'PREPARAR BÔNUS','prepare:'+i,'small main');if(can&&on&&auto.scope!=='passive')dynamic+=button('ENCERRAR EFEITO','stop:'+i,'small');
  }else if(auto?.kind==='progressive'){
   const seq=(()=>{try{return progressSequences(auto.sequence)}catch(e){return null}})();
   if(seq){
@@ -273,6 +291,18 @@ function useSourceList(){
  if(!source){wrap.innerHTML='';return}
  wrap.innerHTML=(source.abilities||[]).map((ab,i)=>'<label><input type="checkbox" data-ae3-source-select="'+i+'" checked> '+escape(ab.name)+'</label>').join('')||'<span>Sem habilidades nessa ficha.</span>';
 }
+async function preparePassive(index){
+ const api=APP(),s=api?.db?.sheets.find(sh=>sh.id===api.currentSheet),ab=s?.abilities?.[index],a=normalize(ab);
+ if(!s||!api.canEditSheet(s.id)||!ab.passive||a?.kind!=='step'||!['next','scene'].includes(a.scope))return;
+ try{
+  if(window.ARQUIVO_SYNC?.state.enabled){
+   const {error}=await window.ARQUIVO_SYNC.state.client.rpc('ae_ability_prepare',{p_sheet_id:s.id,p_ability_index:index});
+   if(error)throw Error(error.message);
+   await window.ARQUIVO_SYNC.refresh(true);
+  }else{useLocally(s,ab);api.save();api.render()}
+  api.toast('BÔNUS PREPARADO','Será aplicado ao próximo teste compatível, conforme a habilidade.');
+ }catch(e){api.toast('NÃO FOI POSSÍVEL PREPARAR',e.message,true)}
+}
 async function progressHit(index){
  const api=APP(),s=api?.db?.sheets.find(sh=>sh.id===api.currentSheet),ab=s?.abilities?.[index],a=normalize(ab);
  if(!s||!api.canEditSheet(s.id)||a?.kind!=='progressive')return;
@@ -303,7 +333,7 @@ function stopEffect(index){
 function dispatch(action){
  const parts=action.split(':'),cmd=parts[0],i=Number(parts[1]),api=APP(),draft=api?.editorDraft,editing=!!draft&&!!document.querySelector('.sheet-edit-scroll');
  if(['copyOne','copyAll','copyMarked'].includes(cmd)){copyActions(cmd,i);return}
- if(cmd==='hit'){progressHit(i);return}
+ if(cmd==='hit'){progressHit(i);return}if(cmd==='prepare'){preparePassive(i);return}
  if(cmd==='miss'){api.toast('ATAQUE NÃO ACERTOU','O contador de dano permanece na mesma etapa.');return}
  if(cmd==='stop'){stopEffect(i);return}
  if(!editing)return;
@@ -347,7 +377,7 @@ function editField(el){
   else ab.automation.sequence=[[{count:1,sides:10}],[{count:1,sides:20}],[{count:5,sides:8}]];
   APP().redrawSheetForm();return;
  }
- if(key==='target'){a.target=el.value;a.key=el.value==='group'?'Corpo':'Vigor';APP().redrawSheetForm();return}
+ if(key==='target'){a.target=el.value;a.key=el.value==='skill'?'Vigor':'Corpo';APP().redrawSheetForm();return}
  if(key==='scope'){a.scope=el.value;if(a.scope==='passive'&&!ab.passive){a.scope='next';APP().toast('HABILIDADE ATIVA','Para um efeito permanente, configure a técnica como PASSIVA.',true)}APP().redrawSheetForm();return}
  if(key==='sequence'){
   try{a.sequence=parseSequence(el.value);el.classList.remove('ae3-invalid');APP().toast('ETAPAS CONFIGURADAS',a.sequence.length+' etapas válidas. Salve a ficha.')}
@@ -370,5 +400,5 @@ document.addEventListener('change',event=>{
   if(old&&APP()?.editorDraft)old.outerHTML=racePrompt(APP().editorDraft);
  }
 });
-window.ARQUIVO_V3={version:'3.0',enhanceEditor,renderAbilityTab,effectiveDie,skillSteps,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
+window.ARQUIVO_V3={version:'3.0',enhanceEditor,renderAbilityTab,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
 })();
