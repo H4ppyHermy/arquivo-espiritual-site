@@ -209,8 +209,30 @@ function editUnlockField(el){
   APP().redrawSheetForm();
  }
 }
+
+function visualEditor(sheet,ab,index){
+ if(!['release','transformation','ultimate'].includes(ab.category))return '';
+ const custom=typeof ab.fxColor==='string'&&/^#[0-9a-f]{6}$/i.test(ab.fxColor),color=scenePalette(sheet,ab);
+ return '<section class="ae32-visual-editor"><strong>APRESENTAÇÃO NA TELA</strong>'
+ +'<p>O som e a animação usam por padrão a paleta da habilidade. É possível escolher uma cor específica para a ativação.</p>'
+ +'<label class="ae32-visual-toggle"><input type="checkbox" data-ae32-fx="'+index+':custom" '+(custom?'checked':'')+'> Usar uma cor personalizada</label>'
+ +(custom?'<label>Cor do efeito <input type="color" data-ae32-fx="'+index+':color" value="'+escape(color)+'"></label>':
+ '<p><span class="ae32-color-dot" style="background:'+color+'"></span> Cor atual: '+escape(color)+' · herdada dos dados</p>')
+ +'</section>';
+}
+function editVisualField(el){
+ const draft=APP()?.editorDraft;
+ if(!draft||!document.querySelector('.sheet-edit-scroll'))return;
+ const [index,field]=(el.dataset.ae32Fx||'').split(':'),ab=draft.abilities?.[Number(index)];
+ if(!ab)return;
+ if(field==='custom'){
+  if(el.checked)ab.fxColor=scenePalette(draft,ab);else delete ab.fxColor;
+  APP().redrawSheetForm();
+ }else if(field==='color'&&/^#[0-9a-f]{6}$/i.test(el.value))ab.fxColor=el.value;
+}
+
 function scenePalette(sheet,ab){
- const colors=[ab?.testDice?.[0]?.color,ab?.diceColors?.group,ab?.diceColors?.skill,sheet?.appearance?.diceGroup,sheet?.appearance?.accent,'#D6A15B'];
+ const colors=[ab?.fxColor,ab?.testDice?.[0]?.color,ab?.diceColors?.group,ab?.diceColors?.skill,sheet?.appearance?.diceGroup,sheet?.appearance?.accent,'#D6A15B'];
  return colors.find(c=>typeof c==='string'&&/^#[\da-f]{6}$/i.test(c))||'#D6A15B';
 }
 function activationFX(sheet,ab){
@@ -336,7 +358,7 @@ function enhanceEditor(){
   const options=groupOptions(s,ab.groupId||'');
   const content='<div class="ae3-edit-extras"><div class="ae3-ability-head"><label><input type="checkbox" data-ae3-select="'+i+'"> Selecionar para copiar</label>'+button('COPIAR ESTA','copyOne:'+i,'small')+'</div>'
    +'<label>Grupo de habilidades<select data-ae3-field="'+i+':groupId">'+options+'</select></label>'
-   +costEditor(s,ab,i)+unlockEditor(s,ab,i)+automationEditor(ab,i)+'</div>';
+   +costEditor(s,ab,i)+unlockEditor(s,ab,i)+visualEditor(s,ab,i)+automationEditor(ab,i)+'</div>';
   block.insertAdjacentHTML('afterbegin',content);
  });
 }
@@ -662,10 +684,12 @@ document.addEventListener('change',event=>{
  if(event.target.dataset.ae3Field)editField(event.target);
  if(event.target.dataset.ae3Cost)editCostField(event.target);
  if(event.target.dataset.ae32Unlock)editUnlockField(event.target);
+ if(event.target.dataset.ae32Fx)editVisualField(event.target);
  if(event.target.matches('select[data-edit="race"]')){
   const old=document.getElementById('ae3RacePrompt');
   if(old&&APP()?.editorDraft)old.outerHTML=racePrompt(APP().editorDraft);
  }
 });
 window.ARQUIVO_V3={version:'3.2',enhanceEditor,renderAbilityTab,activationFX,onActivated,gateOpen,unlockConfig,costQuote,costLabel,billingKey,commitLocalCharge,advanceScene,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
+if(APP()?.page==='sheets')APP().render?.();
 })();
