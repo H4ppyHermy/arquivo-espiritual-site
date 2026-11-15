@@ -94,7 +94,7 @@ function renderCombat(s){
  <div class="panel ae-rpg-hero"><div class="sectionhead"><h2>QUADRO DE COMBATE</h2><span class="tag">RODADA ${esc(c.round)} · ${esc(PHASES.find(x=>x[0]===c.phase)?.[1]||'Preparação').toUpperCase()}</span></div>
  <p class="subtitle">Preparação → Distância → Duelo → Desfecho. As ações dentro de uma mesma fase são simultâneas.</p>
  <div class="ae-phase-flow">${PHASES.map(([id,text])=>`<span class="${c.phase===id?'active':''}">${esc(text)}</span>`).join('')}</div>
- <div class="ae-rpg-controls">${actionBtn('AVANÇAR FASE','phaseNext','main')}${actionBtn('NOVA CENA','newScene','small quiet')}${actionBtn('REINICIAR RODADA','resetRound','small quiet')}</div>
+ <div class="ae-rpg-controls">${actionBtn('AVANÇAR FASE','phaseNext','main')}${actionBtn('NOVA CENA','newScene','small quiet')}${actionBtn('REINICIAR AÇÕES','resetRound','small quiet')}${actionBtn('ZERAR CONTADOR · RODADA 1','resetCounter','small quiet')}</div>
  <div class="ae-kpis">${labelValue('Ação principal',lock?'BLOQUEADA':used?'USADA':'DISPONÍVEL')}${labelValue('Reação',defLock?'BLOQUEADA':react?'USADA':'DISPONÍVEL')}${labelValue('Ação comprometedora',c.committedUsed?'USADA':wearLimit!==null&&wear>=wearLimit?'LIMITE':'DISPONÍVEL')}</div>
  <div class="ae-rpg-controls">${actionBtn('USAR AÇÃO','mainAction','small',used||lock)}${actionBtn('USAR REAÇÃO','reaction','small',react||defLock)}${actionBtn('AÇÃO PREPARADA','prepareAction','small',used||react||lock)}</div>
  ${c.preparedTrigger?`<p class="color-hint">Ação preparada: ${esc(c.preparedTrigger)}. Exige reação para disparar; é perdida se não ocorrer na rodada. ${actionBtn('DISPARAR','firePrepared','small',react||defLock)} ${actionBtn('CANCELAR','cancelPrepared','small quiet')}</p>`:''}
@@ -189,7 +189,18 @@ async function runAction(key,param){
  const num=(id)=>Number(v(id))||0;
  if(key==='phaseNext')return movePhase();
  if(key==='newScene'){c.scene++;window.ARQUIVO_V3?.advanceScene(s);c.extraEfforts=0;c.nextBonusDie=0;c.devotionExtraAction=false;return sync('Nova cena iniciada')}
- if(key==='resetRound'){c.mainUsed=false;c.reactionUsed=false;c.committedUsed=false;c.pressureHits=0;c.resistance={};c.preparedTrigger='';return sync('Oportunidades da rodada reiniciadas')}
+ if(key==='resetCounter'){
+  if(!confirm('Reiniciar o contador para a RODADA 1? Isso inicia uma nova cena para os limites das habilidades, mas não restaura Vida, Alma nem outros recursos.'))return;
+  c.scene=Math.max(1,Number(c.scene)||1)+1;
+  c.round=1;c.phase='preparacao';c.mainUsed=false;c.reactionUsed=false;c.committedUsed=false;
+  c.preparedTrigger='';c.pressureHits=0;c.pressuredUntil=0;c.resistance={};
+  c.rhythmPending=0;c.rhythmRestriction=0;c.extraEfforts=0;c.nextBonusDie=0;c.devotionExtraAction=false;
+  c.lastContinuousRound=0;
+  s.conditions=(s.conditions||[]).filter(x=>String(x).toLowerCase()!=='pressionado');
+  window.ARQUIVO_V3?.advanceScene(s);
+  return sync('Contador reiniciado · Rodada 1 / Preparação · Nova cena');
+ }
+ if(key==='resetRound'){c.mainUsed=false;c.reactionUsed=c.rhythmRestriction>=2;c.committedUsed=false;c.pressureHits=0;c.resistance={};c.preparedTrigger='';if(c.rhythmRestriction>=3)c.mainUsed=true;return sync('Ações reiniciadas sem alterar o contador ou os limites de uso')}
  if(key==='mainAction'){if(c.mainUsed||c.rhythmRestriction>=3||isCondition(s,'Desmaiado')||isCondition(s,'Morto'))return wrong('Ação principal indisponível.');c.mainUsed=true;return sync('Ação principal utilizada')}
  if(key==='devotionAction'){if(!c.devotionExtraAction)return wrong('Ação adicional de Devoção indisponível.');c.devotionExtraAction=false;return sync('Ação de Devoção utilizada para proteger/auxiliar')}
  if(key==='reaction'){if(c.reactionUsed||c.rhythmRestriction>=2||isCondition(s,'Atordoado')||isCondition(s,'Desmaiado')||isCondition(s,'Morto'))return wrong('Reação indisponível.');c.reactionUsed=true;return sync('Reação utilizada')}
