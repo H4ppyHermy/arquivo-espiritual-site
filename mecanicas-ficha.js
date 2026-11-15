@@ -116,7 +116,7 @@ function expireShinji(s,c){
   const still=!src||Number(src.combat?.scene||1)===Number(inv.scene)
    &&src.abilityRuntime?.shinji?.shikaiActive===true
    &&src.abilityRuntime?.billing?.['shinji-sakanade-liberar']?.active===true
-   &&Number(src.abilityRuntime.billing['shinji-sakanade-liberar'].scene)===scene;
+   &&Number(src.abilityRuntime.billing['shinji-sakanade-liberar'].scene)===Number(inv.scene);
   if(!still){
    delete c.shinjiInversion;delete c.shinjiDefensePending;
    s.conditions=(s.conditions||[]).filter(v=>String(v).toLowerCase()!=='invertido');
