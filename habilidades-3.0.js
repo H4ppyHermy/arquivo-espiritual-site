@@ -281,7 +281,7 @@ async function bookUse(action){
  if(npc&&(!npcName||npcName.length>80)){api.toast('NOME DO NPC','Informe o nome do alvo.',true);return}
  const target=api.db.sheets.find(x=>x.id===bookSelectedTarget);
  if(!npc&&!target){api.toast('ALVO NÃO ENCONTRADO','Escolha um adversário válido.',true);return}
- const skill=npc?bookSelectedSkill:bookSelectedSkill;
+ const skill=bookSelectedSkill;
  const npcData=npc?Object.fromEntries(Object.entries(bookNpcStats).map(([k,v])=>[k,Number(v)])):null;
  if(npc&&!DICE.includes(Number(npcData.pericia))){api.toast('DADO INVÁLIDO','Escolha um dado válido para o NPC.',true);return}
  bookResolving=true;
@@ -294,6 +294,7 @@ async function bookUse(action){
   if(error)throw Error(error.message);
   if(data?.targetId)bookSelectedTarget=data.targetId;
   await st.refresh(true);
+  bookResolving=false;
   api.render();
   const grade=['—','I','II','III'][Math.max(0,Math.min(3,Number(data.grade)||0))];
   if(data.success){bookEffect(Number(data.memory)===10?'steal':action==='ultimate'?'ultimate':'memory');bookSound(Number(data.memory)===10?'steal':'memory');}
@@ -568,7 +569,7 @@ function abilityArticle(s,ab,i){
  +button('COPIAR','copyOne:'+i,'small quiet')
  +(isPassive?'<span class="ability-inactive">PASSIVA</span>':
   !can?'':
-  BOOK_ACTIONS.has(ab.abilityId)?'<span class="ability-inactive">AUTOMÁTICA · CONTROLES ABAIXO</span>':
+  BOOK_ACTIONS.has(ab.abilityId)?'<span class="ability-inactive">USE PELO PAINEL BOOK OF THE END</span>':
   !api.inventoryItemCanUse(s,ab)?'<span class="ability-inactive">ITEM INDISPONÍVEL</span>':
   quote.active?'<span class="ability-inactive">ATIVA · ENCERRAR PARA REATIVAR</span>':
   quote.blocked?'<button type="button" class="btn main" disabled title="'+escape(quote.reason)+'">USO INDISPONÍVEL</button>':
