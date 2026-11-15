@@ -161,7 +161,8 @@ function unlockConfig(ab){
 }
 function gateOpen(sheet,ability){
  const u=unlockConfig(ability);
- if(u.mode==='always'||!u.requires)return true;
+ if(u.mode==='always')return true;
+ if(!u.requires)return false;
  const index=(sheet.abilities||[]).findIndex((a,i)=>billingKey(a,i)===u.requires&&costConfig(a).mode==='activation');
  if(index<0)return false;
  return billingState(sheet,sheet.abilities[index],index)?.active===true;
@@ -380,7 +381,7 @@ function renderAbilityTab(s){
  });
  const header='<div class="actions ae3-tab-toolbar">'+(can?'<button class="btn main" data-action="newAbilityDirect">+ CRIAR TÉCNICA</button><button class="btn small" data-action="editSheetSection:abilities">ORGANIZAR E TRANSFERIR</button>':'')+button('ABRIR GRUPOS','groupsOpen','small')+button('FECHAR GRUPOS','groupsClose','small')+(api.master?.()?button(masterReveal?'OCULTAR TÉCNICAS SECRETAS':'REVELAR TÉCNICAS SECRETAS','masterReveal','small quiet'):'')+'</div>';
  const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group" '+(index===0?'open':'')+'><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div></details>').join('');
- return header+(result||'<p class="empty">Nenhuma habilidade cadastrada.</p>')+api.historyHtml();
+ return header+(result||'<p class="empty">Nenhuma habilidade disponível neste estado.</p>')+api.historyHtml();
 }
 function exportSelected(abilities,source){
  const groups=[],refs=new Set();
@@ -427,7 +428,7 @@ function importAbilities(payload){
    const cost=Number(item.cost||0);
    if(!Number.isInteger(cost)||cost<0||cost>9999)throw Error('Custo de Alma inválido.');
    const a=JSON.parse(JSON.stringify(item));a.cost=cost;
-   if(!['active','passive','mechanic','item'].includes(a.category))a.category=a.passive?'passive':'active';
+   if(!['active','passive','mechanic','item','release','transformation','ultimate'].includes(a.category))a.category=a.passive?'passive':'active';
    a.passive=a.category==='passive';if(a.passive){a.cost=0;a.noTest=true}
    if(a.image&&!APP().dataUrlOk(a.image))a.image='';
    if(a.automation){
