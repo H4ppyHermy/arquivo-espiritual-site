@@ -688,7 +688,7 @@ function shinjiPanel(s){
  const targetReady=shinjiTarget!=='npc:new'||!!shinjiNpcName.trim();
  const history=Array.isArray(state.history)?state.history.slice(-5).reverse():[];
  return '<section class="ae3-shinji-panel">'
- +'<div class="ae3-shinji-header"><div><p>ARENA · VIS<ORED></p><h3>Hollowficação & Sakanade</h3></div><span class="ae3-shinji-sigil">逆撫</span></div>'
+ +'<div class="ae3-shinji-header"><div><p>ARENA · VISORED</p><h3>Hollowficação & Sakanade</h3></div><span class="ae3-shinji-sigil">逆撫</span></div>'
  +'<div class="ae3-shinji-states"><div class="'+(mask?'active mask':'')+'"><small>MÁSCARA</small><strong>'+(!mask?'INATIVA':unctrl?'DESCONTROLE':'CONTROLADA')+'</strong></div>'
  +'<div class="'+(shikai?'active shikai':'')+'"><small>SAKANADE</small><strong>'+(shikai?'LIBERADA':'SELADA')+'</strong></div>'
  +'<div><small>RODADA</small><strong>'+round+(mask?' / máscara até '+escape(c.shinjiMaskEndRound):'')+'</strong></div></div>'
@@ -1093,5 +1093,5 @@ document.addEventListener('change',event=>{
 document.addEventListener('input',event=>{if(event.target.id==='aeBookNpcName')bookNpcName=event.target.value;});
 window.ARQUIVO_V3={version:'3.2',enhanceEditor,renderAbilityTab,activationFX,onActivated,gateOpen,unlockConfig,costQuote,costLabel,billingKey,commitLocalCharge,advanceScene,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
 if(APP()?.page==='sheets')APP().render?.();
-})();
 document.addEventListener('input',function(e){if(e.target?.id==='aeShinjiNpcName')shinjiNpcName=e.target.value;});
+})();
