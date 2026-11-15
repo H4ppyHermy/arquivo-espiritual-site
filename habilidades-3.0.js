@@ -285,10 +285,11 @@ function bookPanel(s){
  +stolenHtml
  +(last?'<p class="color-hint">Último Dado de Memória: <b>d10 = '+last+'</b></p>':'')
  +'<div class="ae3-book-buttons"><button type="button" class="btn main" data-ae3="bookUse:insert" '+(!can||ins.blocked?'disabled':'')+'>INSERIR PRESENÇA <small>'+ins.cost+' ALMA</small></button>'
- +'<button type="button" class="btn" data-ae3="bookUse:ultimate" '+(!can||ult.blocked||grade<2?'disabled':'')+'>ENTÃO, VIRE A PÁGINA <small>'+ult.cost+' ALMA</small></button></div>'
+ +'<button type="button" class="btn" data-ae3="bookUse:ultimate" '+(!can||ult.blocked||grade<2?'disabled':'')+'>ENTÃO, VIRE A PÁGINA <small>'+ult.cost+' ALMA</small></button>'
+ +'<button type="button" class="btn ae3-book-strike-btn" data-ae3="bookUse:attack" '+(!can||Number(book.lastStrikeRound)===Number(s.combat?.round||1)?'disabled':'')+'>GOLPE DO LIVRO <small>2d4 VIDA · SEM CUSTO</small></button></div>'
  +(!connected?'<p class="color-hint">Conexão online necessária para os confrontos verificados.</p>':'')
  +(active&&grade<2?'<p class="color-hint">A ultimate exige uma Relação Plástica de grau II ou III.</p>':'')
- +(history.length?'<details class="ae3-book-history"><summary>Últimos confrontos deste alvo</summary>'+history.map(h=>'<p><b>Rodada '+escape(h.round)+'</b> · '+(h.action==='ultimate'?'Vire a Página':'Inserir Presença')+' · '+(h.success?'sucesso':'falha')+' · '+escape(h.attack)+' × '+escape(h.defense)+(h.memory?' · Memória '+escape(h.memory)+'/10':'')+'</p>').join('')+'</details>':'')
+ +(history.length?'<details class="ae3-book-history"><summary>Últimos confrontos deste alvo</summary>'+history.map(h=>'<p><b>Rodada '+escape(h.round)+'</b> · '+(h.action==='ultimate'?'Vire a Página':h.action==='attack'?'Golpe do Livro':'Inserir Presença')+' · '+(h.success?'sucesso':'falha')+' · '+escape(h.attack)+' × '+escape(h.defense)+(h.memory?' · Memória '+escape(h.memory)+'/10':'')+(h.bonusTotal?' · +'+escape(h.bonusTotal)+' memórias':'')+'</p>').join('')+'</details>':'')
  +'</section>';
 }
 async function bookUse(action){
@@ -902,6 +903,11 @@ document.addEventListener('change',event=>{
   return;
  }
  if(event.target.id==='aeBookSkill'){bookSelectedSkill=event.target.value;return}
+ if(event.target.dataset.aeBookBonus){
+  const key=decodeURIComponent(event.target.dataset.aeBookBonus);
+  if(event.target.checked)bookDisabledBonuses.delete(key);else bookDisabledBonuses.add(key);
+  return;
+ }
  if(event.target.id==='ae3Source')useSourceList();
  if(event.target.dataset.edit==='level'){const box=document.getElementById('ae3RacePrompt');if(box&&APP()?.editorDraft)box.outerHTML=racePrompt(APP().editorDraft)}
  if(event.target.dataset.ae3Field)editField(event.target);
