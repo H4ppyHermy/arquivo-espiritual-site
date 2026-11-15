@@ -777,6 +777,14 @@ input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;b
 .ae32-reduced .ae32-impact-copy{animation:none}
 @media(prefers-reduced-motion:reduce){.ae32-impact,.ae32-impact-copy,.ae32-halo,.ae32-spark{animation:none!important}.ae32-spark,.ae32-halo{display:none}}
 </style>
+<style>
+.ae32-visual-editor{margin:12px 0;padding:13px;border:1px solid color-mix(in srgb,var(--theme-accent,#c9a569) 32%,transparent);border-radius:10px;background:color-mix(in srgb,var(--theme-accent,#c9a569) 4%,transparent)}
+.ae32-visual-editor>strong{display:block;font-size:.8rem;letter-spacing:.07em;font-weight:900;margin-bottom:9px}
+.ae32-visual-editor p{font-size:.76rem;line-height:1.5;opacity:.8}
+.ae32-visual-editor .ae32-visual-toggle{display:flex;align-items:center;gap:8px;margin:12px 0}
+.ae32-visual-editor input[type=color]{width:100%;min-height:35px}
+.ae32-color-dot{display:inline-block;vertical-align:middle;width:15px;height:15px;margin-right:5px;border:1px solid rgba(255,255,255,.4);border-radius:50%}
+</style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div id="entrance" class="entrance"><div class="entrance-inner"><span class="eyebrow">BLEACH · RPG DE MESA</span><h1 id="entranceTitle">Bleach CBB</h1><div class="line"></div><p>Estou aqui para te salvar.</p><button class="btn main" data-action="enter">ENTRAR NA MESA</button></div></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><button type="button" id="sidebarAudio" class="sidebar-audio" data-action="hudToggle" aria-label="Abrir ou fechar o painel de música" aria-expanded="false" title="Abrir música"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><rect x="2" y="13" width="4" height="8" rx="2"/><rect x="18" y="13" width="4" height="8" rx="2"/></svg><span>Música</span></button><div class="sidefoot"><span id="roleText">VISITANTE</span><p id="storageText"></p></div></aside><main class="shell"><div class="toolbar"><span class="mobile-title" id="mobileTitle">Bleach CBB</span><span class="status" id="headerStatus">REGISTRO // BLEACH CBB</span><div class="toolbar-right" aria-label="Conta e controles">
  <span class="version-tag version-top">VERSÃO 3.2</span>
  <div class="toolbar-account" aria-label="Identidade e conexão">
@@ -2179,4 +2187,4 @@ async function init(){await migrateLegacyKeys();db.site??={};db.site.defaultPale
 window.ARQUIVO_INTERNAL={get page(){return page},get db(){return db},get prefs(){return prefs},get currentSheet(){return currentSheet},get role(){return role},get editorDraft(){return editorDraft},canEditSheet,master,save,render,toast,redrawSheetForm:drawSheetForm,modal,historyHtml,dataUrlOk,mediaSrc,inventoryItemCanUse,inventoryItemAbilityLabel,abilityBadge,abilityTestButton,sheetRich,conditionsCatalog:CONDITIONS_CATALOG};
 init();
 if(window.ARQUIVO_SYNC?.state.configured)window.ARQUIVO_SYNC.init();
-</script><script src="mecanicas-ficha.js?v=3.2.0"></script><script src="habilidades-3.0.js?v=3.2.0"></script><script src="sessao-live.js?v=2.6"></script></body></html>
+</script><script src="mecanicas-ficha.js?v=3.2.0"></script><script src="habilidades-3.0.js?v=3.2.1"></script><script src="sessao-live.js?v=2.6"></script></body></html>
