@@ -163,71 +163,152 @@ function editorToolbar(s){
 }
 
 
-/* Book of the End — confrontos automáticos, relações plásticas e roubo de perícias. */
-let bookSelectedTarget='',bookSelectedSkill='Precisão',bookResolving=false;
+
+/* Book of the End: painel e efeitos restritos à ficha de Shūkurō Tsukishima. */
+const BOOK_SHEET_ID='arquivo-tsukishima-arena-n3';
 const BOOK_ACTIONS=new Set(['tsukishima-inserir-presenca','tsukishima-vire-pagina']);
+const BOOK_SKILLS=Object.values(GROUPS).flat();
+let bookSelectedTarget='npc:new',bookSelectedSkill='Precisão',bookNpcName='';
+let bookNpcStats={corpo:6,destreza:6,mente:6,determinacao:6,pericia:6,estabilidade:20};
+let bookResolving=false,bookAudio=null;
 function bookState(s){
- const b=s?.abilityRuntime?.bookOfEnd;
- return b&&Number(b.scene)===Number(s?.combat?.scene||1)?b:{targets:{}};
+ const v=s?.abilityRuntime?.bookOfEnd;
+ return v&&Number(v.scene)===Number(s?.combat?.scene||1)?v:{targets:{},history:[]};
+}
+function bookSound(kind){
+ const api=APP(),prefs=api?.prefs||{};
+ if(prefs.effectsMuted||Number(prefs.effectsVolume)===0)return;
+ try{
+  const Context=window.AudioContext||window.webkitAudioContext;
+  if(!Context)return;
+  bookAudio??=new Context();
+  if(bookAudio.state==='suspended')bookAudio.resume().catch(()=>{});
+  const at=bookAudio.currentTime,vol=Math.min(.11,Math.max(0,Number(prefs.effectsVolume??35)/100)*.11);
+  const tone=(start,end,length,delay=0,type='triangle')=>{
+   const osc=bookAudio.createOscillator(),gain=bookAudio.createGain();
+   osc.type=type;
+   osc.frequency.setValueAtTime(start,at+delay);
+   osc.frequency.exponentialRampToValueAtTime(end,at+delay+length);
+   gain.gain.setValueAtTime(.0001,at+delay);
+   gain.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),at+delay+.015);
+   gain.gain.exponentialRampToValueAtTime(.0001,at+delay+length);
+   osc.connect(gain);gain.connect(bookAudio.destination);
+   osc.start(at+delay);osc.stop(at+delay+length+.01);
+  };
+  if(kind==='activate'){tone(320,720,.21);tone(560,360,.17,.12)}
+  else if(kind==='memory'){tone(830,490,.16);tone(410,1010,.28,.12)}
+  else if(kind==='steal'){tone(280,760,.42);tone(960,1640,.47,.15);tone(1220,2100,.38,.39)}
+  else if(kind==='ultimate'){tone(210,640,.57);tone(540,1200,.42,.2);tone(870,1680,.51,.41)}
+  else tone(460,290,.17);
+ }catch(e){}
+}
+function bookEffect(kind){
+ const api=APP();
+ if(api?.prefs?.reduceMotion===true||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+ const node=document.createElement('div');
+ node.className='ae3-book-cinematic ae3-book-'+kind;
+ node.setAttribute('aria-hidden','true');
+ node.innerHTML='<div class="ae3-book-pages"><i></i><i></i><i></i><i></i></div><div class="ae3-book-cinematic-title">BOOK OF THE END</div>';
+ document.body.append(node);
+ window.setTimeout(()=>node.remove(),kind==='ultimate'||kind==='steal'?1700:1050);
+}
+function bookSelect(label,value,choices){
+ return '<label>'+label+'<select data-ae-book-stat="'+escape(value)+'">'+choices.map(([id,title])=>'<option value="'+escape(id)+'" '+(String(bookNpcStats[value])===String(id)?'selected':'')+'>'+escape(title)+'</option>').join('')+'</select></label>';
 }
 function bookPanel(s){
- if(!(s.abilities||[]).some(ab=>ab.abilityId==='tsukishima-book-of-the-end-manifestacao'))return '';
- const api=APP(),items=(api.db.sheets||[]).filter(t=>t.id!==s.id&&!t.redacted&&(!t.masterOnly||api.master?.()));
- if(!items.length)return '<section class="panel"><h3>BOOK OF THE END · MEMÓRIAS</h3><p>Não há outras fichas visíveis para selecionar como alvo.</p></section>';
- const target=items.find(x=>x.id===bookSelectedTarget)||items[0];
- bookSelectedTarget=target.id;
- const book=bookState(s),entry=book.targets?.[target.id]||{},grade=Math.max(0,Math.min(3,Number(entry.grade)||0));
- const skillPairs=Object.entries(target.skills||{}).filter(([k,v])=>DICE.includes(Number(v)));
- if(!skillPairs.some(([k])=>k===bookSelectedSkill))bookSelectedSkill=skillPairs.find(([k])=>k==='Precisão')?.[0]||skillPairs[0]?.[0]||'Precisão';
- const opts=items.map(t=>'<option value="'+escape(t.id)+'" '+(t.id===target.id?'selected':'')+'>'+escape(t.name||t.id)+'</option>').join('');
- const skillOpts=skillPairs.map(([k,d])=>'<option value="'+escape(k)+'" '+(k===bookSelectedSkill?'selected':'')+'>'+escape(k)+' · d'+d+'</option>').join('');
+ if(s?.id!==BOOK_SHEET_ID)return '';
+ const api=APP(),book=bookState(s),targets=book.targets||{};
+ const sheets=(api?.db?.sheets||[]).filter(x=>x.id!==s.id&&!x.redacted&&(!x.masterOnly||api.master?.()));
+ const npcs=Object.entries(targets).filter(([key,v])=>key.startsWith('npc:')&&v?.npc);
+ const valid=bookSelectedTarget==='npc:new'||npcs.some(([key])=>key===bookSelectedTarget)||sheets.some(x=>x.id===bookSelectedTarget);
+ if(!valid)bookSelectedTarget=npcs.length?npcs[0][0]:sheets.length?sheets[0].id:'npc:new';
+ const isNpc=bookSelectedTarget.startsWith('npc:'),isNew=bookSelectedTarget==='npc:new';
+ const sheetTarget=sheets.find(x=>x.id===bookSelectedTarget),entry=targets[bookSelectedTarget]||{};
+ if(isNpc&&!isNew&&entry.npcStats){bookNpcStats={...bookNpcStats,...entry.npcStats};bookNpcName=entry.name||bookNpcName;}
  const active=gateOpen(s,{unlock:{mode:'hidden',requires:'tsukishima-book-of-the-end-manifestacao'}});
+ const grade=Math.max(0,Math.min(3,Number(entry.grade)||0));
  const ix=s.abilities.findIndex(a=>a.abilityId==='tsukishima-inserir-presenca');
  const ux=s.abilities.findIndex(a=>a.abilityId==='tsukishima-vire-pagina');
- const ins=ix>=0?costQuote(s,s.abilities[ix],ix):{blocked:true,cost:2,reason:'Técnica ausente'};
- const ult=ux>=0?costQuote(s,s.abilities[ux],ux):{blocked:true,cost:7,reason:'Técnica ausente'};
- const can=api.canEditSheet(s.id)&&!bookResolving&&active&&!!window.ARQUIVO_SYNC?.state?.enabled;
- const all=Object.entries(book.targets||{}).filter(([,t])=>Number(t.grade)>0).map(([key,t])=>'<span class="tag">'+escape(t.name||key)+' · '+['—','I','II','III'][Math.min(3,Number(t.grade)||0)]+'</span>').join(' ');
- const stolen=book.stolen;
+ const ins=ix<0?{blocked:true,cost:2,reason:'Não disponível'}:costQuote(s,s.abilities[ix],ix);
+ const ult=ux<0?{blocked:true,cost:7,reason:'Não disponível'}:costQuote(s,s.abilities[ux],ux);
+ const connected=!!window.ARQUIVO_SYNC?.state.enabled;
+ const can=api.canEditSheet(s.id)&&!bookResolving&&connected&&active;
+ const choices=sheetTarget?Object.entries(sheetTarget.skills||{}).filter(([,v])=>DICE.includes(Number(v))).map(([k,d])=>[k,k+' · d'+d]):BOOK_SKILLS.map(k=>[k,k]);
+ if(!choices.some(([k])=>k===bookSelectedSkill))bookSelectedSkill=choices[0]?.[0]||'Precisão';
+ const opt=(value,label)=>'<option value="'+escape(value)+'" '+(bookSelectedTarget===value?'selected':'')+'>'+escape(label)+'</option>';
+ const targetOptions=opt('npc:new','+ Criar NPC sem ficha')
+  +(npcs.length?'<optgroup label="NPCs desta cena">'+npcs.map(([key,v])=>opt(key,v.name||'NPC')).join('')+'</optgroup>':'')
+  +(sheets.length?'<optgroup label="Fichas cadastradas">'+sheets.map(v=>opt(v.id,v.name)).join('')+'</optgroup>':'');
+ const diceOptions=DICE.map(n=>[n,'d'+n]);
+ const npcHtml=isNpc?
+  '<div class="ae3-book-npc"><label>Nome do NPC<input id="aeBookNpcName" maxlength="80" placeholder="Ex.: Guarda do palácio" value="'+escape(isNew?bookNpcName:entry.name||'')+'" '+(isNew?'':'readonly')+'></label>'
+  +'<details class="ae3-book-npc-config"><summary>Dados do NPC <small>Use os dados da criatura; não é necessária uma ficha</small></summary>'
+  +'<div class="ae3-book-stat-grid">'+bookSelect('Grupo Corpo','corpo',diceOptions)+bookSelect('Destreza','destreza',diceOptions)
+  +bookSelect('Grupo Mente','mente',diceOptions)+bookSelect('Determinação','determinacao',diceOptions)
+  +bookSelect('Perícia a roubar','pericia',diceOptions)
+  +'<label>Estabilidade inicial<input type="number" min="0" max="999" data-ae-book-stat="estabilidade" value="'+escape(bookNpcStats.estabilidade)+'"></label></div>'
+  +'<p class="color-hint">O sistema registra os danos à Estabilidade e a progressão separadamente por nome. NPCs com nomes idênticos compartilham a mesma memória.</p></details></div>':'';
+ const history=(Array.isArray(book.history)?book.history:[]).filter(h=>h.targetId===bookSelectedTarget).slice(-4).reverse();
+ const streak=Array.from({length:3},(_,i)=>'<span class="'+(grade>i?'reached':'')+'">'+['I','II','III'][i]+' <small>'+['Afinidade','Vínculo','Devoção'][i]+'</small></span>').join('');
+ const stolen=book.stolen&&typeof book.stolen==='object'?book.stolen:null;
  const last=Number(entry.lastMemory)||0;
- return '<section class="panel ae3-book-panel">'
-  +'<div class="sectionhead"><h3>BOOK OF THE END · MEMÓRIAS</h3><span class="tag">RELAÇÃO '+['—','I · AFINIDADE','II · VÍNCULO','III · DEVOÇÃO'][grade]+'</span></div>'
-  +'<p class="color-hint">Selecione o adversário. Os confrontos, os pontos de relação, o d10 de Memória e os efeitos são resolvidos e salvos automaticamente.</p>'
-  +'<div class="ae3-automation-grid"><label>Adversário<select id="aeBookTarget">'+opts+'</select></label>'
-  +'<label>Perícia a roubar se o d10 resultar em 10<select id="aeBookSkill">'+skillOpts+'</select></label></div>'
-  +'<p class="color-hint">Memória anterior: '+(last?'d10 = '+last:'nenhuma')+' · '+(entry.lastSuccess===true?'Último confronto vencido':entry.lastSuccess===false?'Último confronto perdido':'Ainda sem confronto')+'</p>'
-  +(stolen?'<p class="color-hint"><b>Perícia roubada:</b> '+escape(stolen.skill)+' · d'+escape(stolen.die)+' de '+escape(items.find(x=>x.id===stolen.targetId)?.name||stolen.targetId)+'</p>':'')
-  +'<div class="actions">'+
-   '<button type="button" class="btn main" data-ae3="bookUse:insert" '+(!can||ins.blocked?'disabled':'')+'>INSERIR PRESENÇA · '+ins.cost+' ALMA</button>'
-   +'<button type="button" class="btn small" data-ae3="bookUse:ultimate" '+(!can||ult.blocked||grade<2?'disabled':'')+'>ENTÃO, VIRE A PÁGINA · '+ult.cost+' ALMA</button></div>'
-  +(!active?'<p class="color-hint">Ative Book of the End para utilizar as técnicas.</p>':!window.ARQUIVO_SYNC?.state?.enabled?'<p class="color-hint">Conexão online necessária para rolagens verificadas.</p>':'')
-  +(grade<2?'<p class="color-hint">Ultimate disponível após atingir o grau II de relação.</p>':'')
-  +(all?'<p class="color-hint">Relações ativas: '+all+'</p>':'')+'</section>';
+ const stable=isNpc&&!isNew&&Number.isFinite(Number(entry.stability))?'<strong>Estabilidade do NPC: '+escape(entry.stability)+'</strong>':'';
+ return '<section class="ae3-book-panel'+(!active?' ae3-book-idle':'')+'">'
+ +'<div class="ae3-book-header"><div><p>MEMÓRIAS REESCRITAS</p><h3>Book of the End</h3></div><span class="ae3-book-seal">'+(active?'MANIFESTADO':'INATIVO')+'</span></div>'
+ +'<p class="ae3-book-help">'+(active?'Escolha o alvo e resolva o confronto. O d10, os graus da relação e o roubo de perícia serão registrados automaticamente.':'Ative a Manifestação: Book of the End para começar a reescrever memórias.')+'</p>'
+ +'<div class="ae3-book-fields"><label>Alvo<select id="aeBookTarget">'+targetOptions+'</select></label>'
+ +'<label>Perícia desejada<select id="aeBookSkill">'+choices.map(([k,label])=>'<option value="'+escape(k)+'" '+(bookSelectedSkill===k?'selected':'')+'>'+escape(label)+'</option>').join('')+'</select></label></div>'
+ +npcHtml
+ +'<div class="ae3-book-progress"><div class="ae3-book-progress-top"><strong>Relação Plástica</strong><small>Grau '+(grade?['','I','II','III'][grade]:'—')+' / III</small></div><div class="ae3-book-grades">'+streak+'</div></div>'
+ +(stable?'<p class="ae3-book-stability">'+stable+'</p>':'')
+ +(stolen?'<p class="ae3-book-stolen">MEMÓRIA ROUBADA · '+escape(stolen.skill)+' (d'+escape(stolen.die)+') de '+escape(stolen.targetName||stolen.targetId||'alvo')+'</p>':'')
+ +(last?'<p class="color-hint">Último Dado de Memória: <b>d10 = '+last+'</b></p>':'')
+ +'<div class="ae3-book-buttons"><button type="button" class="btn main" data-ae3="bookUse:insert" '+(!can||ins.blocked?'disabled':'')+'>INSERIR PRESENÇA <small>'+ins.cost+' ALMA</small></button>'
+ +'<button type="button" class="btn" data-ae3="bookUse:ultimate" '+(!can||ult.blocked||grade<2?'disabled':'')+'>ENTÃO, VIRE A PÁGINA <small>'+ult.cost+' ALMA</small></button></div>'
+ +(!connected?'<p class="color-hint">Conexão online necessária para os confrontos verificados.</p>':'')
+ +(active&&grade<2?'<p class="color-hint">A ultimate exige uma Relação Plástica de grau II ou III.</p>':'')
+ +(history.length?'<details class="ae3-book-history"><summary>Últimos confrontos deste alvo</summary>'+history.map(h=>'<p><b>Rodada '+escape(h.round)+'</b> · '+(h.action==='ultimate'?'Vire a Página':'Inserir Presença')+' · '+(h.success?'sucesso':'falha')+' · '+escape(h.attack)+' × '+escape(h.defense)+(h.memory?' · Memória '+escape(h.memory)+'/10':'')+'</p>').join('')+'</details>':'')
+ +'</section>';
 }
 async function bookUse(action){
- if(bookResolving)return;
+ if(bookResolving||!['insert','ultimate'].includes(action))return;
  const api=APP(),s=api?.db?.sheets.find(x=>x.id===api.currentSheet),st=window.ARQUIVO_SYNC;
- if(!s||!api.canEditSheet(s.id)||!['insert','ultimate'].includes(action))return;
- if(!st?.state?.enabled){api.toast('CONEXÃO NECESSÁRIA','Conecte a ficha para realizar o confronto automático.',true);return;}
- const target=api.db.sheets.find(t=>t.id===bookSelectedTarget);
- if(!target){api.toast('ALVO NECESSÁRIO','Selecione um adversário.',true);return;}
+ if(!s||s.id!==BOOK_SHEET_ID||!api.canEditSheet(s.id))return;
+ if(!st?.state?.enabled){api.toast('CONEXÃO NECESSÁRIA','Os confrontos automáticos exigem conexão online.',true);return}
+ const npc=bookSelectedTarget.startsWith('npc:');
+ const state=bookState(s),saved=state.targets?.[bookSelectedTarget];
+ const npcName=npc?(saved?.name||bookNpcName).trim():'';
+ if(npc&&(!npcName||npcName.length>80)){api.toast('NOME DO NPC','Informe o nome do alvo.',true);return}
+ const target=api.db.sheets.find(x=>x.id===bookSelectedTarget);
+ if(!npc&&!target){api.toast('ALVO NÃO ENCONTRADO','Escolha um adversário válido.',true);return}
+ const skill=npc?bookSelectedSkill:bookSelectedSkill;
+ const npcData=npc?Object.fromEntries(Object.entries(bookNpcStats).map(([k,v])=>[k,Number(v)])):null;
+ if(npc&&!DICE.includes(Number(npcData.pericia))){api.toast('DADO INVÁLIDO','Escolha um dado válido para o NPC.',true);return}
  bookResolving=true;
+ bookSound(action==='ultimate'?'ultimate':'activate');
  try{
-  const {data,error}=await st.state.client.rpc('ae_book_of_end_action',{
-   p_source_id:s.id,p_target_id:target.id,p_action:action,p_steal_skill:bookSelectedSkill
+  const {data,error}=await st.state.client.rpc('ae_book_of_end_action_v2',{
+   p_source_id:s.id,p_target_id:npc?'npc':target.id,p_action:action,
+   p_steal_skill:skill,p_npc_name:npc?npcName:null,p_npc_stats:npc?npcData:null
   });
   if(error)throw Error(error.message);
-  await st.refresh(true);api.render();
+  if(data?.targetId)bookSelectedTarget=data.targetId;
+  await st.refresh(true);
+  api.render();
   const grade=['—','I','II','III'][Math.max(0,Math.min(3,Number(data.grade)||0))];
-  let body='<p><b>'+escape(s.name)+' '+(data.success?'venceu':'perdeu')+' o confronto contra '+escape(target.name)+'.</b></p>'
-   +'<p>Teste: '+escape(data.attack)+' contra '+escape(data.defense)+' · Relação Plástica: '+grade+'.</p>';
-  if(!data.success)body+='<p>Sem alterações de memória'+(action==='ultimate'?' além do grau consumido':'')+'.</p>';
-  if(data.success)body+='<p>'+ (action==='insert'?'Nenhum dano causado. ':'Dano automático à Estabilidade: '+escape(data.damage)+'. ')+'Dado de Memória: <b>d10 = '+escape(data.memory)+'</b>.</p>';
-  if(Number(data.memory)===1)body+='<p>Lucidez: um grau da relação foi removido.</p>';
-  if(Number(data.memory)===10&&data.stolen)body+='<p><b>Perícia roubada:</b> '+escape(data.stolen.skill)+' (d'+escape(data.stolen.die)+'). O alvo perde seu dado de perícia até o fim da cena.</p>';
-  api.modal('BOOK OF THE END · '+(action==='insert'?'INSERIR PRESENÇA':'VIRE A PÁGINA'),body,[]);
- }catch(e){api.toast('CONFRONTO NÃO REALIZADO',e.message,true)}
- finally{bookResolving=false;}
+  if(data.success){bookEffect(Number(data.memory)===10?'steal':action==='ultimate'?'ultimate':'memory');bookSound(Number(data.memory)===10?'steal':'memory');}
+  let body='<div class="ae3-book-result"><p class="ae3-book-verdict '+(data.success?'success':'failed')+'">'+(data.success?'MEMÓRIA INSERIDA':'MEMÓRIA RESISTIDA')+'</p>'
+   +'<p><b>'+escape(data.targetName||npcName||target?.name)+'</b> · Teste '+escape(data.attack)+' contra '+escape(data.defense)+'</p>'
+   +'<p>Relação Plástica: <b>'+grade+'</b> / III.</p>';
+  if(data.success)body+='<div class="ae3-book-memory-roll"><span>DADO DE MEMÓRIA</span><strong>'+escape(data.memory)+'</strong><small>1d10</small></div>'
+   +(action==='ultimate'?'<p>Estabilidade: −'+escape(data.damage)+(npc?' · restante '+escape(data.stability):'')+'. Confuso até o próximo Desfecho.</p>':'<p>A técnica não causa dano.</p>');
+  else body+='<p>Sem efeito no alvo.'+(action==='ultimate'?' O grau foi consumido.':'')+'</p>';
+  if(Number(data.memory)===1)body+='<p>Lucidez: o alvo recuperou um grau de sua memória verdadeira.</p>';
+  if(Number(data.memory)===10&&data.stolen)body+='<p><b>Perícia roubada:</b> '+escape(data.stolen.skill)+' · d'+escape(data.stolen.die)+'.</p>';
+  body+='</div>';
+  api.modal(action==='ultimate'?'ENTÃO, VIRE A PÁGINA':'INSERIR PRESENÇA',body,[]);
+ }catch(e){bookSound('fail');api.toast('CONFRONTO NÃO REALIZADO',e.message,true)}
+ finally{bookResolving=false}
 }
 
 /* 3.1 — custos, pré-requisitos, limites e condições vinculadas à ficha. */
@@ -504,8 +585,8 @@ function renderAbilityTab(s){
   groups.get(g.id).items.push([ab,i]);
  });
  const header='<div class="actions ae3-tab-toolbar">'+(can?'<button class="btn main" data-action="newAbilityDirect">+ CRIAR TÉCNICA</button><button class="btn small" data-action="editSheetSection:abilities">ORGANIZAR E TRANSFERIR</button>':'')+button('ABRIR GRUPOS','groupsOpen','small')+button('FECHAR GRUPOS','groupsClose','small')+(api.master?.()?button(masterReveal?'OCULTAR TÉCNICAS SECRETAS':'REVELAR TÉCNICAS SECRETAS','masterReveal','small quiet'):'')+'</div>';
- const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group" '+((lastUnlock?.sheetId===s.id?g.items.some(([ab])=>ab.unlock?.requires===lastUnlock.key):index===0)?'open':'')+'><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div>'+(g.id==='tsukishima-grupo-fullbring'?bookPanel(s):'')+'</details>').join('');
- return header+(result||'<p class="empty">Nenhuma habilidade disponível neste estado.</p>')+api.historyHtml();
+ const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group" '+(lastUnlock?.sheetId===s.id&&g.items.some(([ab])=>ab.unlock?.requires===lastUnlock.key)?'open':'')+'><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div></details>').join('');
+ return header+bookPanel(s)+(result||'<p class="empty">Nenhuma habilidade disponível neste estado.</p>')+api.historyHtml();
 }
 function exportSelected(abilities,source){
  const groups=[],refs=new Set();
@@ -782,6 +863,11 @@ document.addEventListener('click',event=>{
 },true);
 document.addEventListener('change',event=>{
  if(event.target.id==='aeBookTarget'){bookSelectedTarget=event.target.value;APP()?.render?.();return}
+ if(event.target.dataset.aeBookStat){
+  const key=event.target.dataset.aeBookStat;
+  if(Object.prototype.hasOwnProperty.call(bookNpcStats,key))bookNpcStats[key]=Number(event.target.value);
+  return;
+ }
  if(event.target.id==='aeBookSkill'){bookSelectedSkill=event.target.value;return}
  if(event.target.id==='ae3Source')useSourceList();
  if(event.target.dataset.edit==='level'){const box=document.getElementById('ae3RacePrompt');if(box&&APP()?.editorDraft)box.outerHTML=racePrompt(APP().editorDraft)}
@@ -794,6 +880,7 @@ document.addEventListener('change',event=>{
   if(old&&APP()?.editorDraft)old.outerHTML=racePrompt(APP().editorDraft);
  }
 });
+document.addEventListener('input',event=>{if(event.target.id==='aeBookNpcName')bookNpcName=event.target.value;});
 window.ARQUIVO_V3={version:'3.2',enhanceEditor,renderAbilityTab,activationFX,onActivated,gateOpen,unlockConfig,costQuote,costLabel,billingKey,commitLocalCharge,advanceScene,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
 if(APP()?.page==='sheets')APP().render?.();
 })();
