@@ -155,6 +155,12 @@ function billingState(s,ab,index){
 
 /* 3.2 — visibilidade dependente de liberações, sem filtrar os dados salvos da ficha. */
 let masterReveal=false;
+let lastUnlock=null;
+function onActivated(s,ab,index){
+ const key=billingKey(ab,index);
+ const target=(s.abilities||[]).some(a=>a.unlock?.requires===key);
+ if(target)lastUnlock={sheetId:s.id,key};
+}
 function unlockConfig(ab){
  const u=ab?.unlock;
  return {mode:['hidden','locked'].includes(u?.mode)?u.mode:'always',requires:String(u?.requires||'')};
@@ -380,7 +386,7 @@ function renderAbilityTab(s){
   groups.get(g.id).items.push([ab,i]);
  });
  const header='<div class="actions ae3-tab-toolbar">'+(can?'<button class="btn main" data-action="newAbilityDirect">+ CRIAR TÉCNICA</button><button class="btn small" data-action="editSheetSection:abilities">ORGANIZAR E TRANSFERIR</button>':'')+button('ABRIR GRUPOS','groupsOpen','small')+button('FECHAR GRUPOS','groupsClose','small')+(api.master?.()?button(masterReveal?'OCULTAR TÉCNICAS SECRETAS':'REVELAR TÉCNICAS SECRETAS','masterReveal','small quiet'):'')+'</div>';
- const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group" '+(index===0?'open':'')+'><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div></details>').join('');
+ const result=[...groups.values()].map((g,index)=>'<details class="ae3-ability-group" '+((lastUnlock?.sheetId===s.id?g.items.some(([ab])=>ab.unlock?.requires===lastUnlock.key):index===0)?'open':'')+'><summary><span>'+escape(groupLabel(g.name))+'</span><small>'+g.items.length+' habilidade(s)</small></summary><div class="grid2 ae3-ability-grid">'+g.items.map(([ab,i])=>abilityArticle(s,ab,i)).join('')+'</div></details>').join('');
  return header+(result||'<p class="empty">Nenhuma habilidade disponível neste estado.</p>')+api.historyHtml();
 }
 function exportSelected(abilities,source){
@@ -661,5 +667,5 @@ document.addEventListener('change',event=>{
   if(old&&APP()?.editorDraft)old.outerHTML=racePrompt(APP().editorDraft);
  }
 });
-window.ARQUIVO_V3={version:'3.2',enhanceEditor,renderAbilityTab,activationFX,gateOpen,unlockConfig,costQuote,costLabel,billingKey,commitLocalCharge,advanceScene,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
+window.ARQUIVO_V3={version:'3.2',enhanceEditor,renderAbilityTab,activationFX,onActivated,gateOpen,unlockConfig,costQuote,costLabel,billingKey,commitLocalCharge,advanceScene,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
 })();
