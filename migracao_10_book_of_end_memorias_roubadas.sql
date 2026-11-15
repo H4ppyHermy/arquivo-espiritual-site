@@ -347,3 +347,22 @@ GRANT EXECUTE ON FUNCTION public.ae_book_of_end_action_v3(text,text,text,text,te
 REVOKE ALL ON FUNCTION public.ae_book_of_end_action_v2(text,text,text,text,text,jsonb) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.ae_book_of_end_action(text,text,text,text) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.ae_book_of_end_action(text,text,text,text) TO authenticated;
+
+
+-- Alinha as descrições e o limite de uso da ultimate com o código atualizado.
+WITH updated AS (
+ SELECT jsonb_agg(CASE WHEN s.value->>'id'='arquivo-tsukishima-arena-n3'
+  THEN jsonb_set(s.value,'{abilities}',(
+   SELECT jsonb_agg(CASE
+      WHEN a.value->>'abilityId'='tsukishima-inserir-presenca' THEN jsonb_set(a.value,'{description}',to_jsonb('Uma vez por rodada, utilize sua ação principal para atingir um adversário com Book of the End, sem causar dano. Realize um teste-clash de Precisão contra Destreza. Se vencer, aumenta em um grau sua Relação Plástica com o alvo (máximo III) e ele rola 1d10 de Memória. Com 1, perde o grau recém-adquirido; com 10, rouba uma perícia até o fim da cena. Você começa podendo manter uma perícia roubada por vez; Então, Vire a Página amplia esse limite. O alvo perde o dado da perícia roubada nos testes, enquanto você pode utilizá-lo. Nos ataques de Book of the End, as perícias roubadas também fornecem dados extras reduzidos em um passo.'::text),true)
+      WHEN a.value->>'abilityId'='tsukishima-vire-pagina' THEN jsonb_set(jsonb_set(a.value,'{description}',to_jsonb('Uma vez por rodada, com Book of the End manifestado, utilize sua ação principal contra um adversário com Relação Plástica II ou III. Consuma um grau da relação e realize um teste-clash de Lábia contra Determinação. A cada uso, mesmo se o alvo resistir, aumenta em 1 seu limite de perícias roubadas simultaneamente até o fim da cena (limite inicial: 1). Se vencer, causa 2d6 de dano à Estabilidade, deixa o alvo Confuso até o próximo Desfecho e força um Dado de Memória (1d10). Com 10, rouba uma perícia. Cada perícia roubada pode adicionar aos ataques de Book of the End um dado extra, reduzido em um passo, sem consumi-la. O grau é consumido mesmo se o confronto falhar.'::text),true),'{costConfig,limit}',to_jsonb('round'::text),true))
+      ELSE a.value END ORDER BY a.ord)
+   FROM jsonb_array_elements(s.value->'abilities') WITH ORDINALITY a(value,ord)
+  ),true) ELSE s.value END ORDER BY s.ord) arr
+ FROM public.ae_document d, jsonb_array_elements(d.data->'sheets') WITH ORDINALITY s(value,ord)
+ WHERE d.id=1
+)
+UPDATE public.ae_document d
+ SET data=jsonb_set(d.data,'{sheets}',(SELECT arr FROM updated),true),
+ revision=revision+1,changed_at=now()
+ WHERE d.id=1;
