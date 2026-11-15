@@ -703,6 +703,7 @@ function shinjiPanel(s){
  +'<div class="'+(shikai?'active shikai':'')+'"><small>SAKANADE</small><strong>'+(shikai?'LIBERADA':'SELADA')+'</strong></div>'
  +'<div><small>RODADA</small><strong>'+round+(mask?' / máscara até '+escape(c.shinjiMaskEndRound):'')+'</strong></div></div>'
  +(unctrl?'<div class="ae3-shinji-turn"><b>CONTROLE ALTERNADO</b> · '+(round%2?'MESTRE':'JOGADOR')+' controla a rodada '+round+'. '+(can?'Você pode agir.':'Ações de combate bloqueadas para este perfil.')+'</div>':'')
+ +'<p class="ae3-shinji-mastery">DOMÍNIO HOLLOW · <b>'+escape(Number(c.hollowProgress)||0)+' AVANÇO(S)</b>'+(c.hollowLost?' · <b>MÁSCARA ROMPIDA</b> · O mestre deve restaurar o controle.':'')+'</p>'
  +'<div class="ae3-shinji-controls"><div class="ae3-shinji-control-group"><strong>HOLLOWFICAÇÃO</strong><div class="ae3-shinji-buttons">'
  +btn('mask_control','MANIFESTAR MÁSCARA','4 ALMA',canMain&&!mask&&!maskUsed&&Number(s.level)>=3&&!c.hollowLost,'main')
  +btn('mask_chaos','DECLARAR DESCONTROLE','4 ALMA',canMain&&!mask&&!maskUsed&&!c.hollowLost)
