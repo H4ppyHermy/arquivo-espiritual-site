@@ -257,7 +257,7 @@ function bookPanel(s){
  const history=(Array.isArray(book.history)?book.history:[]).filter(h=>h.targetId===bookSelectedTarget).slice(-4).reverse();
  const streak=Array.from({length:3},(_,i)=>'<span class="'+(grade>i?'reached':'')+'">'+['I','II','III'][i]+' <small>'+['Afinidade','Vínculo','Devoção'][i]+'</small></span>').join('');
  const stolen=Array.isArray(book.stolen)?book.stolen:book.stolen&&typeof book.stolen==='object'?[book.stolen]:[];
- const turns=Math.max(0,Math.min(17,Number(book.pageTurns)||0)),capacity=turns+1;
+ const turns=Math.max(0,Number(book.pageTurns)||0),capacity=turns+1;
  const selected=stolen.filter(x=>!bookDisabledBonuses.has(String(x.targetId)+'|'+String(x.skill)));
  const stolenHtml='<details class="ae3-book-inventory" '+(stolen.length?'open':'')+'>'
   +'<summary><span>PERÍCIAS ROUBADAS <strong>'+stolen.length+' / '+capacity+'</strong></span>'
@@ -269,7 +269,7 @@ function bookPanel(s){
     +'<span><b>'+escape(m.skill)+'</b><small>'+escape(m.targetName||m.targetId)+'</small></span>'
     +'<span class="ae3-book-die">d'+original+' <b>→ d'+reduced+'</b></span></label>';
   }).join('')+'</div>':'<p class="color-hint">Nenhuma perícia roubada nesta cena.</p>')
-  +'<p class="color-hint">A ultimate aumenta o limite em +1 por uso. Marque os dados extras para o próximo ataque; não são consumidos.</p>'
+  +'<p class="color-hint">A ultimate aumenta o limite em +1 por uso. Marque os dados extras desejados; eles não são consumidos. Se a capacidade estiver cheia, uma nova perícia substitui a memória roubada mais antiga.</p>'
   +'</details>';
  const last=Number(entry.lastMemory)||0;
  const stable=isNpc&&!isNew&&Number.isFinite(Number(entry.stability))?'<strong>Estabilidade: '+escape(entry.stability)+' · Vida: '+escape(entry.life??bookNpcStats.vida)+'</strong>':'';
@@ -926,6 +926,9 @@ document.addEventListener('change',event=>{
  if(event.target.dataset.aeBookBonus){
   const key=decodeURIComponent(event.target.dataset.aeBookBonus);
   if(event.target.checked)bookDisabledBonuses.delete(key);else bookDisabledBonuses.add(key);
+  const inventory=event.target.closest?.('.ae3-book-inventory');
+  const hint=inventory?.querySelector('summary small');
+  if(hint)hint.textContent=inventory.querySelectorAll('input[data-ae-book-bonus]:checked').length+' dado(s) extra(s) selecionado(s)';
   return;
  }
  if(event.target.id==='ae3Source')useSourceList();
