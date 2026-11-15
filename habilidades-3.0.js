@@ -574,5 +574,5 @@ document.addEventListener('change',event=>{
   if(old&&APP()?.editorDraft)old.outerHTML=racePrompt(APP().editorDraft);
  }
 });
-window.ARQUIVO_V3={version:'3.0',enhanceEditor,renderAbilityTab,costQuote,costLabel,billingKey,commitLocalCharge,advanceScene,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
+window.ARQUIVO_V3={version:'3.1',enhanceEditor,renderAbilityTab,costQuote,costLabel,billingKey,commitLocalCharge,advanceScene,effectiveDie,skillSteps,resistanceSteps,resistanceDie,consumeResistance,consumeNext,useLocally,progressSequences,parseSequence,stepDie,groupLabel};
 })();
