@@ -1,6 +1,8 @@
--- Livro do Fim v3 — expansão progressiva de roubo e dados extras
--- Gerado a partir do estado publicado em Supabase em 15-11-2026.
--- Ordem: helper das perícias, ação principal, API legada compatível.
+-- ARQUIVO ESPIRITUAL | BOOK OF THE END V3
+-- Limite inicial de 1 perícia roubada; +1 por uso de Então, Vire a Página.
+-- Cada perícia roubada pode conceder um dado adicional reduzido em um passo.
+-- Inclui NPCs sem ficha, seleção de bônus, teste verificado e golpe físico.
+-- Exige migrações anteriores do Arquivo Espiritual.
 
 CREATE OR REPLACE FUNCTION public.ae_book_skill_die(p_sheet_id text, p_skill text, p_base integer)
  RETURNS integer
@@ -147,19 +149,19 @@ BEGIN
  IF coalesce((book->>'scene')::integer,-1)<>scene_no
  THEN book=jsonb_build_object('scene',scene_no,'targets','{}'::jsonb);END IF;
  targets=coalesce(book->'targets','{}'::jsonb);
- page_turns=least(17,greatest(0,coalesce((book->>'pageTurns')::integer,0)));
+ page_turns=greatest(0,coalesce((book->>'pageTurns')::integer,0));
  capacity=1+page_turns;
  IF jsonb_typeof(book->'stolen')='array' THEN
   stolen_entries=book->'stolen';
  ELSIF jsonb_typeof(book->'stolen')='object' THEN
   stolen_entries=jsonb_build_array(book->'stolen');
  END IF;
- IF jsonb_array_length(stolen_entries)>18 THEN
+ IF jsonb_array_length(stolen_entries)>100 THEN
   SELECT coalesce(jsonb_agg(v.value ORDER BY v.ord),'[]'::jsonb) INTO stolen_entries
-  FROM jsonb_array_elements(stolen_entries) WITH ORDINALITY v(value,ord) WHERE v.ord<=18;
+  FROM jsonb_array_elements(stolen_entries) WITH ORDINALITY v(value,ord) WHERE v.ord<=100;
  END IF;
  IF p_selected_bonuses IS NOT NULL AND
-    (jsonb_typeof(p_selected_bonuses)<>'array' OR jsonb_array_length(p_selected_bonuses)>18)
+    (jsonb_typeof(p_selected_bonuses)<>'array' OR jsonb_array_length(p_selected_bonuses)>100)
  THEN RAISE EXCEPTION 'Seleção de perícias inválida.';END IF;
  IF p_action='attack' AND coalesce((book->>'lastStrikeRound')::integer,-1)=round_no
  THEN RAISE EXCEPTION 'O ataque do Livro já foi realizado nesta rodada.';END IF;
@@ -204,6 +206,9 @@ BEGIN
   IF NOT npc THEN
    die=public.ae_book_skill_die(target_key,'Destreza',die);
    IF die<>0 THEN die=public.ae_die_step(die,public.ae_ability_step_bonus(tgt,'Destreza','Corpo'));END IF;
+  ELSIF EXISTS(SELECT 1 FROM jsonb_array_elements(stolen_entries) x(v)
+      WHERE x.v->>'targetId'=target_key AND x.v->>'skill'='Destreza') THEN
+   die=0;
   END IF;
   def=public.ae_random_die((tgt->'groups'->>'Corpo')::integer)+CASE WHEN die=0 THEN 0 ELSE public.ae_random_die(die) END;
   att=att+bonus_total;
@@ -228,7 +233,7 @@ BEGIN
  ELSE
   grade=grade-1;
   -- Cada uso de Vire a Página abre mais um espaço de roubo nesta cena.
-  page_turns=least(17,page_turns+1);
+  page_turns=page_turns+1;
   capacity=1+page_turns;
   book=book||jsonb_build_object('pageTurns',page_turns);
   die=(src->'skills'->>'Lábia')::integer;
@@ -237,7 +242,10 @@ BEGIN
   att=public.ae_random_die((src->'groups'->>'Mente')::integer)+CASE WHEN die=0 THEN 0 ELSE public.ae_random_die(die) END;
   die=(tgt->'skills'->>'Determinação')::integer;
   IF npc THEN
-   IF old_grade>=3 THEN die=public.ae_die_step(die,-1);END IF;
+   IF EXISTS(SELECT 1 FROM jsonb_array_elements(stolen_entries) x(v)
+      WHERE x.v->>'targetId'=target_key AND x.v->>'skill'='Determinação')
+   THEN die=0;
+   ELSIF old_grade>=3 THEN die=public.ae_die_step(die,-1);END IF;
   ELSE
    die=public.ae_book_skill_die(target_key,'Determinação',die);
    IF die<>0 THEN die=public.ae_die_step(die,public.ae_ability_step_bonus(tgt,'Determinação','Mente')-CASE WHEN old_grade>=3 THEN 1 ELSE 0 END);END IF;
