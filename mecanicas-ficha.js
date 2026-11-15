@@ -113,7 +113,7 @@ function expireShinji(s,c){
  const inv=c.shinjiInversion;
  if(inv){
   const src=app()?.db?.sheets?.find(x=>x.id===SHINJI_SHEET_ID);
-  const still=src&&Number(src.combat?.scene||1)===Number(inv.scene)
+  const still=!src||Number(src.combat?.scene||1)===Number(inv.scene)
    &&src.abilityRuntime?.shinji?.shikaiActive===true
    &&src.abilityRuntime?.billing?.['shinji-sakanade-liberar']?.active===true
    &&Number(src.abilityRuntime.billing['shinji-sakanade-liberar'].scene)===scene;
