@@ -1471,11 +1471,84 @@ function sheetMotionOff(){return motionOff()||(prefs.noSheetMotion&&page==='shee
 function motionOff(){return prefs.reduceMotion===true||(prefs.reduceMotion===null&&matchMedia('(prefers-reduced-motion: reduce)').matches)}
 function applyPrefs(){const root=document.documentElement,p=currentPalette();for(const [k,v] of Object.entries(p))root.style.setProperty('--theme-'+k,v);root.style.setProperty('--accent-ink',contrast('#000000',p.accent)>=contrast('#FFFFFF',p.accent)?'#000000':'#FFFFFF');root.style.setProperty('--optional-panel-gradient',prefs.globalGradient?`linear-gradient(135deg, ${p.panel}, ${prefs.globalGradientEnd||p.raised})`:'none');root.classList.toggle('global-gradient',!!prefs.globalGradient);root.style.fontSize=prefs.fontSize+'%';root.classList.toggle('reduce-motion',motionOff());root.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');root.classList.toggle('no-grain',!prefs.grain);root.classList.toggle('no-energy',!prefs.energy||motionOff());root.classList.toggle('easy-font',!!prefs.easyFont);root.classList.toggle('wide-spacing',!!prefs.spacing);if(el('musicVolume'))el('musicVolume').value=prefs.musicVolume;try{el('audio').volume=effectiveMusicVolume()/100}catch(e){}musicMuted=!!(prefs.musicMuted||prefs.masterMuted);soundOn=effectiveEffectsVolume()>0;applyExternalMusicVolume();updateMusicUi();document.querySelectorAll('input[type=range]').forEach(updateRangeTrack)}
 function contrast(hex1,hex2){function lum(h){const a=h.replace('#','').match(/../g).map(x=>parseInt(x,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return .2126*a[0]+.7152*a[1]+.0722*a[2]}const a=lum(hex1),b=lum(hex2);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05)}
-function paletteSwatch(label,key){return `<label class="color-control">${label}<input aria-label="${label}" type="color" data-palette="${key}" value="${currentPalette()[key]}"></label>`}
-function settings(){const p=currentPalette(),warning=contrast(p.text,p.bg)<4.5||contrast(p.text,p.accent)<4.5;return headline('PREFERÊNCIAS DO DISPOSITIVO','CONFIGURAÇÕES','Alterações imediatas e salvas somente neste dispositivo.')+`<div class="grid2"><section class="panel"><div class="sectionhead"><h2>SOM</h2>${btn('RESTAURAR','resetSettings:som','small')}</div><div class="field"><label for="settingsMusic">Volume da música: <span id="musicPercent">${prefs.musicVolume}%</span></label><input type="range" min="0" max="100" value="${prefs.musicVolume}" id="settingsMusic" aria-label="Volume da música"></div><label class="checkline"><input type="checkbox" id="settingsMuteMusic" ${prefs.musicMuted?'checked':''}> Silenciar música</label><div class="field"><label for="settingsEffects">Volume dos efeitos: <span id="effectsPercent">${prefs.effectsVolume}%</span></label><input type="range" min="0" max="100" value="${prefs.effectsVolume}" id="settingsEffects" aria-label="Volume dos efeitos"></div><label class="checkline"><input type="checkbox" id="settingsMuteEffects" ${prefs.effectsMuted?'checked':''}> Silenciar efeitos</label><div class="actions">${btn('TESTAR SOM','testSound','main')}</div></section><section class="panel"><div class="sectionhead"><h2>PALETA</h2>${btn('RESTAURAR','resetSettings:paleta','small')}</div><div class="field"><label for="presetChoice">Cores</label><select id="presetChoice">${[['padrao','Padrão · Ichigo'],['shinigami','Shinigami · preto e vermelho'],['quincy','Quincy · azul glacial'],['hueco','Hueco Mundo · verde pálido'],['aurora','Aurora glacial'],['crepusculo','Crepúsculo'],['marfim','Marfim'],['claro','Claro'],['contraste','Alto contraste'],['daltonismo','Daltonismo · azul e amarelo'],['personalizado','Personalizada']].map(([v,n])=>`<option value="${v}" ${prefs.preset===v?'selected':''}>${n}</option>`).join('')}</select></div><div class="color-grid">${[['Fundo','bg'],['Estrutura','structure'],['Destaque','accent'],['Contorno','outline'],['Texto','text']].map(([a,b])=>paletteSwatch(a,b)).join('')}</div><div class="grad-row" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0"><label><input type="checkbox" id="globalGradient" ${prefs.globalGradient?'checked':''}> Gradiente nos painéis do site</label><label>Segunda cor <input type="color" id="globalGradientEnd" value="${prefs.globalGradientEnd||p.raised}" aria-label="Segunda cor do gradiente"></label></div><div class="contrast-note" id="contrastWarning">${warning?'Atenção: uma combinação apresenta contraste abaixo de 4,5:1.':'Contraste de texto avaliado.'}</div><div class="palette-preview"><p>EXEMPLO DE LEITURA</p><div class="track"><div class="fill" style="width:68%"></div></div><button class="btn main" type="button">AÇÃO PRINCIPAL</button></div></section><section class="panel"><div class="sectionhead"><h2>ACESSIBILIDADE</h2>${btn('RESTAURAR','resetSettings:acesso','small')}</div><div class="field"><label for="sizeChoice">Tamanho do texto</label><select id="sizeChoice">${[100,115,130,150].map(v=>`<option value="${v}" ${prefs.fontSize===v?'selected':''}>${v}%</option>`).join('')}</select></div>${[['easyFont','Fonte Atkinson Hyperlegible'],['spacing','Espaçamento ampliado'],['noSheetMotion','Sem movimento nas fichas'],['rollImpacts','Efeitos visuais de críticos'],['grain','Exibir grão'],['energy','Exibir fundo animado']].map(([k,n])=>`<label class="checkline"><input type="checkbox" data-setting="${k}" ${prefs[k]?'checked':''}> ${n}</label>`).join('')}<div class="field"><label for="motionChoice">Movimento</label><select id="motionChoice"><option value="auto" ${prefs.reduceMotion===null?'selected':''}>Seguir o dispositivo</option><option value="off" ${prefs.reduceMotion===true?'selected':''}>Reduzir movimentos</option><option value="on" ${prefs.reduceMotion===false?'selected':''}>Permitir movimentos</option></select></div></section></div>`}
+
+function paletteEditor(){
+ const p=currentPalette();
+ const swatches=[['Fundo','bg'],['Painéis','panel'],['Superfícies','raised'],['Estrutura','structure'],['Ciano','cold'],['Texto','text'],['Destaque','accent'],['Destaque pressionado','pressed'],['Contorno','outline']];
+ const body='<div class="ae-palette-editor">'+
+ '<p class="ae-settings-muted">Personalize os elementos visuais. As alterações são aplicadas e salvas neste dispositivo.</p>'+
+ '<div class="ae-palette-state" id="paletteEditingState">'+(prefs.preset==='personalizado'?'PERSONALIZADA · ALTERAÇÕES SALVAS':'ICHIGO · PADRÃO')+'</div>'+
+ '<div class="ae-palette-editor-grid">'+swatches.map(([label,key])=>'<label class="ae-palette-color"><span>'+label+'</span><input type="color" data-palette="'+key+'" value="'+p[key]+'" aria-label="Cor: '+label+'"></label>').join('')+'</div>'+
+ '<div class="ae-palette-gradient"><label class="ae-settings-check"><input type="checkbox" id="globalGradient" '+(prefs.globalGradient?'checked':'')+'> Ativar gradiente nos painéis</label>'+
+ '<label class="ae-palette-gradient-color">Segunda cor do gradiente<input type="color" id="globalGradientEnd" value="'+(prefs.globalGradientEnd||p.raised)+'" aria-label="Segunda cor do gradiente"></label></div>'+
+ '<div class="ae-palette-live-preview" id="paletteLivePreview" aria-label="Prévia da paleta"><span>EXEMPLO DE INTERFACE</span><strong>Leitura e contraste</strong><span class="ae-palette-preview-action">BOTÃO DE AÇÃO</span></div>'+
+ '<p class="ae-palette-warning" id="contrastWarning"></p></div>';
+ modal('PERSONALIZAR PALETA',body,[['CONCLUÍDO','closeModal','main']]);
+ const dialog=el('dialogRoot')?.querySelector('.dialog');dialog?.classList.add('ae-palette-dialog');
+ updatePaletteEditorUi();
+}
+function settingsVolumeRow(label,id,value,outputId,description){
+ return '<div class="ae-volume-row"><div class="ae-volume-row-heading"><label for="'+id+'">'+label+'</label><output for="'+id+'" id="'+outputId+'">'+value+'%</output></div>'+
+ '<input type="range" id="'+id+'" min="0" max="100" step="1" value="'+value+'" aria-label="'+label+'"><p>'+description+'</p></div>';
+}
+function settings(){
+ const p=currentPalette();
+ const swatches=['bg','panel','structure','cold','accent','text'].map(k=>'<span aria-hidden="true" style="background:'+p[k]+'"></span>').join('');
+ return headline('PREFERÊNCIAS DO DISPOSITIVO','CONFIGURAÇÕES','Personalize sua experiência. As preferências são salvas neste dispositivo.')+
+ '<div class="ae-settings-stack">'+
+ '<section class="panel ae-settings-panel" aria-labelledby="settingsSoundTitle">'+
+ '<div class="ae-settings-heading"><div><span class="ae-settings-index">01 / ÁUDIO</span><h2 id="settingsSoundTitle">SOM</h2><p>Ajuste o volume da experiência sem alterar os demais jogadores.</p></div>'+btn('RESTAURAR','resetSettings:som','small')+'</div>'+
+ '<div class="ae-settings-volume-list">'+
+ settingsVolumeRow('Volume geral','settingsMaster',clampAudio(prefs.masterVolume),'masterPercent','Controla a intensidade total da música e dos efeitos.')+
+ settingsVolumeRow('Música','settingsMusic',clampAudio(prefs.musicVolume),'musicPercent','Volume do player local e do YouTube integrado.')+
+ settingsVolumeRow('Efeitos sonoros','settingsEffects',clampAudio(prefs.effectsVolume),'effectsPercent','Cliques, rolagens, habilidades e impactos.')+
+ '</div><div class="ae-settings-muted-grid">'+
+ '<label class="ae-settings-check"><input type="checkbox" id="settingsMuteMaster" '+(prefs.masterMuted?'checked':'')+'> Silenciar tudo</label>'+
+ '<label class="ae-settings-check"><input type="checkbox" id="settingsMuteMusic" '+(prefs.musicMuted?'checked':'')+'> Silenciar música</label>'+
+ '<label class="ae-settings-check"><input type="checkbox" id="settingsMuteEffects" '+(prefs.effectsMuted?'checked':'')+'> Silenciar efeitos</label>'+
+ '</div><div class="ae-settings-footer">'+btn('TESTAR EFEITOS','testSound','main')+
+ '<p>O áudio incorporado do Spotify é controlado pelo próprio player ou dispositivo.</p></div></section>'+
+ '<section class="panel ae-settings-panel ae-settings-palette" aria-labelledby="settingsPaletteTitle">'+
+ '<div class="ae-settings-heading"><div><span class="ae-settings-index">02 / APARÊNCIA</span><h2 id="settingsPaletteTitle">PALETA</h2><p>Escolha uma base ou ajuste cada cor separadamente.</p></div>'+btn('RESTAURAR','resetSettings:paleta','small')+'</div>'+
+ '<div class="ae-palette-chooser"><div class="ae-palette-chooser-main"><label for="presetChoice">Paleta de cores</label><select id="presetChoice">'+
+ '<option value="padrao" '+(prefs.preset==='padrao'?'selected':'')+'>Ichigo</option>'+
+ '<option value="personalizado" '+(prefs.preset==='personalizado'?'selected':'')+'>Personalizada</option>'+
+ '</select><div class="ae-palette-swatches" aria-label="Cores da paleta">'+swatches+'</div></div>'+
+ '<button class="ae-palette-gear" type="button" data-action="paletteEditor" title="Personalizar paleta" aria-label="Abrir editor de paleta">'+icon('settings')+'</button></div>'+
+ '</section>'+
+ '<section class="panel ae-settings-panel" aria-labelledby="settingsAccessTitle">'+
+ '<div class="ae-settings-heading"><div><span class="ae-settings-index">03 / LEITURA</span><h2 id="settingsAccessTitle">ACESSIBILIDADE</h2><p>Controle legibilidade, movimento e efeitos visuais.</p></div>'+btn('RESTAURAR','resetSettings:acesso','small')+'</div>'+
+ '<div class="ae-settings-access-grid"><div class="field"><label for="sizeChoice">Tamanho do texto</label><select id="sizeChoice">'+[100,115,130,150].map(v=>'<option value="'+v+'" '+(prefs.fontSize===v?'selected':'')+'>'+v+'%</option>').join('')+'</select></div>'+
+ '<div class="field"><label for="motionChoice">Movimento</label><select id="motionChoice"><option value="auto" '+(prefs.reduceMotion===null?'selected':'')+'>Seguir o dispositivo</option><option value="off" '+(prefs.reduceMotion===true?'selected':'')+'>Reduzir movimentos</option><option value="on" '+(prefs.reduceMotion===false?'selected':'')+'>Permitir movimentos</option></select></div></div>'+
+ '<div class="ae-settings-muted-grid">'+[['easyFont','Fonte de fácil leitura'],['spacing','Espaçamento ampliado'],['noSheetMotion','Sem movimento nas fichas'],['rollImpacts','Efeitos visuais de críticos'],['grain','Textura discreta'],['energy','Efeitos do fundo']].map(([k,label])=>'<label class="ae-settings-check"><input type="checkbox" data-setting="'+k+'" '+(prefs[k]?'checked':'')+'> '+label+'</label>').join('')+'</div>'+
+ '</section></div>';
+}
 function updateRangeTrack(node){if(!node)return;const lo=Number(node.min||0),hi=Number(node.max||100),v=Number(node.value);const pct=hi>lo?Math.min(100,Math.max(0,(v-lo)/(hi-lo)*100)):0;node.style.setProperty('--range-pct',pct+'%')}
-function changeSetting(id,value){if(id==='presetChoice'){prefs.preset=value;if(value==='personalizado'&&!prefs.custom)prefs.custom={...SITE_THEME()};render()}else if(id==='sizeChoice')prefs.fontSize=Number(value);else if(id==='motionChoice')prefs.reduceMotion=value==='auto'?null:value==='off';else if(id==='settingsMusic'||id==='musicVolume')prefs.musicVolume=Number(value);else if(id==='settingsEffects')prefs.effectsVolume=Number(value);else if(id==='settingsMuteMusic')prefs.musicMuted=value;else if(id==='settingsMuteEffects')prefs.effectsMuted=value;else if(['grain','energy','spacing','easyFont','noSheetMotion','rollImpacts'].includes(id))prefs[id]=value;PREFSSTORE.save();applyPrefs();if(page==='settings'&&id!=='presetChoice'&&id!=='sizeChoice'){const a=el('musicPercent'),b=el('effectsPercent');if(a)a.textContent=prefs.musicVolume+'%';if(b)b.textContent=prefs.effectsVolume+'%';const c=el('contrastWarning'),p=currentPalette();if(c)c.textContent=contrast(p.text,p.bg)<4.5||contrast(p.text,p.accent)<4.5?'Atenção: uma combinação apresenta contraste abaixo de 4,5:1.':'Contraste de texto avaliado.'}}
-function resetSettings(section){if(section==='som')Object.assign(prefs,{musicVolume:20,effectsVolume:35,musicMuted:false,effectsMuted:false});if(section==='paleta')Object.assign(prefs,{preset:'padrao',custom:null,globalGradient:false,globalGradientEnd:null});if(section==='acesso')Object.assign(prefs,{fontSize:100,easyFont:false,spacing:false,reduceMotion:null,grain:true,energy:true,noSheetMotion:false,rollImpacts:true});PREFSSTORE.save();applyPrefs();render()}
+function changeSetting(id,value){
+ if(id==='presetChoice'){
+  if(value==='personalizado')ensureCustomPalette();
+  else if(value==='padrao'){prefs.preset='padrao';prefs.globalGradient=false;prefs.globalGradientEnd=null}
+  else return;
+  PREFSSTORE.save();applyPrefs();render();return;
+ }
+ if(id==='sizeChoice')prefs.fontSize=Number(value);
+ else if(id==='motionChoice')prefs.reduceMotion=value==='auto'?null:value==='off';
+ else if(id==='settingsMaster')prefs.masterVolume=clampAudio(value);
+ else if(id==='settingsMusic'||id==='musicVolume')prefs.musicVolume=clampAudio(value);
+ else if(id==='settingsEffects')prefs.effectsVolume=clampAudio(value);
+ else if(id==='settingsMuteMaster')prefs.masterMuted=!!value;
+ else if(id==='settingsMuteMusic')prefs.musicMuted=!!value;
+ else if(id==='settingsMuteEffects')prefs.effectsMuted=!!value;
+ else if(['grain','energy','spacing','easyFont','noSheetMotion','rollImpacts'].includes(id))prefs[id]=value;
+ else return;
+ PREFSSTORE.save();applyPrefs();
+ if(page==='settings'){
+  for(const [key,val] of [['masterPercent',prefs.masterVolume],['musicPercent',prefs.musicVolume],['effectsPercent',prefs.effectsVolume]]){
+   const node=el(key);if(node)node.textContent=val+'%';
+  }
+ }
+}
+function resetSettings(section){if(section==='som')Object.assign(prefs,{masterVolume:100,masterMuted:false,musicVolume:20,effectsVolume:35,musicMuted:false,effectsMuted:false});if(section==='paleta')Object.assign(prefs,{preset:'padrao',custom:null,globalGradient:false,globalGradientEnd:null});if(section==='acesso')Object.assign(prefs,{fontSize:100,easyFont:false,spacing:false,reduceMotion:null,grain:true,energy:true,noSheetMotion:false,rollImpacts:true});PREFSSTORE.save();applyPrefs();render()}
 
 function storageWarning(){if(noticeShown)return;noticeShown=true;setTimeout(()=>toast('Armazenamento indisponível','O site continua funcionando em memória. Faça um backup: alterações podem desaparecer ao fechar a página.',true),300)}
 function save(){DATASTORE.save(db);if(window.ARQUIVO_SYNC?.state.enabled){window.ARQUIVO_SYNC.push(db,role,currentSheet||db.sheets.find(s=>s.id===currentSheet)?.id||" ".trim())}}function master(){return role==='master'&&Array.isArray(db.keys)&&db.keys.some(k=>k.id===keyOwnerId&&k.active&&k.kind==='master')}function player(){return role==='master'||role==='player'}function linkedIds(sh){
