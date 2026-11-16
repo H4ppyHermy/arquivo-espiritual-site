@@ -944,6 +944,98 @@ input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;b
 @media(max-width:720px){.ae3-shinji-controls,.ae3-shinji-dual{grid-template-columns:1fr}.ae3-shinji-subtitle small{text-align:left}}
 @media(max-width:475px){.ae3-shinji-panel{padding:13px}.ae3-shinji-states{grid-template-columns:repeat(2,minmax(0,1fr))}.ae3-shinji-states>div:last-child{grid-column:span 2}.ae3-shinji-npc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ae3-shinji-control-group,.ae3-shinji-dual>section{padding:12px 9px}}
 @media(prefers-reduced-motion:reduce){.ae3-shinji-fx,.ae3-shinji-fx *{animation:none!important;display:none!important}}
+
+/* Home Brave Souls: reversível na branch backup/home-before-brave-souls-2026-11-16 */
+body.home-view .shell{max-width:1660px}
+body.home-view .toolbar{margin-bottom:18px;padding-bottom:13px;border-bottom:1px solid var(--theme-structure)}
+body.home-view .toolbar .status{color:var(--theme-cold);letter-spacing:.1em;text-transform:uppercase;font-weight:800}
+body.home-view .side{background:linear-gradient(155deg,var(--theme-panel),var(--theme-bg));border-right:1px solid var(--theme-structure)}
+body.home-view .brand{border-bottom:1px solid var(--theme-structure);margin-bottom:16px;padding-bottom:21px;position:relative}
+body.home-view .brand:after{content:"";position:absolute;width:52px;height:3px;background:var(--theme-accent);bottom:-2px;left:16px}
+body.home-view .brand b{font-size:clamp(30px,2.7vw,40px)}
+body.home-view .nav button{min-height:46px;border:1px solid transparent;border-left:3px solid transparent;transition:background .15s,border-color .15s}
+body.home-view .nav button:hover{transform:none;background:var(--theme-raised);border-color:var(--theme-structure)}
+body.home-view .nav button.active{color:var(--theme-text);background:linear-gradient(90deg,var(--theme-raised),var(--theme-panel));border:1px solid var(--theme-structure);border-left:3px solid var(--theme-accent)}
+body.home-view .nav button.active svg{color:var(--theme-accent)}
+.ae-home{isolation:isolate;color:var(--theme-text)}
+.ae-home-path{display:flex;gap:9px;align-items:center;margin-bottom:14px;font-size:10px;font-weight:900;letter-spacing:.14em;min-height:30px}
+.ae-home-path i{font-style:normal;color:var(--theme-cold)}
+.ae-home-path-stripe{display:inline-block;width:21px;height:2px;background:var(--theme-accent);transform:skewX(-25deg)}
+.ae-home-path-right{margin-left:auto;color:var(--theme-cold)}
+.ae-home-hero{isolation:isolate;overflow:hidden;position:relative;min-height:360px;border:1px solid var(--theme-structure);border-top:3px solid var(--theme-accent);background:linear-gradient(110deg,#071923,var(--theme-panel));box-shadow:0 9px 24px rgba(0,0,0,.20)}
+.ae-home-hero:before{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;background:repeating-linear-gradient(115deg,transparent 0,transparent 78px,rgba(76,201,240,.025) 79px,transparent 80px)}
+.ae-home-hero:after{content:"";position:absolute;right:0;top:0;border-top:27px solid var(--theme-accent);border-left:27px solid transparent;pointer-events:none}
+.ae-home-hero-copy{position:relative;z-index:3;max-width:710px;min-height:360px;padding:clamp(22px,4vw,57px);display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.ae-home-overline{display:flex;align-items:center;gap:12px;color:var(--theme-cold);font-size:10px;font-weight:900;letter-spacing:.16em}
+.ae-home-diamond{display:grid;place-items:center;width:24px;height:24px;background:var(--theme-accent);color:#08141b;font-size:13px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.ae-home-hero h1{font:900 clamp(52px,6vw,91px)/.87 'Barlow Condensed',Impact,sans-serif;letter-spacing:.015em;margin:20px 0 17px;text-transform:uppercase;text-shadow:0 3px 15px #0007}
+.ae-home-hero h1 em{font-style:normal;color:var(--theme-accent)}
+.ae-home-hero-copy p{font-size:13px;line-height:1.65;max-width:430px;margin:0 0 23px}
+.ae-home-play{display:inline-flex;align-items:center;justify-content:space-between;gap:11px;min-height:51px;min-width:210px;padding:10px 18px;border:1px solid #ffb36b;background:var(--theme-accent);color:#061018;font-weight:900;letter-spacing:.055em;font-size:13px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));transition:filter .15s,transform .15s}
+.ae-home-play svg{width:20px;height:20px}
+.ae-home-play:hover{transform:translateY(-2px);filter:brightness(1.12)}
+.ae-home-play:focus-visible,.ae-home-tile:focus-visible{outline:3px solid var(--theme-cold);outline-offset:3px}
+.ae-home-art{position:absolute;inset:0 0 0 auto;width:49%;z-index:0;background:radial-gradient(ellipse at 70% 48%,rgba(30,111,159,.45),transparent 50%),linear-gradient(130deg,#123248,#07131d);background-position:center;background-size:cover;pointer-events:none}
+.ae-home-art:before{content:"";position:absolute;inset:0;z-index:2;background:linear-gradient(90deg,#071923 0%,rgba(7,25,35,.80) 16%,rgba(7,25,35,.14) 60%,rgba(7,25,35,.30) 100%)}
+.ae-home-art:after{content:"";position:absolute;inset:0;background:linear-gradient(150deg,transparent 40%,rgba(76,201,240,.15) 40.3%,transparent 41%),linear-gradient(130deg,transparent 57%,rgba(255,122,26,.16) 57.3%,transparent 58%)}
+.ae-home-art-circle{position:absolute;width:min(32vw,360px);aspect-ratio:1;right:0;top:50%;transform:translate(10%,-50%);border:2px solid rgba(76,201,240,.30);border-radius:50%;box-shadow:0 0 0 29px rgba(76,201,240,.035),0 0 0 60px rgba(76,201,240,.025)}
+.ae-home-art-kanji{position:absolute;right:12%;top:50%;transform:translateY(-52%) rotate(-9deg);font:900 clamp(150px,21vw,290px)/1 serif;color:rgba(232,244,250,.13)}
+.ae-home-art.has-image .ae-home-art-kanji{display:none}
+.ae-home-art-mark{position:absolute;right:27px;bottom:18px;z-index:3;font:900 14px 'Barlow Condensed',sans-serif;letter-spacing:.28em}
+.ae-home-art-mark b{color:var(--theme-accent)}
+.ae-home-hero-side{position:absolute;right:13px;top:50%;z-index:3;writing-mode:vertical-rl;transform:translateY(-50%);font-size:9px;letter-spacing:.19em;font-weight:900;color:var(--theme-cold)}
+.ae-home-sectionhead{display:flex;align-items:end;justify-content:space-between;gap:14px;margin:27px 0 13px}
+.ae-home-sectionhead>div>span{color:var(--theme-cold);font-size:10px;letter-spacing:.15em;font-weight:900}
+.ae-home-sectionhead i{font-style:normal;color:var(--theme-accent)}
+.ae-home-sectionhead h2{font:900 clamp(27px,3.2vw,40px)/1 'Barlow Condensed',Impact,sans-serif;margin:6px 0 0}
+.ae-home-sectionhead small{font-size:11px;opacity:.8}
+.ae-home-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.ae-home-tile{position:relative;display:flex;flex-direction:column;text-align:left;gap:0;min-width:0;min-height:187px;padding:17px 19px 14px;color:var(--theme-text);background:linear-gradient(155deg,var(--theme-raised),var(--theme-panel) 76%);border:1px solid var(--theme-structure);border-bottom:3px solid var(--theme-cold);cursor:pointer;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));transition:transform .15s,filter .15s,border-color .15s}
+.ae-home-tile:hover{transform:translateY(-3px);filter:brightness(1.1);border-color:var(--theme-cold)}
+.ae-home-tile-characters,.ae-home-tile-rolls{border-bottom-color:var(--theme-accent)}
+.ae-home-tile-top,.ae-home-tile-bottom{display:flex;align-items:center;justify-content:space-between;gap:9px;font-size:10px;font-weight:900}
+.ae-home-tile-top{color:var(--theme-cold);letter-spacing:.08em}
+.ae-home-tile-top i{font-style:normal;color:var(--theme-accent);margin:0 3px}
+.ae-home-tile-top svg{width:18px;height:18px;color:var(--theme-text);margin-left:auto}
+.ae-home-tile-title{display:flex;align-items:center;gap:14px;margin:15px 0 7px}
+.ae-home-tile-title strong{font:900 clamp(28px,2.5vw,37px)/1 'Barlow Condensed',Impact,sans-serif}
+.ae-home-icon{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;background:rgba(76,201,240,.09);border:1px solid var(--theme-structure);transform:skewX(-7deg)}
+.ae-home-icon svg{width:26px;height:26px;color:var(--theme-cold);transform:skewX(7deg)}
+.ae-home-tile-characters .ae-home-icon svg,.ae-home-tile-rolls .ae-home-icon svg{color:var(--theme-accent)}
+.ae-home-tile-desc{font-size:11px;line-height:1.55;opacity:.88}
+.ae-home-tile-bottom{margin-top:auto;padding-top:12px;border-top:1px solid var(--theme-structure)}
+.ae-home-tile-bottom span{font-weight:500;opacity:.8}
+.ae-home-tile-bottom b{letter-spacing:.07em;color:var(--theme-accent)}
+@media(max-width:980px){.ae-home-hero-copy{max-width:67%}.ae-home-hero h1{font-size:clamp(47px,6.3vw,74px)}.ae-home-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.ae-home-tile:last-child{grid-column:span 2}}
+@media(max-width:680px){
+body.home-view .shell{padding:13px 13px calc(115px + env(safe-area-inset-bottom,0px))}
+body.home-view .toolbar{margin-bottom:12px;padding-bottom:10px}
+body.home-view .side{background:var(--theme-panel);border-right:0}
+body.home-view .nav{gap:0}
+body.home-view .nav button{min-height:68px;border:0;border-top:3px solid transparent;padding:8px 3px;font-size:9px}
+body.home-view .nav button.active{border:0;border-top:3px solid var(--theme-accent);background:var(--theme-raised)}
+.ae-home-path{margin-bottom:10px}.ae-home-path-right{display:none}
+.ae-home-hero,.ae-home-hero-copy{min-height:375px}
+.ae-home-hero-copy{max-width:100%;padding:25px 21px}
+.ae-home-hero h1{font-size:clamp(47px,11vw,70px);margin:18px 0 15px}
+.ae-home-hero-copy p{max-width:310px;font-size:12px}
+.ae-home-art{width:100%;opacity:.36}
+.ae-home-art:before{background:linear-gradient(90deg,rgba(6,21,31,.9),rgba(6,21,31,.52))}
+.ae-home-art-circle{width:280px}
+.ae-home-art-mark,.ae-home-hero-side{display:none}
+.ae-home-sectionhead{margin-top:23px}
+.ae-home-sectionhead h2{font-size:31px}
+.ae-home-sectionhead small{display:none}
+}
+@media(max-width:520px){
+.ae-home-tiles{grid-template-columns:1fr;gap:10px}
+.ae-home-tile,.ae-home-tile:last-child{grid-column:auto;min-height:149px;padding:13px 16px 11px}
+.ae-home-tile-title{margin:10px 0 5px}
+.ae-home-tile-title strong{font-size:32px}
+.ae-home-tile-bottom{padding-top:10px;margin-top:10px}
+}
+@media(prefers-reduced-motion:reduce){.ae-home-play,.ae-home-tile,body.home-view .nav button{transition:none!important}.ae-home-play:hover,.ae-home-tile:hover{transform:none}}
+
 </style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><button type="button" id="sidebarAudio" class="sidebar-audio" data-action="hudToggle" aria-label="Abrir ou fechar o painel de música" aria-expanded="false" title="Abrir música"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><rect x="2" y="13" width="4" height="8" rx="2"/><rect x="18" y="13" width="4" height="8" rx="2"/></svg><span>Música</span></button><div class="sidefoot"><span id="roleText">VISITANTE</span><p id="storageText"></p></div></aside><main class="shell"><div class="toolbar"><span class="mobile-title" id="mobileTitle">Bleach CBB</span><span class="status" id="headerStatus">REGISTRO // BLEACH CBB</span><div class="toolbar-right" aria-label="Conta e controles">
  <span class="version-tag version-top">VERSÃO 3.6</span>
@@ -1209,10 +1301,46 @@ setInterval(async()=>{
 window.addEventListener('arquivo-sync-error',e=>{const msg=e.detail||'';if(msg!==lastOnlineWarning){lastOnlineWarning=msg;toast('Sincronização',msg,true)}onlineStatus()});
 window.addEventListener('arquivo-online-empty',()=>onlineStatus());
 
-function render(){if(page==='masterSheets')page='sheets';navRender();applyTheme();if(page==='home')el('page').innerHTML=home();else if(page==='library')el('page').innerHTML=library();else if(page==='sheets')el('page').innerHTML=currentSheet?sheetPage():sheets();else if(page==='rolls')el('page').innerHTML=rolls();else if(page==='session')el('page').innerHTML=sessionPage();else if(page==='settings')el('page').innerHTML=settings();else if(page==='admin')el('page').innerHTML=master()?admin():home();document.documentElement.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');const entries=el('page').children;for(let i=0;i<entries.length;i++){if(!(page==='sheets'&&sheetMotionOff())){entries[i].classList.add('fade-in');entries[i].style.animationDelay=(i*40)+'ms'}} applyTextOverrides();document.querySelectorAll('input[type=range]').forEach(updateRangeTrack);onlineStatus();if(window.ARQUIVO_SYNC?.state.enabled&&document.querySelector('[data-history-scope]'))Promise.resolve().then(()=>loadVerifiedHistory());}
+function render(){if(page==='masterSheets')page='sheets';document.body.classList.toggle('home-view',page==='home');navRender();applyTheme();if(page==='home')el('page').innerHTML=home();else if(page==='library')el('page').innerHTML=library();else if(page==='sheets')el('page').innerHTML=currentSheet?sheetPage():sheets();else if(page==='rolls')el('page').innerHTML=rolls();else if(page==='session')el('page').innerHTML=sessionPage();else if(page==='settings')el('page').innerHTML=settings();else if(page==='admin')el('page').innerHTML=master()?admin():home();document.documentElement.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');const entries=el('page').children;for(let i=0;i<entries.length;i++){if(!(page==='sheets'&&sheetMotionOff())){entries[i].classList.add('fade-in');entries[i].style.animationDelay=(i*40)+'ms'}} applyTextOverrides();document.querySelectorAll('input[type=range]').forEach(updateRangeTrack);onlineStatus();if(window.ARQUIVO_SYNC?.state.enabled&&document.querySelector('[data-history-scope]'))Promise.resolve().then(()=>loadVerifiedHistory());}
 function headline(k,t,s,buttons=''){return `<div class="hrow"><div><div class="eyebrow">${esc(k)}</div><h1>${esc(t)}</h1><p class="subtitle">${esc(s)}</p></div><div class="actions">${buttons}</div></div>`}
 function btn(text,act,cls=''){return `<button type="button" class="btn ${cls}" data-action="${act}">${text}</button>`}
-function home(){const cover=imgStyle(db.site.cover);return headline('CENTRO DE COMANDO',db.site.title||'Bleach CBB',db.site.subtitle||'Sistema de mesa de Bleach')+`<div class="cover"><div class="cover-content"><span class="eyebrow">BLEACH · SISTEMA AUTORAL</span><h2 class="display">NÃO HESITE.<br>SIGA EM FRENTE.</h2><div class="ink"></div><p class="subtitle">O medo é necessário para a evolução.</p><div class="actions">${btn('VER FICHAS '+icon('arrow','pill-icon'),'navSheets','main')}${btn('BIBLIOTECA','navLibrary')}</div></div><div class="cover-art ${cover?'hasimage':''}" style="${cover}"></div></div><div class="grid3 stagger" style="margin-top:17px"><article class="feature" data-open="library">${icon('book','feat-icon')}<h3>BIBLIOTECA</h3><p>${db.rules.length} documentos do sistema, sempre acessíveis.</p></article><article class="feature" data-open="sheets">${icon('user','feat-icon')}<h3>PERSONAGENS</h3><p>${db.sheets.length} fichas com recursos, perícias e técnicas.</p></article><article class="feature" data-open="rolls">${icon('dice','feat-icon')}<h3>MESA DE DADOS</h3><p>Rolar, comparar, registrar. Tudo em um só lugar.</p></article></div>`}
+function home(){
+ const cover=imgStyle(db.site.cover);
+ return `<section class="ae-home" aria-label="Página inicial">
+  <div class="ae-home-path"><span class="ae-home-path-stripe" aria-hidden="true"></span>ARQUIVO ESPIRITUAL <i>/</i> VISÃO GERAL <span class="ae-home-path-right">BLEACH · RPG DE MESA</span></div>
+  <section class="ae-home-hero" aria-labelledby="ae-home-headline">
+   <div class="ae-home-hero-copy">
+    <span class="ae-home-overline"><span class="ae-home-diamond" aria-hidden="true">✦</span> SUA JORNADA COMEÇA AQUI</span>
+    <h1 id="ae-home-headline">UM NOVO<br><em>CAPÍTULO</em><br>TE AGUARDA.</h1>
+    <p>Suas escolhas moldam a história. Acesse a sessão, prepare sua ficha e siga em frente.</p>
+    <button type="button" class="ae-home-play" data-page="session"><span>▶</span> ABRIR SESSÃO ${icon('arrow')}</button>
+   </div>
+   <div class="ae-home-art ${cover?'has-image':''}" style="${cover}" aria-hidden="true"><span class="ae-home-art-circle"></span><span class="ae-home-art-kanji">斬</span><span class="ae-home-art-mark">BLEACH <b>/</b> C.B.B</span></div>
+   <span class="ae-home-hero-side" aria-hidden="true">ARQUIVO ESPIRITUAL // 01</span>
+  </section>
+  <div class="ae-home-sectionhead"><div><span>ACESSO RÁPIDO <i>//</i> ÁREAS DO SISTEMA</span><h2>SEU CENTRO DE OPERAÇÕES</h2></div><small>Tudo a poucos toques.</small></div>
+  <div class="ae-home-tiles" role="group" aria-label="Acessos rápidos">
+   <button type="button" class="ae-home-tile ae-home-tile-characters" data-page="sheets" aria-label="Abrir fichas">
+    <span class="ae-home-tile-top">01 <i>/</i> PERSONAGENS ${icon('arrow')}</span>
+    <span class="ae-home-tile-title"><span class="ae-home-icon">${icon('user')}</span><strong>FICHAS</strong></span>
+    <span class="ae-home-tile-desc">Personagens, atributos e habilidades.</span>
+    <span class="ae-home-tile-bottom"><span>${db.sheets.length} fichas disponíveis</span><b>ACESSAR</b></span>
+   </button>
+   <button type="button" class="ae-home-tile ae-home-tile-library" data-page="library" aria-label="Abrir biblioteca">
+    <span class="ae-home-tile-top">02 <i>/</i> REGRAS ${icon('arrow')}</span>
+    <span class="ae-home-tile-title"><span class="ae-home-icon">${icon('book')}</span><strong>BIBLIOTECA</strong></span>
+    <span class="ae-home-tile-desc">Capítulos, mecânicas e referências.</span>
+    <span class="ae-home-tile-bottom"><span>${db.rules.length} documentos</span><b>CONSULTAR</b></span>
+   </button>
+   <button type="button" class="ae-home-tile ae-home-tile-rolls" data-page="rolls" aria-label="Abrir mesa de dados">
+    <span class="ae-home-tile-top">03 <i>/</i> TESTES ${icon('arrow')}</span>
+    <span class="ae-home-tile-title"><span class="ae-home-icon">${icon('dice')}</span><strong>ROLAGENS</strong></span>
+    <span class="ae-home-tile-desc">Dados, resultados e histórico.</span>
+    <span class="ae-home-tile-bottom"><span>Mesa de dados</span><b>ROLAR</b></span>
+   </button>
+  </div>
+ </section>`;
+}
 function library(){rebuildLibraryGlossary();const q=query.toLocaleLowerCase('pt-BR'),rs=db.rules.filter(r=>(r.title+' '+r.text).toLocaleLowerCase('pt-BR').includes(q));const n=q?db.rules.reduce((t,r)=>t+(r.title+' '+r.text).toLocaleLowerCase('pt-BR').split(q).length-1,0):0;return headline('CONHECIMENTO','BIBLIOTECA','Sistema completo, organizado por capítulos.',master()?btn('+ NOVO CAPÍTULO','newRule','main'):'')+`<div class="library-layout"><aside class="chapter-index panel"><b>ÍNDICE DE CAPÍTULOS</b><p class="ae-lib-aside-help">Escolha um capítulo para começar a leitura.</p><nav>${db.rules.map((r,i)=>`<button type="button" class="ae-lib-index-link" data-action="openChapter:${esc(r.id)}"><span>${String(i+1).padStart(2,'0')}</span>${esc(r.title)}</button>`).join('')}</nav></aside><section class="library-body"><div class="panel"><label for="ruleSearch">Pesquisar</label><input id="ruleSearch" value="${esc(query)}" placeholder="Buscar no sistema"><p id="ruleMatches">${q?n+' ocorrência'+(n===1?'':'s'):'Todos os capítulos · fechados por padrão'}</p><div class="ae-library-toolbar"><span>Toque no <b>?</b> para saber mais sobre uma mecânica.</span><div class="actions">${btn('FECHAR TODOS','closeAllChapters','small')}${btn('ABRIR TODOS','openAllChapters','small')}</div></div><div class="mobile-chapter"><label>Ir ao capítulo<select id="chapterJump"><option value="">Selecione...</option>${db.rules.map(r=>`<option value="${esc(r.id)}">${esc(r.title)}</option>`).join('')}</select></label></div></div><div id="ruleResults">${ruleItems(rs)}</div></section></div>`}
 const LIBRARY_HELP_TERMS=['Vida','Estabilidade','Alma','Desmaiado','Acorrentado','Morto','Pressionado','Grupos','Perícias','Dificuldade','Modificadores','Rodada','Fases','Ação Principal','Reação','Movimentação','Dano-base','Resistência','Estados','Condições','Recuperação Natural','Recuperação Especializada','Descanso Breve','Descanso Completo','Tratamento','Recomposição','Meditação','Cobertura','Ocultação','Posicionamento','Terreno','Conjuração Completa','Conjuração Abreviada','Ruptura da Máscara','Resistência Hollow','Domínio'];
 let libraryGlossary=new Map();
