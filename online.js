@@ -40,7 +40,7 @@ function connectDocumentChannel(){
 }
 async function init(){if(!ready)return false;
  if(!window.supabase?.createClient){state.error='Biblioteca de conexão indisponível. Verifique a internet.';return false}
- state.connecting=true;
+ state.connecting=true;window.dispatchEvent(new Event('arquivo-online-connecting'));
  try{
   state.client=window.supabase.createClient(apiUrl,apiKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
   let {data:{session},error}=await state.client.auth.getSession();if(error)throw error;
@@ -64,12 +64,13 @@ document.addEventListener('visibilitychange',()=>{
   window.dispatchEvent(new Event('arquivo-online-ready'));
   return true;
  }catch(e){state.error=e.message;state.enabled=false;window.dispatchEvent(new CustomEvent('arquivo-sync-error',{detail:e.message}));return false}
- finally{state.connecting=false}
+ finally{state.connecting=false;window.dispatchEvent(new Event('arquivo-online-state'))}
 }
 async function refresh(force=false){if(!state.enabled)return;
  if(!force&&(state.saving||Date.now()<state.busyUntil))return;
  const data=await rpc('ae_read_document');
  if(!data)return;
+ if(state.error){state.error='';window.dispatchEvent(new Event('arquivo-online-state'))}
  if(!force && state.revision===data.revision)return;
  state.revision=data.revision;
  if(Object.keys(data.data||{}).length===0){window.dispatchEvent(new CustomEvent('arquivo-online-empty'));return}
