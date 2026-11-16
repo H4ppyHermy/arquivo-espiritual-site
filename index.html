@@ -1489,6 +1489,16 @@ body.theme-zangetsu .ae-home-hero{background:var(--theme-panel)}
 body.theme-zangetsu .ae-home-art:not(.has-image){background:none!important}
 body.theme-zangetsu .ae-home-art:before,body.theme-zangetsu .ae-home-art:after{display:none!important}
 body.theme-zangetsu .ae-home-play{color:var(--accent-ink)}
+
+/* Configurações de áudio: silenciado = barra cinza, zero e não interativa. */
+#page .ae-volume-row-heading{justify-content:flex-start}
+#page .ae-volume-row.is-muted{border-color:#4A535A}
+#page .ae-volume-row.is-muted input[type="range"]{cursor:not-allowed;opacity:1;accent-color:#818B93;--range-pct:0%}
+#page .ae-volume-row.is-muted input[type="range"]::-webkit-slider-runnable-track{background:#555D65!important}
+#page .ae-volume-row.is-muted input[type="range"]::-webkit-slider-thumb{background:#89939C!important;border-color:#3A4147!important}
+#page .ae-volume-row.is-muted input[type="range"]::-moz-range-track{background:#555D65!important}
+#page .ae-volume-row.is-muted input[type="range"]::-moz-range-progress{background:#555D65!important}
+#page .ae-volume-row.is-muted input[type="range"]::-moz-range-thumb{background:#89939C!important;border-color:#3A4147!important}
 </style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><div class="sidebar-extras" aria-label="Estado do site e configurações">
  <span id="onlineStatus" class="online-status" title="Estado da sincronização">LOCAL</span>
@@ -1552,7 +1562,7 @@ function changeCustomGradient(key,value){
 
 function sheetMotionOff(){return motionOff()||(prefs.noSheetMotion&&page==='sheets')}
 function motionOff(){return prefs.reduceMotion===true||(prefs.reduceMotion===null&&matchMedia('(prefers-reduced-motion: reduce)').matches)}
-function applyPrefs(){const root=document.documentElement,p=currentPalette();for(const [k,v] of Object.entries(p))root.style.setProperty('--theme-'+k,v);root.style.setProperty('--accent-ink',contrast('#000000',p.accent)>=contrast('#FFFFFF',p.accent)?'#000000':'#FFFFFF');root.style.setProperty('--optional-panel-gradient',prefs.globalGradient?`linear-gradient(135deg, ${p.panel}, ${prefs.globalGradientEnd||p.raised})`:'none');root.classList.toggle('global-gradient',!!prefs.globalGradient);document.body.classList.toggle('theme-ichigo',prefs.preset==='padrao');document.body.classList.toggle('theme-zangetsu',prefs.preset==='zangetsu');root.style.fontSize=prefs.fontSize+'%';root.classList.toggle('reduce-motion',motionOff());root.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');root.classList.toggle('no-grain',!prefs.grain);root.classList.toggle('no-energy',!prefs.energy||motionOff());root.classList.toggle('easy-font',!!prefs.easyFont);root.classList.toggle('wide-spacing',!!prefs.spacing);if(el('musicVolume'))el('musicVolume').value=prefs.musicVolume;try{el('audio').volume=effectiveMusicVolume()/100}catch(e){}musicMuted=!!(prefs.musicMuted||prefs.masterMuted);soundOn=effectiveEffectsVolume()>0;applyExternalMusicVolume();updateMusicUi();document.querySelectorAll('input[type=range]').forEach(updateRangeTrack)}
+function applyPrefs(){const root=document.documentElement,p=currentPalette();for(const [k,v] of Object.entries(p))root.style.setProperty('--theme-'+k,v);root.style.setProperty('--accent-ink',contrast('#000000',p.accent)>=contrast('#FFFFFF',p.accent)?'#000000':'#FFFFFF');root.style.setProperty('--optional-panel-gradient',prefs.globalGradient?`linear-gradient(135deg, ${p.panel}, ${prefs.globalGradientEnd||p.raised})`:'none');root.classList.toggle('global-gradient',!!prefs.globalGradient);document.body.classList.toggle('theme-ichigo',prefs.preset==='padrao');document.body.classList.toggle('theme-zangetsu',prefs.preset==='zangetsu');root.style.fontSize=prefs.fontSize+'%';root.classList.toggle('reduce-motion',motionOff());root.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');root.classList.toggle('no-grain',!prefs.grain);root.classList.toggle('no-energy',!prefs.energy||motionOff());root.classList.toggle('easy-font',!!prefs.easyFont);root.classList.toggle('wide-spacing',!!prefs.spacing);if(el('musicVolume'))el('musicVolume').value=prefs.musicVolume;try{el('audio').volume=effectiveMusicVolume()/100}catch(e){}musicMuted=!!(prefs.musicMuted||prefs.masterMuted);soundOn=effectiveEffectsVolume()>0;applyExternalMusicVolume();updateMusicUi();document.querySelectorAll('input[type=range]').forEach(updateRangeTrack);updateSettingsVolumeSliders()}
 function contrast(hex1,hex2){function lum(h){const a=h.replace('#','').match(/../g).map(x=>parseInt(x,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return .2126*a[0]+.7152*a[1]+.0722*a[2]}const a=lum(hex1),b=lum(hex2);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05)}
 
 function paletteEditor(){
@@ -1570,9 +1580,24 @@ function paletteEditor(){
  const dialog=el('dialogRoot')?.querySelector('.dialog');dialog?.classList.add('ae-palette-dialog');
  updatePaletteEditorUi();
 }
-function settingsVolumeRow(label,id,value,outputId,description){
- return '<div class="ae-volume-row"><div class="ae-volume-row-heading"><label for="'+id+'">'+label+'</label><output for="'+id+'" id="'+outputId+'">'+value+'%</output></div>'+
- '<input type="range" id="'+id+'" min="0" max="100" step="1" value="'+value+'" aria-label="'+label+'"><p>'+description+'</p></div>';
+function settingsVolumeRow(label,id,value,description,muted){
+ return '<div class="ae-volume-row'+(muted?' is-muted':'')+'"><div class="ae-volume-row-heading"><label for="'+id+'">'+label+'</label></div>'+
+ '<input type="range" id="'+id+'" min="0" max="100" step="1" value="'+(muted?0:value)+'" '+(muted?'disabled ':'')+'aria-label="'+label+(muted?' (silenciado)':'')+'"><p>'+description+'</p></div>';
+}
+function updateSettingsVolumeSliders(){
+ const controls=[
+  ['settingsMaster','masterVolume',!!prefs.masterMuted,'Volume geral'],
+  ['settingsMusic','musicVolume',!!(prefs.masterMuted||prefs.musicMuted),'Música'],
+  ['settingsEffects','effectsVolume',!!(prefs.masterMuted||prefs.effectsMuted),'Efeitos sonoros']
+ ];
+ for(const [id,key,muted,label] of controls){
+  const node=el(id);if(!node)continue;
+  node.disabled=muted;
+  node.value=muted?'0':String(clampAudio(prefs[key]));
+  node.setAttribute('aria-label',label+(muted?' (silenciado)':''));
+  node.closest('.ae-volume-row')?.classList.toggle('is-muted',muted);
+  updateRangeTrack(node);
+ }
 }
 function settings(){
  const p=currentPalette();
@@ -1582,9 +1607,9 @@ function settings(){
  '<section class="panel ae-settings-panel" aria-labelledby="settingsSoundTitle">'+
  '<div class="ae-settings-heading"><div><span class="ae-settings-index">01 / ÁUDIO</span><h2 id="settingsSoundTitle">SOM</h2><p>Ajuste o volume da experiência sem alterar os demais jogadores.</p></div>'+btn('RESTAURAR','resetSettings:som','small')+'</div>'+
  '<div class="ae-settings-volume-list">'+
- settingsVolumeRow('Volume geral','settingsMaster',clampAudio(prefs.masterVolume),'masterPercent','Controla a intensidade total da música e dos efeitos.')+
- settingsVolumeRow('Música','settingsMusic',clampAudio(prefs.musicVolume),'musicPercent','Volume do player local e do YouTube integrado.')+
- settingsVolumeRow('Efeitos sonoros','settingsEffects',clampAudio(prefs.effectsVolume),'effectsPercent','Cliques, rolagens, habilidades e impactos.')+
+ settingsVolumeRow('Volume geral','settingsMaster',clampAudio(prefs.masterVolume),'Controla a intensidade total da música e dos efeitos.',!!prefs.masterMuted)+
+ settingsVolumeRow('Música','settingsMusic',clampAudio(prefs.musicVolume),'Volume do player local e do YouTube integrado.',!!(prefs.masterMuted||prefs.musicMuted))+
+ settingsVolumeRow('Efeitos sonoros','settingsEffects',clampAudio(prefs.effectsVolume),'Cliques, rolagens, habilidades e impactos.',!!(prefs.masterMuted||prefs.effectsMuted))+
  '</div><div class="ae-settings-muted-grid">'+
  '<label class="ae-settings-check"><input type="checkbox" id="settingsMuteMaster" '+(prefs.masterMuted?'checked':'')+'> Silenciar tudo</label>'+
  '<label class="ae-settings-check"><input type="checkbox" id="settingsMuteMusic" '+(prefs.musicMuted?'checked':'')+'> Silenciar música</label>'+
@@ -1617,20 +1642,16 @@ function changeSetting(id,value){
  }
  if(id==='sizeChoice')prefs.fontSize=Number(value);
  else if(id==='motionChoice')prefs.reduceMotion=value==='auto'?null:value==='off';
- else if(id==='settingsMaster')prefs.masterVolume=clampAudio(value);
- else if(id==='settingsMusic'||id==='musicVolume')prefs.musicVolume=clampAudio(value);
- else if(id==='settingsEffects')prefs.effectsVolume=clampAudio(value);
+ else if(id==='settingsMaster'){if(prefs.masterMuted)return;prefs.masterVolume=clampAudio(value)}
+ else if(id==='settingsMusic'||id==='musicVolume'){if(id==='settingsMusic'&&(prefs.masterMuted||prefs.musicMuted))return;prefs.musicVolume=clampAudio(value)}
+ else if(id==='settingsEffects'){if(prefs.masterMuted||prefs.effectsMuted)return;prefs.effectsVolume=clampAudio(value)}
  else if(id==='settingsMuteMaster')prefs.masterMuted=!!value;
  else if(id==='settingsMuteMusic')prefs.musicMuted=!!value;
  else if(id==='settingsMuteEffects')prefs.effectsMuted=!!value;
  else if(['grain','energy','spacing','easyFont','noSheetMotion','rollImpacts'].includes(id))prefs[id]=value;
  else return;
  PREFSSTORE.save();applyPrefs();
- if(page==='settings'){
-  for(const [key,val] of [['masterPercent',prefs.masterVolume],['musicPercent',prefs.musicVolume],['effectsPercent',prefs.effectsVolume]]){
-   const node=el(key);if(node)node.textContent=val+'%';
-  }
- }
+
 }
 function resetSettings(section){if(section==='som')Object.assign(prefs,{masterVolume:100,masterMuted:false,musicVolume:20,effectsVolume:35,musicMuted:false,effectsMuted:false});if(section==='paleta')Object.assign(prefs,{preset:'zangetsu',custom:null,globalGradient:false,globalGradientEnd:null});if(section==='acesso')Object.assign(prefs,{fontSize:100,easyFont:false,spacing:false,reduceMotion:null,grain:true,energy:true,noSheetMotion:false,rollImpacts:true});PREFSSTORE.save();applyPrefs();render()}
 
@@ -1884,7 +1905,7 @@ window.addEventListener('arquivo-online-state',onlineStatus);
 window.addEventListener('online',onlineStatus);
 window.addEventListener('offline',onlineStatus);
 
-function render(){if(page==='masterSheets')page='sheets';document.body.classList.toggle('home-view',page==='home');navRender();applyTheme();if(page==='home')el('page').innerHTML=home();else if(page==='library')el('page').innerHTML=library();else if(page==='sheets')el('page').innerHTML=currentSheet?sheetPage():sheets();else if(page==='rolls')el('page').innerHTML=rolls();else if(page==='session')el('page').innerHTML=sessionPage();else if(page==='settings')el('page').innerHTML=settings();else if(page==='admin')el('page').innerHTML=master()?admin():home();document.documentElement.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');const entries=el('page').children;for(let i=0;i<entries.length;i++){if(!(page==='sheets'&&sheetMotionOff())){entries[i].classList.add('fade-in');entries[i].style.animationDelay=(i*40)+'ms'}} applyTextOverrides();document.querySelectorAll('input[type=range]').forEach(updateRangeTrack);onlineStatus();if(window.ARQUIVO_SYNC?.state.enabled&&document.querySelector('[data-history-scope]'))Promise.resolve().then(()=>loadVerifiedHistory());}
+function render(){if(page==='masterSheets')page='sheets';document.body.classList.toggle('home-view',page==='home');navRender();applyTheme();if(page==='home')el('page').innerHTML=home();else if(page==='library')el('page').innerHTML=library();else if(page==='sheets')el('page').innerHTML=currentSheet?sheetPage():sheets();else if(page==='rolls')el('page').innerHTML=rolls();else if(page==='session')el('page').innerHTML=sessionPage();else if(page==='settings')el('page').innerHTML=settings();else if(page==='admin')el('page').innerHTML=master()?admin():home();document.documentElement.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');const entries=el('page').children;for(let i=0;i<entries.length;i++){if(!(page==='sheets'&&sheetMotionOff())){entries[i].classList.add('fade-in');entries[i].style.animationDelay=(i*40)+'ms'}} applyTextOverrides();document.querySelectorAll('input[type=range]').forEach(updateRangeTrack);updateSettingsVolumeSliders();onlineStatus();if(window.ARQUIVO_SYNC?.state.enabled&&document.querySelector('[data-history-scope]'))Promise.resolve().then(()=>loadVerifiedHistory());}
 function headline(k,t,s,buttons=''){return `<div class="hrow"><div><div class="eyebrow">${esc(k)}</div><h1>${esc(t)}</h1><p class="subtitle">${esc(s)}</p></div><div class="actions">${buttons}</div></div>`}
 function btn(text,act,cls=''){return `<button type="button" class="btn ${cls}" data-action="${act}">${text}</button>`}
 function home(){
