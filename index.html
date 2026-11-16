@@ -1435,20 +1435,41 @@ const clone=x=>JSON.parse(JSON.stringify(x));const el=id=>document.getElementByI
 function safeStore(kind){try{const s=window[kind];const k='__arquivo_probe__';s.setItem(k,'ok');s.removeItem(k);return s}catch(e){return null}}
 const DATASTORE={local:safeStore('localStorage'),session:safeStore('sessionStorage'),blocked:false,load(){const base=clone(window.ARQUIVO_PUBLICADO||DEFAULT);if(!this.local){this.blocked=true;return base}try{const raw=this.local.getItem('arquivo_data')||this.local.getItem('c'+'bb_data');if(!raw)return base;const saved=JSON.parse(raw);if(!saved.site||!Array.isArray(saved.sheets)||!Array.isArray(saved.rules))return base;if(!this.local.getItem('arquivo_data'))this.local.setItem('arquivo_data',raw);if(!Array.isArray(saved.keys)){this.local.setItem('arquivo_owner_device','sim');return saved}if(this.getRole()==='master'||this.local.getItem('arquivo_owner_device')==='sim')return saved;for(const s of base.sheets){const local=saved.sheets.find(x=>x.id===s.id);if(!local)continue;for(const k of ['vida','estabilidade','alma'])if(local.resources?.[k])s.resources[k].current=clamp(local.resources[k].current,0,s.resources[k].max);s.conditions=local.conditions||[];s.notes=local.notes??s.notes;s.restCount=local.restCount||0;s.desgaste=local.desgaste||0;s.exposures=local.exposures||{}}return base}catch(e){this.blocked=true;return base}},save(data){if(!this.local){this.blocked=true;storageWarning();return false}try{this.local.setItem('arquivo_data',JSON.stringify(data));return true}catch(e){this.blocked=true;storageWarning();return false}},getRole(){try{return this.session?.getItem('arquivo_role')||'guest'}catch(e){return 'guest'}},getKeyId(){try{return this.session?.getItem('arquivo_key_id')||''}catch(e){return ''}},setRole(r,id=''){try{this.session?.setItem('arquivo_role',r);this.session?.setItem('arquivo_key_id',id);if(r==='master')this.local?.setItem('arquivo_owner_device','sim')}catch(e){this.blocked=true;storageWarning()}},clearRole(){try{this.session?.removeItem('arquivo_role');this.session?.removeItem('arquivo_key_id')}catch(e){}}};
 let db=DATASTORE.load(),role=DATASTORE.getRole(),page='home',currentSheet=null,tab='summary',query='',rollHistory=[],lastRoll=null,musicOn=false,soundOn=true,musicMuted=false,audioContext=null,noticeShown=false,flash='',lastResourceId='',pendingAction=null,keyOwnerId=DATASTORE.getKeyId(),adminSection='content',editorDraft=null,libraryOpen=null,libraryExpandedChapters=new Set();
-const PALETTES={aurora:{bg:'#071521',panel:'#102d3d',raised:'#1c4655',structure:'#4e9eae',cold:'#8ee2ea',text:'#e9f8ff',accent:'#e5b65e',pressed:'#ae7c2f',outline:'#02070a'},crepusculo:{bg:'#1b1420',panel:'#302034',raised:'#493049',structure:'#8e648c',cold:'#d6a5df',text:'#fff1fa',accent:'#f3a06b',pressed:'#b56843',outline:'#100912'},marfim:{bg:'#e9e5d9',panel:'#f8f1e2',raised:'#ddd2bc',structure:'#665b51',cold:'#315c66',text:'#241c18',accent:'#e79047',pressed:'#b7672e',outline:'#21150f'},padrao:{bg:'#061018',panel:'#0B1D2B',raised:'#123248',structure:'#1E6F9F',cold:'#4CC9F0',text:'#E8F4FA',accent:'#FF7A1A',pressed:'#C2540A',outline:'#000000'},contraste:{bg:'#02070B',panel:'#08121B',raised:'#153B54',structure:'#78D8FF',cold:'#A5E9FF',text:'#FFFFFF',accent:'#FF941A',pressed:'#D96D00',outline:'#000000'},daltonismo:{bg:'#071724',panel:'#10283B',raised:'#1B4363',structure:'#3289BD',cold:'#80DAFF',text:'#F4FAFF',accent:'#FFD338',pressed:'#CFAC13',outline:'#000000'},claro:{bg:'#EDF5FB',panel:'#FFFFFF',raised:'#D8E9F4',structure:'#376B8C',cold:'#145C88',text:'#102435',accent:'#F28B28',pressed:'#C65B0B',outline:'#102435'}};
-Object.assign(PALETTES,{
- shinigami:{bg:'#0c0d12',panel:'#171923',raised:'#282b39',structure:'#5d637b',cold:'#d5d8ea',text:'#f8f8ff',accent:'#e35e48',pressed:'#b44339',outline:'#06070b'},
- quincy:{bg:'#071b2b',panel:'#102e43',raised:'#20455b',structure:'#559cb8',cold:'#c4edff',text:'#f1fbff',accent:'#9bdbff',pressed:'#4b92bb',outline:'#03121d'},
- hueco:{bg:'#10131a',panel:'#1c2730',raised:'#2c4149',structure:'#76969c',cold:'#d1e5df',text:'#f3f8f2',accent:'#78c8af',pressed:'#3a9b86',outline:'#070b0d'}
-});
-const DEVICE_DEFAULT={preset:'padrao',custom:null,fontSize:100,easyFont:false,spacing:false,reduceMotion:null,grain:true,energy:true,musicVolume:20,effectsVolume:35,musicMuted:false,effectsMuted:false,noSheetMotion:false,rollImpacts:true,sheetColors:{},hudMinimized:true};
+const PALETTES={padrao:{bg:'#061018',panel:'#0B1D2B',raised:'#123248',structure:'#1E6F9F',cold:'#4CC9F0',text:'#E8F4FA',accent:'#FF7A1A',pressed:'#C2540A',outline:'#000000'}};
+const DEVICE_DEFAULT={preset:'padrao',custom:null,fontSize:100,easyFont:false,spacing:false,reduceMotion:null,grain:true,energy:true,masterVolume:100,masterMuted:false,musicVolume:20,effectsVolume:35,musicMuted:false,effectsMuted:false,noSheetMotion:false,rollImpacts:true,sheetColors:{},hudMinimized:true};
 const PREFSSTORE={load(){try{const v=DATASTORE.local?.getItem('arquivo_preferencias');return v?{...DEVICE_DEFAULT,...JSON.parse(v)}:{...DEVICE_DEFAULT}}catch(e){return {...DEVICE_DEFAULT}}},save(){try{DATASTORE.local?.setItem('arquivo_preferencias',JSON.stringify(prefs))}catch(e){DATASTORE.blocked=true;storageWarning()}}};
-let prefs=PREFSSTORE.load();if(prefs.preset==='site'){prefs.preset='padrao';PREFSSTORE.save()}
+let prefs=PREFSSTORE.load();if(!['padrao','personalizado'].includes(prefs.preset)){prefs.preset='padrao';PREFSSTORE.save()}
 const SITE_THEME=()=>PALETTES[db.site.defaultPalette]||PALETTES.padrao;
-function currentPalette(){return prefs.preset==='personalizado'&&prefs.custom?{...SITE_THEME(),...prefs.custom}:prefs.preset==='site'?SITE_THEME():PALETTES[prefs.preset]||SITE_THEME()}
+function currentPalette(){return prefs.preset==='personalizado'&&prefs.custom?{...PALETTES.padrao,...prefs.custom}:PALETTES.padrao}
+
+function clampAudio(value){return Math.max(0,Math.min(100,Number(value)||0))}
+function effectiveMusicVolume(){return prefs.masterMuted||prefs.musicMuted?0:clampAudio(prefs.masterVolume)*clampAudio(prefs.musicVolume)/100}
+function effectiveEffectsVolume(){return prefs.masterMuted||prefs.effectsMuted?0:clampAudio(prefs.masterVolume)*clampAudio(prefs.effectsVolume)/100}
+function ensureCustomPalette(){
+ if(prefs.preset!=='personalizado'){const old=currentPalette();prefs.custom={...old};prefs.preset='personalizado'}
+ else if(!prefs.custom)prefs.custom={...PALETTES.padrao};
+}
+function updatePaletteEditorUi(){
+ const state=el('paletteEditingState');if(state)state.textContent=prefs.preset==='personalizado'?'PERSONALIZADA · ALTERAÇÕES SALVAS':'ICHIGO · PADRÃO';
+ const w=el('contrastWarning'),p=currentPalette();
+ if(w)w.textContent=contrast(p.text,p.bg)<4.5||contrast(p.text,p.panel)<4.5?'Contraste insuficiente para leitura. Ajuste Texto ou Fundo.':'Contraste de leitura adequado.';
+ const prev=el('paletteLivePreview');if(prev)prev.style.background=prefs.globalGradient?'linear-gradient(135deg, '+p.panel+', '+(prefs.globalGradientEnd||p.raised)+')':p.panel;
+}
+function changeCustomPaletteColor(key,value){
+ if(!['bg','panel','raised','structure','cold','text','accent','pressed','outline'].includes(key)||!/^#[0-9a-fA-F]{6}$/.test(value))return;
+ ensureCustomPalette();prefs.custom[key]=value;PREFSSTORE.save();applyPrefs();updatePaletteEditorUi();
+}
+function changeCustomGradient(key,value){
+ ensureCustomPalette();
+ if(key==='toggle')prefs.globalGradient=!!value;
+ else if(key==='end'&&/^#[0-9a-fA-F]{6}$/.test(value))prefs.globalGradientEnd=value;
+ else return;
+ PREFSSTORE.save();applyPrefs();updatePaletteEditorUi();
+}
+
 function sheetMotionOff(){return motionOff()||(prefs.noSheetMotion&&page==='sheets')}
 function motionOff(){return prefs.reduceMotion===true||(prefs.reduceMotion===null&&matchMedia('(prefers-reduced-motion: reduce)').matches)}
-function applyPrefs(){const root=document.documentElement,p=currentPalette();for(const [k,v] of Object.entries(p))root.style.setProperty('--theme-'+k,v);root.style.setProperty('--accent-ink',contrast('#000000',p.accent)>=contrast('#FFFFFF',p.accent)?'#000000':'#FFFFFF');root.style.setProperty('--optional-panel-gradient',prefs.globalGradient?`linear-gradient(135deg, ${p.panel}, ${prefs.globalGradientEnd||p.raised})`:'none');root.classList.toggle('global-gradient',!!prefs.globalGradient);root.style.fontSize=prefs.fontSize+'%';root.classList.toggle('reduce-motion',motionOff());root.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');root.classList.toggle('no-grain',!prefs.grain);root.classList.toggle('no-energy',!prefs.energy||motionOff());root.classList.toggle('easy-font',!!prefs.easyFont);root.classList.toggle('wide-spacing',!!prefs.spacing);if(el('musicVolume'))el('musicVolume').value=prefs.musicVolume;try{el('audio').volume=prefs.musicMuted?0:prefs.musicVolume/100}catch(e){}musicMuted=prefs.musicMuted;soundOn=!prefs.effectsMuted;applyExternalMusicVolume();updateMusicUi();document.querySelectorAll('input[type=range]').forEach(updateRangeTrack)}
+function applyPrefs(){const root=document.documentElement,p=currentPalette();for(const [k,v] of Object.entries(p))root.style.setProperty('--theme-'+k,v);root.style.setProperty('--accent-ink',contrast('#000000',p.accent)>=contrast('#FFFFFF',p.accent)?'#000000':'#FFFFFF');root.style.setProperty('--optional-panel-gradient',prefs.globalGradient?`linear-gradient(135deg, ${p.panel}, ${prefs.globalGradientEnd||p.raised})`:'none');root.classList.toggle('global-gradient',!!prefs.globalGradient);root.style.fontSize=prefs.fontSize+'%';root.classList.toggle('reduce-motion',motionOff());root.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');root.classList.toggle('no-grain',!prefs.grain);root.classList.toggle('no-energy',!prefs.energy||motionOff());root.classList.toggle('easy-font',!!prefs.easyFont);root.classList.toggle('wide-spacing',!!prefs.spacing);if(el('musicVolume'))el('musicVolume').value=prefs.musicVolume;try{el('audio').volume=effectiveMusicVolume()/100}catch(e){}musicMuted=!!(prefs.musicMuted||prefs.masterMuted);soundOn=effectiveEffectsVolume()>0;applyExternalMusicVolume();updateMusicUi();document.querySelectorAll('input[type=range]').forEach(updateRangeTrack)}
 function contrast(hex1,hex2){function lum(h){const a=h.replace('#','').match(/../g).map(x=>parseInt(x,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return .2126*a[0]+.7152*a[1]+.0722*a[2]}const a=lum(hex1),b=lum(hex2);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05)}
 function paletteSwatch(label,key){return `<label class="color-control">${label}<input aria-label="${label}" type="color" data-palette="${key}" value="${currentPalette()[key]}"></label>`}
 function settings(){const p=currentPalette(),warning=contrast(p.text,p.bg)<4.5||contrast(p.text,p.accent)<4.5;return headline('PREFERÊNCIAS DO DISPOSITIVO','CONFIGURAÇÕES','Alterações imediatas e salvas somente neste dispositivo.')+`<div class="grid2"><section class="panel"><div class="sectionhead"><h2>SOM</h2>${btn('RESTAURAR','resetSettings:som','small')}</div><div class="field"><label for="settingsMusic">Volume da música: <span id="musicPercent">${prefs.musicVolume}%</span></label><input type="range" min="0" max="100" value="${prefs.musicVolume}" id="settingsMusic" aria-label="Volume da música"></div><label class="checkline"><input type="checkbox" id="settingsMuteMusic" ${prefs.musicMuted?'checked':''}> Silenciar música</label><div class="field"><label for="settingsEffects">Volume dos efeitos: <span id="effectsPercent">${prefs.effectsVolume}%</span></label><input type="range" min="0" max="100" value="${prefs.effectsVolume}" id="settingsEffects" aria-label="Volume dos efeitos"></div><label class="checkline"><input type="checkbox" id="settingsMuteEffects" ${prefs.effectsMuted?'checked':''}> Silenciar efeitos</label><div class="actions">${btn('TESTAR SOM','testSound','main')}</div></section><section class="panel"><div class="sectionhead"><h2>PALETA</h2>${btn('RESTAURAR','resetSettings:paleta','small')}</div><div class="field"><label for="presetChoice">Cores</label><select id="presetChoice">${[['padrao','Padrão · Ichigo'],['shinigami','Shinigami · preto e vermelho'],['quincy','Quincy · azul glacial'],['hueco','Hueco Mundo · verde pálido'],['aurora','Aurora glacial'],['crepusculo','Crepúsculo'],['marfim','Marfim'],['claro','Claro'],['contraste','Alto contraste'],['daltonismo','Daltonismo · azul e amarelo'],['personalizado','Personalizada']].map(([v,n])=>`<option value="${v}" ${prefs.preset===v?'selected':''}>${n}</option>`).join('')}</select></div><div class="color-grid">${[['Fundo','bg'],['Estrutura','structure'],['Destaque','accent'],['Contorno','outline'],['Texto','text']].map(([a,b])=>paletteSwatch(a,b)).join('')}</div><div class="grad-row" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0"><label><input type="checkbox" id="globalGradient" ${prefs.globalGradient?'checked':''}> Gradiente nos painéis do site</label><label>Segunda cor <input type="color" id="globalGradientEnd" value="${prefs.globalGradientEnd||p.raised}" aria-label="Segunda cor do gradiente"></label></div><div class="contrast-note" id="contrastWarning">${warning?'Atenção: uma combinação apresenta contraste abaixo de 4,5:1.':'Contraste de texto avaliado.'}</div><div class="palette-preview"><p>EXEMPLO DE LEITURA</p><div class="track"><div class="fill" style="width:68%"></div></div><button class="btn main" type="button">AÇÃO PRINCIPAL</button></div></section><section class="panel"><div class="sectionhead"><h2>ACESSIBILIDADE</h2>${btn('RESTAURAR','resetSettings:acesso','small')}</div><div class="field"><label for="sizeChoice">Tamanho do texto</label><select id="sizeChoice">${[100,115,130,150].map(v=>`<option value="${v}" ${prefs.fontSize===v?'selected':''}>${v}%</option>`).join('')}</select></div>${[['easyFont','Fonte Atkinson Hyperlegible'],['spacing','Espaçamento ampliado'],['noSheetMotion','Sem movimento nas fichas'],['rollImpacts','Efeitos visuais de críticos'],['grain','Exibir grão'],['energy','Exibir fundo animado']].map(([k,n])=>`<label class="checkline"><input type="checkbox" data-setting="${k}" ${prefs[k]?'checked':''}> ${n}</label>`).join('')}<div class="field"><label for="motionChoice">Movimento</label><select id="motionChoice"><option value="auto" ${prefs.reduceMotion===null?'selected':''}>Seguir o dispositivo</option><option value="off" ${prefs.reduceMotion===true?'selected':''}>Reduzir movimentos</option><option value="on" ${prefs.reduceMotion===false?'selected':''}>Permitir movimentos</option></select></div></section></div>`}
@@ -2422,7 +2443,7 @@ function musicEmbed(kind,source){const box=el('musicEmbed');if(!box)return;box.r
 }
 function applyExternalMusicVolume(){
  if(sharedMusic?.kind==='youtube'&&ytPlayer){
-  try{if(prefs.musicMuted){ytPlayer.mute()}else{ytPlayer.unMute();ytPlayer.setVolume(Math.max(0,Math.min(100,Number(prefs.musicVolume)||0)))}}catch(e){}
+  try{if(effectiveMusicVolume()===0){ytPlayer.mute()}else{ytPlayer.unMute();ytPlayer.setVolume(effectiveMusicVolume())}}catch(e){}
  }
 }
 function musicExpectedPosition(m){return Math.max(0,Number(m.position_seconds||0)+(m.playing?Math.max(0,Number(m.server_now||0)-Number(m.changed_epoch||0)):0))}
@@ -2791,7 +2812,7 @@ async function imageForForm(input){const file=input.files?.[0];if(!file)return;t
 
 function editSheet(){if(!requireMaster())return;const s=db.sheets.find(x=>x.id===currentSheet);if(s)importDialog(JSON.stringify(s,null,2))}
 function saveMusic(){if(!requireMaster())return;const url=el('musicUrl')?.value.trim()||'';if(url&&!/^https?:\/\//i.test(url)){toast('URL inválida','Utilize um endereço http ou https direto de arquivo de áudio.',true);return}db.site.musicUrl=url;db.site.musicName=url?'Faixa do mestre':'AMBIENTE';save();setMusicSource();toast('Música atualizada')}
-function setMusicSource(){const a=el('audio');try{a.pause();a.src=db.site.musicUrl||'musica.mp3';a.volume=prefs.musicMuted?0:prefs.musicVolume/100;a.load();el('musicName').textContent=db.site.musicName||'musica.mp3';musicOn=false;updateMusicUi()}catch(e){toast('Áudio indisponível','O navegador pode ter bloqueado áudio neste ambiente.',true)}}
+function setMusicSource(){const a=el('audio');try{a.pause();a.src=db.site.musicUrl||'musica.mp3';a.volume=effectiveMusicVolume()/100;a.load();el('musicName').textContent=db.site.musicName||'musica.mp3';musicOn=false;updateMusicUi()}catch(e){toast('Áudio indisponível','O navegador pode ter bloqueado áudio neste ambiente.',true)}}
 function updateMusicUi(){if(!el('musicPlay'))return;
  const external=sharedMusic?.kind==='spotify';const hint=el('spotifyMusicHint');if(hint)hint.hidden=!external;
  for(const id of ['musicVolume','musicMute']){
@@ -2803,7 +2824,7 @@ function updateMusicUi(){if(!el('musicPlay'))return;
 el('musicPlay').innerHTML=icon(musicOn?'pause':'play');el('musicMute').innerHTML=icon(musicMuted?'mute':'speaker');el('soundButton').style.opacity=soundOn?'1':'.35';el('soundButton').innerHTML=icon('speaker')+'<span class="sound-caption">FX</span>'}
 async function musicToggle(){if(window.ARQUIVO_SYNC?.state.enabled&&sharedMusic?.kind==='spotify'){const wrap=el('music');wrap.classList.add('expanded');const t=el('musicExpand');if(t){t.textContent='FECHAR SPOTIFY';t.setAttribute('aria-expanded','true')}toast('Spotify','Clique em reproduzir no player do Spotify.');return}if(window.ARQUIVO_SYNC?.state.enabled){if(!musicSoundUnlocked){musicSoundUnlocked=true;await syncSharedMusic(true);el('music').classList.remove('requires-gesture');return}if(master())musicMasterCommand(sharedMusic?.playing?'pause':'play');else toast('Música compartilhada','Somente o mestre controla a reprodução da mesa.');return}const a=el('audio');try{if(musicOn){a.pause();musicOn=false}else{await a.play();musicOn=true}updateMusicUi()}catch(e){musicOn=false;updateMusicUi();toast('Música não encontrada','Coloque musica.mp3 ao lado do index.html ou informe uma URL direta no painel do mestre.',true)}}
 function criticalImpactSound(ctx){
- const t=ctx.currentTime,v=Math.max(0,Math.min(1,prefs.effectsVolume/100));
+ const t=ctx.currentTime,v=effectiveEffectsVolume()/100;
  const bus=ctx.createDynamicsCompressor();bus.threshold.value=-18;bus.ratio.value=6;bus.attack.value=.005;bus.release.value=.24;bus.connect(ctx.destination);
  for(const voice of [{a:88,b:42,d:.4,g:.15,w:'sawtooth'},{a:230,b:92,d:.25,g:.12,w:'triangle'},{a:430,b:830,d:.55,g:.08,w:'sine'},{a:650,b:1080,d:.7,g:.05,w:'sine'}]){
  const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type=voice.w;osc.frequency.setValueAtTime(voice.a,t);osc.frequency.exponentialRampToValueAtTime(voice.b,t+voice.d);gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(Math.max(.0001,voice.g*v),t+.02);gain.gain.exponentialRampToValueAtTime(.0001,t+voice.d);osc.connect(gain);gain.connect(bus);osc.start(t);osc.stop(t+voice.d+.02)}
@@ -2820,7 +2841,7 @@ function criticalImpactSound(ctx){
 }
 let rollAudioNeedsPermission=false;
 function prepareRollAudio(){
- if(prefs.effectsMuted||prefs.effectsVolume===0)return;
+ if(effectiveEffectsVolume()===0)return;
  try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
   audioContext??=new C();
   if(audioContext.state==='suspended')audioContext.resume().then(()=>{rollAudioNeedsPermission=false}).catch(()=>{rollAudioNeedsPermission=true});
@@ -2828,7 +2849,7 @@ function prepareRollAudio(){
 }
 // Som clássico da Beta 2.5.1, exclusivo para mudanças de Vida/Estabilidade/Alma.
 function resourceLegacySound(type){
- if(!soundOn||prefs.effectsVolume===0)return;
+ if(!soundOn||effectiveEffectsVolume()===0)return;
  try{
   const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
   audioContext??=new C();
@@ -2838,13 +2859,13 @@ function resourceLegacySound(type){
   const damage=type==='damage';
   osc.frequency.setValueAtTime(damage?115:380,t);
   osc.frequency.exponentialRampToValueAtTime(damage?70:270,t+.11);
-  gain.gain.setValueAtTime(.10*(prefs.effectsVolume/100),t);
+  gain.gain.setValueAtTime(.10*(effectiveEffectsVolume()/100),t);
   gain.gain.exponentialRampToValueAtTime(.001,t+.13);
   osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.14);
  }catch(e){}
 }
 function sound(type='click'){
- if(!soundOn||prefs.effectsVolume===0)return;
+ if(!soundOn||effectiveEffectsVolume()===0)return;
  try{
   const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
   audioContext??=new C();
@@ -2853,7 +2874,7 @@ function sound(type='click'){
    if(type==='critical')return;
   }
   if(type==='critical'){criticalImpactSound(audioContext);return}
-  const t=audioContext.currentTime,volume=Math.max(0,Math.min(1,prefs.effectsVolume/100));
+  const t=audioContext.currentTime,volume=effectiveEffectsVolume()/100;
   // Cliques positivos, leves e com transiente curto; os alertas ficam distintos.
   const sequence=type==='ultimate'?[[142,280,.26,.09],[320,770,.41,.092],[720,1380,.64,.075]]:
    type==='release'?[[210,450,.18,.052],[470,980,.33,.05]]:
@@ -2915,7 +2936,7 @@ function background(){
  }
  requestAnimationFrame(frame);
 }
-async function init(){await migrateLegacyKeys();db.site??={};db.site.defaultPalette??='padrao';db.rules??=[];db.sheets??=[];db.sheets.forEach(s=>{s.conditions??=[];s.abilities??=[];s.inventory??={items:[],currencies:[]}});if(role!=='guest'&&!db.keys.some(k=>k.id===keyOwnerId&&k.active)){role='guest';keyOwnerId='';DATASTORE.clearRole()}soundOn=!prefs.effectsMuted;musicMuted=prefs.musicMuted;applyPrefs();try{setMusicSource()}catch(e){}if(prefs.hudMinimized){el('music').classList.add('compact-hud');const b=el('hudToggle');b.textContent='▴';b.setAttribute('aria-expanded','false')}const audioTab=el('sidebarAudio');if(audioTab)audioTab.setAttribute('aria-expanded',String(!prefs.hudMinimized));bindEvents();render();background();if(DATASTORE.blocked)storageWarning();el('audio').addEventListener('ended',()=>{musicOn=false;updateMusicUi()});el('audio').addEventListener('error',()=>{if(musicOn){musicOn=false;updateMusicUi()}})}
+async function init(){await migrateLegacyKeys();db.site??={};db.site.defaultPalette??='padrao';db.rules??=[];db.sheets??=[];db.sheets.forEach(s=>{s.conditions??=[];s.abilities??=[];s.inventory??={items:[],currencies:[]}});if(role!=='guest'&&!db.keys.some(k=>k.id===keyOwnerId&&k.active)){role='guest';keyOwnerId='';DATASTORE.clearRole()}soundOn=effectiveEffectsVolume()>0;musicMuted=!!(prefs.musicMuted||prefs.masterMuted);applyPrefs();try{setMusicSource()}catch(e){}if(prefs.hudMinimized){el('music').classList.add('compact-hud');const b=el('hudToggle');b.textContent='▴';b.setAttribute('aria-expanded','false')}const audioTab=el('sidebarAudio');if(audioTab)audioTab.setAttribute('aria-expanded',String(!prefs.hudMinimized));bindEvents();render();background();if(DATASTORE.blocked)storageWarning();el('audio').addEventListener('ended',()=>{musicOn=false;updateMusicUi()});el('audio').addEventListener('error',()=>{if(musicOn){musicOn=false;updateMusicUi()}})}
 window.ARQUIVO_INTERNAL={get page(){return page},get db(){return db},get prefs(){return prefs},get currentSheet(){return currentSheet},get role(){return role},get editorDraft(){return editorDraft},canEditSheet,master,save,render,toast,redrawSheetForm:drawSheetForm,modal,historyHtml,dataUrlOk,mediaSrc,inventoryItemCanUse,inventoryItemAbilityLabel,abilityBadge,abilityTestButton,sheetRich,conditionsCatalog:CONDITIONS_CATALOG};
 init();
 if(window.ARQUIVO_SYNC?.state.configured)window.ARQUIVO_SYNC.init();
