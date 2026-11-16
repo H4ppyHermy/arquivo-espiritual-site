@@ -1252,14 +1252,38 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px soli
   max-height:82%;
  }
 }
+
+/* PADRONIZAÇÃO — controles de música e configurações com dimensões e estados idênticos. */
+.side .sidebar-extras-row{align-items:center;gap:8px}
+.side .sidebar-utility-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex:0 0 auto}
+.side .sidebar-extras-row .sidebar-utility{display:grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;flex:0 0 44px;margin:0;padding:0;gap:0;line-height:1;font-size:19px;color:var(--theme-text);background:var(--theme-panel);border:1px solid var(--theme-structure);border-radius:0;border-left:1px solid var(--theme-structure);border-top:1px solid var(--theme-structure);clip-path:none;transition:background .15s,border-color .15s,color .15s;transform:none}
+.side .sidebar-extras-row .sidebar-utility:hover{background:var(--theme-raised);border-color:var(--theme-accent);color:var(--theme-accent);transform:none;filter:none}
+.side .sidebar-extras-row .sidebar-utility:focus-visible{outline:2px solid var(--theme-cold);outline-offset:2px}
+.side .sidebar-extras-row .sidebar-utility:active{background:var(--theme-raised);filter:none}
+.side .sidebar-extras-row .sidebar-audio svg{display:block;width:22px;height:22px;min-width:22px;flex:none;stroke:currentColor}
+.side .sidebar-extras-row .sidebar-audio[aria-expanded="true"]{background:var(--theme-raised);border-color:var(--theme-cold);color:var(--theme-cold)}
+@media(max-width:680px){
+ .side .sidebar-extras{display:flex;flex:0 0 79px;flex-direction:row;align-items:stretch;justify-content:space-between;gap:0;margin:0;padding:0;border-top:0;border-left:1px solid var(--theme-structure)}
+ .side .sidebar-extras #onlineStatus{flex:0 0 23px;align-self:center}
+ .side .sidebar-extras-row{display:flex!important;flex:1 1 56px;min-width:56px;align-items:stretch;justify-content:center;gap:0;margin:0;padding:0}
+ .side .sidebar-extras-row .version-tag{display:none!important}
+ .side .sidebar-utility-actions{width:100%;height:100%;gap:0}
+ .side .sidebar-utility-actions .sidebar-settings{display:none!important}
+ .side .sidebar-extras-row .sidebar-audio{display:grid;place-items:center;width:100%;height:100%;min-width:48px;min-height:68px;flex:1;margin:0;padding:0;border:0;border-top:3px solid transparent;background:transparent;clip-path:none}
+ .side .sidebar-extras-row .sidebar-audio[aria-expanded="true"]{background:var(--theme-raised);border-top-color:var(--theme-accent);color:var(--theme-text)}
+ .side .sidebar-extras-row .sidebar-audio svg{width:21px;height:21px}
+}
 </style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><div class="sidebar-extras" aria-label="Estado do site e configurações">
  <span id="onlineStatus" class="online-status" title="Estado da sincronização">LOCAL</span>
  <div class="sidebar-extras-row">
   <span class="version-tag version-top">VERSÃO 3.6</span>
-  <button type="button" class="btn small quiet toolbar-settings sidebar-settings" data-page="settings" aria-label="Abrir configurações" title="Configurações">⚙</button>
+  <div class="sidebar-utility-actions">
+   <button type="button" id="sidebarAudio" class="btn small quiet toolbar-settings sidebar-audio sidebar-utility" data-action="hudToggle" aria-label="Abrir ou fechar o painel de música" aria-expanded="false" title="Abrir música"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><rect x="2" y="13" width="4" height="8" rx="2"/><rect x="18" y="13" width="4" height="8" rx="2"/></svg></button>
+   <button type="button" class="btn small quiet toolbar-settings sidebar-settings sidebar-utility" data-page="settings" aria-label="Abrir configurações" title="Configurações">⚙</button>
+  </div>
  </div>
-</div><button type="button" id="sidebarAudio" class="sidebar-audio" data-action="hudToggle" aria-label="Abrir ou fechar o painel de música" aria-expanded="false" title="Abrir música"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><rect x="2" y="13" width="4" height="8" rx="2"/><rect x="18" y="13" width="4" height="8" rx="2"/></svg><span>Música</span></button><div class="sidefoot"><span id="roleText">VISITANTE</span><p id="storageText"></p></div></aside><main class="shell"><div class="toolbar"><span class="mobile-title" id="mobileTitle">Bleach CBB</span><span class="status" id="headerStatus">REGISTRO // BLEACH CBB</span><div class="toolbar-right" aria-label="Conta e controles">
+</div><div class="sidefoot"><span id="roleText">VISITANTE</span><p id="storageText"></p></div></aside><main class="shell"><div class="toolbar"><span class="mobile-title" id="mobileTitle">Bleach CBB</span><span class="status" id="headerStatus">REGISTRO // BLEACH CBB</span><div class="toolbar-right" aria-label="Conta e controles">
  <div class="toolbar-account" aria-label="Identidade e conexão">
   <span id="rolePill" class="tag">VISITANTE</span>
  </div>
