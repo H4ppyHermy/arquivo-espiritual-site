@@ -1399,6 +1399,14 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px soli
  .ae-login-dialog>.actions .btn{min-height:48px;height:48px;min-width:106px;padding:9px 15px}
 }
 @media(prefers-reduced-motion:reduce){.ae-login-dialog .ae-login-key-toggle{transition:none}}
+
+/* PADRONIZAÇÃO MODAL: uma única saída, sempre no rodapé quando presente. */
+.modal-backdrop .dialog.ae-modal-footer-exit{padding-top:clamp(22px,3vw,30px)}
+.modal-backdrop .dialog.ae-modal-footer-exit>.actions{display:flex;align-items:center;justify-content:flex-start;gap:10px;flex-wrap:wrap;margin-top:18px}
+.modal-backdrop .dialog.ae-modal-footer-exit>.actions>.btn[data-action="closeModal"],
+.modal-backdrop .dialog.ae-modal-footer-exit>.actions>.btn[data-action="returnModal"],
+.modal-backdrop .dialog.ae-modal-footer-exit>.actions>.btn[data-action="returnVerifiedSkill"]{min-height:44px}
+@media(max-width:680px){.modal-backdrop .dialog.ae-modal-footer-exit{padding-top:20px}}
 </style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><div class="sidebar-extras" aria-label="Estado do site e configurações">
  <span id="onlineStatus" class="online-status" title="Estado da sincronização">LOCAL</span>
@@ -1466,12 +1474,20 @@ function canEditSheet(id){
  return isLinked(sh);
 }function sheetPermission(){if(canEditSheet(currentSheet))return true;toast('Somente leitura','Você só pode alterar fichas vinculadas à sua chave.',true);return false}function bearer(){return window.ARQUIVO_SYNC?.state.enabled?(window.ARQUIVO_SYNC.state.identity?.accountName||''):db.keys?.find?.(k=>k.id===keyOwnerId&&k.active)?.name||''}
 function toast(title,detail='',error=false){const node=document.createElement('div');node.className='toast'+(error?' error':'');node.setAttribute('role','status');node.innerHTML=`<b>${esc(title)}</b><span>${esc(detail)}</span>`;el('toastRoot').prepend(node);setTimeout(()=>node.remove(),error?9000:5500)}
-function modal(title,body,buttons=[['Fechar','closeModal']],topAction=null){modalOrigin=document.activeElement;modalDirty=false;el('dialogRoot').innerHTML=`<div class="modal-backdrop" id="modalBackground"><section role="dialog" aria-modal="true" aria-label="${esc(title)}" class="dialog"><button type="button" class="modal-exit ${topAction?'modal-configure':''}" data-action="${esc(topAction?.action||'closeModal')}" aria-label="${esc(topAction?.label||'Sair da janela')}">${esc(topAction?.label||'SAIR')}</button><h2>${esc(title)}</h2>${body}${buttons.length?`<div class="actions">${buttons.map(([label,action,cls=''])=>`<button type="button" class="btn ${esc(cls)}" data-action="${esc(action)}">${esc(label)}</button>`).join('')}</div>`:''}</section></div>`;const first=el('dialogRoot').querySelector('input,textarea,button');if(first)first.focus()}
+function modal(title,body,buttons=[['SAIR','closeModal']],topAction=null){
+ const normalizedButtons=buttons.map(([label,action,cls=''])=>[
+  ['closeModal','returnModal','returnVerifiedSkill'].includes(action)&&/^(voltar|cancelar|fechar|sair)$/i.test(String(label).trim())?'SAIR':label,
+  action,cls
+ ]);
+ const hasFooterExit=normalizedButtons.some(([,action])=>['closeModal','returnModal','returnVerifiedSkill'].includes(action));
+ const showHeaderAction=!!topAction||!hasFooterExit;
+ const headerMarkup=showHeaderAction?`<button type="button" class="modal-exit ${topAction?'modal-configure':''}" data-action="${esc(topAction?.action||'closeModal')}" aria-label="${esc(topAction?.label||'Sair da janela')}">${esc(topAction?.label||'SAIR')}</button>`:'';
+ modalOrigin=document.activeElement;modalDirty=false;el('dialogRoot').innerHTML=`<div class="modal-backdrop" id="modalBackground"><section role="dialog" aria-modal="true" aria-label="${esc(title)}" class="dialog ${showHeaderAction?'':'ae-modal-footer-exit'}">${headerMarkup}<h2>${esc(title)}</h2>${body}${normalizedButtons.length?`<div class="actions">${normalizedButtons.map(([label,action,cls=''])=>`<button type="button" class="btn ${esc(cls)}" data-action="${esc(action)}">${esc(label)}</button>`).join('')}</div>`:''}</section></div>`;const first=el('dialogRoot').querySelector('input,textarea,button');if(first)first.focus()}
 let modalDirty=false,modalGuard=false,modalSaved=null;
 function hasModalChanges(){return modalDirty&&!modalGuard}
 function requestModalClose(){if(hasModalChanges()){
  modalSaved=el('dialogRoot').firstElementChild;modalGuard=true;
- modal('Descartar alterações?',`<p>Descartar alterações?</p>`,[['DESCARTAR','discardModal','danger'],['VOLTAR','returnModal','small']]);
+ modal('DESCARTAR ALTERAÇÕES?',`<p>As alterações não salvas serão perdidas.</p>`,[['DESCARTAR','discardModal','danger'],['SAIR','returnModal','small']]);
  return;}closeModal();}
 function discardModal(){modalGuard=false;modalDirty=false;modalSaved=null;closeModal()}
 function returnModal(){if(modalSaved){el('dialogRoot').replaceChildren(modalSaved);modalDirty=true;modalSaved=null;modalGuard=false;el('dialogRoot').querySelector('input,textarea,select,button')?.focus()}}
@@ -2295,7 +2311,7 @@ function configureVerifiedSkill(){
  </div>
  <div class="roll-config-preview" id="rollConfigPreview" aria-live="polite">Selecione um aumento ou redução.</div>
  <p class="subtitle">Passos normais: d4 → d6 → d8 → d10 → d12. O d20 só é mantido se a ficha já o possuir. A configuração ficará identificada no histórico.</p>`,
- [['ROLAR CONFIGURADO','rollConfiguredSkill','main'],['VOLTAR','returnVerifiedSkill']]);
+ [['ROLAR CONFIGURADO','rollConfiguredSkill','main'],['SAIR','returnVerifiedSkill']]);
  updateSkillRollConfigPreview();
 }
 function updateSkillRollConfigPreview(){
