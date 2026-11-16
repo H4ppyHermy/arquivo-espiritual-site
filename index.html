@@ -1581,7 +1581,7 @@ function paletteEditor(){
  updatePaletteEditorUi();
 }
 function settingsVolumeRow(label,id,value,description,muted){
- return '<div class="ae-volume-row'+(muted?' is-muted':'')+'"><div class="ae-volume-row-heading"><label for="'+id+'">'+label+'</label></div>'+
+ return '<div class="ae-volume-row'+(muted?' is-muted':'')+'"><div class="ae-volume-row-heading"><label for="'+id+'">'+label+'</label><output for="'+id+'" aria-live="off">'+(muted?0:value)+'%</output></div>'+
  '<input type="range" id="'+id+'" min="0" max="100" step="1" value="'+(muted?0:value)+'" '+(muted?'disabled ':'')+'aria-label="'+label+(muted?' (silenciado)':'')+'"><p>'+description+'</p></div>';
 }
 function updateSettingsVolumeSliders(){
@@ -1594,6 +1594,8 @@ function updateSettingsVolumeSliders(){
   const node=el(id);if(!node)continue;
   node.disabled=muted;
   node.value=muted?'0':String(clampAudio(prefs[key]));
+  const output=node.closest('.ae-volume-row')?.querySelector('output');
+  if(output)output.textContent=(muted?0:clampAudio(prefs[key]))+'%';
   node.setAttribute('aria-label',label+(muted?' (silenciado)':''));
   node.closest('.ae-volume-row')?.classList.toggle('is-muted',muted);
   updateRangeTrack(node);
@@ -1605,7 +1607,7 @@ function settings(){
  return headline('PREFERÊNCIAS DO DISPOSITIVO','CONFIGURAÇÕES','Personalize sua experiência. As preferências são salvas neste dispositivo.')+
  '<div class="ae-settings-stack">'+
  '<section class="panel ae-settings-panel" aria-labelledby="settingsSoundTitle">'+
- '<div class="ae-settings-heading"><div><span class="ae-settings-index">01 / ÁUDIO</span><h2 id="settingsSoundTitle">SOM</h2><p>Ajuste o volume da experiência sem alterar os demais jogadores.</p></div>'+btn('RESTAURAR','resetSettings:som','small')+'</div>'+
+ '<div class="ae-settings-heading"><div><span class="ae-settings-index">ÁUDIO</span><h2 id="settingsSoundTitle">SOM</h2><p>Ajuste o volume da experiência sem alterar os demais jogadores.</p></div>'+btn('RESTAURAR','resetSettings:som','small')+'</div>'+
  '<div class="ae-settings-volume-list">'+
  settingsVolumeRow('Volume geral','settingsMaster',clampAudio(prefs.masterVolume),'Controla a intensidade total da música e dos efeitos.',!!prefs.masterMuted)+
  settingsVolumeRow('Música','settingsMusic',clampAudio(prefs.musicVolume),'Volume do player local e do YouTube integrado.',!!(prefs.masterMuted||prefs.musicMuted))+
@@ -1617,7 +1619,7 @@ function settings(){
  '</div><div class="ae-settings-footer">'+btn('TESTAR EFEITOS','testSound','main')+
  '<p>O áudio incorporado do Spotify é controlado pelo próprio player ou dispositivo.</p></div></section>'+
  '<section class="panel ae-settings-panel ae-settings-palette" aria-labelledby="settingsPaletteTitle">'+
- '<div class="ae-settings-heading"><div><span class="ae-settings-index">02 / APARÊNCIA</span><h2 id="settingsPaletteTitle">PALETA</h2><p>Escolha uma base ou ajuste cada cor separadamente.</p></div>'+btn('RESTAURAR','resetSettings:paleta','small')+'</div>'+
+ '<div class="ae-settings-heading"><div><span class="ae-settings-index">APARÊNCIA</span><h2 id="settingsPaletteTitle">PALETA</h2><p>Escolha uma base ou ajuste cada cor separadamente.</p></div>'+btn('RESTAURAR','resetSettings:paleta','small')+'</div>'+
  '<div class="ae-palette-chooser"><div class="ae-palette-chooser-main"><label for="presetChoice">Paleta de cores</label><select id="presetChoice">'+
  '<option value="zangetsu" '+(prefs.preset==='zangetsu'?'selected':'')+'>Velho Zangetsu</option>'+
  '<option value="padrao" '+(prefs.preset==='padrao'?'selected':'')+'>Ichigo</option>'+
@@ -1626,7 +1628,7 @@ function settings(){
  '<button class="ae-palette-gear" type="button" data-action="paletteEditor" title="Personalizar paleta" aria-label="Abrir editor de paleta">'+icon('settings')+'</button></div>'+
  '</section>'+
  '<section class="panel ae-settings-panel" aria-labelledby="settingsAccessTitle">'+
- '<div class="ae-settings-heading"><div><span class="ae-settings-index">03 / LEITURA</span><h2 id="settingsAccessTitle">ACESSIBILIDADE</h2><p>Controle legibilidade, movimento e efeitos visuais.</p></div>'+btn('RESTAURAR','resetSettings:acesso','small')+'</div>'+
+ '<div class="ae-settings-heading"><div><span class="ae-settings-index">LEITURA</span><h2 id="settingsAccessTitle">ACESSIBILIDADE</h2><p>Controle legibilidade, movimento e efeitos visuais.</p></div>'+btn('RESTAURAR','resetSettings:acesso','small')+'</div>'+
  '<div class="ae-settings-access-grid"><div class="field"><label for="sizeChoice">Tamanho do texto</label><select id="sizeChoice">'+[100,115,130,150].map(v=>'<option value="'+v+'" '+(prefs.fontSize===v?'selected':'')+'>'+v+'%</option>').join('')+'</select></div>'+
  '<div class="field"><label for="motionChoice">Movimento</label><select id="motionChoice"><option value="auto" '+(prefs.reduceMotion===null?'selected':'')+'>Seguir o dispositivo</option><option value="off" '+(prefs.reduceMotion===true?'selected':'')+'>Reduzir movimentos</option><option value="on" '+(prefs.reduceMotion===false?'selected':'')+'>Permitir movimentos</option></select></div></div>'+
  '<div class="ae-settings-muted-grid">'+[['easyFont','Fonte de fácil leitura'],['spacing','Espaçamento ampliado'],['noSheetMotion','Sem movimento nas fichas'],['rollImpacts','Efeitos visuais de críticos'],['grain','Textura discreta'],['energy','Efeitos do fundo']].map(([k,label])=>'<label class="ae-settings-check"><input type="checkbox" data-setting="'+k+'" '+(prefs[k]?'checked':'')+'> '+label+'</label>').join('')+'</div>'+
