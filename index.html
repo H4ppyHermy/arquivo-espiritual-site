@@ -1190,6 +1190,68 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px soli
 .ae-home-glyph img{width:100%;height:auto;max-height:100%;display:block;object-fit:contain}
 @media(max-width:980px){#page .ae-home-glyph{width:180px}}
 @media(max-width:680px){#page .ae-home-glyph{width:135px;opacity:.24}}
+
+/* HOME — superfície uniforme e emblema central discreto. */
+#page .ae-home-hero{
+ background:var(--theme-panel);
+}
+#page .ae-home-hero:before{
+ display:none;
+}
+#page .ae-home-art{
+ inset:0;
+ width:100%;
+ opacity:1;
+ background-color:transparent;
+}
+#page .ae-home-art:not(.has-image){
+ background:none!important;
+}
+#page .ae-home-art:before,
+#page .ae-home-art:after{
+ display:none!important;
+}
+#page .ae-home-glyph{
+ position:absolute;
+ inset:0;
+ top:0;
+ right:0;
+ bottom:0;
+ left:0;
+ transform:none;
+ width:100%;
+ height:100%;
+ max-height:none;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ opacity:.12;
+ z-index:1;
+ filter:none;
+ pointer-events:none;
+}
+#page .ae-home-glyph img{
+ width:clamp(330px,40vw,540px);
+ height:auto;
+ max-width:85%;
+ max-height:92%;
+ object-fit:contain;
+ display:block;
+}
+#page .ae-home-hero-copy{
+ position:relative;
+ z-index:4;
+}
+@media(max-width:680px){
+ #page .ae-home-glyph{
+  opacity:.08;
+ }
+ #page .ae-home-glyph img{
+  width:clamp(260px,76vw,410px);
+  max-width:90%;
+  max-height:82%;
+ }
+}
 </style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><div class="sidebar-extras" aria-label="Estado do site e configurações">
  <span id="onlineStatus" class="online-status" title="Estado da sincronização">LOCAL</span>
