@@ -1036,6 +1036,25 @@ body.home-view .nav button.active{border:0;border-top:3px solid var(--theme-acce
 }
 @media(prefers-reduced-motion:reduce){.ae-home-play,.ae-home-tile,body.home-view .nav button{transition:none!important}.ae-home-play:hover,.ae-home-tile:hover{transform:none}}
 
+
+/* Home clean-up 2026-11-16: hide marked redundancies, preserve navigation. */
+.brand{padding-bottom:16px}
+.brand b,.brand p,.sidefoot{display:none!important}
+@media(min-width:681px){.side .sidebar-audio{margin-top:auto}}
+body.home-view .brand{margin-bottom:12px;padding-bottom:17px}
+.ae-home-art{background:radial-gradient(ellipse at 80% 43%,rgba(30,111,159,.17),transparent 64%),linear-gradient(125deg,#071923,var(--theme-panel));background-size:cover;background-position:center}
+.ae-home-art:before{background:linear-gradient(90deg,#071923,rgba(7,25,35,.58) 36%,rgba(7,25,35,.15) 100%)}
+.ae-home-art:after{content:none}
+.ae-home-tile{min-height:153px}
+.ae-home-tile-title{margin:8px 0 10px}
+@media(max-width:680px){
+ .ae-home-art:before{background:linear-gradient(90deg,rgba(6,21,31,.85),rgba(6,21,31,.5))}
+ .ae-home-sectionhead{margin-top:20px}
+}
+@media(max-width:520px){
+ .ae-home-tile{min-height:130px}
+ .ae-home-tile-title{margin:3px 0 7px}
+}
 </style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><button type="button" id="sidebarAudio" class="sidebar-audio" data-action="hudToggle" aria-label="Abrir ou fechar o painel de música" aria-expanded="false" title="Abrir música"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><rect x="2" y="13" width="4" height="8" rx="2"/><rect x="18" y="13" width="4" height="8" rx="2"/></svg><span>Música</span></button><div class="sidefoot"><span id="roleText">VISITANTE</span><p id="storageText"></p></div></aside><main class="shell"><div class="toolbar"><span class="mobile-title" id="mobileTitle">Bleach CBB</span><span class="status" id="headerStatus">REGISTRO // BLEACH CBB</span><div class="toolbar-right" aria-label="Conta e controles">
  <span class="version-tag version-top">VERSÃO 3.6</span>
@@ -1307,7 +1326,7 @@ function btn(text,act,cls=''){return `<button type="button" class="btn ${cls}" d
 function home(){
  const cover=imgStyle(db.site.cover);
  return `<section class="ae-home" aria-label="Página inicial">
-  <div class="ae-home-path"><span class="ae-home-path-stripe" aria-hidden="true"></span>ARQUIVO ESPIRITUAL <i>/</i> VISÃO GERAL <span class="ae-home-path-right">BLEACH · RPG DE MESA</span></div>
+  <div class="ae-home-path"><span class="ae-home-path-stripe" aria-hidden="true"></span>ARQUIVO ESPIRITUAL <i>/</i> VISÃO GERAL</div>
   <section class="ae-home-hero" aria-labelledby="ae-home-headline">
    <div class="ae-home-hero-copy">
     <span class="ae-home-overline"><span class="ae-home-diamond" aria-hidden="true">✦</span> SUA JORNADA COMEÇA AQUI</span>
@@ -1315,25 +1334,21 @@ function home(){
     <p>Suas escolhas moldam a história. Acesse a sessão, prepare sua ficha e siga em frente.</p>
     <button type="button" class="ae-home-play" data-page="session"><span>▶</span> ABRIR SESSÃO ${icon('arrow')}</button>
    </div>
-   <div class="ae-home-art ${cover?'has-image':''}" style="${cover}" aria-hidden="true"><span class="ae-home-art-circle"></span><span class="ae-home-art-kanji">斬</span><span class="ae-home-art-mark">BLEACH <b>/</b> C.B.B</span></div>
-   <span class="ae-home-hero-side" aria-hidden="true">ARQUIVO ESPIRITUAL // 01</span>
+   <div class="ae-home-art ${cover?'has-image':''}" style="${cover}" aria-hidden="true"></div>
   </section>
-  <div class="ae-home-sectionhead"><div><span>ACESSO RÁPIDO <i>//</i> ÁREAS DO SISTEMA</span><h2>SEU CENTRO DE OPERAÇÕES</h2></div><small>Tudo a poucos toques.</small></div>
+  <div class="ae-home-sectionhead"><div><span>ACESSO RÁPIDO</span><h2>SEU CENTRO DE OPERAÇÕES</h2></div></div>
   <div class="ae-home-tiles" role="group" aria-label="Acessos rápidos">
    <button type="button" class="ae-home-tile ae-home-tile-characters" data-page="sheets" aria-label="Abrir fichas">
-    <span class="ae-home-tile-top">01 <i>/</i> PERSONAGENS ${icon('arrow')}</span>
     <span class="ae-home-tile-title"><span class="ae-home-icon">${icon('user')}</span><strong>FICHAS</strong></span>
     <span class="ae-home-tile-desc">Personagens, atributos e habilidades.</span>
     <span class="ae-home-tile-bottom"><span>${db.sheets.length} fichas disponíveis</span><b>ACESSAR</b></span>
    </button>
    <button type="button" class="ae-home-tile ae-home-tile-library" data-page="library" aria-label="Abrir biblioteca">
-    <span class="ae-home-tile-top">02 <i>/</i> REGRAS ${icon('arrow')}</span>
     <span class="ae-home-tile-title"><span class="ae-home-icon">${icon('book')}</span><strong>BIBLIOTECA</strong></span>
     <span class="ae-home-tile-desc">Capítulos, mecânicas e referências.</span>
     <span class="ae-home-tile-bottom"><span>${db.rules.length} documentos</span><b>CONSULTAR</b></span>
    </button>
    <button type="button" class="ae-home-tile ae-home-tile-rolls" data-page="rolls" aria-label="Abrir mesa de dados">
-    <span class="ae-home-tile-top">03 <i>/</i> TESTES ${icon('arrow')}</span>
     <span class="ae-home-tile-title"><span class="ae-home-icon">${icon('dice')}</span><strong>ROLAGENS</strong></span>
     <span class="ae-home-tile-desc">Dados, resultados e histórico.</span>
     <span class="ae-home-tile-bottom"><span>Mesa de dados</span><b>ROLAR</b></span>
