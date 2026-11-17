@@ -83,24 +83,18 @@ async function sheetCmd(){
 }
 async function sheetOwnerCmd(p){
  const id=String(opt(p,"id")||"").trim();
- if(!/^[a-zA-Z0-9_-]{1,100}$/.test(id))return {content:"Use bficha ID (exemplo: bficha arquivo-hn9c15m7)."};
+ if(!/^[a-zA-Z0-9_-]{1,100}$/.test(id))return {content:"Informe o ID da ficha. Exemplo: bficha arquivo-hn9c15m7."};
  const discordId=String(user(p).id||"");
- const linked=await rest("ae_discord_links?select=account_id,key_id&discord_user_id=eq."+encodeURIComponent(discordId)+"&limit=1");
- if(!linked?.[0])return {content:"Discord não vinculado ao site. Digite bvincular e confira suas DMs."};
- const accountId=linked[0].account_id,keyId=linked[0].key_id;
- const [accounts,keys]=await Promise.all([
-  rest("ae_accounts?select=id,key_id&id=eq."+encodeURIComponent(accountId)+"&limit=1"),
-  rest("ae_keys?select=id,kind,active&id=eq."+encodeURIComponent(keyId)+"&limit=1")
- ]);
- if(accounts?.[0]?.key_id!==keyId||keys?.[0]?.active!==true||keys?.[0]?.kind!=="player"){
-  return {content:"Seu vínculo não está mais ativo. Entre na sua conta do site e vincule novamente usando bvincular."};
- }
- const sheet=(await sheets()).find(s=>s.id===id);
- // Conhecer o ID não dá acesso; coautores não recebem fichas de outros donos.
- if(!sheet||sheet.masterOnly||sheet.redacted||sheet.ownerKeyId!==keyId||(Array.isArray(sheet.linkedKeyIds)&&!sheet.linkedKeyIds.includes(keyId))){
-  return {content:"Ficha não encontrada ou não pertence à sua conta. Confira o ID ou o vínculo no site."};
- }
- return {dmSheet:sheet,content:"Sua ficha completa foi enviada por mensagem privada."};
+ if(!/^\d{17,22}$/.test(discordId))return {content:"Usuário do Discord inválido."};
+ // Um único RPC transacional verifica Discord -> conta -> chave ativa -> dono atual.
+ // Não consulta fichas protegidas por meio de um filtro público nem por ID isolado.
+ const sheet=await rest("rpc/ae_discord_owner_sheet","POST",{
+  p_discord_user_id:discordId,p_sheet_id:id
+ });
+ if(!sheet)return {
+  content:"Não foi possível abrir esta ficha. Confirme o ID e a propriedade no site. Se ainda não vinculou sua conta, digite bvincular e confira sua DM."
+ };
+ return {dmSheet:sheet,content:"Ficha completa enviada somente por mensagem privada."};
 }
 function challengeCode(){
  const bytes=new Uint8Array(8);crypto.getRandomValues(bytes);
