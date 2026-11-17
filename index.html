@@ -1560,22 +1560,49 @@ body{font-size:calc(14px * var(--ae-reading-scale))}
 }
 
 
-/* LEITURA ASSISTIDA — sem alterar a paleta ou esconder informação. */
-#page .ae-access-option{align-items:flex-start;min-height:118px;padding:13px 14px;background:var(--theme-bg)}
-#page .ae-access-option input[type=checkbox]{margin-top:2px}
-#page .ae-access-option>span{display:grid;gap:5px;min-width:0}
-#page .ae-access-option strong{font-size:calc(13px * var(--ae-reading-scale));line-height:1.4}
-#page .ae-access-option small{font-size:calc(11px * var(--ae-reading-scale));font-weight:500;line-height:1.65;opacity:.85;overflow-wrap:anywhere}
-#page .ae-access-option:has(input:checked){border-color:var(--theme-accent);background:var(--theme-raised)}
-#page .ae-access-preview{padding:16px 18px;margin-top:14px;background:var(--theme-bg);border-left:3px solid var(--theme-structure)}
-#page .ae-access-preview>span{font-size:10px;letter-spacing:.13em;font-weight:900;color:var(--theme-cold)}
-#page .ae-access-preview p{font-size:calc(13px * var(--ae-reading-scale));line-height:1.75;margin:10px 0 0;max-width:68ch}
+/* Configurações de acessibilidade: opções agrupadas, compactas e legíveis. */
+#page .ae-settings-panel:has(#settingsAccessTitle){--ae-access-gap:12px}
+#page .ae-settings-panel:has(#settingsAccessTitle) .ae-settings-heading{margin-bottom:18px}
+#page .ae-settings-access-grid{max-width:360px;min-width:0}
+#page .ae-access-reading-options{
+ margin:14px 0 0;display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ae-access-gap)
+}
+#page .ae-access-option{
+ display:flex;align-items:flex-start;gap:11px;min-width:0;
+ min-height:86px;padding:13px 14px;background:var(--theme-bg);
+ border:1px solid var(--theme-structure);cursor:pointer;
+}
+#page .ae-access-option input[type=checkbox]{
+ flex:0 0 18px;width:18px;height:18px;min-width:18px;
+ margin-top:2px;accent-color:var(--theme-accent)
+}
+#page .ae-access-option>span{display:grid;gap:4px;min-width:0}
+#page .ae-access-option strong{
+ font-size:calc(13px * var(--ae-reading-scale));line-height:1.4;font-weight:800
+}
+#page .ae-access-option small{
+ font-size:calc(11px * var(--ae-reading-scale));font-weight:500;
+ line-height:1.55;opacity:.82;overflow-wrap:break-word
+}
+#page .ae-access-option:has(input:checked){
+ border-color:var(--theme-accent);
+ background:color-mix(in srgb,var(--theme-accent) 6%,var(--theme-bg))
+}
+#page .ae-access-option:focus-within{
+ outline:2px solid var(--theme-cold);outline-offset:2px
+}
+#page .ae-access-wide{min-height:0}
+@media(max-width:600px){
+ #page .ae-access-reading-options{grid-template-columns:minmax(0,1fr)}
+ #page .ae-access-option{min-height:0;padding:12px}
+}
 html.dyslexia-mode body{font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif}
-html.dyslexia-mode #page :is(.book-text,.rule .prose,.ae-mechanic-explanation,.ability,.sheet-entry,.character-text,.ae-access-preview){
+html.dyslexia-mode #page :is(.book-text,.rule .prose,.ae-mechanic-explanation,.ability,.sheet-entry,.character-text){
  font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif;
  text-align:left;hyphens:none;letter-spacing:.02em;word-spacing:.10em
 }
-html.dyslexia-mode #page :is(.book-text p,.book-text li,.book-text blockquote,.book-text dd,.rule .prose,.ae-mechanic-explanation p,.ability p,.sheet-entry p,.character-text p,.ae-access-preview p){
+html.dyslexia-mode #page :is(.book-text p,.book-text li,.book-text blockquote,.book-text dd,.rule .prose,.ae-mechanic-explanation p,.ability p,.sheet-entry p,.character-text p){
  max-width:68ch;text-align:left!important;hyphens:none!important;
  line-height:1.95!important;letter-spacing:.025em;word-spacing:.12em;
  overflow-wrap:break-word
@@ -1596,11 +1623,40 @@ html.dyslexia-mode #page .book-text :is(em,i){font-style:normal;font-weight:700}
 @media(max-width:600px){#page .ae-access-option{min-height:0}}
 
 
-/* Configurações do leitor; o painel flutuante tem seus próprios estilos. */
-#page .ae-speech-settings{display:grid;gap:12px;margin-top:20px;padding-top:18px;border-top:1px solid var(--theme-structure)}
-#page .ae-speech-settings .field{max-width:360px;margin:0}
-#page .ae-speech-settings select{min-height:46px}
-#page .ae-speech-settings .actions{margin-top:0;flex-wrap:wrap}
+/* Narração: velocidade e ações alinhadas, sem prévia permanente. */
+#page .ae-speech-settings{
+ display:grid;gap:12px;margin-top:15px;padding-top:15px;
+ border-top:1px solid var(--theme-structure)
+}
+#page .ae-speech-controls{
+ display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;min-width:0
+}
+#page .ae-speech-controls .field{
+ flex:1 1 230px;max-width:340px;min-width:0;margin:0
+}
+#page .ae-speech-controls select{
+ width:100%;min-height:46px;border:1px solid var(--theme-structure);
+ background:var(--theme-bg)
+}
+#page .ae-speech-buttons{
+ display:flex;gap:8px;flex:1 1 260px;flex-wrap:wrap;min-width:0
+}
+#page .ae-speech-buttons .btn{
+ flex:1 1 auto;min-height:46px;white-space:normal
+}
+#page .ae-access-helper{
+ margin:0!important;max-width:68ch;opacity:.72;
+ font-size:calc(11px * var(--ae-reading-scale))!important;line-height:1.55
+}
+#page .ae-access-performance{
+ margin-top:15px;padding-top:15px;
+ border-top:1px solid var(--theme-structure)
+}
+@media(max-width:600px){
+ #page .ae-speech-controls{gap:10px}
+ #page .ae-speech-controls .field{max-width:none;flex-basis:100%}
+ #page .ae-speech-buttons{flex-basis:100%}
+}
 /* MODO DESEMPENHO — corta renderização decorativa sem remover conteúdo. */
 html.performance-mode{scroll-behavior:auto!important}
 html.performance-mode *,
@@ -1795,17 +1851,18 @@ function settings(){
  '<div class="ae-palette-swatches" aria-label="Cores da paleta">'+swatches+'</div></div></div>'+
  '</section>'+
  '<section class="panel ae-settings-panel" aria-labelledby="settingsAccessTitle">'+
- '<div class="ae-settings-heading"><div><span class="ae-settings-index">LEITURA</span><h2 id="settingsAccessTitle">ACESSIBILIDADE</h2><p>Ajuste o texto e a fluidez do site.</p></div>'+btn('RESTAURAR','resetSettings:acesso','small')+'</div>'+
+ '<div class="ae-settings-heading"><div><span class="ae-settings-index">LEITURA</span><h2 id="settingsAccessTitle">ACESSIBILIDADE</h2><p>Personalize a leitura e a navegação.</p></div>'+btn('RESTAURAR','resetSettings:acesso','small')+'</div>'+
  '<div class="ae-settings-access-grid"><div class="field"><label for="sizeChoice">Tamanho do texto</label><select id="sizeChoice">'+[50,75,100,125,150,175,200].map(v=>'<option value="'+v+'" '+(prefs.fontSize===v?'selected':'')+'>'+v+'%</option>').join('')+'</select></div></div>'+
  '<div class="ae-settings-muted-grid ae-access-reading-options">'+
- '<label class="ae-settings-check ae-access-option"><input type="checkbox" data-setting="dyslexiaMode" '+(prefs.dyslexiaMode?'checked':'')+'><span><strong>Modo de apoio à dislexia</strong><small>Usa a fonte Atkinson Hyperlegible, separa melhor letras e palavras, amplia a distância entre linhas e facilita acompanhar parágrafos longos.</small></span></label>'+
- '<label class="ae-settings-check ae-access-option"><input type="checkbox" data-setting="spacing" '+(prefs.spacing?'checked':'')+'><span><strong>Espaçamento ampliado</strong><small>Aumenta o espaçamento geral da interface. Pode ser usado junto ao modo de apoio à dislexia.</small></span></label></div>'+
- '<div class="ae-access-preview" aria-label="Prévia dos ajustes de leitura"><span>PRÉVIA DE LEITURA</span><p>Durante a rodada, leia o efeito da habilidade e escolha sua ação. As regras continuam disponíveis para consulta.</p></div>'+
- '<div class="ae-speech-settings"><label class="ae-settings-check ae-access-performance-toggle"><input type="checkbox" data-setting="speechEnabled" '+(prefs.speechEnabled?'checked':'')+'><span><strong>Leitura em voz alta</strong><small>Selecione texto em fichas, regras ou pop-ups. O painel fica disponível na tela e pode ser arrastado e ampliado. Sem custo de API.</small></span></label>'+
- '<div class="field"><label for="speechRateChoice">Velocidade da narração</label><select id="speechRateChoice" '+(!prefs.speechEnabled?'disabled':'')+'>'+[[0.5,'Muito lenta · 0,5×'],[0.75,'Lenta · 0,75×'],[1,'Normal · 1×'],[1.25,'Ágil · 1,25×'],[1.5,'Rápida · 1,5×'],[1.7,'Muito rápida · 1,7×'],[2,'Máxima · 2×']].map(([v,n])=>'<option value="'+v+'" '+(Number(prefs.speechRate)===v?'selected':'')+'>'+n+'</option>').join('')+'</select></div>'+
- '<div class="actions"><button type="button" class="btn small" data-action="speechSample" '+(!prefs.speechEnabled?'disabled':'')+'>OUVIR EXEMPLO</button><button type="button" class="btn small" data-action="speechResetPanel" '+(!prefs.speechEnabled?'disabled':'')+'>RESTAURAR PAINEL</button></div><p class="ae-settings-performance-note">Arraste o cabeçalho do leitor para mover. Use − ou + para ajustar o tamanho. Pelo teclado, use as setas no cabeçalho; a tecla Início restaura a posição. A voz depende do dispositivo.</p></div>'+
- '<div class="ae-access-performance"><label class="ae-settings-check ae-access-performance-toggle"><input type="checkbox" data-setting="performanceMode" '+(prefs.performanceMode?'checked':'')+'><span><strong>Modo desempenho</strong><small>Desativa animações, partículas, gradientes, sombras e efeitos visuais, mantendo as funções do site.</small></span></label>'+
- '<p class="ae-settings-performance-note">Recomendado para celulares mais simples. Você pode desativá-lo a qualquer momento.</p></div>'+
+ '<label class="ae-settings-check ae-access-option"><input type="checkbox" data-setting="dyslexiaMode" '+(prefs.dyslexiaMode?'checked':'')+'><span><strong>Apoio à dislexia</strong><small>Fonte mais legível, palavras e linhas mais espaçadas.</small></span></label>'+
+ '<label class="ae-settings-check ae-access-option"><input type="checkbox" data-setting="spacing" '+(prefs.spacing?'checked':'')+'><span><strong>Espaçamento ampliado</strong><small>Mais espaço entre textos e elementos da interface.</small></span></label></div>'+
+
+ '<div class="ae-speech-settings">'+
+ '<label class="ae-settings-check ae-access-option ae-access-wide"><input type="checkbox" data-setting="speechEnabled" '+(prefs.speechEnabled?'checked':'')+'><span><strong>Leitura em voz alta</strong><small>Selecione textos nas regras, fichas ou glossários para ouvir no painel móvel.</small></span></label>'+
+ '<div class="ae-speech-controls"><div class="field"><label for="speechRateChoice">Velocidade da narração</label><select id="speechRateChoice" '+(!prefs.speechEnabled?'disabled':'')+'>'+[[0.5,'Muito lenta · 0,5×'],[0.75,'Lenta · 0,75×'],[1,'Normal · 1×'],[1.25,'Ágil · 1,25×'],[1.5,'Rápida · 1,5×'],[1.7,'Muito rápida · 1,7×'],[2,'Máxima · 2×']].map(([v,n])=>'<option value="'+v+'" '+(Number(prefs.speechRate)===v?'selected':'')+'>'+n+'</option>').join('')+'</select></div>'+
+ '<div class="ae-speech-buttons"><button type="button" class="btn small" data-action="speechSample" '+(!prefs.speechEnabled?'disabled':'')+'>OUVIR EXEMPLO</button><button type="button" class="btn small" data-action="speechResetPanel" '+(!prefs.speechEnabled?'disabled':'')+'>RESTAURAR PAINEL</button></div></div>'+
+ '<p class="ae-access-helper">Arraste o leitor pelo título; use + ou − para alterar o tamanho.</p></div>'+
+ '<div class="ae-access-performance"><label class="ae-settings-check ae-access-option ae-access-wide"><input type="checkbox" data-setting="performanceMode" '+(prefs.performanceMode?'checked':'')+'><span><strong>Modo desempenho</strong><small>Desativa animações e efeitos visuais sem comprometer as funções do site.</small></span></label></div>'+
 
  '</section></div>';
 }
@@ -2161,7 +2218,7 @@ function showLibraryMechanic(key){
  const item=libraryGlossary.get(decoded);
  if(!item)return;
  modal('O QUE É '+item.name.toLocaleUpperCase('pt-BR')+'?',`<div class="ae-mechanic-explanation"><div class="eyebrow">GLOSSÁRIO · ${esc(item.chapterTitle)}</div><p>${esc(item.description)}</p><p class="subtitle">Definição extraída das próprias regras do sistema.</p></div>`,
- [...(prefs.speechEnabled?[['OUVIR EXPLICAÇÃO','speechReadDialog','small'],['PARAR NARRAÇÃO','speechStop','small']]:[]),['VER CAPÍTULO','goMechanicChapter:'+encodeURIComponent(item.chapterId),'main'],['FECHAR','closeModal','small']]);
+ [['VER CAPÍTULO','goMechanicChapter:'+encodeURIComponent(item.chapterId),'main'],['FECHAR','closeModal','small']]);
 }
 function goLibraryMechanicChapter(code){
  let id='';try{id=decodeURIComponent(code)}catch(e){return}
