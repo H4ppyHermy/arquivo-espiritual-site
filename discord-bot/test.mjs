@@ -1,13 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {parseDiceExpression,rollDiceExpression} from "./dice.mjs";
+import {parseDiceExpression,rollDiceExpression,evaluateRpgSpecial} from "./dice.mjs";
 
 test("aceita expressões comuns",()=>{
  for(const expression of ["1d1","1d2","1d3","1d20","2d6+3","1d20-2","2d20kh1","2d20kl1","4d6kh3","3d8+1d4+7"]){
   const parsed=parseDiceExpression(expression);assert.ok(parsed.count>=1);
   const rolled=rollDiceExpression(expression);
   assert.equal(rolled.dice.length,parsed.count);
-  assert.equal(rolled.total,rolled.dice.reduce((n,d)=>n+d.effective,0)+parsed.constant);
+  const base=rolled.dice.reduce((n,d)=>n+d.effective,0);
+  assert.equal(rolled.total,(rolled.special==="CRÍTICO"?base*2:base)+parsed.constant);
  }
 });
 test("vantagem e desvantagem descartam o dado correto",()=>{
@@ -30,4 +31,12 @@ test("valor está no intervalo",()=>{
    assert.ok(rolled.total>=1&&rolled.total<=sides);
   }
  }
+});
+
+test("crítico, falha crítica e dados descartados seguem ae_avaliar_dados",()=>{
+ const dice=(...values)=>values.map(value=>({sides:6,value,effective:value}));
+ assert.equal(evaluateRpgSpecial(dice(6,6)),"CRÍTICO");
+ assert.equal(evaluateRpgSpecial(dice(1,1)),"FALHA CRÍTICA");
+ assert.equal(evaluateRpgSpecial(dice(6,5)),"");
+ assert.equal(evaluateRpgSpecial([{sides:20,value:6,effective:6},{sides:20,value:6,effective:0}]),"");
 });
