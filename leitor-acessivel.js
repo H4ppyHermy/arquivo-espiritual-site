@@ -5,7 +5,7 @@
  'use strict';
  if(window.ARQUIVO_SPEECH)return;
  const STORE_KEY='arquivo_leitor_flutuante_v1';
- const state={selection:'',queue:[],token:0,active:false,dialog:null,drag:null};
+ const state={selection:'',queue:[],token:0,active:false,dialog:null,drag:null,issue:''};
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  const preferences=()=>window.ARQUIVO_INTERNAL?.prefs||{};
  const supported=()=>!!(window.speechSynthesis&&window.SpeechSynthesisUtterance);
@@ -72,20 +72,24 @@
   node('aeSpeechSmaller').disabled=size<=.8;
   node('aeSpeechBigger').disabled=size>=1.5;
   const status=node('aeSpeechStatus');
-  status.textContent=!available?'Este navegador não oferece síntese de voz.':
+  status.textContent=!available?'Este navegador não oferece síntese de voz.':state.issue?state.issue:
    state.active?'Lendo em voz alta…':
    state.selection?'Seleção pronta para ouvir.':
    dialogReadable()?'Selecione uma parte ou use LER JANELA.':'Selecione um trecho para ouvir.';
   layout();
  }
  function clear(stopCurrent=false){
-  state.selection='';
+  state.selection='';state.issue='';
   if(stopCurrent)stop();else refresh();
  }
  function stop(){
   state.token++;state.queue=[];state.active=false;
   try{window.speechSynthesis?.cancel()}catch(e){}
   refresh();
+ }
+ function reportIssue(title,description){
+  state.issue=description;refresh();
+  try{window.ARQUIVO_INTERNAL?.toast?.(title,description,true)}catch(e){}
  }
  function chunk(text){
   const words=String(text||'').replace(/\s+/g,' ').trim().split(/\s+/).filter(Boolean);
@@ -105,10 +109,10 @@
  }
  function speak(text){
   if(!preferences().speechEnabled)return;
-  if(!supported()){refresh();return}
+  if(!supported()){reportIssue('Leitor indisponível','Este navegador não oferece narração. Experimente um navegador atualizado.');return}
   const content=String(text||'').replace(/\s+/g,' ').trim();
-  if(!content){refresh();return}
-  stop();
+  if(!content){reportIssue('Seleção necessária','Selecione um trecho ou use LER JANELA.');return}
+  state.issue='';stop();
   state.queue=chunk(content.slice(0,6000));
   if(!state.queue.length)return;
   state.active=true;
@@ -125,13 +129,10 @@
    utterance.onend=next;
    utterance.onerror=e=>{
     if(generation!==state.token)return;
-    if(e.error!=='canceled'&&e.error!=='interrupted'){
-     const status=node('aeSpeechStatus');
-     if(status)status.textContent='Não foi possível continuar a narração. Confira a voz instalada.';
-    }
     stop();
+    if(e.error!=='canceled'&&e.error!=='interrupted')reportIssue('Narração interrompida','Verifique se existe uma voz compatível instalada no dispositivo.');
    };
-   try{engine.speak(utterance)}catch(e){stop()}
+   try{engine.speak(utterance)}catch(e){stop();reportIssue('Falha na narração','Não foi possível iniciar a voz neste navegador.')}
   };
   refresh();next();
  }
@@ -147,7 +148,7 @@
      focus.closest?.('button,input,textarea,select,[contenteditable="true"],#aeSpeechTools'))return;
   const selected=selection.toString().replace(/\s+/g,' ').trim();
   if(selected.length<2)return;
-  state.selection=selected.slice(0,6000);
+  state.selection=selected.slice(0,6000);state.issue='';
   refresh();
  }
  function resize(delta){
