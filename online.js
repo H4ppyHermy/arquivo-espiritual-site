@@ -111,14 +111,32 @@ async function saveAppearance(sheetId,appearance){if(!state.enabled)throw Error(
 async function playerDirectory(){return rpc('ae_player_directory')}
 async function sheetLink(sheetId,action,targetKey=null){return rpc('ae_sheet_link',{p_sheet_id:sheetId,p_action:action,p_target_key:targetKey||null})}
 async function saveOwnedSheet(sheet){if(!state.enabled||state.identity?.kind!=='player')throw Error('Entre com uma chave de jogador.');return rpc('ae_player_save_sheet',{p_sheet:sheet})}
-async function useAbility(sheetId,abilityIndex){if(!state.enabled)throw Error('Conexão online indisponível.');return rpc('ae_use_ability',{p_sheet_id:sheetId,p_ability_index:abilityIndex})}
-async function rollSkill(sheetId,skill,abilityIndex=null){return rpc('ae_roll_skill_colored',{p_sheet_id:sheetId,p_skill:skill,p_ability_index:Number.isInteger(abilityIndex)?abilityIndex:null})}
-async function rerollSkill(previousId){if(!Number.isSafeInteger(previousId)||previousId<1)throw Error('Rolagem original inválida.');return rpc('ae_reroll_skill',{p_previous_id:previousId})}
-async function configureSkillRoll(previousId,groupSteps,skillSteps){if(!Number.isSafeInteger(previousId)||previousId<1)throw Error('Rolagem original inválida.');if(!Number.isInteger(groupSteps)||!Number.isInteger(skillSteps)||Math.abs(groupSteps)>2||Math.abs(skillSteps)>2||(!groupSteps&&!skillSteps))throw Error('Escolha de -2 a +2 passos, alterando pelo menos um dado.');return rpc('ae_configure_skill_roll',{p_previous_id:previousId,p_group_steps:groupSteps,p_skill_steps:skillSteps})}
+async function useAbility(sheetId,abilityIndex){if(!state.enabled)throw Error('Conexão online indisponível.');return rpc('ae_use_ability',{p_sheet_id:sheetId,p_ability_index:abilityIndex}).then(result=>{if(result?.roll?.id)notifyDiscordRoll(result.roll);return result})}
+async function notifyDiscordRoll(result){
+ // Desabilitado até o mestre concluir a configuração do bot.
+ if(config.discordNotifications!==true||!state.enabled||!result?.id||result.hidden)return;
+ try{
+  const {data:{session}}=await state.client.auth.getSession();
+  if(!session?.access_token)return;
+  const response=await fetch(apiUrl+'/functions/v1/ae-discord-bot/notify',{
+   method:'POST',
+   headers:{'Content-Type':'application/json','apikey':apiKey,'Authorization':'Bearer '+session.access_token},
+   body:JSON.stringify({rollId:result.id})
+  });
+  // A indisponibilidade do Discord nunca cancela a rolagem verificada no site.
+  if(!response.ok)console.warn('Notificação Discord não entregue:',response.status);
+ }catch(e){console.warn('Notificação Discord indisponível.')}
+}
+function withDiscordRoll(promise){
+ return promise.then(result=>{notifyDiscordRoll(result);return result});
+}
+async function rollSkill(sheetId,skill,abilityIndex=null){return withDiscordRoll(rpc('ae_roll_skill_colored',{p_sheet_id:sheetId,p_skill:skill,p_ability_index:Number.isInteger(abilityIndex)?abilityIndex:null}))}
+async function rerollSkill(previousId){if(!Number.isSafeInteger(previousId)||previousId<1)throw Error('Rolagem original inválida.');return withDiscordRoll(rpc('ae_reroll_skill',{p_previous_id:previousId}))}
+async function configureSkillRoll(previousId,groupSteps,skillSteps){if(!Number.isSafeInteger(previousId)||previousId<1)throw Error('Rolagem original inválida.');if(!Number.isInteger(groupSteps)||!Number.isInteger(skillSteps)||Math.abs(groupSteps)>2||Math.abs(skillSteps)>2||(!groupSteps&&!skillSteps))throw Error('Escolha de -2 a +2 passos, alterando pelo menos um dado.');return withDiscordRoll(rpc('ae_configure_skill_roll',{p_previous_id:previousId,p_group_steps:groupSteps,p_skill_steps:skillSteps}))}
 async function rollFree(count,faces,hidden=false,colors=[]){
  if(!hidden&&Number.isInteger(faces)&&faces>=2&&faces<=1000&&Number.isInteger(count)&&count>=1&&count<=30)
-  return rpc('ae_roll_custom',{p_count:count,p_faces:faces,p_colors:Array.isArray(colors)?colors:[]});
- return rpc('ae_roll_free_colored',{p_count:count,p_faces:faces,p_hidden:hidden,p_colors:Array.isArray(colors)?colors:[]});
+  return withDiscordRoll(rpc('ae_roll_custom',{p_count:count,p_faces:faces,p_colors:Array.isArray(colors)?colors:[]}));
+ return withDiscordRoll(rpc('ae_roll_free_colored',{p_count:count,p_faces:faces,p_hidden:hidden,p_colors:Array.isArray(colors)?colors:[]}));
 }
 async function rollHistory(limit=10,offset=0,sheetId=null){
  if(!state.enabled||!state.identity?.id)return {rows:[],total:0};
