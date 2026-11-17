@@ -2703,10 +2703,7 @@ function formatBook(source,chapterTitle=''){
  function inline(text){
   const markers=[];
   let raw=insertGlossaryReferences(text,markers);
-  raw=raw.replace(/(^|[^\p{L}\p{N}])([dD](?:4|6|8|10|12|20))(?![\p{L}\p{N}])/gu,(all,prefix,die)=>{
-   const index=markers.push({die:Number(die.slice(1))})-1;
-   return prefix+'@@AEGLOSS'+index+'@@';
-  });
+  raw=markInlineDice(raw,markers,'@@AEGLOSS');
   let t=esc(raw)
     .replace(/\[cor=(#[0-9a-f]{6})\]([\s\S]*?)\[\/cor\]/gi,(_,color,content)=>'<span class="ae-manual-color" style="color:'+color+'">'+content+'</span>')
     .replace(/\\([*_~`])/g,'$1')
@@ -2719,7 +2716,7 @@ function formatBook(source,chapterTitle=''){
   return t.replace(/@@AEGLOSS(\d+)@@/g,(_,index)=>{
    const marker=markers[Number(index)];
    if(!marker)return '';
-   if(marker.die)return dieShape(marker.die,'ae-inline-die');
+   if(marker.sides)return dieShape(marker.sides,'ae-inline-die',marker.count);
    return '<span class="ae-glossary-link" role="link" tabindex="0" data-action="explainRule:'+encodeURIComponent(marker.name)+'" aria-label="Consultar '+esc(marker.name)+' no glossário">'+esc(marker.display)+'</span>';
   });
  }
@@ -2904,9 +2901,28 @@ function abilityTestButton(s,ab,i){if(!abilityHasTest(ab))return '';const custom
 function abilityRoll(i){useAbility(i)}
 function customDiceEditor(ab,i,s){const custom=Array.isArray(ab.testDice)?ab.testDice:[];const colors=abilityDicePalette(s,ab);return `<div class="ability-custom-editor"><p class="color-hint">Dados do teste próprio (até 12). Cada dado tem uma cor individual. Ao usar a técnica, o teste será rolado junto do custo de Alma.</p>${custom.map((d,j)=>`<div class="custom-die-row"><label>Dado ${j+1}<select data-ability-die="${i}:${j}:sides">${VALID_DICE.map(n=>`<option value="${n}" ${Number(d.sides)===n?'selected':''}>d${n}</option>`).join('')}</select></label><label>Cor ${j+1}<input type="color" data-ability-die="${i}:${j}:color" value="${ABILITY_HEX.test(d.color||'')?d.color:colors.group}"></label>${btn('REMOVER','removeAbilityDie:'+i+':'+j,'small danger')}</div>`).join('')||'<p class="color-hint">Nenhum dado próprio definido.</p>'}${btn('+ DADO','addAbilityDie:'+i,'small')}</div>`}
 const DICE_POLYGONS={4:'12,2 2,21 22,21',6:'4,4 20,4 20,20 4,20',8:'12,2 22,12 12,22 2,12',10:'12,2 21,8 18,18 12,23 6,18 3,8',12:'12,2 21,7 21,17 12,22 3,17 3,7',20:'12,2 21,6 23,15 17,22 7,22 1,15 3,6'};
-function dieShape(n,kind=''){
- n=Number(n);
- if(!DICE_POLYGONS[n])return '<span>d'+esc(n)+'</span>';
+
+const DICE_GEOMETRIES=[4,6,8,10,12,20];
+const DICE_NOTATION_RE=/(^|[^\p{L}\p{N}])((?:[1-9]\d?)?[dD](?:[1-9]|1\d|20))(?![\p{L}\p{N}])/gu;
+function diceNotationParts(notation){
+ const found=/^(?:([1-9]\d?))?[dD]([1-9]|1\d|20)$/.exec(notation);
+ if(!found)return null;
+ const count=Number(found[1]||1),sides=Number(found[2]);
+ return count>=1&&count<=99&&sides>=1&&sides<=20?{count,sides}:null;
+}
+function markInlineDice(text,markers,tokenPrefix){
+ return String(text||'').replace(DICE_NOTATION_RE,(match,prefix,notation)=>{
+  const parsed=diceNotationParts(notation);
+  if(!parsed)return match;
+  const index=markers.push(parsed)-1;
+  return prefix+tokenPrefix+index+'@@';
+ });
+}
+
+function dieShape(n,kind='',count=1){
+ n=Number(n);count=Number(count)||1;
+ const geometry=DICE_GEOMETRIES.find(size=>size>=n);
+ if(!geometry)return '<span>d'+esc(n)+'</span>';
  const facets={
   4:'<path d="M12 2 2 21h20L12 2M12 2v12M2 21l10-7 10 7"/>',
   6:'<path d="M4 4 7 2h13l2 3v15l-3 2H6l-2-3V4M4 4h16v16H4M20 4l2 1M20 20l-1 2"/>',
@@ -2915,14 +2931,11 @@ function dieShape(n,kind=''){
   12:'<path d="M12 2 21 7v10l-9 5-9-5V7l9-5M12 2l4 5-4 4-5-4 5-5M3 7l4 0-2 8-2 2M21 7l-5 0 3 8 2 2M5 15l7-4 7 4-7 7-7-7"/>',
   20:'<path d="M12 2 21 6l2 9-6 7H7l-6-7 2-9 9-4M12 2l-5 8h10l-5-8M3 6l4 4-6 5M21 6l-4 4 6 5M7 10l5 10 5-10M1 15l11 5 11-5M7 22l5-2 5 2"/>'
  };
- return '<span class="die-figure '+esc(kind)+'" title="Dado de '+n+' lados"><svg viewBox="0 0 24 24" role="img" aria-label="Dado de '+n+' lados"><polygon points="'+DICE_POLYGONS[n]+'"></polygon><g fill="none" stroke="currentColor" stroke-width=".8" opacity=".55">'+facets[n]+'</g><text x="12" y="13">'+n+'</text></svg></span>';
+ return '<span class="die-figure '+esc(kind)+'" data-count="'+count+'" title="'+(count>1?count+' dados de ':'Dado de ')+n+' lados"><svg viewBox="0 0 24 24" role="img" aria-label="'+(count>1?count+' dados de ':'Dado de ')+n+' lados"><polygon points="'+DICE_POLYGONS[geometry]+'"></polygon><g fill="none" stroke="currentColor" stroke-width=".8" opacity=".55">'+facets[geometry]+'</g><text x="12" y="13">'+n+'</text></svg>'+(count>1?'<small class="ae-die-count" aria-hidden="true">×'+count+'</small>':'')+'</span>';
 }
 function sheetRich(text){
  const markers=[];
- const raw=String(text||'').replace(/(^|[^\p{L}\p{N}])([dD](?:4|6|8|10|12|20))(?![\p{L}\p{N}])/gu,(all,prefix,die)=>{
-  const index=markers.push(Number(die.slice(1)))-1;
-  return prefix+'@@AEDIE'+index+'@@';
- });
+ const raw=markInlineDice(String(text||''),markers,'@@AEDIE');
  const escaped=esc(raw);
  const fragments=escaped.split(/(\[cor=#[0-9a-fA-F]{6}\]|\[\/cor\])/gi);
  let open=false,out='';
@@ -2934,7 +2947,10 @@ function sheetRich(text){
    if(open)out+='</span>';open=false;
   }else out+=p.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
  }
- return (out+(open?'</span>':'')).replace(/@@AEDIE(\d+)@@/g,(_,index)=>dieShape(markers[Number(index)],'ae-inline-die'));
+ return (out+(open?'</span>':'')).replace(/@@AEDIE(\d+)@@/g,(_,index)=>{
+  const dice=markers[Number(index)];
+  return dice?dieShape(dice.sides,'ae-inline-die',dice.count):'';
+ });
 }
 function wrapColoredSelection(textareaId,colorId){const t=el(textareaId),c=el(colorId);if(!t||!c)return;const start=t.selectionStart,end=t.selectionEnd,value=t.value;const before=value.slice(0,start),mid=value.slice(start,end)||'texto colorido',after=value.slice(end);t.value=before+'[cor='+c.value+']'+mid+'[/cor]'+after;t.focus();t.setSelectionRange(start+5+c.value.length,start+5+c.value.length+mid.length);t.dispatchEvent(new Event('input',{bubbles:true}))}
 
