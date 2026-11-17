@@ -2269,7 +2269,11 @@ function grimorioSettings(){
  if(!saved||typeof saved!=='object'||Array.isArray(saved))return {...GRIMORIO_DEFAULTS};
  const {showIcons,showDiceIcons,diceEmoji,...rest}=saved;
  return {...GRIMORIO_DEFAULTS,...rest,
-  glossary:Array.isArray(saved.glossary)?saved.glossary:[],
+  glossary:Array.isArray(saved.glossary)?saved.glossary.map(item=>{
+   if(!item||typeof item!=='object'||Array.isArray(item))return item;
+   const {icon,...clean}=item;
+   return clean;
+  }):[],
   disabledTerms:Array.isArray(saved.disabledTerms)?saved.disabledTerms:[]};
 }
 function grimorioStored(){
