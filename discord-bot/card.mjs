@@ -89,7 +89,8 @@ export function helpCard(){
   description:"**Rolagens rápidas, verificadas e sincronizadas com o Arquivo Espiritual.**",
   fields:[
    {name:"ROLAR DADOS",value:tick+"br 2d6 + 1d4"+tick+"\n"+tick+"br 1d20 + 3"+tick+"\n"+tick+"br 2d6 + 1d4 | Golpe espiritual"+tick,inline:false},
-   {name:"CONSULTAR E NAVEGAR",value:tick+"bajuda"+tick+" — este guia\n"+tick+"bficha ID"+tick+" — consultar ficha pública\n"+tick+"bhistorico"+tick+" — últimas rolagens",inline:false},
+   {name:"CONSULTAR E NAVEGAR",value:tick+"bajuda"+tick+" — este guia\n"+tick+"bhistorico"+tick+" — últimas rolagens\n"+tick+"bficha ID"+tick+" — ficha COMPLETA do proprietário (DM)",inline:false},
+   {name:"PRIMEIRO ACESSO À FICHA",value:"1. Digite "+tick+"bvincular"+tick+" no servidor.\n2. Receba um código pessoal por DM.\n3. No site, abra sua ficha e selecione **VINCULAR DISCORD**.\n4. Use "+tick+"bficha ID"+tick+" para receber todos os detalhes e um JSON completo.",inline:false},
    {name:"COMANDOS COM /",value:tick+"/rolar"+tick+" · "+tick+"/ficha"+tick+" · "+tick+"/historico"+tick+" · "+tick+"/ajuda"+tick,inline:false},
    {name:"RESULTADOS ESPECIAIS",value:"🟡 Crítico: dois valores iguais de **6+**\n🔴 Falha crítica: dois valores **1**",inline:false}
   ],
