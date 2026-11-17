@@ -113,12 +113,7 @@
 #page .ae-grimorio-entry:focus-visible{
  outline:3px solid var(--theme-cold);outline-offset:2px
 }
-#page .ae-grimorio-glyph{
- display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;
- border:1px solid var(--theme-structure);
- background:color-mix(in srgb,var(--theme-cold) 8%,var(--theme-panel));
- color:var(--theme-cold);font-size:19px
-}
+
 #page .ae-grimorio-entry-copy{display:grid;gap:4px;flex:1;min-width:0}
 #page .ae-grimorio-entry-copy strong{
  font:900 calc(16px * var(--ae-reading-scale))/1.15 'Barlow Condensed',Impact,sans-serif;
@@ -174,30 +169,13 @@
 .ae-grimorio-manager-head h3{
  margin:0;font:900 22px 'Barlow Condensed',sans-serif
 }
-.ae-grimorio-manager button,.ae-grimorio-dice-settings summary{
+.ae-grimorio-manager button{
  min-height:42px;padding:9px 12px;border:1px solid var(--theme-structure);
  background:var(--theme-raised);color:var(--theme-text);
  font-size:11px;font-weight:850
 }
 .ae-grimorio-manager button:hover{border-color:var(--theme-cold)}
-.ae-grimorio-dice-settings{border:1px solid var(--theme-structure)}
-.ae-grimorio-dice-settings summary{
- display:flex;align-items:center;cursor:pointer;list-style:none
-}
-.ae-grimorio-dice-settings summary::-webkit-details-marker{display:none}
-.ae-grimorio-dice-settings summary:before{
- content:'▸';color:var(--theme-cold);margin-right:10px
-}
-.ae-grimorio-dice-settings[open] summary:before{content:'▾'}
-.ae-grimorio-dice-settings .subtitle{padding:5px 12px;font-size:11px;line-height:1.55}
-.ae-grimorio-dice-inputs{
- display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;padding:0 12px 13px
-}
-.ae-grimorio-dice-inputs label{display:grid;gap:5px;font-size:12px;font-weight:750}
-.ae-grimorio-dice-inputs input{
- background:var(--theme-bg);color:var(--theme-text);border:1px solid var(--theme-structure);
- min-height:42px;padding:7px 9px;min-width:0
-}
+
 .ae-grimorio-manage-list{display:grid;gap:6px;max-height:400px;overflow:auto;overscroll-behavior:contain}
 .ae-grimorio-manage-row{
  display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -209,14 +187,9 @@
 }
 .ae-grimorio-manage-row small{font-size:10px;color:var(--theme-cold)}
 .ae-grimorio-manage-actions{display:flex;gap:5px;flex-wrap:wrap}
-.ae-glossary-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
 .ae-glossary-editor .ae-grimorio-editor-check{display:flex}
-.die-figure{position:relative}
-.die-figure .ae-dice-glyph{
- position:absolute;right:-7px;top:-7px;font-size:10px;line-height:1;
- padding:2px;background:var(--theme-panel);border-radius:3px;
- pointer-events:none;z-index:1;
-}
+
 html.performance-mode #page :is(.ae-grimorio-portal,.ae-grimorio-panel,.ae-grimorio-entry){background-image:none!important;transition:none!important}
 html.dyslexia-mode #page :is(.ae-grimorio-entry-copy,.ae-grimorio-portal-copy,.ae-grimorio-panel){
  font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif
@@ -234,8 +207,7 @@ html.dyslexia-mode #page :is(.ae-grimorio-entry-copy,.ae-grimorio-portal-copy,.a
  #page .ae-grimorio-search{grid-template-columns:minmax(0,1fr)}
  #page .ae-grimorio-search :is(label,input,select){grid-column:1!important;grid-row:auto!important}
  .ae-grimorio-toggles{grid-template-columns:minmax(0,1fr)}
- .ae-grimorio-dice-inputs{grid-template-columns:repeat(2,minmax(0,1fr))}
- .ae-glossary-editor-grid{grid-template-columns:minmax(0,1fr)}
+
  .ae-grimorio-manage-row{align-items:stretch;flex-direction:column}
  .ae-grimorio-manage-actions>*{flex:1}
 }
