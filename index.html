@@ -1604,7 +1604,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const clone=x=>JSON.parse(JSON.stringify(x));const el=id=>document.getElementById(id),uid=()=>('arquivo-'+Math.random().toString(36).slice(2,10)),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function safeStore(kind){try{const s=window[kind];const k='__arquivo_probe__';s.setItem(k,'ok');s.removeItem(k);return s}catch(e){return null}}
 const DATASTORE={local:safeStore('localStorage'),session:safeStore('sessionStorage'),blocked:false,load(){const base=clone(window.ARQUIVO_PUBLICADO||DEFAULT);if(!this.local){this.blocked=true;return base}try{const raw=this.local.getItem('arquivo_data')||this.local.getItem('c'+'bb_data');if(!raw)return base;const saved=JSON.parse(raw);if(!saved.site||!Array.isArray(saved.sheets)||!Array.isArray(saved.rules))return base;if(!this.local.getItem('arquivo_data'))this.local.setItem('arquivo_data',raw);if(!Array.isArray(saved.keys)){this.local.setItem('arquivo_owner_device','sim');return saved}if(this.getRole()==='master'||this.local.getItem('arquivo_owner_device')==='sim')return saved;for(const s of base.sheets){const local=saved.sheets.find(x=>x.id===s.id);if(!local)continue;for(const k of ['vida','estabilidade','alma'])if(local.resources?.[k])s.resources[k].current=clamp(local.resources[k].current,0,s.resources[k].max);s.conditions=local.conditions||[];s.notes=local.notes??s.notes;s.restCount=local.restCount||0;s.desgaste=local.desgaste||0;s.exposures=local.exposures||{}}return base}catch(e){this.blocked=true;return base}},save(data){if(!this.local){this.blocked=true;storageWarning();return false}try{this.local.setItem('arquivo_data',JSON.stringify(data));return true}catch(e){this.blocked=true;storageWarning();return false}},getRole(){try{return this.session?.getItem('arquivo_role')||'guest'}catch(e){return 'guest'}},getKeyId(){try{return this.session?.getItem('arquivo_key_id')||''}catch(e){return ''}},setRole(r,id=''){try{this.session?.setItem('arquivo_role',r);this.session?.setItem('arquivo_key_id',id);if(r==='master')this.local?.setItem('arquivo_owner_device','sim')}catch(e){this.blocked=true;storageWarning()}},clearRole(){try{this.session?.removeItem('arquivo_role');this.session?.removeItem('arquivo_key_id')}catch(e){}}};
-let db=DATASTORE.load(),role=DATASTORE.getRole(),page='home',currentSheet=null,tab='summary',query='',rollHistory=[],lastRoll=null,musicOn=false,soundOn=true,musicMuted=false,audioContext=null,noticeShown=false,flash='',lastResourceId='',pendingAction=null,keyOwnerId=DATASTORE.getKeyId(),adminSection='content',editorDraft=null,libraryOpen=null,libraryExpandedChapters=new Set(),libraryActiveChapterId=null;
+let db=DATASTORE.load(),role=DATASTORE.getRole(),page='home',currentSheet=null,tab='summary',query='',rollHistory=[],lastRoll=null,musicOn=false,soundOn=true,musicMuted=false,audioContext=null,noticeShown=false,flash='',lastResourceId='',pendingAction=null,keyOwnerId=DATASTORE.getKeyId(),adminSection='content',editorDraft=null,libraryExpandedChapters=new Set(),libraryActiveChapterId=null;
 /* Catálogo central das cores. O seletor e o editor usam os mesmos identificadores. */
 const PALETTES={
  padrao:{bg:'#090708',panel:'#17100F',raised:'#291A15',structure:'#99522F',cold:'#F1E2D2',text:'#FFF8F1',accent:'#FF791B',pressed:'#C6510D',outline:'#030202'},
@@ -2157,7 +2157,7 @@ function librarySearchCount(){
 }
 function librarySearchSummary(visible){
  const count=visible.length,total=db.rules.length;
- if(!query.trim())return count+' '+(count===1?'capítulo disponível':'capítulos disponíveis')+' · recolhidos por padrão';
+ if(!query.trim())return count+' '+(count===1?'capítulo disponível':'capítulos disponíveis');
  const matches=librarySearchCount();
  return count+' '+(count===1?'capítulo encontrado':'capítulos encontrados')+' · '+matches+' '+(matches===1?'ocorrência':'ocorrências');
 }
@@ -2191,7 +2191,7 @@ function library(){
  '<div class="panel ae-library-search-panel" role="search" aria-label="Pesquisar na biblioteca">'+
  '<div class="ae-library-search-header"><label for="ruleSearch">Pesquisar capítulos e regras</label>'+
  '<span class="ae-library-search-shortcut" aria-hidden="true">/</span></div>'+
- '<div class="ae-library-search-row"><input id="ruleSearch" type="search" value="'+esc(query)+'"'+
+ '<div class="ae-library-search-row"><input id="ruleSearch" type="text" inputmode="search" enterkeyhint="search" value="'+esc(query)+'"'+
  ' autocomplete="off" spellcheck="false" placeholder="Buscar no sistema" aria-keyshortcuts="/ Escape" aria-describedby="ruleMatches">'+
  '<button class="ae-library-clear" id="libraryClearSearch" data-action="clearLibrarySearch" type="button" aria-label="Limpar pesquisa"'+(!query?' hidden':'')+'>LIMPAR</button></div>'+
  '<p id="ruleMatches" class="ae-library-search-count" role="status" aria-live="polite">'+librarySearchSummary(visible)+'</p>'+
@@ -2210,7 +2210,7 @@ function libraryRefreshResults(){
  const nav=el('libraryChapterIndex');if(nav)nav.innerHTML=libraryIndexMarkup(visible);
  const count=el('ruleMatches');if(count)count.textContent=librarySearchSummary(visible);
  const clear=el('libraryClearSearch');if(clear)clear.hidden=!query;
- const jump=el('chapterJump');if(jump)jump.value='';
+ const jump=el('chapterJump');if(jump)jump.value=visible.some(r=>r.id===libraryActiveChapterId)?libraryActiveChapterId:'';
 }
 function libraryClearSearch(){
  query='';
