@@ -2400,12 +2400,7 @@ function manageGrimorio(){
    '<label>Descrição<textarea id="grimorioSubtitleInput" maxlength="180" rows="2">'+esc(opts.subtitle)+'</textarea></label></div>'+
   '<div class="ae-grimorio-toggles">'+
    '<label><input id="grimorioVisibleInput" type="checkbox"'+(opts.visible?' checked':'')+'> Mostrar Grimório aos jogadores</label>'+
-   '<label><input id="grimorioAutoInput" type="checkbox"'+(opts.autoGlossary?' checked':'')+'> Catalogar definições encontradas nos capítulos</label>'+
-   '<label><input id="grimorioIconsInput" type="checkbox"'+(opts.showIcons?' checked':'')+'> Exibir ícones nos verbetes</label>'+
-   '<label><input id="grimorioDiceInput" type="checkbox"'+(opts.showDiceIcons?' checked':'')+'> Mostrar emojis discretos nos dados</label></div>'+
-  '<details class="ae-grimorio-dice-settings"><summary>PERSONALIZAR EMOJIS DOS DADOS</summary>'+
-   '<p class="subtitle">Símbolos temporários que podem ser substituídos por suas próprias imagens em uma etapa posterior.</p>'+
-   '<div class="ae-grimorio-dice-inputs">'+dieInputs+'</div></details>'+
+   '<label><input id="grimorioAutoInput" type="checkbox"'+(opts.autoGlossary?' checked':'')+'> Catalogar definições encontradas nos capítulos</label></div>'+
   '<div class="ae-grimorio-manager-head"><h3>VERBETES E GUIAS</h3>'+
    '<button type="button" data-action="editGlossary:new">+ NOVO VERBETE</button></div>'+
   '<div class="ae-grimorio-manage-list">'+entries.map(row).join('')+'</div></div>',
