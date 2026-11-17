@@ -7,6 +7,7 @@ body:is(
  [data-palette="ulquiorra"],
  [data-palette="renji"],
  [data-palette="yoruichi"],
+ [data-palette="chad"],
  [data-palette="zangetsu-prata"],
  [data-palette="shinji"]
 ){
@@ -18,6 +19,7 @@ body:is(
  [data-palette="ulquiorra"],
  [data-palette="renji"],
  [data-palette="yoruichi"],
+ [data-palette="chad"],
  [data-palette="zangetsu-prata"],
  [data-palette="shinji"]
 )::before{
