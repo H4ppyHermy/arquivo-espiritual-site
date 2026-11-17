@@ -84,7 +84,7 @@ async function sheetCmd(p){
   return r&&Number.isFinite(Number(r.current))&&Number.isFinite(Number(r.max))?[k+": "+r.current+"/"+r.max]:[];
  });
  if(stats.length)lines.push(stats.join(" · "));
- if(/^https:\/\//.test(env("ARQUIVO_SITE_URL")))lines.push("Site: "+env("ARQUIVO_SITE_URL"));
+ if(/^https:\/\//.test(env("ARQUIVO_SITE_URL"))){try{const link=new URL(env("ARQUIVO_SITE_URL"));link.searchParams.set("ficha",id);lines.push("Abrir ficha no site: "+link.toString())}catch{}}
  return say(lines.join("\n"),true);
 }
 async function historyCmd(){
