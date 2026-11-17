@@ -2286,7 +2286,7 @@ function glossaryAllEntries(){
    id:String(item.id||''),name:name.slice(0,75),description:String(item.description||'').slice(0,6000),
    chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',
    category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:glossaryCategory(name),
-   icon:String(item.icon||'').slice(0,8),source:'manual'
+   source:'manual'
   });
  }
  for(const key of disabled)if(!options.glossary.some(i=>glossaryKey(i.name)===key&&i.enabled!==false))entries.delete(key);
@@ -2310,7 +2310,7 @@ function grimorioCatalogEntries(){
    description:String(item.description||'').slice(0,6000),
    category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:glossaryCategory(item.name),
    chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',
-   icon:String(item.icon||'').slice(0,8),source:'manual'
+   source:'manual'
   });
  }
  return [...items.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
@@ -2440,15 +2440,15 @@ function editGlossaryEntry(key){
  let name='';try{name=key==='new'?'':decodeURIComponent(key)}catch(e){return}
  const settings=grimorioSettings(),previous=settings.glossary.find(i=>glossaryKey(i.name)===glossaryKey(name));
  const auto=glossarySuggestions().get(glossaryKey(name));
- const item=previous||auto||{name:'',description:'',chapterId:'',category:'Outros',icon:'',enabled:true};
+ const item=previous||auto||{name:'',description:'',chapterId:'',category:'Outros',enabled:true};
  const options=db.rules.map(r=>'<option value="'+esc(r.id)+'"'+(r.id===item.chapterId?' selected':'')+'>'+esc(r.title)+'</option>').join('');
  const category=GRIMORIO_CATEGORIES.map(c=>'<option value="'+esc(c)+'"'+(c===item.category?' selected':'')+'>'+esc(c)+'</option>').join('');
  modal(name?'EDITAR GUIA DO GLOSSÁRIO':'NOVO GUIA DO GLOSSÁRIO','<div class="ae-glossary-editor">'+
  '<p class="subtitle">A palavra poderá abrir esta explicação na Biblioteca e aparecerá no Grimório.</p>'+
  '<label>Palavra ou expressão<input id="glossaryTermInput" maxlength="75" value="'+esc(item.name||'')+'" required></label>'+
  '<label>Explicação<textarea id="glossaryDescriptionInput" maxlength="6000" rows="7" required>'+esc(item.description||'')+'</textarea></label>'+
- '<div class="ae-glossary-editor-grid"><label>Categoria<select id="glossaryCategoryInput">'+category+'</select></label>'+
- '<label>Ícone (opcional)<input id="glossaryIconInput" maxlength="8" value="'+esc(item.icon||'')+'" placeholder="🎲"></label></div>'+
+ '<label>Categoria<select id="glossaryCategoryInput">'+category+'</select></label>'+
+
  '<label>Capítulo vinculado<select id="glossaryChapterInput"><option value="">Sem capítulo vinculado</option>'+options+'</select></label>'+
  '<label class="ae-grimorio-editor-check"><input type="checkbox" id="glossaryEnabledInput"'+(item.enabled===false?'':' checked')+'> Verbete ativo</label>'+
  '</div>',
@@ -2468,7 +2468,6 @@ function saveGlossaryEntry(){
   name:name.slice(0,75),description:description.slice(0,6000),
   category:GRIMORIO_CATEGORIES.includes(el('glossaryCategoryInput')?.value)?el('glossaryCategoryInput').value:'Outros',
   chapterId:String(el('glossaryChapterInput')?.value||''),
-  icon:String(el('glossaryIconInput')?.value||'').trim().slice(0,8),
   enabled:!!el('glossaryEnabledInput')?.checked
  };
  opts.glossary=opts.glossary.filter(i=>glossaryKey(i.name)!==glossaryKey(old));
@@ -2490,7 +2489,7 @@ function toggleGlossaryTerm(key){
   if(suggestion&&!classical){
    opts.glossary.push({
     id:uid(),name:suggestion.name,description:suggestion.description,
-    chapterId:suggestion.chapterId,category:suggestion.category,icon:'',enabled:true
+    chapterId:suggestion.chapterId,category:suggestion.category,enabled:true
    });
    opts.disabledTerms=opts.disabledTerms.filter(t=>glossaryKey(t)!==term);
   }else{
