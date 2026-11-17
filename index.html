@@ -1696,7 +1696,7 @@ html.performance-mode #page .ae-home-hero,
 html.performance-mode #page .panel,
 html.performance-mode .ae-home-tile{background-color:var(--theme-panel)!important}
 </style>
-<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=2"></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
+<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=3"></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
 <div id="mobileMoreBackdrop" class="ae-mobile-more-backdrop" data-action="mobileMoreToggle" hidden aria-hidden="true"></div>
 <div id="mobileMoreMenu" class="ae-mobile-more-menu" hidden aria-label="Mais opções">
  <div class="ae-mobile-more-header"><strong>OUTRAS ÁREAS</strong><button type="button" data-action="mobileMoreToggle" aria-label="Fechar menu">×</button></div>
@@ -1741,6 +1741,9 @@ const PALETTES={
  renji:{bg:'#10080B',panel:'#251018',raised:'#341922',structure:'#935168',cold:'#F6AEC7',text:'#FFF0F5',accent:'#F45469',pressed:'#B93350',outline:'#070307'},
  yoruichi:{bg:'#100B1D',panel:'#211631',raised:'#342447',structure:'#85669C',cold:'#E9B95E',text:'#F9F1FF',accent:'#F5C96F',pressed:'#BA903A',outline:'#09050F'},
  'zangetsu-prata':{bg:'#0A0C0F',panel:'#191D22',raised:'#292E34',structure:'#59646D',cold:'#ABB4BD',text:'#F6F8FA',accent:'#D0D5DB',pressed:'#89949F',outline:'#050506'},
+ // Chad: Camel, Attractive Brown, Native Wine, Husk, Dark Sage e Cod Gray.
+ // Texto marfim derivado da família Camel para garantir contraste sobre o marrom.
+ chad:{bg:'#0B0A0A',panel:'#483139',raised:'#77483A',structure:'#758159',cold:'#B8A35A',text:'#F7E9D7',accent:'#C3966D',pressed:'#77483A',outline:'#0B0A0A'},
  shinji:{bg:'#14120E',panel:'#251F15',raised:'#372D1A',structure:'#987B33',cold:'#FF7881',text:'#FFF9E7',accent:'#FFD44B',pressed:'#CFA731',outline:'#080704'}
 };
 const PALETTE_CHOICES=[
@@ -1750,6 +1753,7 @@ const PALETTE_CHOICES=[
  ['renji','Renji','Vermelho, preto e rosa.'],
  ['yoruichi','Yoruichi','Roxo noturno e dourado.'],
  ['zangetsu-prata','Zangetsu','Prata, grafite e preto.'],
+ ['chad','Chad','Camel, marrom, vinho escuro, dourado envelhecido e verde-sálvia.'],
  ['shinji','Shinji','Amarelo, branco e vermelho · Sakanade: textos invertidos.']
 ];
 const PALETTE_IDS=PALETTE_CHOICES.map(([id])=>id);
@@ -1881,7 +1885,7 @@ function updateSettingsVolumeSliders(){
 }
 function settings(){
  const p=currentPalette();
- const swatches=['bg','panel','structure','cold','accent','text'].map(k=>'<span aria-hidden="true" style="background:'+p[k]+'"></span>').join('');
+ const swatches=(prefs.preset==='chad'?['bg','panel','raised','structure','cold','accent']:['bg','panel','structure','cold','accent','text']).map(k=>'<span aria-hidden="true" style="background:'+p[k]+'"></span>').join('');
  return headline('PREFERÊNCIAS DO DISPOSITIVO','CONFIGURAÇÕES','Personalize sua experiência. As preferências são salvas neste dispositivo.')+
  '<div class="ae-settings-stack">'+
  '<section class="panel ae-settings-panel" aria-labelledby="settingsSoundTitle">'+
