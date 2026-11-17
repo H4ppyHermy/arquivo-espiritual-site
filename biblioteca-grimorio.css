@@ -365,6 +365,57 @@ html.dyslexia-mode .ae-library-editor :is(input,textarea,.book-text){
  .ae-library-editor-toolbar button{padding:7px 8px;font-size:10px}
 }
 
+
+/* Editor guiado: blocos prontos e dados sem perder o controle do texto. */
+.ae-library-editor-insert{
+ display:grid;grid-template-columns:minmax(0,1.3fr) minmax(180px,.7fr);
+ gap:10px;padding:12px;border:1px solid var(--theme-structure);
+ background:color-mix(in srgb,var(--theme-raised) 35%,var(--theme-bg));
+ min-width:0
+}
+.ae-library-editor-insert-group{display:grid;gap:6px;min-width:0}
+.ae-library-editor-insert-group>label{
+ color:var(--theme-text);font-size:10px;line-height:1.5;
+ font-weight:850;letter-spacing:.07em
+}
+.ae-library-editor-insert-controls{display:flex;min-width:0;gap:6px;align-items:stretch}
+.ae-library-editor-insert-controls select{
+ min-width:0;flex:1 1 auto;min-height:42px;padding:8px 9px;
+ color:var(--theme-text);background:var(--theme-panel);
+ border:1px solid var(--theme-structure);
+ font:600 11px/1.4 Manrope,system-ui,sans-serif
+}
+.ae-library-editor-insert-controls button{
+ min-height:42px;flex:0 0 auto;padding:8px 11px;
+ border:1px solid var(--theme-accent);
+ background:color-mix(in srgb,var(--theme-accent) 10%,var(--theme-panel));
+ color:var(--theme-text);font-size:11px;font-weight:850;
+ cursor:pointer
+}
+.ae-library-editor-insert-controls button:hover{
+ border-color:var(--theme-cold);color:var(--theme-cold)
+}
+.ae-library-editor-insert-controls :is(button,select):focus-visible{
+ outline:2px solid var(--theme-accent);outline-offset:2px
+}
+.ae-library-editor-status{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:8px;flex-wrap:wrap;color:var(--theme-text);
+ font-size:10px;line-height:1.5;opacity:.8
+}
+.ae-library-editor-status #ruleEditorState{
+ color:var(--theme-cold);font-weight:750
+}
+.ae-library-editor-compose textarea:focus-visible{
+ border-color:var(--theme-accent);outline:2px solid var(--theme-accent);outline-offset:1px
+}
+@media(max-width:750px){
+ .ae-library-editor-insert{grid-template-columns:1fr}
+ .ae-library-editor-insert-controls{flex-wrap:wrap}
+ .ae-library-editor-insert-controls select{flex:1 1 150px}
+ .ae-library-editor-insert-controls button{flex:1 1 auto}
+}
+
 /* Manter a rolagem sem a barra nativa aparente, como no restante do site. */
 .ae-grimorio-manage-list,
 .ae-library-editor-preview #rulePreview,
