@@ -1,55 +1,71 @@
 # Bleach CBB · Bot do Arquivo Espiritual
 
-Bot híbrido: **Discord Gateway** (mensagens com prefixo, hospedado no Railway) + **Discord Interactions** (comandos /, via Supabase Edge Function). Ambos compartilham o mesmo histórico `public.ae_rolls` do site.
+Bot híbrido: **Discord Gateway** no Railway (comandos sem barra) e **Discord Interactions** no Supabase (comandos /). Histórico de dados compartilhado em `public.ae_rolls`.
 
-## Comandos
+## Comandos sem barra
 
-| Digite no canal | Resultado |
+| Comando | Função |
 | --- | --- |
-| `br 2d6 + 1d4` | Rola dois d6 e um d4, somando os resultados |
-| `br 1d20 + 3` | Rola um d20 com bônus de +3 |
-| `bajuda` | Abre o painel de comandos |
-| `bhistorico` | Últimas rolagens do site e Discord |
-| `bficha ID` | Consulta uma ficha pública pelo ID |
-| `br 2d6 + 1d4 \| Corte do Zangetsu` | Rolagem com uma descrição |
-| `CBBajuda`, `CBBhistorico`, `CBBficha ID` | Alternativas antigas ainda aceitas |
-| `/rolar`, `/ficha`, `/historico`, `/ajuda` | Comandos de barra também disponíveis |
+| `br 2d6 + 1d4` | Rola dados com somas e subtrações |
+| `br 1d20 + 3` | Rola com bônus |
+| `br 2d6 + 1d4 \| Corte do Zangetsu` | Adiciona descrição |
+| `bajuda` | Abre o guia |
+| `bhistorico` | Consulta o histórico do site e Discord |
+| `bvincular` | Envia por **DM** um código pessoal de vinculação (10 minutos) |
+| `bficha ID` | Entrega a **ficha completa ao proprietário, exclusivamente por DM** |
 
-`CBBrolar` permanece como alternativa antiga para evitar quebrar mensagens existentes. Os atalhos novos são `br`, `bajuda`, `bhistorico` e `bficha`. O prefixo `br` exige **Message Content Intent** no Developer Portal, que já foi ativado.
+Os aliases `CBBrolar`, `CBBajuda`, `CBBficha` e `CBBhistorico` **foram removidos**. Os comandos de barra `/rolar`, `/ajuda`, `/historico` continuam. `/ficha` apenas orienta o usuário a usar o fluxo privado `bficha`.
 
-## Visual
+Os antigos modificadores `kh` e `kl` de vantagem/desvantagem estão desativados, até a criação do novo sistema.
 
-Os cartões exibem a cor secundária roxa; nos especiais a borda muda para **dourado** (CRÍTICO) ou **vermelho** (FALHA CRÍTICA). Os dados efetivamente responsáveis são destacados com 🟡 e 🔴, compatíveis com mobile. Rolagens antigas com dados descartados continuam aparecendo corretamente no histórico.
+## Como vincular sua conta e ler sua ficha
 
-> A API de embeds do Discord oferece uma cor por cartão, mas não altera a cor arbitrária de palavras individuais. Códigos ANSI funcionam de forma inconsistente no celular; por isso, os números usam marcadores visuais independentes do cliente.
+1. No Discord (servidor autorizado), digite `bvincular`.
+2. O bot envia um código por **mensagem privada**. Se estiver com as DMs bloqueadas, habilite mensagens diretas para membros desse servidor.
+3. Entre no site Arquivo Espiritual com sua chave de **jogador**.
+4. Abra uma ficha da qual sua chave é **proprietária** e clique em **VINCULAR DISCORD**.
+5. Digite o código recebido e clique em **CONECTAR**.
+6. No Discord, use `bficha arquivo-hn9c15m7` (ou outro ID de **sua** ficha).
 
-## Regras de dados
+Apenas o proprietário recebe por DM os recursos, atributos, perícias, combate, condições, inventário, vínculos, anotações, habilidades com suas descrições e o **JSON exato da ficha inteira**. O canal público recebe apenas uma confirmação sem os dados da ficha. No site, a janela também permite **desvincular** o Discord.
 
-- De 1 a 30 dados por expressão, faces de 1 até 1000, sem executar código do usuário.
-- Duas ou mais faces iguais de valor **6 ou superior**: **CRÍTICO**; o subtotal dos dados é duplicado, preservando modificadores fixos.
-- Duas ou mais faces **1**: **FALHA CRÍTICA**.
-- Os atalhos antigos `kh`/`kl` de vantagem/desvantagem **foram removidos** até a implementação do novo sistema. Rolagens históricas permanecem intactas.
-- As regras são espelhadas do avaliador do site `ae_avaliar_dados` para as situações comuns, mantendo o mesmo histórico online.
+### Política de acesso
 
-## Infraestrutura ativa
+- Saber o ID não dá acesso. O bot valida o vínculo entre **usuário Discord ⇄ conta no site ⇄ chave de jogador ativa ⇄ `ownerKeyId` da ficha** a cada requisição.
+- Jogadores vinculados como colaboradores (`linkedKeyIds`) não ganham acesso à ficha por este comando, **se não forem o proprietário**.
+- O bot **não entrega fichas exclusivas do mestre**, mesmo quando o ID é conhecido.
+- O código é aleatório, de 16 caracteres hexadecimais, guardado **somente como SHA-256**, expira em 10 minutos e é consumido quando vinculado.
+- O RPC de confirmação exige sessão real de jogador. As tabelas de vínculos não expõem linhas ao navegador, a anon e a authenticated.
+- Alterações de posse da chave, revogações e mudanças de conta invalidam o vínculo de consulta automaticamente.
+- O site contém um botão para desconectar o Discord; novo vínculo substitui o anterior, um por conta/chave.
 
-- Supabase Edge Function: `ae-discord-bot`.
-- Railway: projeto `Bleach CBB — Comandos Discord`, serviço `cbb-prefix-gateway`, pasta raiz `/discord-bot`.
-- Repositório: `H4ppyHermy/arquivo-espiritual-site`.
-- `index.ts` recebe webhooks oficiais e relays autorizados; `dice.mjs` valida expressões; `card.mjs` renderiza os cartões; `gateway.mjs` recebe as mensagens no servidor Discord.
-- `npm test` executa testes locais de parser, regras e visual (Node 22+). `commands.mjs` mantém as definições de comandos `/` sincronizadas entre Supabase, Railway e `register.mjs`.
+## Visual e exportação
 
-## Segurança e manutenção
+- Cartões de rolagens roxos; críticos dourados com 🟡 nos dados correspondentes; falhas críticas avermelhadas com 🔴.
+- Fichas entregues em grupos de embeds com identidades, recursos, atributos, combate, perícias, itens, vínculos, anotações, estados e **todas as habilidades**, inclusive suas descrições completas.
+- A mensagem privada inclui anexo `ficha-<ID>.json`, preservando campos adicionais, automações, aparências, referências de imagem e dados que não tenham correspondência visual.
+- Somente o autor da rolagem pode utilizar o botão **Re-rolar**.
+- Não exiba as DMs de ficha em canais públicos: o bot jamais envia o payload `dmSheet` a uma resposta do servidor.
 
-- **Nunca** envie ou publique `DISCORD_BOT_TOKEN` ou `SUPABASE_SERVICE_ROLE_KEY`.
-- Configure o token do bot separadamente nos segredos do Supabase e nas variáveis do Railway.
-- O endpoint `/prefix` exige o Bot Token e um servidor Discord autorizado.
-- O endpoint de interações verifica a assinatura Ed25519 e o timestamp.
-- Fichas privadas, bloqueadas e exclusivas do mestre não são divulgadas pelo bot.
-- Somente o autor da rolagem pode usar o botão **Re-rolar**.
-- As chamadas a `/notify` só publicam rolagens do titular autenticado no site.
-- Em emergência, interrompa o serviço `cbb-prefix-gateway` no Railway para desligar apenas os prefixos. Os comandos / e o site permanecem independentes.
+## Arquitetura
 
-### Reversão
+- `discord-bot/dice.mjs`: parser e motor de dados.
+- `discord-bot/card.mjs`: visuais de rolagens e ajuda.
+- `discord-bot/sheet-dm.mjs`: apresentação de ficha privada e exportação integral.
+- `discord-bot/index.ts`: Supabase Edge Function `ae-discord-bot`, assinatura Discord, autenticação e consulta ao banco.
+- `discord-bot/gateway.mjs`: Railway Gateway, entrega privada de DMs, comandos sem barra.
+- `discord-bot/commands.mjs`: comandos /.
+- `discord-bot/link-schema.sql`: esquema para vinculação segura de usuário.
+- `discord-bot/test.mjs`: testes em Node 22+ via `npm test`.
 
-O ponto imediatamente anterior a estes atalhos está em `backup/pre-short-prefixes-2026-11-17`. Para reverter, conecte o Railway a essa branch e publique novamente no Supabase `index.ts`, `dice.mjs` e `card.mjs` daquela versão. A branch `main` do site não precisa ser alterada.
+O token Discord fica nos segredos do Railway e Supabase, **nunca no repositório**. As funções no site `ARQUIVO_SYNC.discordLinkStatus/discordConfirm/discordUnlink` usam a sessão autenticada existente. O endpoint `/prefix` só aceita chamadas com o token Bot, apenas do servidor configurado.
+
+## Operação e reversão
+
+- Railway: projeto **Bleach CBB — Comandos Discord**, serviço `cbb-prefix-gateway`, pasta `/discord-bot`.
+- Supabase: `ae-discord-bot`, com `index.ts`, `dice.mjs`, `card.mjs` e `commands.mjs`.
+- O site publicado usa `index.html` e `online.js` com botão de vinculação na página da ficha do proprietário.
+- Backup de bot anterior: `backup/pre-private-discord-sheet-2026-11-17`.
+- Para reverter, restaure `index.ts`, `dice.mjs`, `card.mjs`, `commands.mjs` no Supabase e reconecte o Railway à branch de backup. O esquema de vínculo no banco pode permanecer sem impactar os recursos anteriores.
+
+Atenção: se um usuário compartilhar manualmente o JSON ou a DM recebida, esse compartilhamento é responsabilidade dele. O bot não reenvia a ficha em canais.
