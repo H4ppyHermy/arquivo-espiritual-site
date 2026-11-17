@@ -206,13 +206,32 @@ async function notify(req){
  const row=await findRoll(id);
  if(!session?.[0]?.account_id||!row||row.account_id!==session[0].account_id||row.hidden||row.kind==="discord")return j({error:"Sem permissão."},403,extra);
  if(row.discord_message_id)return j({ok:true,duplicate:true},200,extra);
+ // Fichas privadas/exclusivas não têm suas rolagens divulgadas no Discord.
+ if(row.sheet_id){
+  const sheet=(await sheets()).find(item=>item.id===row.sheet_id);
+  if(!permittedSheet(sheet))return j({ok:false,privateSheet:true},200,extra);
+ }
  const channel=env("DISCORD_ROLL_CHANNEL_ID")||"1558584343713157152",bot=env("DISCORD_BOT_TOKEN");
  if(!/^\d{17,22}$/.test(channel)||!bot)return j({ok:false,disabled:true},200,extra);
  const sent=await fetch("https://discord.com/api/v10/channels/"+channel+"/messages",{
   method:"POST",headers:{Authorization:"Bot "+bot,"Content-Type":"application/json"},
   body:JSON.stringify({content:"🎲 **Rolagem feita no Arquivo Espiritual**",...rollCard(row)})
  });
- if(!sent.ok){console.warn("Discord notificação falhou",sent.status,await sent.text().catch(()=>""));return j({ok:false,reason:"Discord indisponível."},503,extra)}
+ if(!sent.ok){
+  console.warn("Discord notificação falhou",sent.status,await sent.text().catch(()=>""));
+  // Sem permissão para incorporar embeds, ainda entrega uma mensagem de texto.
+  if(sent.status===400||sent.status===403){
+   const backup=await fetch("https://discord.com/api/v10/channels/"+channel+"/messages",{
+    method:"POST",headers:{Authorization:"Bot "+bot,"Content-Type":"application/json"},
+    body:JSON.stringify({content:"🎲 "+rollText(row),allowed_mentions:{parse:[]}})
+   });
+   if(!backup.ok)return j({ok:false,reason:"Discord indisponível."},503,extra);
+   const receipt=await backup.json();
+   if(receipt?.id)await rest("ae_rolls?id=eq."+id,"PATCH",{discord_message_id:String(receipt.id)});
+   return j({ok:true,textFallback:true},200,extra);
+  }
+  return j({ok:false,reason:"Discord indisponível."},503,extra);
+ }
  const reply=await sent.json();
  if(reply?.id)await rest("ae_rolls?id=eq."+id,"PATCH",{discord_message_id:String(reply.id)});
  return j({ok:true},200,extra);
