@@ -557,7 +557,7 @@ function home(){
   <div class="ae-home-path"><span class="ae-home-path-stripe" aria-hidden="true"></span>ARQUIVO ESPIRITUAL <i>/</i> VISÃO GERAL</div>
   <section class="ae-home-hero" aria-labelledby="ae-home-headline">
    <div class="ae-home-hero-copy">
-    <span class="ae-home-overline"><span class="ae-home-diamond" aria-hidden="true">✦</span> SUA JORNADA COMEÇA AQUI</span>
+    <button type="button" class="ae-home-overline ae-larp-trigger" data-larp-egg aria-pressed="false"><span class="ae-home-diamond" aria-hidden="true">✦</span><span class="ae-larp-caption">SUA JORNADA COMEÇA AQUI</span></button>
     <h1 id="ae-home-headline">UM NOVO<br><em>CAPÍTULO</em><br>TE AGUARDA.</h1>
     <p>Suas escolhas moldam a história. Prepare sua ficha e consulte as regras da aventura.</p>
     <button type="button" class="ae-home-play" data-page="sheets"><span>▶</span> ABRIR FICHAS ${icon('arrow')}</button>
