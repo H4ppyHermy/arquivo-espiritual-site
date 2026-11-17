@@ -72,6 +72,7 @@ client.on("messageCreate",async m=>{
   await m.reply(safe);
  }catch(e){
   console.warn("Gateway CBB:",e?.message||e);
+  await m.reply({content:"Falha temporária ao processar a rolagem. Tente novamente.",allowedMentions:{parse:[],repliedUser:false}}).catch(()=>{});
  }
 });
 client.on("error",error=>console.error("Discord gateway:",error.message));

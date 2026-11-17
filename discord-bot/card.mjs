@@ -43,7 +43,7 @@ function diceRows(dice,markers){
 }
 function rollExpression(label){
  const first=String(label||"").split(" · ")[0].trim();
- return /^[\d+dklh-]{2,90}$/i.test(first)?first:null;
+ return /^[\d+d-]{2,90}$/i.test(first)?first:null;
 }
 export function rollText(row){
  const dice=Array.isArray(row?.dice)?row.dice:[];
@@ -59,7 +59,6 @@ export function rollCard(row,{reroll=true}={}){
  const critical=special==="CRÍTICO",failure=special==="FALHA CRÍTICA";
  const color=critical?COLORS.critical:failure?COLORS.failure:COLORS.normal;
  const expression=rollExpression(row.label);
- const character=asText(row.character_name,85);
  const stamp=row.created_at?Date.parse(row.created_at):NaN;
  const embed={
   color,
@@ -68,8 +67,7 @@ export function rollCard(row,{reroll=true}={}){
   description:
    "## "+safeNumber(row.total)+
    (critical?"  ·  **RESULTADO DUPLICADO**":failure?"  ·  **FALHA CRÍTICA**":"")+
-   (critical||failure?"\n**"+markdown(row.label||"Rolagem",100)+"**":"")+
-   (character?"\nPersonagem: **"+markdown(character,80)+"**":""),
+   (critical||failure?"\n**"+markdown(row.label||"Rolagem",100)+"**":""),
   fields:[{name:"DADOS • "+dice.length+" lançado"+(dice.length===1?"":"s"),value:diceRows(dice,markers),inline:false}],
   footer:{text:"BLEACH CBB  •  ARQUIVO ESPIRITUAL"+(row.id?"  •  #"+row.id:"")}
  };

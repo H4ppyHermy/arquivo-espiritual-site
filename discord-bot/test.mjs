@@ -40,3 +40,10 @@ test("comandos de barra não consultam fichas",()=>{
  assert.deepEqual(COMMANDS.map(x=>x.name),["rolar","historico","ajuda"]);
  assert.ok(COMMANDS.every(x=>x.type===1));
 });
+
+test("cartões de rolagem nunca expõem informações internas de fichas",()=>{
+ const row={id:420,kind:"skill",account_name:"Jogador",label:"2d6",dice:[{sides:6,value:2},{sides:6,value:4}],total:6,character_name:"NOME_PRIVADO_DO_PERSONAGEM",sheet_id:"ID_PRIVADO_DA_FICHA",abilities:[{name:"HABILIDADE_SECRETA"}]};
+ const payload=JSON.stringify(rollCard(row));
+ assert.doesNotMatch(payload,/NOME_PRIVADO_DO_PERSONAGEM|ID_PRIVADO_DA_FICHA|HABILIDADE_SECRETA/);
+ assert.equal(rollCard(row).components.length,0);
+});

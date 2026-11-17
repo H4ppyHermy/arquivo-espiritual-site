@@ -79,8 +79,9 @@ async function rerollButton(p){
 }
 async function historyCmd(){
  const rows=await rest("ae_rolls?select=id,account_name,sheet_id,label,total,hidden&hidden=eq.false&order=id.desc&limit=30");
- const visible=new Set((await sheets()).filter(permittedSheet).map(s=>s.id));
- const items=(rows||[]).filter(r=>!r.sheet_id||visible.has(r.sheet_id)).slice(0,8);
+ const hasLinkedRoll=(rows||[]).some(r=>r.sheet_id);
+ const visible=hasLinkedRoll?new Set((await sheets()).filter(permittedSheet).map(s=>String(s.id))):null;
+ const items=(rows||[]).filter(r=>!r.sheet_id||visible?.has(String(r.sheet_id))).slice(0,8);
  if(!items.length)return deny("Sem rolagens públicas registradas.");
  return say("**Histórico compartilhado (site + Discord)**\n"+items.map(r=>"#"+r.id+" · "+txt(r.account_name,32)+" · "+txt(r.label,58)+" = **"+Number(r.total)+"**").join("\n"),true);
 }
@@ -156,7 +157,7 @@ async function notify(req){
  if(!/^\d{17,22}$/.test(channel)||!bot)return j({ok:false,disabled:true},200,extra);
  const sent=await fetch("https://discord.com/api/v10/channels/"+channel+"/messages",{
   method:"POST",headers:{Authorization:"Bot "+bot,"Content-Type":"application/json"},
-  body:JSON.stringify({content:"🎲 **Rolagem feita no Arquivo Espiritual**",...rollCard(row)})
+  body:JSON.stringify({content:"🎲 **Rolagem feita no Arquivo Espiritual**",...rollCard(row,{reroll:false})})
  });
  if(!sent.ok){
   console.warn("Discord notificação falhou",sent.status,await sent.text().catch(()=>""));
@@ -190,7 +191,7 @@ async function prefixCommand(req){
  if(!parsed)return j({error:"Comando desconhecido."},400);
  if(!/^\d{17,22}$/.test(String(body?.userId||""))||!/^\d{17,22}$/.test(String(body?.messageId||"")))return j({error:"Origem inválida."},400);
  if(parsed.error)return j({content:parsed.error,allowed_mentions:{parse:[]}});
- const command=parsed.command,args=parsed.args||"";
+ const command=parsed.command;
  const options=[];
  if(command==="rolar"){
   options.push({name:"expressao",value:parsed.expression});

@@ -1,0 +1,34 @@
+name: Verificação de integridade
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxe JavaScript
+        run: |
+          node --check arquivo-app.js
+          node --check online.js
+          node --check dados.js
+          node --check leitor-acessivel.js
+          node --check mecanicas-ficha.js
+          node --check habilidades-3.0.js
+          for f in discord-bot/*.mjs; do node --check "$f"; done
+      - name: Testar dados e segurança do bot
+        run: node --test discord-bot/test.mjs
+      - name: Validar separação do HTML
+        run: |
+          node --input-type=module -e '
+          import fs from "node:fs";
+          const html=fs.readFileSync("index.html","utf8");
+          for(const file of ["arquivo-base.css","arquivo-recursos.css","arquivo-app.js"]){
+            if(!fs.statSync(file).size || !html.includes(file))throw Error("Recurso inválido: "+file);
+          }
+          if(html.length>20000)throw Error("HTML voltou a incorporar blocos muito grandes");
+          '
