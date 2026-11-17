@@ -10,7 +10,8 @@ const say=(content,privateMessage=false)=>({type:4,data:{content:String(content)
 const deny=message=>say(message,true);
 const user=p=>p.member?.user||p.user||{};
 const opt=(p,name)=>p.data?.options?.find(x=>x.name===name)?.value;
-const publicGuild=p=>!!env("DISCORD_GUILD_ID")&&p.guild_id===env("DISCORD_GUILD_ID");
+const DISCORD_ALLOWED_GUILD_ID=env("DISCORD_GUILD_ID")||"1558584341435785307";
+const publicGuild=p=>p.guild_id===DISCORD_ALLOWED_GUILD_ID;
 function fromHex(value){return typeof value==="string"&&/^[0-9a-f]+$/i.test(value)&&value.length%2===0?Uint8Array.from(value.match(/../g),s=>parseInt(s,16)):null}
 
 async function signed(request,body){
