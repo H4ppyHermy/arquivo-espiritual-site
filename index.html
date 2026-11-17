@@ -1672,6 +1672,17 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,
  .side .nav button,body.home-view .nav button{font-size:9px!important}
 }
 @media(min-width:681px){.ae-mobile-more-menu,.ae-mobile-more-backdrop,.side .nav .ae-mobile-more-button{display:none!important}}
+
+@media(max-width:680px){
+ .side .nav button.ae-mobile-more-button{position:relative}
+ .side .nav button.ae-mobile-more-button:after{
+  content:"";position:absolute;right:12px;top:7px;
+  width:6px;height:6px;border-radius:50%;background:#FF5765;
+  box-shadow:0 0 0 2px var(--theme-panel)
+ }
+ .side .nav button.ae-mobile-more-button[data-connection="connecting"]:after{background:#FFD04D}
+ .side .nav button.ae-mobile-more-button[data-connection="connected"]:after{background:#33D17A}
+}
 </style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
 <div id="mobileMoreBackdrop" class="ae-mobile-more-backdrop" data-action="mobileMoreToggle" hidden aria-hidden="true"></div>
@@ -1933,6 +1944,7 @@ function navRender(){
   `<button type="button" data-page="${id}" class="${page===id?'active':''} ${secondary.includes(id)?'ae-nav-secondary':''}" aria-label="${name}" aria-current="${page===id?'page':'false'}">${icon(ic)}<span class="ae-nav-desktop-name">${name}</span><span class="ae-nav-mobile-name">${id==='home'?'Início':id==='rolls'?'Dados':name}</span></button>`
  ).join('')+
  `<button type="button" id="mobileMoreButton" class="ae-mobile-more-button ${secondary.includes(page)?'active':''}" data-action="mobileMoreToggle" aria-controls="mobileMoreMenu" aria-expanded="${!el('mobileMoreMenu')?.hidden}" aria-label="Mais opções"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg><span class="ae-nav-mobile-name">Mais</span></button>`;
+ const mobileAudio=el('mobileAudioButton');if(mobileAudio)mobileAudio.setAttribute('aria-expanded',String(!el('music')?.classList.contains('compact-hud')));
  const links=el('mobileMoreLinks');if(links)links.innerHTML=entries.filter(([id])=>secondary.includes(id)).map(([id,name,ic])=>
   `<button type="button" data-page="${id}" class="${page===id?'active':''}" aria-current="${page===id?'page':'false'}">${icon(ic)}<span>${name}</span></button>`
  ).join('');
@@ -2046,7 +2058,7 @@ function onlineStatus(){
  indicator.classList.toggle('connecting',connecting);
  indicator.classList.toggle('disconnected',phase==='disconnected');
  indicator.textContent=labels[phase];
- const mobile=el('mobileConnectionStatus');if(mobile){mobile.dataset.connection=phase;mobile.textContent=labels[phase];}
+ const mobile=el('mobileConnectionStatus');if(mobile){mobile.dataset.connection=phase;mobile.textContent=labels[phase];}const mobileMore=el('mobileMoreButton');if(mobileMore){mobileMore.dataset.connection=phase;mobileMore.title='Conexão: '+labels[phase].toLowerCase();}
  indicator.setAttribute('role','status');
  indicator.setAttribute('aria-label','Conexão: '+labels[phase].toLowerCase());
  indicator.title=offline?'Sem acesso à internet':connecting?'Conectando ao servidor':connected?'Sincronização ativa':st?.error||'Sem conexão ativa';
