@@ -1,6 +1,7 @@
 import {rollDiceExpression,parsePrefixMessage} from "./dice.mjs";
 import {rollCard,rollText,helpCard} from "./card.mjs";
 import {COMMANDS} from "./commands.mjs";
+import {sheetPagerData,sheetExportResponse} from "./ephemeral-sheet.mjs";
 
 // Discord application webhook + optional site notifications. No gateway process required.
 const env=k=>String(Deno.env.get(k)||"").trim();
@@ -77,9 +78,65 @@ async function rerollButton(p){
  if(String(previous.discord_user_id)!==String(user(p).id))return deny("Somente quem fez a rolagem pode re-rolar.");
  return rollCmd(p,previous);
 }
-async function sheetCmd(){
- // Slash commands never disclose protected sheets. Retrieval uses a linked account and private DM.
- return deny("Para receber sua ficha completa, use bficha ID no servidor. Primeiro, use bvincular para conectar sua conta do site.");
+function randomViewToken(){
+ const bytes=new Uint8Array(12);crypto.getRandomValues(bytes);
+ return [...bytes].map(n=>n.toString(16).padStart(2,"0")).join("");
+}
+async function privateAccess(userId,sheetId){
+ if(!/^\d{17,22}$/.test(String(userId||""))||!/^[a-zA-Z0-9_-]{1,100}$/.test(String(sheetId||"")))return null;
+ return rest("rpc/ae_discord_access_sheet","POST",{
+  p_discord_user_id:String(userId),p_sheet_id:String(sheetId)
+ });
+}
+async function sheetCmd(p){
+ const sheetId=String(opt(p,"id")||"").trim();
+ if(!/^[a-zA-Z0-9_-]{1,100}$/.test(sheetId))return deny("Informe um ID de ficha válido.");
+ const discordId=String(user(p).id||"");
+ const sheet=await privateAccess(discordId,sheetId);
+ if(!sheet)return deny("Acesso privado não autorizado. Vincule sua conta com /vincular e confirme o código no site. Mestres devem entrar com a chave de mestre.");
+ const token=randomViewToken();
+ const expiry=new Date(Date.now()+30*60*1000).toISOString();
+ await rest("ae_discord_sheet_views","POST",{
+  token,discord_user_id:discordId,sheet_id:sheetId,expires_at:expiry
+ });
+ return {type:4,data:sheetPagerData(sheet,token,0)};
+}
+async function sheetPageButton(p){
+ const raw=String(p.data?.custom_id||"");
+ const match=/^ae:([fx]):([a-f0-9]{24})(?::(\d{1,3}))?$/.exec(raw);
+ if(!match)return deny("Página inválida.");
+ const [,action,token,pageText]=match;
+ if(action==="f"&&pageText===undefined)return deny("Página inválida.");
+ if(action==="x"&&pageText!==undefined)return deny("Exportação inválida.");
+ const discordId=String(user(p).id||"");
+ const views=await rest("ae_discord_sheet_views?select=discord_user_id,sheet_id,expires_at&token=eq."+token+"&limit=1");
+ const view=views?.[0];
+ if(!view||view.discord_user_id!==discordId||Date.parse(view.expires_at)<=Date.now())
+  return deny("Essa visualização privada expirou. Utilize /ficha ID novamente.");
+ const sheet=await privateAccess(discordId,view.sheet_id);
+ if(!sheet)return deny("Seu acesso à ficha foi revogado ou a vinculação mudou.");
+ if(action==="x")return sheetExportResponse(sheet);
+ const data=sheetPagerData(sheet,token,Number(pageText)||0);
+ delete data.flags; // UPDATE_MESSAGE mantém o caráter secreto original
+ return {type:7,data};
+}
+async function linkSlashCmd(p){
+ const discordId=String(user(p).id||"");
+ if(!/^\d{17,22}$/.test(discordId))return deny("Usuário inválido.");
+ const code=await createLinkChallenge(discordId);
+ return {type:4,data:{
+  flags:64,
+  embeds:[{
+   color:0x8B78EF,
+   title:"◈ BLEACH CBB · VÍNCULO SECRETO",
+   description:"**Seu código pessoal**\n## "+code+
+    "\n\n1. No Arquivo Espiritual, entre com sua **chave de mestre ou jogador**."+
+    "\n2. Em **Configurações** (mestre) ou na sua ficha (jogador), abra **VINCULAR DISCORD**."+
+    "\n3. Cole o código e confirme.\n\n**Expira em 10 minutos.**",
+   footer:{text:"Esta resposta é visível somente para você. Não compartilhe o código."}
+  }],
+  allowed_mentions:{parse:[]}
+ }};
 }
 async function sheetOwnerCmd(p){
  const id=String(opt(p,"id")||"").trim();
@@ -124,10 +181,10 @@ async function beginLinkCmd(p){
  return {
   dmContent:"**BLEACH CBB · VINCULAR CONTA**\n\n"+
    "Código pessoal: **"+code+"**\n\n"+
-   "1. Entre no Arquivo Espiritual com sua chave de jogador.\n"+
-   "2. Abra sua ficha e clique em VINCULAR DISCORD.\n"+
+   "1. Entre no Arquivo Espiritual com sua chave de jogador ou mestre.\n"+
+   "2. Abra VINCULAR DISCORD nas Configurações (mestre) ou na ficha (jogador).\n"+
    "3. Cole este código e confirme.\n\n"+
-   "Expira em 10 minutos. Não compartilhe. Depois use bficha ID no servidor.",
+   "Expira em 10 minutos. Não compartilhe. Depois use /ficha ID no servidor para ler em segredo.",
   content:"Enviei as instruções de vinculação por mensagem privada. Confira suas DMs."
  };
 }
@@ -168,9 +225,14 @@ async function interaction(req){
  if(p.type!==2&&p.type!==3)return j(deny("Interação não suportada."));
  if(!publicGuild(p))return j(deny("Bot indisponível neste servidor."));
  try{
+  if(p.type===3&&/^ae:[fx]:/.test(String(p.data?.custom_id||""))){
+   const response=await sheetPageButton(p);
+   return response instanceof Response?response:j(response);
+  }
   if(p.type===3)return j(await rerollButton(p));
   if(p.data?.name==="rolar")return j(await rollCmd(p));
   if(p.data?.name==="ficha")return j(await sheetCmd(p));
+  if(p.data?.name==="vincular")return j(await linkSlashCmd(p));
   if(p.data?.name==="historico")return j(await historyCmd());
   if(p.data?.name==="ajuda")return j({type:4,data:{...helpCard(),flags:64}});
   return j(deny("Use /ajuda para ver os comandos."));
