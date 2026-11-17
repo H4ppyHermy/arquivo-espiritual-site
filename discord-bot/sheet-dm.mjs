@@ -1,7 +1,7 @@
 // Human-readable DMs + exact, lossless JSON export. NEVER send through a server channel.
 const primary=0x8B78EF,accent=0xF2BF56;
 const clean=(v,n=4000)=>String(v??"").replace(/[\u0000-\u001f\u007f]/g," ").replace(/@/g,"@\u200b").trim().slice(0,n);
-const escape=v=>clean(v).replace(/([\\`*_~|[\]()])/g,"\\$1");
+const escape=(v,n=4000)=>clean(v,n).replace(/([\\`*_~|[\]()])/g,"\\$1");
 const val=v=>v===null||v===undefined||v===""?"—":typeof v==="boolean"?(v?"Sim":"Não"):typeof v==="object"?JSON.stringify(v):String(v);
 const line=(k,v)=>"**"+escape(k)+":** "+escape(val(v));
 const state=(obj)=>obj&&typeof obj==="object"?Object.entries(obj).map(([k,v])=>line(k,v)).join("\n")||"—":"—";
@@ -44,19 +44,22 @@ export function renderSheetDM(sheet){
  add(list("EQUIPAMENTOS",sheet.inventory?.items||[]));
  add(list("MOEDAS E RECURSOS",sheet.inventory?.currencies||[]));
  add(list("VÍNCULOS",sheet.bonds||[]));
- add(sections("ANOTAÇÕES",escape(sheet.notes||"Sem anotações")));
+ add(sections("ANOTAÇÕES",escape(sheet.notes||"Sem anotações",40000)));
  add(list("IMAGENS DAS NOTAS",sheet.noteImages||[]));
  for(const [i,a] of sheet.abilities.entries()){
   const title="HABILIDADE "+(i+1)+"/"+sheet.abilities.length+" · "+clean(a?.name||"Sem nome",120);
-  const body=[
-   line("Categoria",a?.category),line("Custo de ALMA",a?.cost??0),line("Passiva",!!a?.passive),
-   a?.testSkill?line("Teste",a.testSkill):null,
-   a?.testDice?line("Dados do teste",a.testDice):null,
-   "━━━━━━━━━━━━━━━━",escape(a?.description||"Sem descrição")
-  ].filter(Boolean).join("\n");
+  const extra=Object.entries(a||{}).filter(([key])=>!["name","description"].includes(key))
+   .map(([key,value])=>line(key,value)).join("\n");
+  const body=[extra,"━━━━━━━━━━━━━━━━",escape(a?.description||"Sem descrição",45000)].filter(Boolean).join("\n");
   add(sections(title,body,["release","transformation","ultimate"].includes(a?.category)?accent:primary));
  }
  if(sheet.abilityRuntime&&Object.keys(sheet.abilityRuntime).length)add(sections("ESTADO DAS HABILIDADES",state(sheet.abilityRuntime)));
+ const represented=new Set(["id","name","subtitle","race","className","class","level","abilities","resources","groups","skills","combat","conditions","desgaste","restCount","exposures","inventory","bonds","notes","noteImages","abilityRuntime"]);
+ for(const [key,value] of Object.entries(sheet)){
+  if(represented.has(key))continue;
+  const body=value&&typeof value==="object"?state(value):escape(val(value));
+  add(sections("DADOS ADICIONAIS · "+clean(key,150),body));
+ }
  const exportName="ficha-"+id.replace(/[^a-z0-9_-]/gi,"_").slice(0,80)+".json";
  return {name,id,messages,attachment:JSON.stringify(sheet,null,2),exportName,abilityCount:sheet.abilities.length};
 }
