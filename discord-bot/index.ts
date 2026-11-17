@@ -97,7 +97,7 @@ async function sheetOwnerCmd(p){
  }
  const sheet=(await sheets()).find(s=>s.id===id);
  // Conhecer o ID não dá acesso; coautores não recebem fichas de outros donos.
- if(!sheet||sheet.masterOnly||sheet.ownerKeyId!==keyId){
+ if(!sheet||sheet.masterOnly||sheet.redacted||sheet.ownerKeyId!==keyId||(Array.isArray(sheet.linkedKeyIds)&&!sheet.linkedKeyIds.includes(keyId))){
   return {content:"Ficha não encontrada ou não pertence à sua conta. Confira o ID ou o vínculo no site."};
  }
  return {dmSheet:sheet,content:"Sua ficha completa foi enviada por mensagem privada."};
