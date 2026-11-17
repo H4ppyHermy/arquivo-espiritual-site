@@ -2170,7 +2170,7 @@ function libraryIndexMarkup(visible){
    '<span class="ae-lib-index-num">'+String(index).padStart(2,'0')+'</span>'+
    '<span class="ae-lib-index-title">'+esc(r.title)+'</span>'+
    '<span class="ae-lib-index-indicator" aria-hidden="true"></span></button>';
- }).join('')||'<p class="ae-library-index-empty">Nenhum capítulo encontrado.</p>';
+ }).join('')||'<p class="ae-library-index-empty">'+(query.trim()?'Nenhum capítulo encontrado.':'Nenhum capítulo cadastrado.')+'</p>';
 }
 function libraryMobileOptions(){
  return db.rules.map(r=>'<option value="'+esc(r.id)+'"'+(r.id===libraryActiveChapterId?' selected':'')+'>'+esc(r.title)+'</option>').join('');
@@ -2259,9 +2259,9 @@ function libraryQuickHelp(name){
 }
 /* Capítulos são renderizados sob demanda; o texto original permanece intocado. */
 function ruleItems(rules){
- if(!rules.length)return '<div class="ae-library-empty" role="status"><strong>Nenhum capítulo encontrado</strong>'+
-  '<p>Experimente outro termo de pesquisa ou limpe a busca.</p>'+
-  '<button type="button" class="btn small" data-action="clearLibrarySearch">LIMPAR BUSCA</button></div>';
+ if(!rules.length)return query.trim()?
+  '<div class="ae-library-empty" role="status"><strong>Nenhum capítulo encontrado</strong><p>Experimente outro termo de pesquisa ou limpe a busca.</p><button type="button" class="btn small" data-action="clearLibrarySearch">LIMPAR BUSCA</button></div>':
+  '<div class="ae-library-empty" role="status"><strong>Nenhum capítulo disponível</strong><p>A biblioteca ainda não possui capítulos cadastrados.</p></div>';
  return rules.map(r=>{
   const opened=libraryExpandedChapters.has(r.id);
   const chapterNumber=String(db.rules.indexOf(r)+1).padStart(2,'0');
