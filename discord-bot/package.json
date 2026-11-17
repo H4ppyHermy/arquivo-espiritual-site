@@ -8,6 +8,6 @@
     "test": "node --test test.mjs"
   },
   "dependencies": {
-    "discord.js": "^14.22.1"
+    "discord.js": "14.28.1"
   }
 }
