@@ -214,6 +214,17 @@ html.dyslexia-mode #page :is(.ae-grimorio-entry-copy,.ae-grimorio-portal-copy,.a
 
 
 
+
+/* Acesso rápido às páginas do Grimório sem passar pelo gerenciador. */
+#page .ae-grimorio-quick-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin:0}
+#page .ae-grimorio-quick-actions .btn{min-height:42px;white-space:normal;font-size:11px}
+.ae-library-editor-compose textarea{scrollbar-width:none}
+.ae-library-editor-compose textarea::-webkit-scrollbar{display:none}
+@media(max-width:700px){
+ #page .ae-grimorio-quick-actions{width:100%;justify-content:stretch}
+ #page .ae-grimorio-quick-actions .btn{flex:1}
+}
+
 /* Seleção de conexões: gerenciada pelo mestre, sem títulos digitados manualmente. */
 .ae-glossary-relations{
  display:grid;gap:10px;min-width:0;padding:13px;
