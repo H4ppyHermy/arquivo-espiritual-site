@@ -2671,7 +2671,7 @@ function formatBook(source,chapterTitle=''){
    const index=markers.push({name:found,display:term})-1;
    return prefix+'@@AEGLOSS'+index+'@@';
   });
-  raw=raw.replace(/(^|[^\\p{L}\\p{N}])([dD](?:4|6|8|10|12|20))(?![\\p{L}\\p{N}])/gu,(all,prefix,die)=>{
+  raw=raw.replace(/(^|[^\p{L}\p{N}])([dD](?:4|6|8|10|12|20))(?![\p{L}\p{N}])/gu,(all,prefix,die)=>{
    const index=markers.push({die:Number(die.slice(1))})-1;
    return prefix+'@@AEGLOSS'+index+'@@';
   });
