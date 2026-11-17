@@ -2445,9 +2445,19 @@ function toggleGlossaryTerm(key){
  const opts=grimorioStored(),term=glossaryKey(name),manual=opts.glossary.find(item=>glossaryKey(item.name)===term);
  if(manual)manual.enabled=manual.enabled===false;
  else{
-  const has=opts.disabledTerms.some(t=>glossaryKey(t)===term);
-  if(has)opts.disabledTerms=opts.disabledTerms.filter(t=>glossaryKey(t)!==term);
-  else opts.disabledTerms.push(name);
+  const suggestion=glossarySuggestions().get(term);
+  const classical=opts.autoGlossary!==false&&LIBRARY_HELP_TERMS.some(t=>glossaryKey(t)===term);
+  if(suggestion&&!classical){
+   opts.glossary.push({
+    id:uid(),name:suggestion.name,description:suggestion.description,
+    chapterId:suggestion.chapterId,category:suggestion.category,icon:'',enabled:true
+   });
+   opts.disabledTerms=opts.disabledTerms.filter(t=>glossaryKey(t)!==term);
+  }else{
+   const has=opts.disabledTerms.some(t=>glossaryKey(t)===term);
+   if(has)opts.disabledTerms=opts.disabledTerms.filter(t=>glossaryKey(t)!==term);
+   else opts.disabledTerms.push(name);
+  }
  }
  save();rebuildLibraryGlossary();render();manageGrimorio();
 }
@@ -2570,7 +2580,6 @@ function formatBook(source,chapterTitle=''){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
  const searchText=query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
  const seen=new Set();
- let helpCount=0;
  const names=[...libraryGlossary.keys()].sort((a,b)=>b.length-a.length);
  const pattern=names.length?new RegExp('(^|[^\\p{L}\\p{N}])('+names.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?![\\p{L}\\p{N}])','giu'):null;
  function inline(text){
@@ -2579,7 +2588,7 @@ function formatBook(source,chapterTitle=''){
   if(pattern)raw=raw.replace(pattern,(all,prefix,term)=>{
    const found=names.find(name=>name.toLocaleLowerCase('pt-BR')===term.toLocaleLowerCase('pt-BR'));
    if(!found||seen.has(found))return all;
-   seen.add(found);helpCount++;
+   seen.add(found);
    const token='@@AEHELP'+markers.length+'@@';
    markers.push(found);
    return prefix+'@@AETERM'+(markers.length-1)+'@@'+token;
