@@ -1,11 +1,12 @@
 /**
- * Prefixos CBBajuda / CBBrolar.
+ * Prefixo principal: br 2d6 + 1d4. Aliases antigos CBB continuam funcionando.
  * Necessita de um processo Node 22+ sempre ligado. Não interfere nos slash commands.
  * Instalar: npm install
  * Usar: DISCORD_BOT_TOKEN=... node gateway.mjs
  * Discord Portal > Bot > Privileged Gateway Intents > Message Content Intent: ON
  */
 import { Client, GatewayIntentBits } from "discord.js";
+import { parsePrefixMessage } from "./dice.mjs";
 
 const token=String(process.env.DISCORD_BOT_TOKEN||"").trim();
 const guildId=String(process.env.DISCORD_GUILD_ID||"1558584341435785307").trim();
@@ -14,12 +15,17 @@ if(!token||!/^\d{17,22}$/.test(guildId)||!/^https:\/\//.test(endpoint)){
  throw new Error("Configure DISCORD_BOT_TOKEN, DISCORD_GUILD_ID e CBB_PREFIX_ENDPOINT.");
 }
 const client=new Client({intents:[GatewayIntentBits.Guilds,GatewayIntentBits.GuildMessages,GatewayIntentBits.MessageContent]});
-client.on("ready",()=>{
- console.log("Prefixos CBB ativos no Discord: "+client.user.tag);
+client.once("clientReady",()=>{
+ console.log("Comando br ativo no Discord: "+client.user.tag);
 });
 client.on("messageCreate",async m=>{
- if(m.author.bot||m.guildId!==guildId||!/^CBB(?:ajuda|rolar|ficha|historico)(?:\s|$)/i.test(m.content))return;
- if(m.content.length>300)return;
+ if(m.author.bot||m.guildId!==guildId||m.content.length>300)return;
+ const command=parsePrefixMessage(m.content);
+ if(!command)return;
+ if(command.error){
+  await m.reply({content:command.error,allowedMentions:{parse:[],repliedUser:false}}).catch(()=>{});
+  return;
+ }
  try{
   await m.channel.sendTyping();
   const res=await fetch(endpoint,{
