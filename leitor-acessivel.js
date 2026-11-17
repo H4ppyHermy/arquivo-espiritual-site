@@ -43,11 +43,16 @@
    !!dialog.querySelector('.ae-mechanic-explanation,.book-text,.rule,.ability-description,p');
  }
  function dialogText(){
-  const source=currentDialog();
-  if(!source||!dialogReadable())return '';
-  const copy=source.cloneNode(true);
-  copy.querySelectorAll('button,input,textarea,select,script,style,.actions,[aria-hidden="true"]').forEach(n=>n.remove());
-  return String(copy.textContent||'').replace(/\s+/g,' ').trim().slice(0,6000);
+  const dialog=currentDialog();
+  if(!dialog||!dialogReadable())return '';
+  const glossary=dialog.querySelector('.ae-mechanic-explanation');
+  const title=dialog.querySelector('h2')?.textContent||'';
+  const source=glossary||dialog;
+  const text=[title,...Array.from(source.querySelectorAll(glossary?'p:not(.subtitle)':'p,li,blockquote')).
+   filter(element=>!element.closest('button,.actions,[aria-hidden="true"]')).
+   map(element=>String(element.textContent||'').trim())].
+   filter(Boolean).join('. ');
+  return text.replace(/\s+/g,' ').trim().slice(0,6000);
  }
  function layout(save=false){
   if(panel.hidden)return;
