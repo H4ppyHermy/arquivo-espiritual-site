@@ -1708,7 +1708,7 @@ html.performance-mode #page .ae-home-hero,
 html.performance-mode #page .panel,
 html.performance-mode .ae-home-tile{background-color:var(--theme-panel)!important}
 </style>
-<link rel="stylesheet" href="leitor-acessivel.css?v=3"></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
+<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=1"></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
 <div id="mobileMoreBackdrop" class="ae-mobile-more-backdrop" data-action="mobileMoreToggle" hidden aria-hidden="true"></div>
 <div id="mobileMoreMenu" class="ae-mobile-more-menu" hidden aria-label="Mais opções">
  <div class="ae-mobile-more-header"><strong>OUTRAS ÁREAS</strong><button type="button" data-action="mobileMoreToggle" aria-label="Fechar menu">×</button></div>
@@ -1745,10 +1745,37 @@ const clone=x=>JSON.parse(JSON.stringify(x));const el=id=>document.getElementByI
 function safeStore(kind){try{const s=window[kind];const k='__arquivo_probe__';s.setItem(k,'ok');s.removeItem(k);return s}catch(e){return null}}
 const DATASTORE={local:safeStore('localStorage'),session:safeStore('sessionStorage'),blocked:false,load(){const base=clone(window.ARQUIVO_PUBLICADO||DEFAULT);if(!this.local){this.blocked=true;return base}try{const raw=this.local.getItem('arquivo_data')||this.local.getItem('c'+'bb_data');if(!raw)return base;const saved=JSON.parse(raw);if(!saved.site||!Array.isArray(saved.sheets)||!Array.isArray(saved.rules))return base;if(!this.local.getItem('arquivo_data'))this.local.setItem('arquivo_data',raw);if(!Array.isArray(saved.keys)){this.local.setItem('arquivo_owner_device','sim');return saved}if(this.getRole()==='master'||this.local.getItem('arquivo_owner_device')==='sim')return saved;for(const s of base.sheets){const local=saved.sheets.find(x=>x.id===s.id);if(!local)continue;for(const k of ['vida','estabilidade','alma'])if(local.resources?.[k])s.resources[k].current=clamp(local.resources[k].current,0,s.resources[k].max);s.conditions=local.conditions||[];s.notes=local.notes??s.notes;s.restCount=local.restCount||0;s.desgaste=local.desgaste||0;s.exposures=local.exposures||{}}return base}catch(e){this.blocked=true;return base}},save(data){if(!this.local){this.blocked=true;storageWarning();return false}try{this.local.setItem('arquivo_data',JSON.stringify(data));return true}catch(e){this.blocked=true;storageWarning();return false}},getRole(){try{return this.session?.getItem('arquivo_role')||'guest'}catch(e){return 'guest'}},getKeyId(){try{return this.session?.getItem('arquivo_key_id')||''}catch(e){return ''}},setRole(r,id=''){try{this.session?.setItem('arquivo_role',r);this.session?.setItem('arquivo_key_id',id);if(r==='master')this.local?.setItem('arquivo_owner_device','sim')}catch(e){this.blocked=true;storageWarning()}},clearRole(){try{this.session?.removeItem('arquivo_role');this.session?.removeItem('arquivo_key_id')}catch(e){}}};
 let db=DATASTORE.load(),role=DATASTORE.getRole(),page='home',currentSheet=null,tab='summary',query='',rollHistory=[],lastRoll=null,musicOn=false,soundOn=true,musicMuted=false,audioContext=null,noticeShown=false,flash='',lastResourceId='',pendingAction=null,keyOwnerId=DATASTORE.getKeyId(),adminSection='content',editorDraft=null,libraryOpen=null,libraryExpandedChapters=new Set();
-const PALETTES={padrao:{bg:'#090708',panel:'#17100F',raised:'#291A15',structure:'#99522F',cold:'#F1E2D2',text:'#FFF8F1',accent:'#FF791B',pressed:'#C6510D',outline:'#030202'},zangetsu:{bg:'#061219',panel:'#0B2630',raised:'#123A48',structure:'#22788D',cold:'#FF942E',text:'#F1FBFF',accent:'#39D6F4',pressed:'#119CBE',outline:'#02090D'}};
+/* Catálogo central das cores. O seletor e o editor usam os mesmos identificadores. */
+const PALETTES={
+ padrao:{bg:'#090708',panel:'#17100F',raised:'#291A15',structure:'#99522F',cold:'#F1E2D2',text:'#FFF8F1',accent:'#FF791B',pressed:'#C6510D',outline:'#030202'},
+ zangetsu:{bg:'#061219',panel:'#0B2630',raised:'#123A48',structure:'#22788D',cold:'#FF942E',text:'#F1FBFF',accent:'#39D6F4',pressed:'#119CBE',outline:'#02090D'},
+ ulquiorra:{bg:'#07100C',panel:'#112219',raised:'#1B3326',structure:'#477A5C',cold:'#B4DBC3',text:'#EEFDF2',accent:'#6EE5A6',pressed:'#2FA56D',outline:'#040806'},
+ renji:{bg:'#10080B',panel:'#251018',raised:'#341922',structure:'#935168',cold:'#F6AEC7',text:'#FFF0F5',accent:'#F45469',pressed:'#B93350',outline:'#070307'},
+ yoruichi:{bg:'#100B1D',panel:'#211631',raised:'#342447',structure:'#85669C',cold:'#E9B95E',text:'#F9F1FF',accent:'#F5C96F',pressed:'#BA903A',outline:'#09050F'},
+ 'zangetsu-prata':{bg:'#0A0C0F',panel:'#191D22',raised:'#292E34',structure:'#59646D',cold:'#ABB4BD',text:'#F6F8FA',accent:'#D0D5DB',pressed:'#89949F',outline:'#050506'},
+ shinji:{bg:'#14120E',panel:'#251F15',raised:'#372D1A',structure:'#987B33',cold:'#FF7881',text:'#FFF9E7',accent:'#FFD44B',pressed:'#CFA731',outline:'#080704'}
+};
+const PALETTE_CHOICES=[
+ ['zangetsu','Velho Zangetsu','Ciano e laranja sobre azul profundo.'],
+ ['padrao','Ichigo','Laranja intenso e tons escuros.'],
+ ['ulquiorra','Ulquiorra','Verde espiritual sobre preto.'],
+ ['renji','Renji','Vermelho, preto e rosa.'],
+ ['yoruichi','Yoruichi','Roxo noturno e dourado.'],
+ ['zangetsu-prata','Zangetsu','Prata, grafite e preto.'],
+ ['shinji','Shinji','Amarelo, branco e vermelho · Sakanade: textos invertidos.']
+];
+const PALETTE_IDS=PALETTE_CHOICES.map(([id])=>id);
+const PALETTE_COLOR_KEYS=['bg','panel','raised','structure','cold','text','accent','pressed','outline'];
+const validPaletteColor=value=>typeof value==='string'&&/^#[0-9A-Fa-f]{6}$/.test(value);
+function paletteName(id){return id==='personalizado'?'Personalizada':PALETTE_CHOICES.find(([key])=>key===id)?.[1]||'Velho Zangetsu'}
+function paletteDescription(id){return PALETTE_CHOICES.find(([key])=>key===id)?.[2]||'Cores escolhidas por você.'}
+
 const DEVICE_DEFAULT={preset:'zangetsu',custom:null,fontSize:100,interfaceScale:100,dyslexiaMode:false,spacing:false,speechEnabled:true,speechRate:1,performanceMode:false,reduceMotion:null,grain:true,energy:true,masterVolume:100,masterMuted:false,musicVolume:20,effectsVolume:35,musicMuted:false,effectsMuted:false,noSheetMotion:false,rollImpacts:true,sheetColors:{},hudMinimized:true};
 const PREFSSTORE={load(){try{const v=DATASTORE.local?.getItem('arquivo_preferencias');if(!v)return {...DEVICE_DEFAULT};const saved=JSON.parse(v),next={...DEVICE_DEFAULT,...saved};if(saved.easyFont===true&&typeof saved.dyslexiaMode!=='boolean')next.dyslexiaMode=true;return next}catch(e){return {...DEVICE_DEFAULT}}},save(){try{DATASTORE.local?.setItem('arquivo_preferencias',JSON.stringify(prefs))}catch(e){DATASTORE.blocked=true;storageWarning()}}};
-let prefs=PREFSSTORE.load();if(!prefs.paletteDefaultVersion){if(prefs.preset==='padrao'||!['zangetsu','personalizado'].includes(prefs.preset))prefs.preset='zangetsu';prefs.paletteDefaultVersion=2;PREFSSTORE.save()}else if(!['padrao','zangetsu','personalizado'].includes(prefs.preset)){prefs.preset='zangetsu';PREFSSTORE.save()}
+let prefs=PREFSSTORE.load();if(!PALETTE_IDS.includes(prefs.preset)&&prefs.preset!=='personalizado'){
+ prefs.preset='zangetsu';PREFSSTORE.save();
+}
+if(!prefs.paletteDefaultVersion){prefs.paletteDefaultVersion=3;PREFSSTORE.save()}
 const ACCESS_TEXT_SIZES=[50,75,100,125,150,175,200];
 const ACCESS_UI_SCALES=Array.from({length:16},(_,i)=>50+i*10);
 if(!ACCESS_UI_SCALES.includes(Number(prefs.interfaceScale))){
@@ -1762,7 +1789,13 @@ if(!ACCESS_TEXT_SIZES.includes(Number(prefs.fontSize))){
  PREFSSTORE.save();
 }
 const SITE_THEME=()=>PALETTES[db.site.defaultPalette]||PALETTES.zangetsu;
-function currentPalette(){return prefs.preset==='personalizado'&&prefs.custom?{...PALETTES.zangetsu,...prefs.custom}:PALETTES[prefs.preset]||PALETTES.zangetsu}
+function currentPalette(){
+ if(prefs.preset!=='personalizado')return PALETTES[prefs.preset]||PALETTES.zangetsu;
+ const source=prefs.custom&&typeof prefs.custom==='object'?prefs.custom:{};
+ return Object.fromEntries(PALETTE_COLOR_KEYS.map(key=>
+  [key,validPaletteColor(source[key])?source[key]:PALETTES.zangetsu[key]]
+ ));
+}
 
 function clampAudio(value){return Math.max(0,Math.min(100,Number(value)||0))}
 function effectiveMusicVolume(){return prefs.masterMuted||prefs.musicMuted?0:clampAudio(prefs.masterVolume)*clampAudio(prefs.musicVolume)/100}
@@ -1772,13 +1805,13 @@ function ensureCustomPalette(){
  else if(!prefs.custom)prefs.custom={...PALETTES.zangetsu};
 }
 function updatePaletteEditorUi(){
- const state=el('paletteEditingState');if(state)state.textContent=prefs.preset==='personalizado'?'PERSONALIZADA · ALTERAÇÕES SALVAS':prefs.preset==='padrao'?'ICHIGO':'VELHO ZANGETSU · PADRÃO';
+ const state=el('paletteEditingState');if(state)state.textContent=prefs.preset==='personalizado'?'PERSONALIZADA · ALTERAÇÕES SALVAS':paletteName(prefs.preset).toLocaleUpperCase('pt-BR')+' · PALETA BASE';
  const w=el('contrastWarning'),p=currentPalette();
  if(w)w.textContent=contrast(p.text,p.bg)<4.5||contrast(p.text,p.panel)<4.5?'Contraste insuficiente para leitura. Ajuste Texto ou Fundo.':'Contraste de leitura adequado.';
  const prev=el('paletteLivePreview');if(prev)prev.style.background=prefs.globalGradient&&!prefs.performanceMode?'linear-gradient(135deg, '+p.panel+', '+(prefs.globalGradientEnd||p.raised)+')':p.panel;
 }
 function changeCustomPaletteColor(key,value){
- if(!['bg','panel','raised','structure','cold','text','accent','pressed','outline'].includes(key)||!/^#[0-9a-fA-F]{6}$/.test(value))return;
+ if(!PALETTE_COLOR_KEYS.includes(key)||!validPaletteColor(value))return;
  ensureCustomPalette();prefs.custom[key]=value;PREFSSTORE.save();applyPrefs();updatePaletteEditorUi();
 }
 function changeCustomGradient(key,value){
@@ -1791,7 +1824,7 @@ function changeCustomGradient(key,value){
 
 function sheetMotionOff(){return motionOff()||(prefs.noSheetMotion&&page==='sheets')}
 function motionOff(){return !!prefs.performanceMode||prefs.reduceMotion===true||(prefs.reduceMotion===null&&matchMedia('(prefers-reduced-motion: reduce)').matches)}
-function applyPrefs(){const root=document.documentElement,p=currentPalette();for(const [k,v] of Object.entries(p))root.style.setProperty('--theme-'+k,v);root.style.setProperty('--accent-ink',contrast('#000000',p.accent)>=contrast('#FFFFFF',p.accent)?'#000000':'#FFFFFF');root.style.setProperty('--optional-panel-gradient',prefs.globalGradient&&!prefs.performanceMode?`linear-gradient(135deg, ${p.panel}, ${prefs.globalGradientEnd||p.raised})`:'none');root.classList.toggle('global-gradient',!!prefs.globalGradient&&!prefs.performanceMode);root.classList.toggle('performance-mode',!!prefs.performanceMode);root.style.setProperty('--ae-reading-scale',String(Math.max(.5,Math.min(2,Number(prefs.fontSize||100)/100))));root.style.setProperty('--ae-interface-scale',String((ACCESS_UI_SCALES.includes(Number(prefs.interfaceScale))?Number(prefs.interfaceScale):100)/100));document.body.classList.toggle('theme-ichigo',prefs.preset==='padrao');document.body.classList.toggle('theme-zangetsu',prefs.preset==='zangetsu');root.style.fontSize=prefs.fontSize+'%';root.classList.toggle('reduce-motion',motionOff());root.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');root.classList.toggle('no-grain',!prefs.grain||!!prefs.performanceMode);root.classList.toggle('no-energy',!prefs.energy||motionOff());root.classList.toggle('dyslexia-mode',!!prefs.dyslexiaMode);root.classList.toggle('wide-spacing',!!prefs.spacing);window.ARQUIVO_SPEECH?.refresh();if(el('musicVolume'))el('musicVolume').value=prefs.musicVolume;try{el('audio').volume=effectiveMusicVolume()/100}catch(e){}musicMuted=!!(prefs.musicMuted||prefs.masterMuted);soundOn=effectiveEffectsVolume()>0;applyExternalMusicVolume();updateMusicUi();document.querySelectorAll('input[type=range]').forEach(updateRangeTrack);updateSettingsVolumeSliders();window.__refreshBackground?.()}
+function applyPrefs(){const root=document.documentElement,p=currentPalette();for(const [k,v] of Object.entries(p))root.style.setProperty('--theme-'+k,v);root.style.setProperty('--accent-ink',contrast('#000000',p.accent)>=contrast('#FFFFFF',p.accent)?'#000000':'#FFFFFF');root.style.setProperty('--optional-panel-gradient',prefs.globalGradient&&!prefs.performanceMode?`linear-gradient(135deg, ${p.panel}, ${prefs.globalGradientEnd||p.raised})`:'none');root.classList.toggle('global-gradient',!!prefs.globalGradient&&!prefs.performanceMode);root.classList.toggle('performance-mode',!!prefs.performanceMode);root.style.setProperty('--ae-reading-scale',String(Math.max(.5,Math.min(2,Number(prefs.fontSize||100)/100))));root.style.setProperty('--ae-interface-scale',String((ACCESS_UI_SCALES.includes(Number(prefs.interfaceScale))?Number(prefs.interfaceScale):100)/100));document.body.dataset.palette=prefs.preset;document.querySelector('meta[name="theme-color"]')?.setAttribute('content',p.bg);document.body.classList.toggle('theme-ichigo',prefs.preset==='padrao');document.body.classList.toggle('theme-zangetsu',prefs.preset==='zangetsu');root.style.fontSize=prefs.fontSize+'%';root.classList.toggle('reduce-motion',motionOff());root.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');root.classList.toggle('no-grain',!prefs.grain||!!prefs.performanceMode);root.classList.toggle('no-energy',!prefs.energy||motionOff());root.classList.toggle('dyslexia-mode',!!prefs.dyslexiaMode);root.classList.toggle('wide-spacing',!!prefs.spacing);window.ARQUIVO_SPEECH?.refresh();if(el('musicVolume'))el('musicVolume').value=prefs.musicVolume;try{el('audio').volume=effectiveMusicVolume()/100}catch(e){}musicMuted=!!(prefs.musicMuted||prefs.masterMuted);soundOn=effectiveEffectsVolume()>0;applyExternalMusicVolume();updateMusicUi();document.querySelectorAll('input[type=range]').forEach(updateRangeTrack);updateSettingsVolumeSliders();window.__refreshBackground?.()}
 function contrast(hex1,hex2){function lum(h){const a=h.replace('#','').match(/../g).map(x=>parseInt(x,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return .2126*a[0]+.7152*a[1]+.0722*a[2]}const a=lum(hex1),b=lum(hex2);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05)}
 
 function paletteEditor(){
@@ -1823,7 +1856,7 @@ function paletteEditor(){
  ).join('');
  const body='<div class="ae-palette-editor">'+
  '<p class="ae-settings-muted">Escolha as cores de cada parte do site. As mudanças são salvas automaticamente neste dispositivo.</p>'+
- '<div class="ae-palette-state" id="paletteEditingState">'+(prefs.preset==='personalizado'?'PERSONALIZADA · ALTERAÇÕES SALVAS':prefs.preset==='padrao'?'ICHIGO':'VELHO ZANGETSU · PADRÃO')+'</div>'+
+ '<div class="ae-palette-state" id="paletteEditingState">'+(prefs.preset==='personalizado'?'PERSONALIZADA · ALTERAÇÕES SALVAS':paletteName(prefs.preset).toLocaleUpperCase('pt-BR')+' · PALETA BASE')+'</div>'+
  fields+
  '<section class="ae-palette-group ae-palette-gradient-group"><div class="ae-palette-group-heading"><h3>GRADIENTE</h3><p>Opcional: combine duas cores no fundo dos painéis.</p></div>'+
  '<div class="ae-palette-gradient"><label class="ae-settings-check"><input type="checkbox" id="globalGradient" '+(prefs.globalGradient?'checked':'')+'> Usar gradiente nos painéis</label>'+
@@ -1875,11 +1908,10 @@ function settings(){
  '<section class="panel ae-settings-panel ae-settings-palette" aria-labelledby="settingsPaletteTitle">'+
  '<div class="ae-settings-heading"><div><span class="ae-settings-index">APARÊNCIA</span><h2 id="settingsPaletteTitle">PALETA</h2><p>Escolha uma base ou ajuste cada cor separadamente.</p></div>'+btn('RESTAURAR','resetSettings:paleta','small')+'</div>'+
  '<div class="ae-palette-chooser"><div class="ae-palette-chooser-main"><label for="presetChoice">Paleta de cores</label><div class="ae-palette-select-row"><select id="presetChoice">'+
- '<option value="zangetsu" '+(prefs.preset==='zangetsu'?'selected':'')+'>Velho Zangetsu</option>'+
- '<option value="padrao" '+(prefs.preset==='padrao'?'selected':'')+'>Ichigo</option>'+
+ PALETTE_CHOICES.map(([id,label])=>'<option value="'+id+'" '+(prefs.preset===id?'selected':'')+'>'+label+'</option>').join('')+
  '<option value="personalizado" '+(prefs.preset==='personalizado'?'selected':'')+'>Personalizada</option>'+
  '</select><button class="ae-palette-gear" type="button" data-action="paletteEditor" title="Personalizar paleta" aria-label="Abrir editor de paleta">'+icon('settings')+'</button></div>'+
- '<div class="ae-palette-swatches" aria-label="Cores da paleta">'+swatches+'</div></div></div>'+
+ '<div class="ae-palette-swatches" aria-label="Cores da paleta">'+swatches+'</div><small class="ae-palette-caption">'+paletteDescription(prefs.preset)+'</small></div></div>'+
  '</section>'+
  '<section class="panel ae-settings-panel" aria-labelledby="settingsAccessTitle">'+
  '<div class="ae-settings-heading"><div><span class="ae-settings-index">LEITURA</span><h2 id="settingsAccessTitle">ACESSIBILIDADE</h2><p>Personalize a leitura e a navegação.</p></div>'+btn('RESTAURAR','resetSettings:acesso','small')+'</div>'+
@@ -1903,7 +1935,7 @@ function updateRangeTrack(node){if(!node)return;const lo=Number(node.min||0),hi=
 function changeSetting(id,value){
  if(id==='presetChoice'){
   if(value==='personalizado')ensureCustomPalette();
-  else if(value==='padrao'||value==='zangetsu'){prefs.preset=value;prefs.globalGradient=false;prefs.globalGradientEnd=null}
+  else if(PALETTE_IDS.includes(value)){prefs.preset=value;prefs.globalGradient=false;prefs.globalGradientEnd=null}
   else return;
   PREFSSTORE.save();applyPrefs();render();return;
  }
