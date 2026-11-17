@@ -1,0 +1,91 @@
+/* Paletas do Arquivo Espiritual
+   Cores: definidas em PALETTES, em index.html.
+   Este arquivo contém somente acabamento visual e o efeito Sakanade. */
+
+/* Acabamento comum às paletas temáticas sem alterar a geometria das páginas. */
+body:is(
+ [data-palette="ulquiorra"],
+ [data-palette="renji"],
+ [data-palette="yoruichi"],
+ [data-palette="zangetsu-prata"],
+ [data-palette="shinji"]
+){
+ background-image:
+  radial-gradient(ellipse 75% 65% at 92% 0%,color-mix(in srgb,var(--theme-accent) 9%,transparent),transparent 74%),
+  linear-gradient(180deg,var(--theme-bg),var(--theme-bg));
+}
+body:is(
+ [data-palette="ulquiorra"],
+ [data-palette="renji"],
+ [data-palette="yoruichi"],
+ [data-palette="zangetsu-prata"],
+ [data-palette="shinji"]
+)::before{
+ background:linear-gradient(
+  135deg,transparent 0 63%,
+  color-mix(in srgb,var(--theme-cold) 3%,transparent) 63.15%,
+  transparent 63.3%
+ );
+}
+
+/* Preferência do usuário: não introduzir efeitos decorativos no modo desempenho. */
+html.performance-mode body[data-palette]{background-image:none!important}
+html.performance-mode body[data-palette]::before{background:none!important}
+
+/* O seletor, a engrenagem e as amostras de cor devem permanecer alinhados. */
+#page .ae-palette-chooser{width:min(520px,100%);min-width:0}
+#page .ae-palette-select-row{min-width:0;align-items:stretch}
+#page .ae-palette-select-row select{min-width:0;flex:1 1 auto}
+#page .ae-palette-select-row .ae-palette-gear{align-self:stretch;flex:0 0 48px}
+#page .ae-palette-swatches{display:flex;gap:5px;max-width:100%;flex-wrap:wrap}
+#page .ae-palette-swatches span{
+ width:25px;height:25px;min-width:25px;flex:0 0 25px;
+ border:1px solid color-mix(in srgb,var(--theme-text) 20%,var(--theme-structure));
+}
+#page .ae-palette-caption{
+ display:block;margin:9px 0 0;
+ font-size:11px;line-height:1.5;opacity:.82;color:var(--theme-text);
+}
+#page .ae-palette-caption[hidden]{display:none!important}
+#page .ae-palette-chooser select:focus-visible,
+#page .ae-palette-gear:focus-visible{
+ outline:3px solid var(--theme-cold);outline-offset:2px;
+}
+@media(max-width:680px){
+ #page .ae-palette-chooser{width:100%}
+}
+
+/*
+ * SHINJI — Sakanade (easter egg)
+ *
+ * A escrita visível se apresenta de trás para frente, como uma percepção
+ * invertida. Somente o sentido visual muda: textContent, dados, formulários
+ * e a ordem lida por tecnologias assistivas permanecem intactos.
+ * Não aplicar direction:rtl aos contêineres da interface, porque isso
+ * inverteria também a navegação, a ordem dos controles e o layout.
+ */
+body[data-palette="shinji"] :is(
+ #page,#navigation,.brand,.toolbar,.sidefoot,
+ .mobile-title,.ae-mobile-more-menu,.sidebar-extras,
+ #dialogRoot,#toastRoot,#aeSpeechTools,#connectionBanner,.music
+) :is(
+ h1,h2,h3,h4,h5,h6,p,span,small,strong,b,em,i,
+ a,button,label,legend,summary,li,dt,dd,
+ output,blockquote,figcaption,th,td,caption,
+ input,textarea,select,option
+){
+ direction:rtl!important;
+ unicode-bidi:bidi-override!important;
+}
+body[data-palette="shinji"] :is(
+ #page,#navigation,.brand,.toolbar,.sidefoot,
+ .mobile-title,.ae-mobile-more-menu,.sidebar-extras,
+ #dialogRoot,#toastRoot,#aeSpeechTools,#connectionBanner,.music
+) :is(div,section,aside):not(:has(*)){
+ direction:rtl!important;
+ unicode-bidi:bidi-override!important;
+}
+body[data-palette="shinji"] :is(input,textarea)::placeholder{
+ direction:rtl!important;unicode-bidi:bidi-override!important;
+}
+/* A inversão não é aplicada aos nomes acessíveis, que não são conteúdo visual. */
