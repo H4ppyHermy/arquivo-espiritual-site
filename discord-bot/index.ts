@@ -1,4 +1,5 @@
-import {rollDiceExpression} from "./dice.mjs";
+import {rollDiceExpression,parsePrefixMessage} from "./dice.mjs";
+import {rollCard,rollText,helpCard} from "./card.mjs";
 
 // Discord application webhook + optional site notifications. No gateway process required.
 const env=k=>String(Deno.env.get(k)||"").trim();
@@ -42,39 +43,6 @@ async function sheets(){
  return Array.isArray(document?.[0]?.data?.sheets)?document[0].data.sheets:[];
 }
 const permittedSheet=s=>!!s&&!s.masterOnly&&!s.locked&&!s.redacted&&!s.private;
-function rollText(r){
- const roll=Array.isArray(r.dice)?r.dice:[];
- const values=roll.slice(0,30).map(d=>String(d.value)).join(", ");
- return txt(r.account_name,65)+" · "+txt(r.label,100)+" → ["+values+"] = "+Number(r.total);
-}
-function rollCard(r){
- const rolls=Array.isArray(r.dice)?r.dice:[];
- const special=String(r.special||"");
- const accent=special==="CRÍTICO"?0xE5B85B:special==="FALHA CRÍTICA"?0xE96A78:0x8166E8;
- const values=rolls.slice(0,30).map(d=>{
-  const value=Number(d.value),effect=Number(d.effective??d.value);
-  return effect===0||d.canceled===true?"("+value+")":String(value);
- });
- const diceText="["+values.join(", ")+"]";
- const title=txt(r.label||"Rolagem",100);
- const account=txt(r.account_name||"Jogador",70);
- const status=special==="CRÍTICO"?"✦ CRÍTICO · TOTAL DUPLICADO":special==="FALHA CRÍTICA"?"⚠ FALHA CRÍTICA":"RESULTADO";
- const description="## "+Number(r.total)+"  ⟵  "+diceText+
-  "\n"+(special?"**"+status+"**\n":"")+
-  (r.character_name?"**"+txt(r.character_name,80)+"**\n":"")+
-  (rolls.length?rolls.slice(0,16).map(d=>"d"+Number(d.sides)).join(" · "):"");
- const embed={
-  color:accent,
-  author:{name:account},
-  title:"🎲 "+title,
-  description:description.slice(0,3900),
-  footer:{text:"BLEACH CBB  ·  ARQUIVO ESPIRITUAL"+(r.id?"  ·  #"+r.id:"")}
- };
- const components=r.kind==="discord"&&r.id?[{type:1,components:[{
-  type:2,style:1,label:"Re-rolar",emoji:{name:"🎲"},custom_id:"cbb:reroll:"+r.id
- }]}]:[];
- return {embeds:[embed],components,allowed_mentions:{parse:[]}};
-}
 const rollReply=r=>({type:4,data:rollCard(r)});
 async function rollCmd(p,fromRoll=null){
  let rolled;
@@ -176,7 +144,7 @@ async function interaction(req){
   if(p.data?.name==="rolar")return j(await rollCmd(p));
   if(p.data?.name==="ficha")return j(await sheetCmd(p));
   if(p.data?.name==="historico")return j(await historyCmd());
-  if(p.data?.name==="ajuda")return j(say("**Arquivo Espiritual · Comandos**\n/rolar expressao:2d6+3\n/rolar expressao:2d20kh1 (vantagem)\n/rolar expressao:2d20kl1 (desvantagem)\n/ficha id:IDENTIFICADOR\n/historico — rolagens do site e Discord\nAté 30 dados, d1 até d1000.",true));
+  if(p.data?.name==="ajuda")return j({type:4,data:{...helpCard(),flags:64}});
   return j(deny("Use /ajuda para ver os comandos."));
  }catch{return j(deny("Não foi possível consultar o site. Tente novamente."))}
 }
@@ -245,16 +213,15 @@ async function prefixCommand(req){
  let body;
  try{body=await req.json()}catch{return j({error:"JSON inválido."},400)}
  if(String(body?.guildId)!==DISCORD_ALLOWED_GUILD_ID)return j({error:"Servidor não autorizado."},403);
- const content=String(body?.content||"").trim().slice(0,300);
- const match=/^CBB(ajuda|rolar|historico|ficha)(?:\s+([\s\S]+))?$/i.exec(content);
- if(!match)return j({error:"Comando desconhecido."},400);
+ const parsed=parsePrefixMessage(body?.content);
+ if(!parsed)return j({error:"Comando desconhecido."},400);
  if(!/^\d{17,22}$/.test(String(body?.userId||""))||!/^\d{17,22}$/.test(String(body?.messageId||"")))return j({error:"Origem inválida."},400);
- const command=match[1].toLowerCase(),args=String(match[2]||"").trim();
+ if(parsed.error)return j({content:parsed.error,allowed_mentions:{parse:[]}});
+ const command=parsed.command,args=parsed.args||"";
  const options=[];
  if(command==="rolar"){
-  const split=/^(\S+)(?:\s+([\s\S]+))?$/.exec(args||"1d20");
-  options.push({name:"expressao",value:split?.[1]||"1d20"});
-  if(split?.[2])options.push({name:"descricao",value:split[2].slice(0,70)});
+  options.push({name:"expressao",value:parsed.expression});
+  if(parsed.description)options.push({name:"descricao",value:parsed.description});
  }else if(command==="ficha"){
   options.push({name:"id",value:args});
  }
@@ -267,7 +234,7 @@ async function prefixCommand(req){
   const result=command==="rolar"?await rollCmd(payload):
    command==="ficha"?await sheetCmd(payload):
    command==="historico"?await historyCmd():
-   say("**Comandos CBB**\nCBBrolar 2d6+3\nCBBrolar 2d20kh1\nCBBficha ID\nCBBhistorico\nCBBajuda");
+   {data:helpCard()};
   return j(result.data||{content:"Comando indisponível."});
  }catch{return j({content:"Não foi possível executar o comando."},503)}
 }
