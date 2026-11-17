@@ -3318,7 +3318,7 @@ function bindEvents(){window.addEventListener('resize',()=>{if(window.innerWidth
 function background(){
  const canvas=el('energy');if(!canvas)return;
  const ctx=canvas.getContext('2d');if(!ctx)return;
- let w=0,h=0,t=0,items=[],lastDraw=0,wasVisible=false;
+ let w=0,h=0,t=0,items=[],lastDraw=0,wasVisible=false,frameId=0;
  function resize(){
   const d=Math.min(devicePixelRatio||1,1.5);
   w=innerWidth;h=innerHeight;canvas.width=Math.floor(w*d);canvas.height=Math.floor(h*d);
@@ -3327,15 +3327,22 @@ function background(){
    x:Math.random()*w,y:Math.random()*h,v:.25+Math.random()*.6,r:Math.random()*1.4+.25,orange:i%5===0
   }));
  }
- window.addEventListener('resize',resize,{passive:true});resize();
+ function active(){return !document.hidden&&page!=='home'&&prefs.energy&&!motionOff()}
+ function refresh(){
+  if(!active()){
+   if(frameId){cancelAnimationFrame(frameId);frameId=0}
+   if(wasVisible){ctx.clearRect(0,0,w,h);wasVisible=false}
+   return;
+  }
+  if(!frameId)frameId=requestAnimationFrame(frame);
+ }
  function frame(now){
-  requestAnimationFrame(frame);
-  const visible=!document.hidden&&page!=='home'&&prefs.energy&&!motionOff();
-  if(!visible){if(wasVisible){ctx.clearRect(0,0,w,h);wasVisible=false}return}
+  frameId=0;
+  if(!active()){refresh();return}
+  frameId=requestAnimationFrame(frame);
   if(now-lastDraw<1000/30)return;
   lastDraw=now;wasVisible=true;t++;
   ctx.clearRect(0,0,w,h);
-  // Uma consulta de estilos por quadro, não uma por partícula.
   const style=getComputedStyle(document.documentElement);
   const cold=style.getPropertyValue('--theme-cold').trim()||'#4CC9F0';
   const warm=style.getPropertyValue('--theme-accent').trim()||'#FF7A1A';
@@ -3355,7 +3362,11 @@ function background(){
   }
   ctx.globalAlpha=1;
  }
- requestAnimationFrame(frame);
+ window.addEventListener('resize',()=>{resize();refresh()},{passive:true});
+ document.addEventListener('visibilitychange',refresh);
+ try{matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',refresh)}catch(e){}
+ window.__refreshBackground=refresh;
+ resize();refresh();
 }
 async function init(){await migrateLegacyKeys();db.site??={};db.site.defaultPalette??='zangetsu';db.rules??=[];db.sheets??=[];db.sheets.forEach(s=>{s.conditions??=[];s.abilities??=[];s.inventory??={items:[],currencies:[]}});if(role!=='guest'&&!db.keys.some(k=>k.id===keyOwnerId&&k.active)){role='guest';keyOwnerId='';DATASTORE.clearRole()}soundOn=effectiveEffectsVolume()>0;musicMuted=!!(prefs.musicMuted||prefs.masterMuted);applyPrefs();try{setMusicSource()}catch(e){}if(prefs.hudMinimized){el('music').classList.add('compact-hud');const b=el('hudToggle');b.textContent='▴';b.setAttribute('aria-expanded','false')}const audioTab=el('sidebarAudio');if(audioTab)audioTab.setAttribute('aria-expanded',String(!prefs.hudMinimized));bindEvents();render();background();if(DATASTORE.blocked)storageWarning();el('audio').addEventListener('ended',()=>{musicOn=false;updateMusicUi()});el('audio').addEventListener('error',()=>{if(musicOn){musicOn=false;updateMusicUi()}})}
 window.ARQUIVO_INTERNAL={get page(){return page},get db(){return db},get prefs(){return prefs},get currentSheet(){return currentSheet},get role(){return role},get editorDraft(){return editorDraft},canEditSheet,master,save,render,toast,redrawSheetForm:drawSheetForm,modal,historyHtml,dataUrlOk,mediaSrc,inventoryItemCanUse,inventoryItemAbilityLabel,abilityBadge,abilityTestButton,sheetRich,conditionsCatalog:CONDITIONS_CATALOG};
