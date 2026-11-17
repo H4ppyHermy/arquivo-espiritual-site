@@ -89,10 +89,10 @@ export function helpCard(){
   description:"**Rolagens rápidas, verificadas e sincronizadas com o Arquivo Espiritual.**",
   fields:[
    {name:"ROLAR DADOS",value:tick+"br 2d6 + 1d4"+tick+"\n"+tick+"br 1d20 + 3"+tick+"\n"+tick+"br 2d6 + 1d4 | Golpe espiritual"+tick,inline:false},
-   {name:"VANTAGEM / DESVANTAGEM",value:tick+"br 2d20kh1"+tick+" — mantém o maior\n"+tick+"br 2d20kl1"+tick+" — mantém o menor",inline:false},
-   {name:"OUTROS COMANDOS",value:tick+"CBBficha ID"+tick+" · "+tick+"CBBhistorico"+tick+"\nTambém disponíveis: "+tick+"/rolar"+tick+", "+tick+"/ficha"+tick+", "+tick+"/historico"+tick,inline:false},
+   {name:"CONSULTAR E NAVEGAR",value:tick+"bajuda"+tick+" — este guia\n"+tick+"bficha ID"+tick+" — consultar ficha pública\n"+tick+"bhistorico"+tick+" — últimas rolagens",inline:false},
+   {name:"COMANDOS COM /",value:tick+"/rolar"+tick+" · "+tick+"/ficha"+tick+" · "+tick+"/historico"+tick+" · "+tick+"/ajuda"+tick,inline:false},
    {name:"RESULTADOS ESPECIAIS",value:"🟡 Crítico: dois valores iguais de **6+**\n🔴 Falha crítica: dois valores **1**",inline:false}
   ],
-  footer:{text:"BLEACH CBB  •  Guia rápido  •  br = Bleach Rolar"}
+  footer:{text:"BLEACH CBB  •  br = Bleach Rolar  •  Novos sistemas em breve"}
  }],allowed_mentions:{parse:[]}};
 }
