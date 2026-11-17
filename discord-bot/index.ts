@@ -14,7 +14,9 @@ const publicGuild=p=>!!env("DISCORD_GUILD_ID")&&p.guild_id===env("DISCORD_GUILD_
 function fromHex(value){return typeof value==="string"&&/^[0-9a-f]+$/i.test(value)&&value.length%2===0?Uint8Array.from(value.match(/../g),s=>parseInt(s,16)):null}
 
 async function signed(request,body){
- const pub=fromHex(env("DISCORD_PUBLIC_KEY"));
+ // A chave de verificação Ed25519 é PÚBLICA. Fallback para a aplicação Bleach CBB.
+ // O segredo do bot continua exclusivamente no servidor, nunca no repositório.
+ const pub=fromHex(env("DISCORD_PUBLIC_KEY")||"4300ded119c94bd588a1e5657e3299b05d192511d2997d16081387dbe1561b40");
  const sig=fromHex(request.headers.get("x-signature-ed25519"));
  const stamp=request.headers.get("x-signature-timestamp");
  if(pub?.length!==32||sig?.length!==64||!stamp||!/^\d{10}$/.test(stamp)||Math.abs(Date.now()-Number(stamp)*1000)>300000)return false;
