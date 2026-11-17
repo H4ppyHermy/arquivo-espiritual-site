@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {parseDiceExpression,rollDiceExpression,evaluateRpgSpecial,parsePrefixMessage} from "./dice.mjs";
 import {rollCard,helpCard,classifyHighlightedDice} from "./card.mjs";
 import {renderSheetDM} from "./sheet-dm.mjs";
+import {sheetPages,sheetPagerData,sheetExportResponse} from "./ephemeral-sheet.mjs";
 
 test("aceita expressões comuns",()=>{
  for(const expression of ["1d1","1d2","1d3","1d20","2d6+3","1d20-2","3d8+1d4+7"]){
@@ -144,4 +145,43 @@ test("bficha formata dados e as habilidades completas apenas para DM",()=>{
   assert.deepEqual(packet.allowedMentions,{parse:[]});
  }
  assert.match(out.exportName,/^ficha-arquivo-exemplo\.json$/);
+});
+
+
+test("fichas de mestre podem ser navegadas em segredo sem mensagens públicas",()=>{
+ const sheet={
+  id:"arquivo-hn9c15m7",name:"Sajin Komamura",masterOnly:true,locked:true,
+  abilities:Array.from({length:13},(_,i)=>({name:"Habilidade "+(i+1),description:"Detalhes completos ".repeat(24),category:"active",cost:2})),
+  resources:{vida:{current:80,max:100}},notes:"Informações secretas do mestre",
+  ownerKeyId:"not-a-discord-identifier"
+ };
+ const pages=sheetPages(sheet);
+ assert.ok(pages.length>2);
+ const token="abcdef0123456789abcdef01";
+ const first=sheetPagerData(sheet,token,0);
+ assert.equal(first.flags,64);
+ assert.equal(first.embeds.length,pages[0].length);
+ assert.match(first.content,/VISÍVEL APENAS PARA VOCÊ/);
+ assert.ok(first.components[0].components.some(btn=>btn.custom_id==="ae:f:"+token+":1"));
+ assert.ok(first.components[0].components.some(btn=>btn.custom_id==="ae:x:"+token));
+ const last=sheetPagerData(sheet,token,999);
+ assert.ok(!last.components[0].components.some(btn=>btn.label==="Próxima"));
+ assert.ok(last.components[0].components.some(btn=>btn.label==="Anterior"));
+ for(const p of pages){
+  assert.ok(p.length<=5);
+  const chars=p.reduce((sum,e)=>sum+String(e.title||"").length+String(e.description||"").length+String(e.footer?.text||"").length,0);
+  assert.ok(chars<=6000);
+ }
+});
+test("exportação privada do Discord inclui JSON inteiro, sem publicar dados",async()=>{
+ const sheet={id:"ficha-123",name:"Shinji",abilities:[{name:"Shikai",description:"Inverter sentidos"}],masterOnly:true};
+ const response=sheetExportResponse(sheet);
+ assert.equal(response.status,200);
+ const body=await response.formData();
+ const payload=JSON.parse(String(body.get("payload_json")));
+ assert.equal(payload.type,4);
+ assert.equal(payload.data.flags,64);
+ assert.equal(payload.data.attachments[0].filename,"ficha-ficha-123.json");
+ const attachment=body.get("files[0]");
+ assert.deepEqual(JSON.parse(await attachment.text()),sheet);
 });
