@@ -4,7 +4,7 @@ import {parseDiceExpression,rollDiceExpression,evaluateRpgSpecial,parsePrefixMes
 import {rollCard,helpCard,classifyHighlightedDice} from "./card.mjs";
 
 test("aceita expressões comuns",()=>{
- for(const expression of ["1d1","1d2","1d3","1d20","2d6+3","1d20-2","2d20kh1","2d20kl1","4d6kh3","3d8+1d4+7"]){
+ for(const expression of ["1d1","1d2","1d3","1d20","2d6+3","1d20-2","3d8+1d4+7"]){
   const parsed=parseDiceExpression(expression);assert.ok(parsed.count>=1);
   const rolled=rollDiceExpression(expression);
   assert.equal(rolled.dice.length,parsed.count);
@@ -12,12 +12,11 @@ test("aceita expressões comuns",()=>{
   assert.equal(rolled.total,(rolled.special==="CRÍTICO"?base*2:base)+parsed.constant);
  }
 });
-test("vantagem e desvantagem descartam o dado correto",()=>{
- for(let i=0;i<100;i++){
-  const advantage=rollDiceExpression("2d20kh1");
-  assert.equal(advantage.total,Math.max(...advantage.dice.map(d=>d.value)));
-  const disadvantage=rollDiceExpression("2d20kl1");
-  assert.equal(disadvantage.total,Math.min(...disadvantage.dice.map(d=>d.value)));
+test("vantagem e desvantagem antigas foram removidas",()=>{
+ for(const expression of ["2d20kh1","2d20kl1","4d6kh3","1d20kl1"]){
+  assert.throws(()=>parseDiceExpression(expression),expression);
+  const command=parsePrefixMessage("br "+expression);
+  assert.ok(command.error,expression);
  }
 });
 test("evita expressão maliciosa, inválida ou excessiva",()=>{
@@ -47,9 +46,14 @@ test("br aceita espaços em expressões e aliases antigos continuam funcionais",
  const cases=[
   ["br 2d6 + 1d4","rolar","2d6+1d4"],
   ["BR 1d20 + 3","rolar","1d20+3"],
-  ["br 2d20kh1","rolar","2d20kh1"],
+  ["br 2d6 + 1d4","rolar","2d6+1d4"],
   ["br 2d6 + 1d4 | Zangetsu","rolar","2d6+1d4"],
   ["CBBrolar 2d6 Ataque","rolar","2d6"],
+  ["bajuda","ajuda",null],
+  ["bhistorico","historico",null],
+  ["bficha ficha_01","ficha",null],
+  ["BAJUDA","ajuda",null],
+  ["BFiChA ficha_02","ficha",null],
   ["CBBajuda","ajuda",null],
   ["CBBficha ficha_01","ficha",null],
   ["CBBhistorico","historico",null]
@@ -60,8 +64,8 @@ test("br aceita espaços em expressões e aliases antigos continuam funcionais",
   if(expression)assert.equal(p.expression,expression,input);
  }
  assert.equal(parsePrefixMessage("br 2d6 | Corte espiritual").description,"Corte espiritual");
- for(const input of ["brasil","braço","brown 2d6","CBBrolando 2d6","/rolar 2d6"])assert.equal(parsePrefixMessage(input),null,input);
- for(const input of ["br","br 2d6 +","br 100d2000"])assert.ok(parsePrefixMessage(input).error,input);
+ for(const input of ["brasil","braço","bhistoricos","bajudar","bfichas","brown 2d6","CBBrolando 2d6","/rolar 2d6"])assert.equal(parsePrefixMessage(input),null,input);
+ for(const input of ["br","br 2d6 +","br 100d2000","br 2d20kh1"])assert.ok(parsePrefixMessage(input).error,input);
 });
 test("cartões destacam apenas os dados responsáveis pelo crítico",()=>{
  const row={
@@ -92,4 +96,12 @@ test("cartões de 30 dados e ajuda respeitam limites do Discord",()=>{
  const help=helpCard();
  assert.ok(help.embeds[0].fields.length<=25);
  for(const f of help.embeds[0].fields)assert.ok(f.value.length<=1024);
+});
+
+test("bajuda, bhistorico e bficha validam separadores e argumentos",()=>{
+ assert.equal(parsePrefixMessage("bajuda").command,"ajuda");
+ assert.equal(parsePrefixMessage("bhistorico").command,"historico");
+ assert.equal(parsePrefixMessage("bficha arquivo_ichigo").args,"arquivo_ichigo");
+ assert.equal(parsePrefixMessage("bajudaabc"),null);
+ assert.equal(parsePrefixMessage("bficha123"),null);
 });
