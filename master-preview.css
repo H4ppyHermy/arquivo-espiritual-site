@@ -1,0 +1,33 @@
+/* Prévia de jogador: recurso local da chave de mestre.
+   A marca preserva a aparência padrão até a ativação por três cliques. */
+.side .ae-side-brandmark .ae-master-preview-mark{
+ appearance:none;display:grid;place-items:center;flex:0 0 auto;
+ min-width:44px;min-height:44px;width:50px;height:50px;
+ margin:0;padding:3px;border:1px solid transparent;border-radius:5px;
+ background:transparent;color:var(--theme-text);cursor:pointer;
+ -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.side .ae-master-preview-mark img{
+ display:block;width:43px;height:43px;object-fit:contain;
+ max-width:100%;max-height:100%;
+}
+.side .ae-master-preview-mark:focus-visible{
+ outline:2px solid var(--theme-cold);outline-offset:3px
+}
+body.ae-master-preview .side .ae-master-preview-mark{
+ border-color:var(--theme-cold);
+ background:color-mix(in srgb,var(--theme-cold) 11%,transparent)
+}
+body.ae-master-preview .side .ae-master-preview-mark img{
+ filter:drop-shadow(0 0 5px var(--theme-cold)) drop-shadow(0 0 13px var(--theme-cold));
+}
+body.ae-master-preview #roleText{
+ color:var(--theme-cold);font-weight:900
+}
+html.performance-mode body.ae-master-preview .side .ae-master-preview-mark{
+ box-shadow:none!important;background:transparent!important;
+ border:2px solid var(--theme-cold)!important;
+}
+html.performance-mode body.ae-master-preview .side .ae-master-preview-mark img{
+ filter:none!important
+}
