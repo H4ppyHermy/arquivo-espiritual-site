@@ -2670,7 +2670,7 @@ function formatBook(source,chapterTitle=''){
  const searchText=query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
  const names=[...libraryGlossary.keys()].sort((a,b)=>b.length-a.length);
  const lookup=new Set(names);
- const pattern=names.length?new RegExp('(^|[^\\p{L}\\p{N}])('+names.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\new RegExp('(^|[^\\p{L}\\p{N}])('+names.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?![\\p{L}\\p{N}])','giu')')).join('|')+')(?![\\p{L}\\p{N}])','gu'):null;
+ const pattern=names.length?new RegExp('(^|[^\p{L}\p{N}])('+names.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?![\p{L}\p{N}])','gu'):null;
  function inline(text){
   const markers=[];
   let raw=String(text||'');
