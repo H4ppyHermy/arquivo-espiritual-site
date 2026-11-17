@@ -181,17 +181,19 @@ async function interaction(req){
  }catch{return j(deny("Não foi possível consultar o site. Tente novamente."))}
 }
 function cors(req){
- const origin=req.headers.get("origin");
- const allowed=env("ARQUIVO_SITE_ORIGIN");
- return {"Access-Control-Allow-Origin":allowed&&origin===allowed?allowed:"null",
+ // A chamada possui JWT Supabase no Authorization. Não usa cookies nem credenciais
+ // do navegador; permite origens HTTPS sem depender de um endereço de site fixo.
+ const origin=String(req.headers.get("origin")||"");
+ const allowed=/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(origin)?origin:"null";
+ return {"Access-Control-Allow-Origin":allowed,
  "Access-Control-Allow-Methods":"POST, OPTIONS",
  "Access-Control-Allow-Headers":"authorization, apikey, content-type",Vary:"Origin"};
 }
 async function notify(req){
  const extra=cors(req);
- if(!env("ARQUIVO_SITE_ORIGIN")||extra["Access-Control-Allow-Origin"]==="null")return j({error:"Origem recusada."},403,extra);
+ if(extra["Access-Control-Allow-Origin"]==="null")return j({error:"Origem recusada."},403,extra);
  const auth=req.headers.get("authorization")||"";
- const anon=env("SUPABASE_ANON_KEY");
+ const anon=env("SUPABASE_ANON_KEY")||env("SUPABASE_PUBLISHABLE_KEY")||"sb_publishable_xyUG_qTGBhAnNrKBpphLTw_fu5i6wkg";
  if(!/^Bearer [A-Za-z0-9_.-]+$/.test(auth)||!anon)return j({error:"Autenticação necessária."},401,extra);
  const identity=await fetch(api()+"/auth/v1/user",{headers:{Authorization:auth,apikey:anon}});
  if(!identity.ok)return j({error:"Sessão inválida."},401,extra);
@@ -210,7 +212,7 @@ async function notify(req){
   method:"POST",headers:{Authorization:"Bot "+bot,"Content-Type":"application/json"},
   body:JSON.stringify({content:"🎲 **Rolagem feita no Arquivo Espiritual**",...rollCard(row)})
  });
- if(!sent.ok)return j({ok:false,reason:"Discord indisponível."},503,extra);
+ if(!sent.ok){console.warn("Discord notificação falhou",sent.status,await sent.text().catch(()=>""));return j({ok:false,reason:"Discord indisponível."},503,extra)}
  const reply=await sent.json();
  if(reply?.id)await rest("ae_rolls?id=eq."+id,"PATCH",{discord_message_id:String(reply.id)});
  return j({ok:true},200,extra);
