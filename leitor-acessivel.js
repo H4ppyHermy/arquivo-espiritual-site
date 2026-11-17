@@ -48,10 +48,11 @@
   const glossary=dialog.querySelector('.ae-mechanic-explanation');
   const title=dialog.querySelector('h2')?.textContent||'';
   const source=glossary||dialog;
-  const text=[title,...Array.from(source.querySelectorAll(glossary?'p:not(.subtitle)':'p,li,blockquote')).
+  const parts=[title,...Array.from(source.querySelectorAll(glossary?'p:not(.subtitle)':'p,li,blockquote')).
    filter(element=>!element.closest('button,.actions,[aria-hidden="true"]')).
-   map(element=>String(element.textContent||'').trim())].
-   filter(Boolean).join('. ');
+   map(element=>String(element.textContent||'').trim())].filter(Boolean);
+  let text='';
+  for(const part of parts)text+=text?(/[.!?;:]$/.test(text)?' ':'. ')+part:part;
   return text.replace(/\s+/g,' ').trim().slice(0,6000);
  }
  function layout(save=false){
