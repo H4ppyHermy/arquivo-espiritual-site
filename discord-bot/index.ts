@@ -217,8 +217,48 @@ async function notify(req){
  if(reply?.id)await rest("ae_rolls?id=eq."+id,"PATCH",{discord_message_id:String(reply.id)});
  return j({ok:true},200,extra);
 }
+// Prefixos tradicionais exigem o Gateway do Discord (processo Node separado).
+// Este endpoint aceita apenas mensagens encaminhadas por esse worker com o Bot Token.
+async function prefixCommand(req){
+ const token=env("DISCORD_BOT_TOKEN");
+ const supplied=req.headers.get("authorization")||"";
+ if(!token||supplied!=="Bot "+token)return j({error:"Acesso não autorizado."},401);
+ let body;
+ try{body=await req.json()}catch{return j({error:"JSON inválido."},400)}
+ if(String(body?.guildId)!==DISCORD_ALLOWED_GUILD_ID)return j({error:"Servidor não autorizado."},403);
+ const content=String(body?.content||"").trim().slice(0,300);
+ const match=/^CBB(ajuda|rolar|historico|ficha)(?:\s+([\s\S]+))?$/i.exec(content);
+ if(!match)return j({error:"Comando desconhecido."},400);
+ if(!/^\d{17,22}$/.test(String(body?.userId||""))||!/^\d{17,22}$/.test(String(body?.messageId||"")))return j({error:"Origem inválida."},400);
+ const command=match[1].toLowerCase(),args=String(match[2]||"").trim();
+ const options=[];
+ if(command==="rolar"){
+  const split=/^(\S+)(?:\s+([\s\S]+))?$/.exec(args||"1d20");
+  options.push({name:"expressao",value:split?.[1]||"1d20"});
+  if(split?.[2])options.push({name:"descricao",value:split[2].slice(0,70)});
+ }else if(command==="ficha"){
+  options.push({name:"id",value:args});
+ }
+ const payload={
+  id:String(body.messageId),type:2,guild_id:DISCORD_ALLOWED_GUILD_ID,
+  member:{nick:txt(body.nickname,65),user:{id:String(body.userId),username:txt(body.username,65)}},
+  data:{name:command,options}
+ };
+ try{
+  const result=command==="rolar"?await rollCmd(payload):
+   command==="ficha"?await sheetCmd(payload):
+   command==="historico"?await historyCmd():
+   say("**Comandos CBB**\nCBBrolar 2d6+3\nCBBrolar 2d20kh1\nCBBficha ID\nCBBhistorico\nCBBajuda");
+  return j(result.data||{content:"Comando indisponível."});
+ }catch{return j({content:"Não foi possível executar o comando."},503)}
+}
+
 Deno.serve(async req=>{
  const path=new URL(req.url).pathname;
+ if(path.endsWith("/prefix")){
+  if(req.method!=="POST")return j({error:"Método inválido."},405);
+  return prefixCommand(req);
+ }
  if(path.endsWith("/notify")){
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors(req)});
   if(req.method!=="POST")return j({error:"Método inválido."},405,cors(req));
