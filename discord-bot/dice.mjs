@@ -28,6 +28,47 @@ export function parseDiceExpression(input){
  return {expression,terms,count:countTotal,constant};
 }
 
+
+/**
+ * Parser compartilhado pelos processos HTTP e Gateway.
+ * "br 2d6 + 1d4" é a forma principal. As grafias CBB anteriores
+ * permanecem como aliases, sem corresponder a palavras como "brasil".
+ * Use "|" para uma descrição opcional: br 2d6 + 1d4 | Corte do Zangetsu
+ */
+export function parsePrefixMessage(input){
+ const raw=String(input??"").trim();
+ if(!raw||raw.length>300)return null;
+ const found=/^(br|CBBrolar|CBBajuda|CBBficha|CBBhistorico)(?=\s|$)(?:\s+([\s\S]*))?$/i.exec(raw);
+ if(!found)return null;
+ const name=found[1].toLowerCase(),args=String(found[2]||"").trim();
+ const command=name==="br"?"rolar":name.slice(3);
+ if(command!=="rolar")return {command,args};
+ if(!args)return {command,error:"Informe os dados. Exemplo: br 2d6 + 1d4"};
+ let expression=args,description="";
+ const separator=args.indexOf("|");
+ if(separator>=0){
+  expression=args.slice(0,separator).trim();
+  description=args.slice(separator+1).trim().slice(0,70);
+ }
+ try{
+  const parsed=parseDiceExpression(expression);
+  return {command,expression:parsed.expression,description};
+ }catch(e){
+  // Compatibilidade com "CBBrolar 2d6 Ataque" sem separador.
+  if(separator<0&&name==="cbbrolar"){
+   const legacy=/^(.+?)\s+([^\d+\-].+)$/u.exec(args);
+   if(legacy){
+    try{
+     const parsed=parseDiceExpression(legacy[1]);
+     return {command,expression:parsed.expression,description:legacy[2].trim().slice(0,70)};
+    }catch{}
+   }
+  }
+  return {command,error:"Dados inválidos. Use: br 2d6 + 1d4  (descrição: br 2d6 | Ataque)"};
+ }
+}
+
+
 function randomDie(faces){
  if(faces===1)return 1;
  const limit=Math.floor(4294967296/faces)*faces;
