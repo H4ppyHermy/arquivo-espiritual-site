@@ -2876,7 +2876,19 @@ function abilityTestButton(s,ab,i){if(!abilityHasTest(ab))return '';const custom
 function abilityRoll(i){useAbility(i)}
 function customDiceEditor(ab,i,s){const custom=Array.isArray(ab.testDice)?ab.testDice:[];const colors=abilityDicePalette(s,ab);return `<div class="ability-custom-editor"><p class="color-hint">Dados do teste próprio (até 12). Cada dado tem uma cor individual. Ao usar a técnica, o teste será rolado junto do custo de Alma.</p>${custom.map((d,j)=>`<div class="custom-die-row"><label>Dado ${j+1}<select data-ability-die="${i}:${j}:sides">${VALID_DICE.map(n=>`<option value="${n}" ${Number(d.sides)===n?'selected':''}>d${n}</option>`).join('')}</select></label><label>Cor ${j+1}<input type="color" data-ability-die="${i}:${j}:color" value="${ABILITY_HEX.test(d.color||'')?d.color:colors.group}"></label>${btn('REMOVER','removeAbilityDie:'+i+':'+j,'small danger')}</div>`).join('')||'<p class="color-hint">Nenhum dado próprio definido.</p>'}${btn('+ DADO','addAbilityDie:'+i,'small')}</div>`}
 const DICE_POLYGONS={4:'12,2 2,21 22,21',6:'4,4 20,4 20,20 4,20',8:'12,2 22,12 12,22 2,12',10:'12,2 21,8 18,18 12,23 6,18 3,8',12:'12,2 21,7 21,17 12,22 3,17 3,7',20:'12,2 21,6 23,15 17,22 7,22 1,15 3,6'};
-function dieShape(n,kind=''){n=Number(n);if(!DICE_POLYGONS[n])return '<span>d'+esc(n)+'</span>';return `<span class="die-figure ${kind}" title="Dado de ${n} lados"><svg viewBox="0 0 24 24" role="img" aria-label="Dado de ${n} lados"><polygon points="${DICE_POLYGONS[n]}"></polygon><text x="12" y="13">${n}</text></svg></span>`}
+function dieShape(n,kind=''){
+ n=Number(n);
+ if(!DICE_POLYGONS[n])return '<span>d'+esc(n)+'</span>';
+ const facets={
+  4:'<path d="M12 2 2 21h20L12 2M12 2v12M2 21l10-7 10 7"/>',
+  6:'<path d="M4 4 7 2h13l2 3v15l-3 2H6l-2-3V4M4 4h16v16H4M20 4l2 1M20 20l-1 2"/>',
+  8:'<path d="M12 2 2 12l10 10 10-10L12 2M2 12h20M12 2v20"/>',
+  10:'<path d="M12 2 21 8l-3 10-6 5-6-5L3 8 12 2M12 2v21M3 8l9 6 9-6M6 18l6-4 6 4"/>',
+  12:'<path d="M12 2 21 7v10l-9 5-9-5V7l9-5M12 2l4 5-4 4-5-4 5-5M3 7l4 0-2 8-2 2M21 7l-5 0 3 8 2 2M5 15l7-4 7 4-7 7-7-7"/>',
+  20:'<path d="M12 2 21 6l2 9-6 7H7l-6-7 2-9 9-4M12 2l-5 8h10l-5-8M3 6l4 4-6 5M21 6l-4 4 6 5M7 10l5 10 5-10M1 15l11 5 11-5M7 22l5-2 5 2"/>'
+ };
+ return '<span class="die-figure '+esc(kind)+'" title="Dado de '+n+' lados"><svg viewBox="0 0 24 24" role="img" aria-label="Dado de '+n+' lados"><polygon points="'+DICE_POLYGONS[n]+'"></polygon><g fill="none" stroke="currentColor" stroke-width=".8" opacity=".55">'+facets[n]+'</g><text x="12" y="13">'+n+'</text></svg></span>';
+}
 function sheetRich(text){
  const markers=[];
  const raw=String(text||'').replace(/(^|[^\p{L}\p{N}])([dD](?:4|6|8|10|12|20))(?![\p{L}\p{N}])/gu,(all,prefix,die)=>{
