@@ -10,6 +10,7 @@ const say=(content,privateMessage=false)=>({type:4,data:{content:String(content)
 const deny=message=>say(message,true);
 const user=p=>p.member?.user||p.user||{};
 const opt=(p,name)=>p.data?.options?.find(x=>x.name===name)?.value;
+const DISCORD_APPLICATION_ID="1572240211268870194";
 const DISCORD_ALLOWED_GUILD_ID=env("DISCORD_GUILD_ID")||"1558584341435785307";
 const publicGuild=p=>p.guild_id===DISCORD_ALLOWED_GUILD_ID;
 function fromHex(value){return typeof value==="string"&&/^[0-9a-f]+$/i.test(value)&&value.length%2===0?Uint8Array.from(value.match(/../g),s=>parseInt(s,16)):null}
@@ -97,12 +98,44 @@ async function historyCmd(){
  if(!items.length)return deny("Sem rolagens públicas registradas.");
  return say("**Histórico compartilhado (site + Discord)**\n"+items.map(r=>"#"+r.id+" · "+txt(r.account_name,32)+" · "+txt(r.label,58)+" = **"+Number(r.total)+"**").join("\n"),true);
 }
+
+const COMMANDS=[
+ {name:"rolar",description:"Rola dados e registra no Arquivo Espiritual.",type:1,options:[
+  {type:3,name:"expressao",description:"Ex.: 2d6+3, 1d20, 2d20kh1",required:true,min_length:2,max_length:90},
+  {type:3,name:"descricao",description:"Descrição opcional da rolagem",required:false,max_length:70}
+ ]},
+ {name:"ficha",description:"Consulta um resumo de ficha pública usando o ID.",type:1,options:[
+  {type:3,name:"id",description:"ID da ficha (copiado do Arquivo Espiritual)",required:true,min_length:1,max_length:100}
+ ]},
+ {name:"historico",description:"Mostra as últimas rolagens públicas do site e Discord.",type:1},
+ {name:"ajuda",description:"Lista os comandos do Arquivo Espiritual.",type:1}
+];
+async function installGuildCommands(){
+ const bot=env("DISCORD_BOT_TOKEN");
+ if(!bot){console.warn("Discord: DISCORD_BOT_TOKEN ainda não configurado.");return}
+ const url="https://discord.com/api/v10/applications/"+DISCORD_APPLICATION_ID+"/guilds/"+DISCORD_ALLOWED_GUILD_ID+"/commands";
+ const resp=await fetch(url,{
+  method:"PUT",
+  headers:{"Authorization":"Bot "+bot,"Content-Type":"application/json"},
+  body:JSON.stringify(COMMANDS)
+ });
+ if(!resp.ok){console.error("Discord: falha ao registrar comandos, HTTP "+resp.status);return}
+ console.info("Discord: comandos registrados no servidor autorizado.");
+}
+
 async function interaction(req){
  const raw=await req.text();
  if(raw.length>20000)return j({error:"Requisição muito grande."},413);
  if(!await signed(req,raw))return j({error:"Assinatura inválida."},401);
  let p;try{p=JSON.parse(raw)}catch{return j({error:"JSON inválido."},400)}
- if(p.type===1)return j({type:1}); // PING after Ed25519 verification
+ if(p.type===1){
+  // O Discord envia PING assinado ao validar o endpoint. O registro é isolado
+  // em waitUntil para devolver PONG imediatamente e respeitar o prazo de 3s.
+  if(typeof EdgeRuntime!=="undefined"&&typeof EdgeRuntime.waitUntil==="function"){
+   EdgeRuntime.waitUntil(installGuildCommands().catch(e=>console.error("Discord bootstrap:",e)));
+  }
+  return j({type:1});
+ }
  if(p.type!==2)return j(deny("Interação não suportada."));
  if(!publicGuild(p))return j(deny("Bot indisponível neste servidor."));
  try{
