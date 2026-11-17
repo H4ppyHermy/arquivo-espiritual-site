@@ -7,6 +7,7 @@
  */
 import { Client, GatewayIntentBits } from "discord.js";
 import { parsePrefixMessage } from "./dice.mjs";
+import { COMMANDS } from "./commands.mjs";
 
 const token=String(process.env.DISCORD_BOT_TOKEN||"").trim();
 const guildId=String(process.env.DISCORD_GUILD_ID||"1558584341435785307").trim();
@@ -16,7 +17,23 @@ if(!token||!/^\d{17,22}$/.test(guildId)||!/^https:\/\//.test(endpoint)){
 }
 const client=new Client({intents:[GatewayIntentBits.Guilds,GatewayIntentBits.GuildMessages,GatewayIntentBits.MessageContent]});
 client.once("clientReady",()=>{
- console.log("Comando br ativo no Discord: "+client.user.tag);
+ console.log("Comandos b ativos no Discord: "+client.user.tag);
+ // Sincroniza descrições dos comandos / com a versão atual do bot.
+ // O registro é feito uma vez a cada conexão, sem bloquear o Gateway.
+ const applicationId=String(client.application?.id||client.user?.id||"");
+ if(!/^\d{17,22}$/.test(applicationId)){
+  console.warn("Discord: ID da aplicação indisponível; comandos / mantidos.");
+  return;
+ }
+ fetch("https://discord.com/api/v10/applications/"+applicationId+"/guilds/"+guildId+"/commands",{
+  method:"PUT",
+  headers:{Authorization:"Bot "+token,"Content-Type":"application/json"},
+  body:JSON.stringify(COMMANDS),
+  signal:AbortSignal.timeout(10000)
+ }).then(response=>{
+  if(!response.ok)console.warn("Discord: atualização de comandos / recusada (HTTP "+response.status+").");
+  else console.log("Comandos / sincronizados no servidor.");
+ }).catch(error=>console.warn("Discord: registro de comandos / indisponível:",error?.message||error));
 });
 client.on("messageCreate",async m=>{
  if(m.author.bot||m.guildId!==guildId||m.content.length>300)return;
