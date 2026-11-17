@@ -1568,18 +1568,10 @@ html.performance-mode #page .ae-home-hero,
 html.performance-mode #page .panel,
 html.performance-mode .ae-home-tile{background-color:var(--theme-panel)!important}
 </style>
-<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=4"><link rel="stylesheet" href="biblioteca-ui.css?v=2"><link rel="stylesheet" href="biblioteca-grimorio.css?v=4"><link rel="stylesheet" href="master-preview.css?v=2"><style id="ae-glossary-dice">
+<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=4"><link rel="stylesheet" href="biblioteca-ui.css?v=3"><link rel="stylesheet" href="biblioteca-grimorio.css?v=5"><link rel="stylesheet" href="master-preview.css?v=2"><style id="ae-inline-dice">
 .die-figure.ae-inline-die{display:inline-flex;vertical-align:-.3em;width:1.6em;height:1.6em;color:var(--theme-cold)!important;align-items:center;justify-content:center;margin:0 .08em;white-space:nowrap}
 .die-figure.ae-inline-die svg{display:block;width:100%;height:100%;stroke:currentColor;fill:color-mix(in srgb,currentColor 16%,transparent)}
 .die-figure.ae-inline-die svg text{fill:var(--theme-text);stroke:none}
-
-.ae-library-reading .ae-glossary-link,.ae-library-reading .ae-glossary-link:not(:hover){all:unset!important;display:inline!important;box-sizing:content-box!important;font-family:inherit!important;font-size:inherit!important;font-weight:inherit!important;line-height:inherit!important;letter-spacing:inherit!important;color:inherit!important;vertical-align:baseline!important;text-decoration:none!important;white-space:inherit!important;cursor:pointer!important}
-.ae-library-reading .ae-glossary-link:hover{color:var(--theme-accent)!important}
-.ae-library-reading .ae-glossary-link:focus-visible{color:var(--theme-accent)!important;outline:1px solid var(--theme-accent)!important;outline-offset:2px!important}
-
-.ae-library-reading .die-figure.ae-inline-die{display:inline-flex;vertical-align:-.3em;width:1.6em;height:1.6em;color:var(--theme-cold);align-items:center;justify-content:center;margin:0 .08em;white-space:nowrap}
-.ae-library-reading .die-figure.ae-inline-die svg{display:block;width:100%;height:100%;stroke:currentColor;fill:color-mix(in srgb,currentColor 16%,transparent)}
-.ae-library-reading .die-figure.ae-inline-die svg text{fill:var(--theme-text);stroke:none}
 </style><style id="ae-glossary-related-style">.ae-glossary-related{margin:18px 0;display:grid;gap:10px}.ae-glossary-related>div{display:flex;flex-wrap:wrap;gap:8px}.ae-glossary-related button{padding:8px 12px;border:1px solid var(--theme-structure);background:var(--theme-raised);color:var(--theme-text);font:inherit;cursor:pointer}.ae-glossary-related button:hover{border-color:var(--theme-accent);color:var(--theme-accent)}</style></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark"><button type="button" class="ae-master-preview-mark" id="masterPreviewMark" data-action="previewMasterKey" aria-label="Símbolo Bleach" aria-pressed="false" disabled><img src="assets/bleach-hollow.svg" width="43" height="43" alt="" decoding="async"></button></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
 <div id="mobileMoreBackdrop" class="ae-mobile-more-backdrop" data-action="mobileMoreToggle" hidden aria-hidden="true"></div>
 <div id="mobileMoreMenu" class="ae-mobile-more-menu" hidden aria-label="Mais opções">
@@ -2323,7 +2315,10 @@ function glossaryAllEntries(){
  const suggestions=glossarySuggestions(),entries=new Map();
  if(options.autoGlossary!==false){
   for(const [key,item] of suggestions){
-   if(LIBRARY_HELP_TERMS.some(term=>glossaryKey(term)===key)&&!disabled.has(key))entries.set(key,item);
+   if(LIBRARY_HELP_TERMS.some(term=>glossaryKey(term)===key)&&!disabled.has(key)){
+    const canonical=LIBRARY_HELP_TERMS.find(term=>glossaryKey(term)===key);
+    entries.set(key,{...item,name:canonical||item.name});
+   }
   }
  }
  for(const item of options.glossary){
@@ -2347,7 +2342,10 @@ function grimorioCatalogEntries(){
  const cfg=grimorioSettings(),hidden=new Set(cfg.disabledTerms.map(glossaryKey)),items=new Map();
  for(const item of cfg.autoGlossary!==false?glossarySuggestions().values():[]){
   const key=glossaryKey(item.name);
-  if(!hidden.has(key))items.set(key,item);
+  if(!hidden.has(key)){
+   const canonical=LIBRARY_HELP_TERMS.find(term=>glossaryKey(term)===key);
+   items.set(key,{...item,name:canonical||item.name});
+  }
  }
  for(const item of cfg.glossary){
   if(!item||typeof item!=='object')continue;
@@ -2571,7 +2569,7 @@ function rebuildLibraryGlossary(){
 function showLibraryMechanic(key){
  let decoded='';try{decoded=decodeURIComponent(key)}catch(e){return}
  rebuildLibraryGlossary();
- const item=[...libraryGlossary.values()].find(entry=>glossaryKey(entry.name)===glossaryKey(decoded))||grimorioCatalogEntries().find(entry=>glossaryKey(entry.name)===glossaryKey(decoded));
+ const item=libraryGlossary.get(decoded)||grimorioCatalogEntries().find(entry=>entry.name===decoded);
  if(!item)return;
  const source=item.source==='manual'?'Guia personalizado pelo mestre.':'Definição extraída das próprias regras do sistema.';
  const chapter=db.rules.find(r=>r.id===item.chapterId);
@@ -2668,18 +2666,36 @@ function libraryTermTone(name){
 function formatBook(source,chapterTitle=''){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
  const searchText=query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
- const names=[...libraryGlossary.keys()].sort((a,b)=>b.length-a.length);
- const lookup=new Set(names);
- const pattern=names.length?new RegExp('(^|[^\\p{L}\\p{N}])('+names.map(t=>t.replace(/[.*+?^\${}()|[\]\\]/g,'\\$&')).join('|')+')(?![\\p{L}\\p{N}])','gu'):null;
+ const names=[...libraryGlossary.keys()].filter(Boolean).sort((a,b)=>b.length-a.length);
+ const letterOrNumber=/[\p{L}\p{N}]/u;
+ // Correspondência literal: jamais normalizar acentos, caixa ou grafia na leitura.
+ function insertGlossaryReferences(source,markers){
+  const original=String(source||'');
+  if(!names.length)return original;
+  let output='',position=0;
+  while(position<original.length){
+   let title=null;
+   if(position===0||!letterOrNumber.test(original[position-1])){
+    for(const candidate of names){
+     if(!original.startsWith(candidate,position))continue;
+     const next=original[position+candidate.length]||'';
+     if(!next||!letterOrNumber.test(next)){title=candidate;break}
+    }
+   }
+   if(title){
+    const id=markers.push({name:title,display:title})-1;
+    output+='@@AEGLOSS'+id+'@@';
+    position+=title.length;
+   }else{
+    output+=original[position];
+    position++;
+   }
+  }
+  return output;
+ }
  function inline(text){
   const markers=[];
-  let raw=String(text||'');
-  if(pattern)raw=raw.replace(pattern,(all,prefix,term)=>{
-   const found=lookup.has(term)?term:null;
-   if(!found)return all;
-   const index=markers.push({name:found,display:term})-1;
-   return prefix+'@@AEGLOSS'+index+'@@';
-  });
+  let raw=insertGlossaryReferences(text,markers);
   raw=raw.replace(/(^|[^\p{L}\p{N}])([dD](?:4|6|8|10|12|20))(?![\p{L}\p{N}])/gu,(all,prefix,die)=>{
    const index=markers.push({die:Number(die.slice(1))})-1;
    return prefix+'@@AEGLOSS'+index+'@@';
@@ -2697,7 +2713,7 @@ function formatBook(source,chapterTitle=''){
    const marker=markers[Number(index)];
    if(!marker)return '';
    if(marker.die)return dieShape(marker.die,'ae-inline-die');
-   return '<button type="button" class="ae-glossary-link" data-action="explainRule:'+encodeURIComponent(marker.name)+'" aria-label="Consultar '+esc(marker.name)+' no glossário">'+esc(marker.display)+'</button>';
+   return '<span class="ae-glossary-link" role="link" tabindex="0" data-action="explainRule:'+encodeURIComponent(marker.name)+'" aria-label="Consultar '+esc(marker.name)+' no glossário">'+esc(marker.display)+'</span>';
   });
  }
  let html='',paragraph=[],listType=null,code=[],table=[],quote=[],defs=[];
@@ -3678,6 +3694,10 @@ function sound(type='click'){
  }catch(e){}
 }
 function bindEvents(){document.addEventListener('keydown',event=>{
+ const term=event.target?.closest?.('.ae-library-reading .ae-glossary-link[role="link"]');
+ if(term&&(event.key==='Enter'||event.key===' ')){
+  event.preventDefault();term.click();return;
+ }
  if(el('ruleText')&&document.activeElement===el('ruleText')&&(event.ctrlKey||event.metaKey)&&['b','i'].includes(event.key.toLowerCase())){
   event.preventDefault();libraryInsertFormat(event.key.toLowerCase()==='b'?'bold':'italic');return
  }
