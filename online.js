@@ -199,5 +199,14 @@ async function mediaSignedUrl(ref){
  return data.signedUrl;
 }
 
-window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,useAbility,rollSkill,rerollSkill,configureSkillRoll,rollFree,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
+async function discordLinkStatus(){if(!state.enabled||state.identity?.kind!=='player')throw Error('Entre como jogador para vincular o Discord.');return rpc('ae_discord_link_status')}
+async function discordConfirm(code){
+ if(!state.enabled||state.identity?.kind!=='player')throw Error('Entre como jogador para vincular o Discord.');
+ const normalized=String(code||'').trim().replace(/[\s-]/g,'').toUpperCase();
+ if(!/^[A-F0-9]{16}$/.test(normalized))throw Error('Código inválido. Digite os 16 caracteres enviados por DM.');
+ return rpc('ae_discord_confirm_link',{p_code:normalized});
+}
+async function discordUnlink(){if(!state.enabled||state.identity?.kind!=='player')throw Error('Entre como jogador para desvincular o Discord.');return rpc('ae_discord_unlink')}
+
+window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,discordLinkStatus,discordConfirm,discordUnlink,useAbility,rollSkill,rerollSkill,configureSkillRoll,rollFree,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
 })();
