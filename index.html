@@ -2865,6 +2865,17 @@ async function loadVerifiedHistory(force=false){
  const scopes=[...new Set([...document.querySelectorAll('[data-history-scope]')].map(box=>box.dataset.historyScope))];
  await Promise.all(scopes.filter(scope=>scope!=='local').map(scope=>loadHistoryScope(scope,force)));
 }
+// Histórico unificado: atualiza enquanto aberto, inclusive rolagens vindas do Discord.
+// Carregamento leve; não busca nada quando a aba ou o histórico estiverem ocultos.
+setInterval(()=>{
+ if(document.hidden||!window.ARQUIVO_SYNC?.state.enabled)return;
+ if(!document.querySelector('[data-history-scope]:not([data-history-scope="local"])'))return;
+ loadVerifiedHistory(true).catch(()=>{});
+},8000);
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden&&window.ARQUIVO_SYNC?.state.enabled&&document.querySelector('[data-history-scope]:not([data-history-scope="local"])'))
+  loadVerifiedHistory(true).catch(()=>{});
+});
 async function historyNavigate(scope,action){
  const local=scope==='local',st=local?null:historyState(scope),total=local?rollHistory.length:st.total;
  const pages=Math.max(1,Math.ceil(total/HISTORY_PAGE_SIZE)),page=local?localHistoryPage:st.page;
