@@ -1568,7 +1568,7 @@ html.performance-mode #page .ae-home-hero,
 html.performance-mode #page .panel,
 html.performance-mode .ae-home-tile{background-color:var(--theme-panel)!important}
 </style>
-<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=4"><link rel="stylesheet" href="biblioteca-ui.css?v=2"><link rel="stylesheet" href="biblioteca-grimorio.css?v=4"><link rel="stylesheet" href="master-preview.css?v=1"></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark"><button type="button" class="ae-master-preview-mark" id="masterPreviewMark" data-action="previewMasterKey" aria-label="Símbolo Bleach" aria-pressed="false"><img src="assets/bleach-hollow.svg" width="43" height="43" alt="" decoding="async"></button></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
+<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=4"><link rel="stylesheet" href="biblioteca-ui.css?v=2"><link rel="stylesheet" href="biblioteca-grimorio.css?v=4"><link rel="stylesheet" href="master-preview.css?v=1"></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark"><button type="button" class="ae-master-preview-mark" id="masterPreviewMark" data-action="previewMasterKey" aria-label="Símbolo Bleach" aria-pressed="false" disabled><img src="assets/bleach-hollow.svg" width="43" height="43" alt="" decoding="async"></button></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
 <div id="mobileMoreBackdrop" class="ae-mobile-more-backdrop" data-action="mobileMoreToggle" hidden aria-hidden="true"></div>
 <div id="mobileMoreMenu" class="ae-mobile-more-menu" hidden aria-label="Mais opções">
  <div class="ae-mobile-more-header"><strong>OUTRAS ÁREAS</strong><button type="button" data-action="mobileMoreToggle" aria-label="Fechar menu">×</button></div>
@@ -1845,7 +1845,7 @@ function isPlayerPreview(){return playerPreviewActive&&ownerIsMaster()}
 function master(){return ownerIsMaster()&&!playerPreviewActive}
 function player(){return role==='player'||ownerIsMaster()}
 function save(){
- if(isPlayerPreview()){toast('Modo de teste','Nenhuma alteração é gravada na visualização de jogador.',true);return false}
+ if(isPlayerPreview()){toast('Modo de teste','Gravações de fichas e conteúdo não são permitidas nesta prévia.',true);return false}
  DATASTORE.save(db);
  if(window.ARQUIVO_SYNC?.state.enabled){
   window.ARQUIVO_SYNC.push(db,role,currentSheet||db.sheets.find(s=>s.id===currentSheet)?.id||'');
@@ -1872,7 +1872,7 @@ function previewMasterKey(){
  window.ARQUIVO_SPEECH?.clear(true);
  render();
  toast(playerPreviewActive?'Visualização de jogador':'Visualização de mestre',
-  playerPreviewActive?'Modo de teste somente leitura. Sua chave de mestre continua intacta.':'Permissões de mestre restauradas.');
+  playerPreviewActive?'Prévia de jogador: edições bloqueadas. A autenticação do mestre permanece intacta.':'Permissões de mestre restauradas.');
 }
 function linkedIds(sh){
  if(!sh)return [];
@@ -1946,7 +1946,7 @@ function navRender(){
  const links=el('mobileMoreLinks');if(links)links.innerHTML=entries.filter(([id])=>secondary.includes(id)).map(([id,name,ic])=>
   `<button type="button" data-page="${id}" class="${page===id?'active':''}" aria-current="${page===id?'page':'false'}">${icon(ic)}<span>${name}</span></button>`
  ).join('');
-const name=db.site.title||'Bleach CBB';el('brandTitle').textContent=name;el('mobileTitle').textContent=name;const tag=isPlayerPreview()?'JOGADOR · TESTE':master()?'MESTRE':role==='player'?'JOGADOR':'VISITANTE';el('rolePill').textContent=bearer()||'VISITANTE';el('roleText').textContent='ACESSO // '+tag;document.body.classList.toggle('ae-master-preview',isPlayerPreview());el('masterPreviewMark')?.setAttribute('aria-pressed',String(isPlayerPreview()));const out=el('logoutTop');if(out)out.classList.toggle('hidden',!window.ARQUIVO_SYNC?.state.identity);el('storageText').textContent=DATASTORE.blocked?'Sem armazenamento: memória temporária':'Dados locais deste dispositivo';el('headerStatus').textContent=PAGES.find(x=>x[0]===page)?.[1]||'Visão geral'}
+const name=db.site.title||'Bleach CBB';el('brandTitle').textContent=name;el('mobileTitle').textContent=name;const tag=isPlayerPreview()?'JOGADOR · TESTE':master()?'MESTRE':role==='player'?'JOGADOR':'VISITANTE';el('rolePill').textContent=bearer()||'VISITANTE';el('roleText').textContent='ACESSO // '+tag;document.body.classList.toggle('ae-master-preview',isPlayerPreview());const mark=el('masterPreviewMark');if(mark){mark.disabled=!ownerIsMaster();mark.setAttribute('aria-pressed',String(isPlayerPreview()));}const out=el('logoutTop');if(out)out.classList.toggle('hidden',!window.ARQUIVO_SYNC?.state.identity);el('storageText').textContent=DATASTORE.blocked?'Sem armazenamento: memória temporária':'Dados locais deste dispositivo';el('headerStatus').textContent=PAGES.find(x=>x[0]===page)?.[1]||'Visão geral'}
 function applyTheme(){applyPrefs();document.title=(db.site.title||'Bleach CBB')+' · Bleach CBB';el('musicName').textContent=db.site.musicName||'AMBIENTE';}
 function setPage(p){window.ARQUIVO_SPEECH?.clear(true);setMobileMore(false);if(p==='masterSheets')p='sheets';if(p==='admin'&&!master()){toast('Acesso restrito','Somente o mestre pode usar esse painel.',true);return}page=p;currentSheet=null;tab='summary';render();window.scrollTo({top:0,behavior:'instant'})}
 
