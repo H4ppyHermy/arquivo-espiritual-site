@@ -2294,13 +2294,36 @@ function glossaryAllEntries(){
  for(const key of disabled)if(!options.glossary.some(i=>glossaryKey(i.name)===key&&i.enabled!==false))entries.delete(key);
  return [...entries.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
 }
+/* O catálogo mostra todas as definições detectadas; os ícones ? no texto
+   continuam controlados apenas pelos verbetes ativados pelo mestre. */
+function grimorioCatalogEntries(){
+ const cfg=grimorioSettings(),hidden=new Set(cfg.disabledTerms.map(glossaryKey)),items=new Map();
+ for(const item of cfg.autoGlossary!==false?glossarySuggestions().values():[]){
+  const key=glossaryKey(item.name);
+  if(!hidden.has(key))items.set(key,item);
+ }
+ for(const item of cfg.glossary){
+  if(!item||typeof item!=='object')continue;
+  const key=glossaryKey(item.name);if(!key)continue;
+  if(item.enabled===false){items.delete(key);continue}
+  const chapter=db.rules.find(r=>r.id===item.chapterId);
+  items.set(key,{
+   id:item.id,name:String(item.name||'').slice(0,75),
+   description:String(item.description||'').slice(0,6000),
+   category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:glossaryCategory(item.name),
+   chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',
+   icon:String(item.icon||'').slice(0,8),source:'manual'
+  });
+ }
+ return [...items.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+}
 function grimorioIcon(item){
  const config=grimorioSettings();if(config.showIcons===false)return '';
  return '<span class="ae-grimorio-glyph" aria-hidden="true">'+esc(item.icon||GRIMORIO_ICONS[item.category]||GRIMORIO_ICONS.Outros)+'</span>';
 }
 function grimorioFilteredEntries(){
  const term=glossaryKey(grimorioQuery);
- return glossaryAllEntries().filter(item=>
+ return grimorioCatalogEntries().filter(item=>
   (grimorioCategory==='Todos'||item.category===grimorioCategory)&&
   (!term||glossaryKey([item.name,item.description,item.chapterTitle,item.category].join(' ')).includes(term)));
 }
@@ -2313,7 +2336,7 @@ function grimorioResultsMarkup(){
   '<span class="ae-grimorio-arrow" aria-hidden="true">↗</span></button>').join('');
 }
 function grimorioPanel(){
- const count=glossaryAllEntries().length;
+ const count=grimorioCatalogEntries().length;
  return '<section class="ae-grimorio-panel" aria-label="Catálogo do Grimório">'+
   '<div class="ae-grimorio-toolbar"><div><span class="ae-grimorio-kicker">CATÁLOGO DE MECÂNICAS</span>'+
   '<h3>ACERVO DO GRIMÓRIO</h3><p>'+count+' '+(count===1?'verbete disponível':'verbetes disponíveis')+'</p></div>'+
@@ -2325,7 +2348,7 @@ function grimorioPanel(){
   '<div class="ae-grimorio-results" id="grimorioResults">'+grimorioResultsMarkup()+'</div></section>';
 }
 function grimorioBanner(){
- const opts=grimorioSettings(),total=glossaryAllEntries().length;
+ const opts=grimorioSettings(),total=grimorioCatalogEntries().length;
  if(opts.visible===false&&!master())return '';
  return '<section class="ae-grimorio-portal" aria-label="Entrada do Grimório">'+
   '<div class="ae-grimorio-portal-symbol" aria-hidden="true">✧</div>'+
@@ -2387,7 +2410,7 @@ function manageGrimorio(){
    '<label>Descrição<textarea id="grimorioSubtitleInput" maxlength="180" rows="2">'+esc(opts.subtitle)+'</textarea></label></div>'+
   '<div class="ae-grimorio-toggles">'+
    '<label><input id="grimorioVisibleInput" type="checkbox"'+(opts.visible?' checked':'')+'> Mostrar Grimório aos jogadores</label>'+
-   '<label><input id="grimorioAutoInput" type="checkbox"'+(opts.autoGlossary?' checked':'')+'> Detectar verbetes clássicos automaticamente</label>'+
+   '<label><input id="grimorioAutoInput" type="checkbox"'+(opts.autoGlossary?' checked':'')+'> Catalogar definições encontradas nos capítulos</label>'+
    '<label><input id="grimorioIconsInput" type="checkbox"'+(opts.showIcons?' checked':'')+'> Exibir ícones nos verbetes</label>'+
    '<label><input id="grimorioDiceInput" type="checkbox"'+(opts.showDiceIcons?' checked':'')+'> Mostrar emojis discretos nos dados</label></div>'+
   '<details class="ae-grimorio-dice-settings"><summary>PERSONALIZAR EMOJIS DOS DADOS</summary>'+
@@ -2498,7 +2521,7 @@ function rebuildLibraryGlossary(){
 function showLibraryMechanic(key){
  let decoded='';try{decoded=decodeURIComponent(key)}catch(e){return}
  rebuildLibraryGlossary();
- const item=[...libraryGlossary.values()].find(entry=>glossaryKey(entry.name)===glossaryKey(decoded));
+ const item=[...libraryGlossary.values()].find(entry=>glossaryKey(entry.name)===glossaryKey(decoded))||grimorioCatalogEntries().find(entry=>glossaryKey(entry.name)===glossaryKey(decoded));
  if(!item)return;
  const source=item.source==='manual'?'Guia personalizado pelo mestre.':'Definição extraída das próprias regras do sistema.';
  const chapter=db.rules.find(r=>r.id===item.chapterId);
