@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {parseDiceExpression,rollDiceExpression,evaluateRpgSpecial,parsePrefixMessage} from "./dice.mjs";
 import {rollCard,helpCard,classifyHighlightedDice} from "./card.mjs";
+import {renderSheetDM} from "./sheet-dm.mjs";
 
 test("aceita expressões comuns",()=>{
  for(const expression of ["1d1","1d2","1d3","1d20","2d6+3","1d20-2","3d8+1d4+7"]){
@@ -48,15 +49,15 @@ test("br aceita espaços em expressões e aliases antigos continuam funcionais",
   ["BR 1d20 + 3","rolar","1d20+3"],
   ["br 2d6 + 1d4","rolar","2d6+1d4"],
   ["br 2d6 + 1d4 | Zangetsu","rolar","2d6+1d4"],
-  ["CBBrolar 2d6 Ataque","rolar","2d6"],
+  ["bvincular","vincular",null],
   ["bajuda","ajuda",null],
   ["bhistorico","historico",null],
   ["bficha ficha_01","ficha",null],
   ["BAJUDA","ajuda",null],
   ["BFiChA ficha_02","ficha",null],
-  ["CBBajuda","ajuda",null],
-  ["CBBficha ficha_01","ficha",null],
-  ["CBBhistorico","historico",null]
+  
+  
+  
  ];
  for(const [input,command,expression] of cases){
   const p=parsePrefixMessage(input);
@@ -64,7 +65,7 @@ test("br aceita espaços em expressões e aliases antigos continuam funcionais",
   if(expression)assert.equal(p.expression,expression,input);
  }
  assert.equal(parsePrefixMessage("br 2d6 | Corte espiritual").description,"Corte espiritual");
- for(const input of ["brasil","braço","bhistoricos","bajudar","bfichas","brown 2d6","CBBrolando 2d6","/rolar 2d6"])assert.equal(parsePrefixMessage(input),null,input);
+ for(const input of ["brasil","braço","bhistoricos","bajudar","bfichas","brown 2d6","CBBrolando 2d6","CBBajuda","CBBhistorico","CBBficha id","CBBrolar 2d6","/rolar 2d6"])assert.equal(parsePrefixMessage(input),null,input);
  for(const input of ["br","br 2d6 +","br 100d2000","br 2d20kh1"])assert.ok(parsePrefixMessage(input).error,input);
 });
 test("cartões destacam apenas os dados responsáveis pelo crítico",()=>{
@@ -104,4 +105,43 @@ test("bajuda, bhistorico e bficha validam separadores e argumentos",()=>{
  assert.equal(parsePrefixMessage("bficha arquivo_ichigo").args,"arquivo_ichigo");
  assert.equal(parsePrefixMessage("bajudaabc"),null);
  assert.equal(parsePrefixMessage("bficha123"),null);
+});
+
+test("bvincular é reconhecido e comandos CBB antigos são removidos",()=>{
+ assert.equal(parsePrefixMessage("bvincular").command,"vincular");
+ assert.equal(parsePrefixMessage("BVINCULAR").command,"vincular");
+ assert.equal(parsePrefixMessage("bvincular123"),null);
+ for(const c of ["CBBajuda","CBBhistorico","CBBficha xyz","CBBrolar 2d6"]){
+  assert.equal(parsePrefixMessage(c),null,c);
+ }
+});
+test("bficha formata dados e as habilidades completas apenas para DM",()=>{
+ const original={
+  id:"arquivo-exemplo",
+  name:"Sajin Komamura",
+  className:"Coração de Aço",
+  resources:{vida:{current:15,max:20},alma:{current:5,max:9}},
+  inventory:{items:[{name:"Zanpakutō",description:"Espada espiritual."}],currencies:[{name:"Prata",quantity:4}]},
+  abilities:Array.from({length:13},(_,i)=>({
+   name:"Habilidade "+(i+1),category:"active",cost:2,
+   description:"Descrição completa e exclusiva da habilidade "+(i+1)+"."
+  })),
+  notes:"Notas pessoais que não devem aparecer no canal público.",
+  ownerKeyId:"uuid-privado",
+  secretNested:{a:1,b:{c:"conteúdo sem perdas"}}
+ };
+ const out=renderSheetDM(original);
+ assert.equal(out.abilityCount,13);
+ assert.equal(out.messages.filter(m=>m.embeds[0].title.startsWith("HABILIDADE ")).length,13);
+ assert.ok(out.messages.some(m=>m.embeds[0].description.includes("Coração de Aço")));
+ assert.ok(out.messages.some(m=>m.embeds[0].description.includes("Zanpakutō")));
+ assert.ok(out.messages.some(m=>m.embeds[0].description.includes("Notas pessoais")));
+ assert.deepEqual(JSON.parse(out.attachment),original);
+ for(const packet of out.messages){
+  assert.equal(packet.embeds.length,1);
+  assert.ok(packet.embeds[0].description.length<=4096);
+  assert.ok(packet.embeds[0].title.length<=256);
+  assert.deepEqual(packet.allowedMentions,{parse:[]});
+ }
+ assert.match(out.exportName,/^ficha-arquivo-exemplo\.json$/);
 });
