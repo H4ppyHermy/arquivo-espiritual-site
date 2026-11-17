@@ -61,8 +61,8 @@ client.on("messageCreate",async m=>{
    signal:AbortSignal.timeout(12000)
   });
   if(!res.ok){
-   console.warn("Comando CBB recusado pelo servidor:",res.status);
-   await m.reply({content:"Não foi possível executar o comando CBB.",allowedMentions:{parse:[],repliedUser:false}});
+   console.warn("Comando b recusado pelo servidor:",res.status);
+   await m.reply({content:"Não foi possível executar o comando.",allowedMentions:{parse:[],repliedUser:false}});
    return;
   }
   const data=await res.json();
