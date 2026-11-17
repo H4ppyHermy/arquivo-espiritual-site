@@ -56,6 +56,7 @@ Apenas o proprietário recebe por DM os recursos, atributos, perícias, combate,
 - `discord-bot/gateway.mjs`: Railway Gateway, entrega privada de DMs, comandos sem barra.
 - `discord-bot/commands.mjs`: comandos /.
 - `discord-bot/link-schema.sql`: esquema para vinculação segura de usuário.
+- `discord-bot/owner-access.sql`: autorização transacional e consulta privada por proprietário.
 - `discord-bot/test.mjs`: testes em Node 22+ via `npm test`.
 
 O token Discord fica nos segredos do Railway e Supabase, **nunca no repositório**. As funções no site `ARQUIVO_SYNC.discordLinkStatus/discordConfirm/discordUnlink` usam a sessão autenticada existente. O endpoint `/prefix` só aceita chamadas com o token Bot, apenas do servidor configurado.
@@ -63,9 +64,11 @@ O token Discord fica nos segredos do Railway e Supabase, **nunca no repositório
 ## Operação e reversão
 
 - Railway: projeto **Bleach CBB — Comandos Discord**, serviço `cbb-prefix-gateway`, pasta `/discord-bot`.
-- Supabase: `ae-discord-bot`, com `index.ts`, `dice.mjs`, `card.mjs` e `commands.mjs`.
+- Supabase: `ae-discord-bot`, com `index.ts`, `dice.mjs`, `card.mjs` e `commands.mjs`, mais RPCs de vínculo e acesso privado.
 - O site publicado usa `index.html` e `online.js` com botão de vinculação na página da ficha do proprietário.
 - Backup de bot anterior: `backup/pre-private-discord-sheet-2026-11-17`.
 - Para reverter, restaure `index.ts`, `dice.mjs`, `card.mjs`, `commands.mjs` no Supabase e reconecte o Railway à branch de backup. O esquema de vínculo no banco pode permanecer sem impactar os recursos anteriores.
 
 Atenção: se um usuário compartilhar manualmente o JSON ou a DM recebida, esse compartilhamento é responsabilidade dele. O bot não reenvia a ficha em canais.
+
+- O acesso privado usa a função `ae_discord_owner_sheet`, executável apenas por `service_role`, validando o proprietário atomicamente.
