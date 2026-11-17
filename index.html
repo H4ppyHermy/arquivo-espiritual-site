@@ -1573,13 +1573,14 @@ html.performance-mode .ae-home-tile{background-color:var(--theme-panel)!importan
 .die-figure.ae-inline-die svg{display:block;width:100%;height:100%;stroke:currentColor;fill:color-mix(in srgb,currentColor 16%,transparent)}
 .die-figure.ae-inline-die svg text{fill:var(--theme-text);stroke:none}
 
-.ae-library-reading .ae-glossary-link{appearance:none;display:inline;padding:0;margin:0;border:0;background:none;color:inherit;font:inherit;line-height:inherit;letter-spacing:inherit;vertical-align:baseline;text-align:inherit;cursor:pointer;text-decoration:none;box-shadow:none;transition:color .15s}
-.ae-library-reading .ae-glossary-link:hover,.ae-library-reading .ae-glossary-link:focus-visible{color:var(--theme-accent)!important;background:none}
-.ae-library-reading .ae-glossary-link:focus-visible{outline:1px solid var(--theme-accent);outline-offset:2px}
+.ae-library-reading .ae-glossary-link,.ae-library-reading .ae-glossary-link:not(:hover){all:unset!important;display:inline!important;box-sizing:content-box!important;font-family:inherit!important;font-size:inherit!important;font-weight:inherit!important;line-height:inherit!important;letter-spacing:inherit!important;color:inherit!important;vertical-align:baseline!important;text-decoration:none!important;white-space:inherit!important;cursor:pointer!important}
+.ae-library-reading .ae-glossary-link:hover{color:var(--theme-accent)!important}
+.ae-library-reading .ae-glossary-link:focus-visible{color:var(--theme-accent)!important;outline:1px solid var(--theme-accent)!important;outline-offset:2px!important}
+
 .ae-library-reading .die-figure.ae-inline-die{display:inline-flex;vertical-align:-.3em;width:1.6em;height:1.6em;color:var(--theme-cold);align-items:center;justify-content:center;margin:0 .08em;white-space:nowrap}
 .ae-library-reading .die-figure.ae-inline-die svg{display:block;width:100%;height:100%;stroke:currentColor;fill:color-mix(in srgb,currentColor 16%,transparent)}
 .ae-library-reading .die-figure.ae-inline-die svg text{fill:var(--theme-text);stroke:none}
-</style></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark"><button type="button" class="ae-master-preview-mark" id="masterPreviewMark" data-action="previewMasterKey" aria-label="Símbolo Bleach" aria-pressed="false" disabled><img src="assets/bleach-hollow.svg" width="43" height="43" alt="" decoding="async"></button></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
+</style><style id="ae-glossary-related-style">.ae-glossary-related{margin:18px 0;display:grid;gap:10px}.ae-glossary-related>div{display:flex;flex-wrap:wrap;gap:8px}.ae-glossary-related button{padding:8px 12px;border:1px solid var(--theme-structure);background:var(--theme-raised);color:var(--theme-text);font:inherit;cursor:pointer}.ae-glossary-related button:hover{border-color:var(--theme-accent);color:var(--theme-accent)}</style></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark"><button type="button" class="ae-master-preview-mark" id="masterPreviewMark" data-action="previewMasterKey" aria-label="Símbolo Bleach" aria-pressed="false" disabled><img src="assets/bleach-hollow.svg" width="43" height="43" alt="" decoding="async"></button></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
 <div id="mobileMoreBackdrop" class="ae-mobile-more-backdrop" data-action="mobileMoreToggle" hidden aria-hidden="true"></div>
 <div id="mobileMoreMenu" class="ae-mobile-more-menu" hidden aria-label="Mais opções">
  <div class="ae-mobile-more-header"><strong>OUTRAS ÁREAS</strong><button type="button" data-action="mobileMoreToggle" aria-label="Fechar menu">×</button></div>
@@ -2332,7 +2333,7 @@ function glossaryAllEntries(){
   if(item.enabled===false){entries.delete(key);continue}
   const chapter=db.rules.find(r=>r.id===item.chapterId);
   entries.set(key,{
-   id:String(item.id||''),name:name.slice(0,75),description:String(item.description||'').slice(0,6000),
+   id:String(item.id||''),name:name.slice(0,75),description:String(item.description||'').slice(0,6000),related:Array.isArray(item.related)?item.related:[],
    chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',
    category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:glossaryCategory(name),
    source:'manual'
@@ -2354,7 +2355,7 @@ function grimorioCatalogEntries(){
   if(item.enabled===false){items.delete(key);continue}
   const chapter=db.rules.find(r=>r.id===item.chapterId);
   items.set(key,{
-   id:item.id,name:String(item.name||'').slice(0,75),
+   id:item.id,name:String(item.name||'').slice(0,75),related:Array.isArray(item.related)?item.related:[],
    description:String(item.description||'').slice(0,6000),
    category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:glossaryCategory(item.name),
    chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',
@@ -2492,10 +2493,12 @@ function editGlossaryEntry(key){
  const options=db.rules.map(r=>'<option value="'+esc(r.id)+'"'+(r.id===item.chapterId?' selected':'')+'>'+esc(r.title)+'</option>').join('');
  const category=GRIMORIO_CATEGORIES.map(c=>'<option value="'+esc(c)+'"'+(c===item.category?' selected':'')+'>'+esc(c)+'</option>').join('');
  modal(name?'EDITAR GUIA DO GLOSSÁRIO':'NOVO GUIA DO GLOSSÁRIO','<div class="ae-glossary-editor">'+
- '<p class="subtitle">O termo ficará clicável na Biblioteca e aparecerá no Grimório.</p>'+
+ '<p class="subtitle">Crie uma página independente e conecte-a a outras usando os títulos exatos.</p>'+
  '<label>Palavra ou expressão<input id="glossaryTermInput" maxlength="75" value="'+esc(item.name||'')+'" required></label>'+
- '<label>Explicação<textarea id="glossaryDescriptionInput" maxlength="6000" rows="7" required>'+esc(item.description||'')+'</textarea></label>'+
- '<label>Categoria<select id="glossaryCategoryInput">'+category+'</select></label>'+
+ '<label>Conteúdo da página<textarea id="glossaryDescriptionInput" maxlength="6000" rows="7" required>'+esc(item.description||'')+'</textarea></label>'+
+ '<label>Categoria<select id="glossaryCategoryInput">'+category+'</select></label>'+ 
+ '<label>Conexões diretas com outras páginas<input id="glossaryRelatedInput" value="'+esc((item.related||[]).join(', '))+'" placeholder="Ex.: Vida, Estabilidade, Alma"></label>'+ 
+ '<p class="subtitle">Separe os títulos por vírgula e use a grafia exata de cada página. Os links aparecerão ao consultar o verbete.</p>'+
 
  '<label>Capítulo vinculado<select id="glossaryChapterInput"><option value="">Sem capítulo vinculado</option>'+options+'</select></label>'+
  '<label class="ae-grimorio-editor-check"><input type="checkbox" id="glossaryEnabledInput"'+(item.enabled===false?'':' checked')+'> Verbete ativo</label>'+
@@ -2516,6 +2519,7 @@ function saveGlossaryEntry(){
   name:name.slice(0,75),description:description.slice(0,6000),
   category:GRIMORIO_CATEGORIES.includes(el('glossaryCategoryInput')?.value)?el('glossaryCategoryInput').value:'Outros',
   chapterId:String(el('glossaryChapterInput')?.value||''),
+  related:[...new Set(String(el('glossaryRelatedInput')?.value||'').split(',').map(x=>x.trim()).filter(Boolean))].filter(x=>x!==name).slice(0,30),
   enabled:!!el('glossaryEnabledInput')?.checked
  };
  opts.glossary=opts.glossary.filter(i=>glossaryKey(i.name)!==glossaryKey(old));
@@ -2571,9 +2575,10 @@ function showLibraryMechanic(key){
  if(!item)return;
  const source=item.source==='manual'?'Guia personalizado pelo mestre.':'Definição extraída das próprias regras do sistema.';
  const chapter=db.rules.find(r=>r.id===item.chapterId);
+ const linked=(item.related||[]).map(name=>grimorioCatalogEntries().find(entry=>entry.name===name)).filter(Boolean);
  modal('O QUE É '+item.name.toLocaleUpperCase('pt-BR')+'?',
   '<div class="ae-mechanic-explanation"><div class="eyebrow">GLOSSÁRIO · '+esc(chapter?.title||item.category||'GRIMÓRIO')+'</div>'+
-  '<p>'+esc(item.description)+'</p><p class="subtitle">'+source+'</p></div>',
+  '<p>'+esc(item.description)+'</p>'+(linked.length?'<div class="ae-glossary-related"><strong>PÁGINAS RELACIONADAS</strong><div>'+linked.map(entry=>'<button type="button" data-action="explainRule:'+encodeURIComponent(entry.name)+'">'+esc(entry.name)+'</button>').join('')+'</div></div>':'')+'<p class="subtitle">'+source+'</p></div>',
   [...(chapter?[['VER CAPÍTULO','goMechanicChapter:'+encodeURIComponent(chapter.id),'main']]:[]),
    ...(master()?[['EDITAR VERBETE','editGlossary:'+encodeURIComponent(item.name),'small']]:[]),
    ['FECHAR','closeModal','small']]);
@@ -2664,13 +2669,13 @@ function formatBook(source,chapterTitle=''){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
  const searchText=query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
  const names=[...libraryGlossary.keys()].sort((a,b)=>b.length-a.length);
- const lookup=new Map(names.map(name=>[glossaryKey(name),name]));
- const pattern=names.length?new RegExp('(^|[^\\p{L}\\p{N}])('+names.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?![\\p{L}\\p{N}])','giu'):null;
+ const lookup=new Set(names);
+ const pattern=names.length?new RegExp('(^|[^\\p{L}\\p{N}])('+names.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\new RegExp('(^|[^\\p{L}\\p{N}])('+names.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?![\\p{L}\\p{N}])','giu')')).join('|')+')(?![\\p{L}\\p{N}])','gu'):null;
  function inline(text){
   const markers=[];
   let raw=String(text||'');
   if(pattern)raw=raw.replace(pattern,(all,prefix,term)=>{
-   const found=lookup.get(glossaryKey(term));
+   const found=lookup.has(term)?term:null;
    if(!found)return all;
    const index=markers.push({name:found,display:term})-1;
    return prefix+'@@AEGLOSS'+index+'@@';
