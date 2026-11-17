@@ -1846,10 +1846,14 @@ function settings(){
  '<div class="ae-palette-swatches" aria-label="Cores da paleta">'+swatches+'</div></div></div>'+
  '</section>'+
  '<section class="panel ae-settings-panel" aria-labelledby="settingsAccessTitle">'+
- '<div class="ae-settings-heading"><div><span class="ae-settings-index">LEITURA</span><h2 id="settingsAccessTitle">ACESSIBILIDADE</h2><p>Controle legibilidade, movimento e efeitos visuais.</p></div>'+btn('RESTAURAR','resetSettings:acesso','small')+'</div>'+
- '<div class="ae-settings-access-grid"><div class="field"><label for="sizeChoice">Tamanho do texto</label><select id="sizeChoice">'+[100,115,130,150].map(v=>'<option value="'+v+'" '+(prefs.fontSize===v?'selected':'')+'>'+v+'%</option>').join('')+'</select></div>'+
- '<div class="field"><label for="motionChoice">Movimento</label><select id="motionChoice"><option value="auto" '+(prefs.reduceMotion===null?'selected':'')+'>Seguir o dispositivo</option><option value="off" '+(prefs.reduceMotion===true?'selected':'')+'>Reduzir movimentos</option><option value="on" '+(prefs.reduceMotion===false?'selected':'')+'>Permitir movimentos</option></select></div></div>'+
- '<div class="ae-settings-muted-grid">'+[['easyFont','Fonte de fácil leitura'],['spacing','Espaçamento ampliado'],['noSheetMotion','Sem movimento nas fichas'],['rollImpacts','Efeitos visuais de críticos'],['grain','Textura discreta'],['energy','Efeitos do fundo']].map(([k,label])=>'<label class="ae-settings-check"><input type="checkbox" data-setting="'+k+'" '+(prefs[k]?'checked':'')+'> '+label+'</label>').join('')+'</div>'+
+ '<div class="ae-settings-heading"><div><span class="ae-settings-index">LEITURA</span><h2 id="settingsAccessTitle">ACESSIBILIDADE</h2><p>Ajuste o texto e a fluidez do site.</p></div>'+btn('RESTAURAR','resetSettings:acesso','small')+'</div>'+
+ '<div class="ae-settings-access-grid"><div class="field"><label for="sizeChoice">Tamanho do texto</label><select id="sizeChoice">'+[50,75,100,125,150,175,200].map(v=>'<option value="'+v+'" '+(prefs.fontSize===v?'selected':'')+'>'+v+'%</option>').join('')+'</select></div></div>'+
+ '<div class="ae-settings-muted-grid ae-access-reading-options">'+
+ '<label class="ae-settings-check"><input type="checkbox" data-setting="easyFont" '+(prefs.easyFont?'checked':'')+'> Fonte de fácil leitura</label>'+
+ '<label class="ae-settings-check"><input type="checkbox" data-setting="spacing" '+(prefs.spacing?'checked':'')+'> Espaçamento ampliado</label></div>'+
+ '<div class="ae-access-performance"><label class="ae-settings-check ae-access-performance-toggle"><input type="checkbox" data-setting="performanceMode" '+(prefs.performanceMode?'checked':'')+'><span><strong>Modo desempenho</strong><small>Desativa animações, partículas, gradientes, sombras e efeitos visuais, mantendo as funções do site.</small></span></label>'+
+ '<p class="ae-settings-performance-note">Recomendado para celulares mais simples. Você pode desativá-lo a qualquer momento.</p></div>'+
+
  '</section></div>';
 }
 function updateRangeTrack(node){if(!node)return;const lo=Number(node.min||0),hi=Number(node.max||100),v=Number(node.value);const pct=hi>lo?Math.min(100,Math.max(0,(v-lo)/(hi-lo)*100)):0;node.style.setProperty('--range-pct',pct+'%')}
