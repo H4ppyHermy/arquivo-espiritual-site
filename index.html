@@ -1683,6 +1683,72 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,
  .side .nav button.ae-mobile-more-button[data-connection="connecting"]:after{background:#FFD04D}
  .side .nav button.ae-mobile-more-button[data-connection="connected"]:after{background:#33D17A}
 }
+
+/* ACESSIBILIDADE — escala de leitura e modo desempenho, sem controles redundantes. */
+:root{--ae-reading-scale:1}
+body{font-size:calc(14px * var(--ae-reading-scale))}
+#page :is(.book-text,.book-line,.rule .prose,.character-description,.ability-description){
+ font-size:calc(14px * var(--ae-reading-scale));line-height:1.75;overflow-wrap:anywhere
+}
+#page :is(.panel p,.panel li,.subtitle,.ae-home-tile-desc,.ae-home-hero-copy p){
+ font-size:calc(13px * var(--ae-reading-scale));overflow-wrap:anywhere
+}
+#page :is(.field label,.ae-settings-check,.ae-settings-heading p){
+ font-size:calc(12px * var(--ae-reading-scale))
+}
+#page :is(.field input,.field select,.field textarea,.book-text button){
+ font-size:calc(13px * var(--ae-reading-scale))
+}
+#page .ae-settings-access-grid{display:grid;grid-template-columns:minmax(0,1fr);max-width:360px}
+#page .ae-settings-access-grid .field{min-width:0;margin-bottom:0}
+#page .ae-access-reading-options{margin:16px 0 0;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#page .ae-access-performance{margin-top:20px;padding-top:17px;border-top:1px solid var(--theme-structure)}
+#page .ae-access-performance-toggle{
+ display:flex;align-items:flex-start;gap:12px;min-height:68px;padding:14px 15px;
+ border:1px solid var(--theme-structure);background:var(--theme-bg)
+}
+#page .ae-access-performance-toggle:has(input:checked){border-color:var(--theme-accent);background:var(--theme-raised)}
+#page .ae-access-performance-toggle input{margin-top:2px}
+#page .ae-access-performance-toggle span{display:grid;gap:4px;min-width:0}
+#page .ae-access-performance-toggle strong{font-size:calc(13px * var(--ae-reading-scale));line-height:1.35}
+#page .ae-access-performance-toggle small{
+ font-size:calc(11px * var(--ae-reading-scale));font-weight:500;
+ line-height:1.55;opacity:.8;overflow-wrap:anywhere
+}
+#page .ae-settings-performance-note{margin:9px 0 0!important;opacity:.76;font-size:calc(11px * var(--ae-reading-scale))!important}
+@media(max-width:600px){
+ #page .ae-access-reading-options{grid-template-columns:minmax(0,1fr)}
+ #page .ae-settings-access-grid{max-width:none}
+ #page .ae-access-performance-toggle{padding:13px}
+ #page .ae-home-hero-copy p{font-size:calc(12px * var(--ae-reading-scale))!important}
+ #page .ae-home-tile-desc{font-size:calc(12px * var(--ae-reading-scale))!important}
+}
+
+/* MODO DESEMPENHO — corta renderização decorativa sem remover conteúdo. */
+html.performance-mode{scroll-behavior:auto!important}
+html.performance-mode *,
+html.performance-mode *::before,
+html.performance-mode *::after{
+ animation:none!important;transition:none!important;
+ box-shadow:none!important;text-shadow:none!important;
+ filter:none!important;backdrop-filter:none!important;
+ scroll-behavior:auto!important
+}
+html.performance-mode :is(
+ body,.side,.shell,.panel,.feature,.cover,.cover-content,
+ .ae-home-hero,.ae-home-art,.ae-home-tile,.sheet-entry,.resource,.ability,
+ .character,.music,.modal-backdrop .dialog,.toolbar,
+ button,input,select,textarea
+){background-image:none!important}
+html.performance-mode *::before,
+html.performance-mode *::after{background-image:none!important}
+html.performance-mode :is(.grain,#energy,.ae-home-glyph,.roll-impact,.ae32-halo,.ae32-spark,.ae3-shinji-fx){
+ display:none!important
+}
+html.performance-mode body::before{content:none!important;display:none!important}
+html.performance-mode #page .ae-home-hero,
+html.performance-mode #page .panel,
+html.performance-mode .ae-home-tile{background-color:var(--theme-panel)!important}
 </style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
 <div id="mobileMoreBackdrop" class="ae-mobile-more-backdrop" data-action="mobileMoreToggle" hidden aria-hidden="true"></div>
@@ -1725,6 +1791,12 @@ const PALETTES={padrao:{bg:'#090708',panel:'#17100F',raised:'#291A15',structure:
 const DEVICE_DEFAULT={preset:'zangetsu',custom:null,fontSize:100,easyFont:false,spacing:false,performanceMode:false,reduceMotion:null,grain:true,energy:true,masterVolume:100,masterMuted:false,musicVolume:20,effectsVolume:35,musicMuted:false,effectsMuted:false,noSheetMotion:false,rollImpacts:true,sheetColors:{},hudMinimized:true};
 const PREFSSTORE={load(){try{const v=DATASTORE.local?.getItem('arquivo_preferencias');return v?{...DEVICE_DEFAULT,...JSON.parse(v)}:{...DEVICE_DEFAULT}}catch(e){return {...DEVICE_DEFAULT}}},save(){try{DATASTORE.local?.setItem('arquivo_preferencias',JSON.stringify(prefs))}catch(e){DATASTORE.blocked=true;storageWarning()}}};
 let prefs=PREFSSTORE.load();if(!prefs.paletteDefaultVersion){if(prefs.preset==='padrao'||!['zangetsu','personalizado'].includes(prefs.preset))prefs.preset='zangetsu';prefs.paletteDefaultVersion=2;PREFSSTORE.save()}else if(!['padrao','zangetsu','personalizado'].includes(prefs.preset)){prefs.preset='zangetsu';PREFSSTORE.save()}
+const ACCESS_TEXT_SIZES=[50,75,100,125,150,175,200];
+if(!ACCESS_TEXT_SIZES.includes(Number(prefs.fontSize))){
+ const prior=Number(prefs.fontSize)||100;
+ prefs.fontSize=ACCESS_TEXT_SIZES.reduce((best,next)=>Math.abs(next-prior)<Math.abs(best-prior)?next:best,100);
+ PREFSSTORE.save();
+}
 const SITE_THEME=()=>PALETTES[db.site.defaultPalette]||PALETTES.zangetsu;
 function currentPalette(){return prefs.preset==='personalizado'&&prefs.custom?{...PALETTES.zangetsu,...prefs.custom}:PALETTES[prefs.preset]||PALETTES.zangetsu}
 
