@@ -1,91 +1,56 @@
-# Bot do Discord — Arquivo Espiritual
+# Bleach CBB · Bot do Arquivo Espiritual
 
-**Estado atual (17/11/2026):** o código do bot foi instalado no Supabase como Edge Function `ae-discord-bot`, mas **a aplicação Discord ainda não foi configurada**. A integração do site foi preparada apenas na branch `feature/discord-bot-2026-11-17`. A branch `main` do site não foi modificada.
-
-O bot **não usa Discord Activities**, não exige hospedagem contínua, não lê mensagens privadas e não precisa de acesso privilegiado às contas do Arquivo Espiritual.
+Bot híbrido: **Discord Gateway** (mensagens com prefixo, hospedado no Railway) + **Discord Interactions** (comandos /, via Supabase Edge Function). Ambos compartilham o mesmo histórico `public.ae_rolls` do site.
 
 ## Comandos
 
-| Comando | Resultado |
+| Digite no canal | Resultado |
 | --- | --- |
-| `/rolar expressao:2d6+3` | Rola e registra no mesmo `ae_rolls` consultado pelo site |
-| `/rolar expressao:2d20kh1` | Vantagem: mantém o maior dos dois dados |
-| `/rolar expressao:2d20kl1` | Desvantagem: mantém o menor dos dois dados |
-| `/ficha id:IDENTIFICADOR` | Resumo de uma ficha **pública/desbloqueada**, sem dados de mestre |
-| `/historico` | Últimas oito rolagens públicas do site e Discord |
-| `/ajuda` | Guia dos comandos |
+| `br 2d6 + 1d4` | Rola dois d6 e um d4, somando os resultados |
+| `br 1d20 + 3` | Rola um d20 com bônus de +3 |
+| `br 2d20kh1` | Vantagem: mantém o maior |
+| `br 2d20kl1` | Desvantagem: mantém o menor |
+| `br 2d6 + 1d4 \| Corte do Zangetsu` | Rolagem com uma descrição |
+| `CBBajuda` | Ajuda (alias antigo) |
+| `CBBficha ID` | Consulta o resumo de ficha pública |
+| `CBBhistorico` | Histórico compartilhado |
+| `/rolar`, `/ficha`, `/historico`, `/ajuda` | Comandos de barra também disponíveis |
 
-As expressões aceitam de 1 a 30 dados por rolagem (d1 a d1000), dados somados/subtraídos, modificadores e `kh`/`kl`. Não são executados códigos de usuário.
+`CBBrolar` permanece como alias para evitar quebrar mensagens antigas. O prefixo `br` exige **Message Content Intent** no Developer Portal, que já foi ativado.
 
-Ao consultar uma ficha pelo ID, o bot **não** revela fichas `masterOnly`, `locked`, `redacted` ou `private`, nem entrega o documento JSON completo. O ID não substitui uma chave de acesso.
+## Visual
 
-## Configuração sem hospedar outro servidor
+Os cartões exibem a cor secundária roxa; nos especiais a borda muda para **dourado** (CRÍTICO) ou **vermelho** (FALHA CRÍTICA). Os dados efetivamente responsáveis são destacados com 🟡 e 🔴, compatíveis com mobile, e os dados descartados aparecem riscados.
 
-1. Acesse o [Discord Developer Portal](https://discord.com/developers/applications) e crie uma aplicação **separada** para o bot (não uma Activity).
-2. Na aplicação, copie o **Application ID** e a **Public Key**. Em **Bot**, gere o Bot Token — **não envie nem publique esse token**.
-3. No Discord, obtenha o ID do servidor que usará o bot (Developer Mode > botão direito/toque prolongado > copiar ID) e do canal reservado às rolagens.
-4. No Supabase, abra **Edge Functions > Secrets** e cadastre, exclusivamente nos segredos do servidor:
+> A API de embeds do Discord oferece uma cor por cartão, mas não altera a cor arbitrária de palavras individuais. Códigos ANSI funcionam de forma inconsistente no celular; por isso, os números usam marcadores visuais independentes do cliente.
 
-   - `DISCORD_PUBLIC_KEY`: Public Key da aplicação Discord.
-   - `DISCORD_GUILD_ID`: ID do servidor permitido.
-   - `DISCORD_BOT_TOKEN`: Bot Token da aplicação.
-   - `DISCORD_ROLL_CHANNEL_ID`: ID do canal destinado às mensagens do site.
-   - `ARQUIVO_SITE_URL`: endereço HTTPS do Arquivo Espiritual.
-   - `ARQUIVO_SITE_ORIGIN`: somente origem do site, por exemplo `https://exemplo.com` (**sem barra no final**).
+## Regras de dados
 
-   O Supabase fornece normalmente `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e `SUPABASE_ANON_KEY` à função; confira que esses valores estejam disponíveis em Edge Function Secrets. O último é público, os dois primeiros não devem ir para o frontend.
+- De 1 a 30 dados por expressão, faces de 1 até 1000, sem executar código do usuário.
+- Duas ou mais faces iguais de valor **6 ou superior**: **CRÍTICO**; o subtotal dos dados é duplicado, preservando modificadores fixos.
+- Duas ou mais faces **1**: **FALHA CRÍTICA**.
+- Dados descartados por `kh`/`kl` não contribuem para o valor final nem para resultados especiais.
+- As regras são espelhadas do avaliador do site `ae_avaliar_dados` para as situações comuns, mantendo o mesmo histórico online.
 
-5. No Discord Developer Portal, configure **General Information > Interactions Endpoint URL** com a URL da função já publicada:
+## Infraestrutura ativa
 
-   `https://cxoqifiewqtxsvylfhco.supabase.co/functions/v1/ae-discord-bot`
+- Supabase Edge Function: `ae-discord-bot`.
+- Railway: projeto `Bleach CBB — Comandos Discord`, serviço `cbb-prefix-gateway`, pasta raiz `/discord-bot`.
+- Repositório: `H4ppyHermy/arquivo-espiritual-site`.
+- `index.ts` recebe webhooks oficiais e relays autorizados; `dice.mjs` valida expressões; `card.mjs` renderiza os cartões; `gateway.mjs` recebe as mensagens no servidor Discord.
+- `npm test` executa testes locais de parser, regras e visual (Node 22+).
 
-   **Cadastre primeiro a Public Key no Supabase**; o Discord enviará um PING assinado e a função precisa validá-lo antes de aceitar o endereço.
+## Segurança e manutenção
 
-6. Em **Installation / OAuth2**, instale a aplicação no servidor de testes com os escopos **applications.commands** e **bot**; autorize apenas **Send Messages** no canal de rolagens. Não conceda Administrator.
-7. No seu computador, baixe a branch `feature/discord-bot-2026-11-17` e, num terminal, execute o cadastro dos quatro comandos. O token é usado somente na sua sessão do terminal:
+- **Nunca** envie ou publique `DISCORD_BOT_TOKEN` ou `SUPABASE_SERVICE_ROLE_KEY`.
+- Configure o token do bot separadamente nos segredos do Supabase e nas variáveis do Railway.
+- O endpoint `/prefix` exige o Bot Token e um servidor Discord autorizado.
+- O endpoint de interações verifica a assinatura Ed25519 e o timestamp.
+- Fichas privadas, bloqueadas e exclusivas do mestre não são divulgadas pelo bot.
+- Somente o autor da rolagem pode usar o botão **Re-rolar**.
+- As chamadas a `/notify` só publicam rolagens do titular autenticado no site.
+- Em emergência, interrompa o serviço `cbb-prefix-gateway` no Railway para desligar apenas os prefixos. Os comandos / e o site permanecem independentes.
 
-   **Linux/macOS**
+### Reversão
 
-   ```bash
-   DISCORD_APPLICATION_ID="ID_DA_APLICACAO" DISCORD_GUILD_ID="ID_DO_SERVIDOR" DISCORD_BOT_TOKEN="TOKEN_LOCAL" node discord-bot/register.mjs
-   ```
-
-   **PowerShell**
-
-   ```powershell
-   $env:DISCORD_APPLICATION_ID="ID_DA_APLICACAO"
-   $env:DISCORD_GUILD_ID="ID_DO_SERVIDOR"
-   $env:DISCORD_BOT_TOKEN="TOKEN_LOCAL"
-   node discord-bot/register.mjs
-   ```
-
-8. Teste `/ajuda`, `/rolar expressao:2d6+3`, `/ficha` e `/historico`. Confira o histórico no site **online e autenticado**.
-9. Quando tudo estiver confirmado, incorpore os arquivos do site da branch de recurso à `main` e altere `discordNotifications: false` para `true` em `configuracao.js`. Isso habilita a publicação das rolagens **do site para o canal**. Se o Discord falhar, a rolagem do site continua normalmente e fica registrada no banco.
-
-## Segurança, reversão e limitações
-
-- O endpoint do Discord rejeita requisições que não tenham assinatura **Ed25519** válida e timestamp recente. Além disso, o comando só funciona no `DISCORD_GUILD_ID` autorizado.
-- A rota `/notify` exige origem do site explicitamente configurada e sessão Supabase válida. A função verifica que a rolagem pertence à conta autenticada e rejeita rolagens ocultas.
-- Os resultados aleatórios são gerados **no servidor**, utilizando `crypto.getRandomValues`. Não confiam em valores inventados pelo cliente.
-- A tabela online existente recebeu três colunas opcionais e um índice único para a integração; dados anteriores continuam intactos.
-- O histórico do Discord é o mesmo registro do site; mensagens antigas do Discord não são importadas.
-- No Discord, a consulta de fichas é intencionalmente limitada ao resumo público. Login automático e rolagens de perícia usando ficha exigirão uma etapa posterior de vinculação de contas; saber o ID não concede acesso a dados secretos.
-- Para **desligar imediatamente** o bot, desative a aplicação no Developer Portal e/ou remova `DISCORD_PUBLIC_KEY` dos segredos da função. Defina `discordNotifications: false` no site. Isso não apaga nenhum histórico.
-- A reversão do código é feita sem tocar a branch `main`: não incorpore ou reverta a branch `feature/discord-bot-2026-11-17`. Para remover também as colunas adicionadas (somente se não houver dados novos), consulte `schema.sql` antes de qualquer operação destrutiva.
-- O teste real no Discord **depende da criação da aplicação e das credenciais**, que não podem ser inventadas.
-
-## Arquivos
-
-- `index.ts`: Edge Function HTTP assinada.
-- `dice.mjs`: parser de expressões + geração criptográfica de dados.
-- `register.mjs`: cadastra comandos slash no servidor escolhido.
-- `test.mjs`: testes do parser (execute `node --test discord-bot/test.mjs`).
-- `schema.sql`: expansão de esquema já aplicada de forma aditiva.
-
-## Opcional: comandos sem barra (prefixo)
-
-Também está preparado um Gateway com `CBBajuda`, `CBBrolar 2d6+3`, `CBBficha ID` e `CBBhistorico`. **Não está ativo no bot HTTP padrão**: para funcionar, é necessário ativar **Bot → Privileged Gateway Intents → Message Content Intent** no Discord Developer Portal e executar continuamente `discord-bot/gateway.mjs` com Node 22+ e a variável privada `DISCORD_BOT_TOKEN`. No computador/servidor do Gateway, execute `npm install` dentro de `discord-bot/` e `npm start`. Nunca publique o token. Os comandos `/` e o envio site→Discord continuam operando sem Gateway.
-
-## Resultados especiais e novo visual
-
-As mensagens do bot agora exibem cartão roxo e botão **Re-rolar** (somente o autor pode utilizar). Duas faces iguais de 6 ou mais geram **CRÍTICO** e dobram o subtotal dos dados; duas faces 1 geram **FALHA CRÍTICA**, seguindo a mesma lógica do site. A rolagem continua registrada na tabela `ae_rolls`.
+A versão anterior está preservada na branch `backup/pre-discord-bot-polish-2026-11-17`. Para voltar, reconecte a origem Railway a essa branch e publique novamente no Supabase os arquivos `index.ts` e `dice.mjs` daquele ponto. A branch `main` do site não precisa ser alterada.
