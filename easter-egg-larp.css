@@ -1,4 +1,3 @@
-/* Easter egg LARP: mantem o rótulo normal ate o terceiro clique. */
 .ae-home-overline.ae-larp-trigger {
   appearance:none;
   border:0;
@@ -14,6 +13,7 @@
   user-select:none;
   -webkit-user-select:none;
   -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
 }
 .ae-larp-trigger .ae-larp-caption { display:inline-block; }
 .ae-larp-trigger:focus-visible {

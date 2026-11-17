@@ -1,4 +1,3 @@
-/* Easter egg local: independente do player de musica compartilhado da mesa. */
 (() => {
   'use strict';
   const selector='[data-larp-egg]';
@@ -24,7 +23,7 @@
   }
 
   function stop(){
-    ++requestId; // invalida promessas de play() ainda pendentes
+    ++requestId;
     player.pause();
     try{player.currentTime=0}catch{}
     phase=0;
@@ -42,14 +41,13 @@
       if(clicks===3){phase=1;clicks=0;sync()}
       return;
     }
-    // O audio so pode iniciar em resposta a um clique real do usuario.
     if(!player.src)player.src=track;
     const id=++requestId;
     phase=2;
     sync();
     try{
       Promise.resolve(player.play()).then(()=>{
-        if(id!==requestId||phase!==2)player.pause();
+        if(id!==requestId&&phase!==2)player.pause();
       }).catch(()=>{
         if(id!==requestId||phase!==2)return;
         player.pause();

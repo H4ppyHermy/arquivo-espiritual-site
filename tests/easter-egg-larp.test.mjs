@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const code=fs.readFileSync(new URL('../easter-egg-larp.js',import.meta.url),'utf8');
 
-function setup(){
+function setup({onPlay}={}){
  let now=1000;
  const events={};
  const attrs={};
@@ -18,7 +18,7 @@ function setup(){
  };
  const audio={
   src:'',loop:false,preload:'',volume:1,paused:true,currentTime:0,playCount:0,pauseCount:0,
-  play(){this.playCount++;this.paused=false;return Promise.resolve()},
+  play(){this.playCount++;this.paused=false;return onPlay?onPlay():Promise.resolve()},
   pause(){this.pauseCount++;this.paused=true}
  };
  let notify;
@@ -76,4 +76,31 @@ test('arquivo MP3 existe e preserva assinatura ID3',()=>{
  const bytes=fs.readFileSync(p);
  assert.ok(bytes.length>100000);
  assert.equal(bytes.subarray(0,3).toString(),'ID3');
+});
+
+test('promessa antiga nao interrompe uma nova reproducao',async()=>{
+ const pending=[];
+ const x=setup({onPlay:()=>new Promise(resolve=>pending.push(resolve))});
+ x.click(1000);x.click(1100);x.click(1200);x.click(1300);
+ assert.equal(x.audio.playCount,1);
+ x.click(1400);
+ x.click(1500);x.click(1600);x.click(1700);x.click(1800);
+ assert.equal(x.audio.playCount,2);
+ pending[0]();
+ await Promise.resolve();
+ assert.equal(x.audio.paused,false);
+ pending[1]();
+ await Promise.resolve();
+ assert.equal(x.audio.paused,false);
+});
+test('falha de autoplay permite tentar novamente',async()=>{
+ let attempts=0;
+ const x=setup({onPlay:()=>++attempts===1?Promise.reject(Error('blocked')):Promise.resolve()});
+ x.click(1000);x.click(1100);x.click(1200);x.click(1300);
+ await Promise.resolve();
+ assert.equal(x.classes.has('is-playing'),false);
+ assert.equal(x.caption.textContent,'SEU LARP COMEÇA AGORA');
+ x.click(1400);
+ assert.equal(x.audio.playCount,2);
+ assert.equal(x.classes.has('is-playing'),true);
 });

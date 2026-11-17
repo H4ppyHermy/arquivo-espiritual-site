@@ -23,8 +23,8 @@ jobs:
           for f in discord-bot/*.mjs; do node --check "$f"; done
       - name: Testar dados e segurança do bot
         run: node --test discord-bot/test.mjs
-      - name: Testar easter egg
-        run: node --test tests/easter-egg-larp.test.mjs
+      - name: Testar interface e recursos
+        run: node --test tests/*.test.mjs
       - name: Validar separação do HTML
         run: |
           node --input-type=module -e '
