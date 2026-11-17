@@ -2233,10 +2233,10 @@ const GRIMORIO_DEFAULTS={visible:true,title:'CONSULTAR GRIMÓRIO',subtitle:'Expl
 function grimorioSettings(){
  const saved=db.site?.grimorio;
  if(!saved||typeof saved!=='object'||Array.isArray(saved))return {...GRIMORIO_DEFAULTS};
- return {...GRIMORIO_DEFAULTS,...saved,
+ const {showIcons,showDiceIcons,diceEmoji,...rest}=saved;
+ return {...GRIMORIO_DEFAULTS,...rest,
   glossary:Array.isArray(saved.glossary)?saved.glossary:[],
-  disabledTerms:Array.isArray(saved.disabledTerms)?saved.disabledTerms:[],
-  diceEmoji:saved.diceEmoji&&typeof saved.diceEmoji==='object'?saved.diceEmoji:{}};
+  disabledTerms:Array.isArray(saved.disabledTerms)?saved.disabledTerms:[]};
 }
 function grimorioStored(){
  db.site??={};
@@ -2315,10 +2315,6 @@ function grimorioCatalogEntries(){
  }
  return [...items.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
 }
-function grimorioIcon(item){
- const config=grimorioSettings();if(config.showIcons===false)return '';
- return '<span class="ae-grimorio-glyph" aria-hidden="true">'+esc(item.icon||GRIMORIO_ICONS[item.category]||GRIMORIO_ICONS.Outros)+'</span>';
-}
 function grimorioFilteredEntries(){
  const term=glossaryKey(grimorioQuery);
  return grimorioCatalogEntries().filter(item=>
@@ -2329,7 +2325,7 @@ function grimorioResultsMarkup(){
  const items=grimorioFilteredEntries();
  if(!items.length)return '<div class="ae-grimorio-empty"><strong>Nenhum verbete encontrado.</strong><span>Altere a busca ou escolha outra categoria.</span></div>';
  return items.map(item=>'<button type="button" class="ae-grimorio-entry" data-action="explainRule:'+encodeURIComponent(item.name)+'" aria-label="Consultar '+esc(item.name)+'">'+
-  grimorioIcon(item)+'<span class="ae-grimorio-entry-copy"><strong>'+esc(item.name)+'</strong>'+
+  '<span class="ae-grimorio-entry-copy"><strong>'+esc(item.name)+'</strong>'+
   '<small>'+esc(item.category)+(item.chapterTitle?' · '+esc(item.chapterTitle):'')+'</small></span>'+
   '<span class="ae-grimorio-arrow" aria-hidden="true">↗</span></button>').join('');
 }
@@ -2378,9 +2374,6 @@ function saveGrimorioOptions(){
  opts.subtitle=subtitle.slice(0,180);
  opts.visible=!!el('grimorioVisibleInput')?.checked;
  opts.autoGlossary=!!el('grimorioAutoInput')?.checked;
- opts.showIcons=!!el('grimorioIconsInput')?.checked;
- opts.showDiceIcons=!!el('grimorioDiceInput')?.checked;
- for(const n of [4,6,8,10,12,20])opts.diceEmoji[n]=String(el('grimorioDie'+n)?.value||GRIMORIO_DICE_FALLBACK[n]).trim().slice(0,8);
  save();rebuildLibraryGlossary();closeModal();render();toast('Grimório atualizado');
 }
 function manageGrimorio(){
@@ -2400,9 +2393,8 @@ function manageGrimorio(){
    '<div class="ae-grimorio-manage-actions"><button type="button" data-action="editGlossary:'+key+'">EDITAR</button>'+
    '<button type="button" data-action="toggleGlossaryTerm:'+key+'">'+(enabled?'DESATIVAR':'ATIVAR')+'</button></div></div>';
  };
- const dieInputs=[4,6,8,10,12,20].map(n=>'<label>d'+n+'<input id="grimorioDie'+n+'" maxlength="8" value="'+esc(opts.diceEmoji[n]||GRIMORIO_DICE_FALLBACK[n])+'" aria-label="Ícone do dado de '+n+' faces"></label>').join('');
  modal('GERENCIAR GRIMÓRIO','<div class="ae-grimorio-manager">'+
-  '<p class="subtitle">Personalize o catálogo, os guias contextuais e os símbolos dos dados. Somente o mestre pode salvar.</p>'+
+  '<p class="subtitle">Personalize o catálogo e os guias contextuais. Somente o mestre pode salvar.</p>'+
   '<div class="ae-grimorio-config-grid">'+
    '<label>Título do botão<input id="grimorioTitleInput" maxlength="75" value="'+esc(opts.title)+'"></label>'+
    '<label>Descrição<textarea id="grimorioSubtitleInput" maxlength="180" rows="2">'+esc(opts.subtitle)+'</textarea></label></div>'+
