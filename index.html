@@ -1811,7 +1811,7 @@ function updatePaletteEditorUi(){
  const state=el('paletteEditingState');if(state)state.textContent=prefs.preset==='personalizado'?'PERSONALIZADA · ALTERAÇÕES SALVAS':prefs.preset==='padrao'?'ICHIGO':'VELHO ZANGETSU · PADRÃO';
  const w=el('contrastWarning'),p=currentPalette();
  if(w)w.textContent=contrast(p.text,p.bg)<4.5||contrast(p.text,p.panel)<4.5?'Contraste insuficiente para leitura. Ajuste Texto ou Fundo.':'Contraste de leitura adequado.';
- const prev=el('paletteLivePreview');if(prev)prev.style.background=prefs.globalGradient?'linear-gradient(135deg, '+p.panel+', '+(prefs.globalGradientEnd||p.raised)+')':p.panel;
+ const prev=el('paletteLivePreview');if(prev)prev.style.background=prefs.globalGradient&&!prefs.performanceMode?'linear-gradient(135deg, '+p.panel+', '+(prefs.globalGradientEnd||p.raised)+')':p.panel;
 }
 function changeCustomPaletteColor(key,value){
  if(!['bg','panel','raised','structure','cold','text','accent','pressed','outline'].includes(key)||!/^#[0-9a-fA-F]{6}$/.test(value))return;
