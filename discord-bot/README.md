@@ -81,3 +81,11 @@ Ao consultar uma ficha pelo ID, o bot **não** revela fichas `masterOnly`, `lock
 - `register.mjs`: cadastra comandos slash no servidor escolhido.
 - `test.mjs`: testes do parser (execute `node --test discord-bot/test.mjs`).
 - `schema.sql`: expansão de esquema já aplicada de forma aditiva.
+
+## Opcional: comandos sem barra (prefixo)
+
+Também está preparado um Gateway com `CBBajuda`, `CBBrolar 2d6+3`, `CBBficha ID` e `CBBhistorico`. **Não está ativo no bot HTTP padrão**: para funcionar, é necessário ativar **Bot → Privileged Gateway Intents → Message Content Intent** no Discord Developer Portal e executar continuamente `discord-bot/gateway.mjs` com Node 22+ e a variável privada `DISCORD_BOT_TOKEN`. No computador/servidor do Gateway, execute `npm install` dentro de `discord-bot/` e `npm start`. Nunca publique o token. Os comandos `/` e o envio site→Discord continuam operando sem Gateway.
+
+## Resultados especiais e novo visual
+
+As mensagens do bot agora exibem cartão roxo e botão **Re-rolar** (somente o autor pode utilizar). Duas faces iguais de 6 ou mais geram **CRÍTICO** e dobram o subtotal dos dados; duas faces 1 geram **FALHA CRÍTICA**, seguindo a mesma lógica do site. A rolagem continua registrada na tabela `ae_rolls`.
