@@ -239,3 +239,104 @@ html.dyslexia-mode #page :is(.ae-grimorio-entry-copy,.ae-grimorio-portal-copy,.a
  .ae-grimorio-manage-row{align-items:stretch;flex-direction:column}
  .ae-grimorio-manage-actions>*{flex:1}
 }
+
+
+/* Editor de capítulos: composição com barra de formatação e prévia na mesma janela. */
+.dialog:has(.ae-library-editor){
+ width:min(1120px,95vw);max-width:1120px;max-height:92dvh;overflow:auto
+}
+.ae-library-editor{
+ display:grid;gap:12px;min-width:0;color:var(--theme-text)
+}
+.ae-library-editor>label{
+ font-size:12px;font-weight:850
+}
+.ae-library-editor>input{
+ width:100%;min-height:46px;padding:10px 13px;
+ color:var(--theme-text);background:var(--theme-bg);
+ border:1px solid var(--theme-structure);font-size:14px
+}
+.ae-library-editor-grid{
+ display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);
+ gap:14px;min-width:0;align-items:stretch
+}
+.ae-library-editor-compose,.ae-library-editor-preview{
+ min-width:0;display:flex;flex-direction:column;gap:10px;
+ background:var(--theme-bg);border:1px solid var(--theme-structure);
+ padding:14px
+}
+.ae-library-editor-top{
+ display:flex;justify-content:space-between;align-items:center;
+ gap:7px;flex-wrap:wrap;padding-bottom:8px;
+ border-bottom:1px solid var(--theme-structure)
+}
+.ae-library-editor-top strong{
+ font:900 15px/1.2 'Barlow Condensed',sans-serif;
+ letter-spacing:.05em
+}
+.ae-library-editor-top span{
+ font-size:10px;color:var(--theme-cold);line-height:1.4
+}
+.ae-library-editor-toolbar{
+ display:flex;align-items:center;flex-wrap:wrap;gap:6px
+}
+.ae-library-editor-toolbar button{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-width:42px;min-height:42px;padding:7px 10px;
+ background:var(--theme-panel);border:1px solid var(--theme-structure);
+ color:var(--theme-text);font-size:11px;font-weight:850;
+ cursor:pointer
+}
+.ae-library-editor-toolbar button:hover{
+ border-color:var(--theme-cold);background:var(--theme-raised)
+}
+.ae-library-editor-toolbar button:focus-visible{
+ outline:2px solid var(--theme-cold);outline-offset:2px
+}
+.ae-library-editor-color{
+ display:flex;align-items:center;gap:6px;font-size:10px;font-weight:800
+}
+.ae-library-editor-color input{
+ width:38px;min-width:38px;height:42px;min-height:42px;
+ padding:3px;border:1px solid var(--theme-structure);background:var(--theme-panel)
+}
+.ae-library-editor-compose textarea{
+ display:block;flex:1;min-height:430px;width:100%;
+ resize:vertical;padding:14px 15px;
+ color:var(--theme-text);background:var(--theme-panel);
+ border:1px solid var(--theme-structure);
+ font:500 calc(13px * var(--ae-reading-scale))/1.8 Manrope,system-ui,sans-serif;
+ tab-size:2
+}
+.ae-library-editor-preview #rulePreview{
+ flex:1;min-height:430px;max-height:70dvh;overflow:auto;overscroll-behavior:contain;
+ border:1px solid var(--theme-structure);padding:18px;
+ background:var(--theme-panel);color:var(--theme-text)
+}
+.ae-library-editor-preview #rulePreview :is(p,li,dd){
+ line-height:1.8;overflow-wrap:break-word
+}
+.ae-library-editor-help{
+ margin:0!important;line-height:1.55!important;
+ font-size:11px!important;opacity:.8
+}
+.ae-library-editor-footer{
+ display:flex;justify-content:space-between;align-items:center;
+ flex-wrap:wrap;gap:10px
+}
+.ae-library-editor-footer>.actions{margin:0}
+.ae-library-editor-footer>span{font-size:11px;opacity:.72;line-height:1.6}
+html.dyslexia-mode .ae-library-editor :is(input,textarea,.book-text){
+ font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif
+}
+@media(max-width:900px){
+ .ae-library-editor-grid{grid-template-columns:minmax(0,1fr)}
+ .ae-library-editor-compose textarea{min-height:270px}
+ .ae-library-editor-preview #rulePreview{min-height:240px;max-height:55dvh}
+}
+@media(max-width:560px){
+ .dialog:has(.ae-library-editor){width:calc(100vw - 20px);max-height:90dvh}
+ .ae-library-editor-compose,.ae-library-editor-preview{padding:10px}
+ .ae-library-editor-toolbar{gap:5px}
+ .ae-library-editor-toolbar button{padding:7px 8px;font-size:10px}
+}
