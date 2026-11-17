@@ -1763,7 +1763,7 @@ const PREFSSTORE={load(){try{const v=DATASTORE.local?.getItem('arquivo_preferenc
 let prefs=PREFSSTORE.load();if(!PALETTE_IDS.includes(prefs.preset)&&prefs.preset!=='personalizado'){
  prefs.preset='zangetsu';PREFSSTORE.save();
 }
-if(!prefs.paletteDefaultVersion){prefs.paletteDefaultVersion=3;PREFSSTORE.save()}
+if(Number(prefs.paletteDefaultVersion)<3){prefs.paletteDefaultVersion=3;PREFSSTORE.save()}
 const ACCESS_TEXT_SIZES=[50,75,100,125,150,175,200];
 const ACCESS_UI_SCALES=Array.from({length:16},(_,i)=>50+i*10);
 if(!ACCESS_UI_SCALES.includes(Number(prefs.interfaceScale))){
@@ -1792,8 +1792,11 @@ function ensureCustomPalette(){
  if(prefs.preset!=='personalizado'){const old=currentPalette();prefs.custom={...old};prefs.preset='personalizado'}
  else if(!prefs.custom)prefs.custom={...PALETTES.zangetsu};
 }
+function paletteEditorStatus(){
+ return prefs.preset==='personalizado'?'PERSONALIZADA · ALTERAÇÕES SALVAS':paletteName(prefs.preset).toLocaleUpperCase('pt-BR')+' · PALETA BASE';
+}
 function updatePaletteEditorUi(){
- const state=el('paletteEditingState');if(state)state.textContent=prefs.preset==='personalizado'?'PERSONALIZADA · ALTERAÇÕES SALVAS':paletteName(prefs.preset).toLocaleUpperCase('pt-BR')+' · PALETA BASE';
+ const state=el('paletteEditingState');if(state)state.textContent=paletteEditorStatus();
  const w=el('contrastWarning'),p=currentPalette();
  if(w)w.textContent=contrast(p.text,p.bg)<4.5||contrast(p.text,p.panel)<4.5?'Contraste insuficiente para leitura. Ajuste Texto ou Fundo.':'Contraste de leitura adequado.';
  const prev=el('paletteLivePreview');if(prev)prev.style.background=prefs.globalGradient&&!prefs.performanceMode?'linear-gradient(135deg, '+p.panel+', '+(prefs.globalGradientEnd||p.raised)+')':p.panel;
@@ -1844,7 +1847,7 @@ function paletteEditor(){
  ).join('');
  const body='<div class="ae-palette-editor">'+
  '<p class="ae-settings-muted">Escolha as cores de cada parte do site. As mudanças são salvas automaticamente neste dispositivo.</p>'+
- '<div class="ae-palette-state" id="paletteEditingState">'+(prefs.preset==='personalizado'?'PERSONALIZADA · ALTERAÇÕES SALVAS':paletteName(prefs.preset).toLocaleUpperCase('pt-BR')+' · PALETA BASE')+'</div>'+
+ '<div class="ae-palette-state" id="paletteEditingState">'+paletteEditorStatus()+'</div>'+
  fields+
  '<section class="ae-palette-group ae-palette-gradient-group"><div class="ae-palette-group-heading"><h3>GRADIENTE</h3><p>Opcional: combine duas cores no fundo dos painéis.</p></div>'+
  '<div class="ae-palette-gradient"><label class="ae-settings-check"><input type="checkbox" id="globalGradient" '+(prefs.globalGradient?'checked':'')+'> Usar gradiente nos painéis</label>'+
@@ -1943,7 +1946,7 @@ function changeSetting(id,value){
  PREFSSTORE.save();applyPrefs();
  if(id==='speechEnabled')render();
 }
-function resetSettings(section){if(section==='som')Object.assign(prefs,{masterVolume:100,masterMuted:false,musicVolume:20,effectsVolume:35,musicMuted:false,effectsMuted:false});if(section==='paleta')Object.assign(prefs,{preset:'zangetsu',custom:null,globalGradient:false,globalGradientEnd:null});if(section==='acesso'){Object.assign(prefs,{fontSize:100,interfaceScale:100,dyslexiaMode:false,spacing:false,speechEnabled:true,speechRate:1,performanceMode:false,reduceMotion:null,grain:true,energy:true,noSheetMotion:false,rollImpacts:true});window.ARQUIVO_SPEECH?.reset()}PREFSSTORE.save();applyPrefs();render()}
+function resetSettings(section){if(section==='som')Object.assign(prefs,{masterVolume:100,masterMuted:false,musicVolume:20,effectsVolume:35,musicMuted:false,effectsMuted:false});if(section==='paleta')Object.assign(prefs,{preset:'zangetsu',globalGradient:false,globalGradientEnd:null});if(section==='acesso'){Object.assign(prefs,{fontSize:100,interfaceScale:100,dyslexiaMode:false,spacing:false,speechEnabled:true,speechRate:1,performanceMode:false,reduceMotion:null,grain:true,energy:true,noSheetMotion:false,rollImpacts:true});window.ARQUIVO_SPEECH?.reset()}PREFSSTORE.save();applyPrefs();render()}
 
 
 function storageWarning(){if(noticeShown)return;noticeShown=true;setTimeout(()=>toast('Armazenamento indisponível','O site continua funcionando em memória. Faça um backup: alterações podem desaparecer ao fechar a página.',true),300)}
