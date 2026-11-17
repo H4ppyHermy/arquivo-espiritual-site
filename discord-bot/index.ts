@@ -102,7 +102,7 @@ async function historyCmd(){
 
 const COMMANDS=[
  {name:"rolar",description:"Rola dados e registra no Arquivo Espiritual.",type:1,options:[
-  {type:3,name:"expressao",description:"Ex.: 2d6+3, 1d20, 2d20kh1",required:true,min_length:2,max_length:90},
+  {type:3,name:"expressao",description:"Ex.: 2d6+3, 1d20, 2d6+1d4",required:true,min_length:2,max_length:90},
   {type:3,name:"descricao",description:"Descrição opcional da rolagem",required:false,max_length:70}
  ]},
  {name:"ficha",description:"Consulta um resumo de ficha pública usando o ID.",type:1,options:[
