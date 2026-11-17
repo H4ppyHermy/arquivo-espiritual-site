@@ -1,0 +1,157 @@
+import {rollDiceExpression} from "./dice.mjs";
+
+// Discord application webhook + optional site notifications. No gateway process required.
+const env=k=>String(Deno.env.get(k)||"").trim();
+const api=()=>env("SUPABASE_URL").replace(/\/+$/,"");
+const key=()=>env("SUPABASE_SERVICE_ROLE_KEY");
+const txt=(v,n=110)=>String(v??"").replace(/[\r\n<>@]/g," ").trim().slice(0,n);
+const j=(data,status=200,extra={})=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json","cache-control":"no-store",...extra}});
+const say=(content,privateMessage=false)=>({type:4,data:{content:String(content).slice(0,1900),allowed_mentions:{parse:[]},...(privateMessage?{flags:64}:{})}});
+const deny=message=>say(message,true);
+const user=p=>p.member?.user||p.user||{};
+const opt=(p,name)=>p.data?.options?.find(x=>x.name===name)?.value;
+const publicGuild=p=>!!env("DISCORD_GUILD_ID")&&p.guild_id===env("DISCORD_GUILD_ID");
+function fromHex(value){return typeof value==="string"&&/^[0-9a-f]+$/i.test(value)&&value.length%2===0?Uint8Array.from(value.match(/../g),s=>parseInt(s,16)):null}
+
+async function signed(request,body){
+ const pub=fromHex(env("DISCORD_PUBLIC_KEY"));
+ const sig=fromHex(request.headers.get("x-signature-ed25519"));
+ const stamp=request.headers.get("x-signature-timestamp");
+ if(pub?.length!==32||sig?.length!==64||!stamp||!/^\d{10}$/.test(stamp)||Math.abs(Date.now()-Number(stamp)*1000)>300000)return false;
+ try{
+  const k=await crypto.subtle.importKey("raw",pub,{name:"Ed25519"},false,["verify"]);
+  return crypto.subtle.verify({name:"Ed25519"},k,sig,new TextEncoder().encode(stamp+body));
+ }catch{return false}
+}
+async function rest(path,method="GET",body=null){
+ if(!api()||!key())throw Error("Backend não configurado.");
+ const response=await fetch(api()+"/rest/v1/"+path,{method,headers:{apikey:key(),Authorization:"Bearer "+key(),"Content-Type":"application/json",Prefer:"return=representation"},body:body===null?undefined:JSON.stringify(body)});
+ if(!response.ok)throw Error("Falha de conexão ao histórico ("+response.status+").");
+ const raw=await response.text();return raw?JSON.parse(raw):null;
+}
+async function findRoll(id){
+ const found=await rest("ae_rolls?select=*&id=eq."+encodeURIComponent(id)+"&limit=1");
+ return found?.[0]||null;
+}
+async function sheets(){
+ const document=await rest("ae_document?select=data&id=eq.1&limit=1");
+ return Array.isArray(document?.[0]?.data?.sheets)?document[0].data.sheets:[];
+}
+const permittedSheet=s=>!!s&&!s.masterOnly&&!s.locked&&!s.redacted&&!s.private;
+function rollText(r){
+ const dice=Array.isArray(r.dice)?r.dice:[];
+ const values=dice.slice(0,30).map(d=>{
+  const value=Number(d.value),effective=d.effective===undefined?value:Number(d.effective);
+  return "d"+Number(d.sides)+": "+value+(effective!==value?" ["+effective+" efetivo]":"");
+ });
+ return "**"+txt(r.account_name,70)+"** · "+txt(r.label,100)+"\n"+
+   (values.length?values.join(" · ").slice(0,900)+"\n":"")+
+   "**Total: "+Number(r.total)+"**";
+}
+async function rollCmd(p){
+ let rolled;
+ try{rolled=rollDiceExpression(opt(p,"expressao")||"1d20")}catch(e){return deny(txt(e.message,180))}
+ if(!user(p).id)return deny("Usuário desconhecido.");
+ const receipt=String(p.id);
+ const query="ae_rolls?select=*&discord_interaction_id=eq."+encodeURIComponent(receipt)+"&limit=1";
+ const existing=await rest(query);
+ if(existing?.[0])return say(rollText(existing[0]));
+ const caption=txt(opt(p,"descricao"),70);
+ const record={
+  account_name:"Discord · "+txt(p.member?.nick||user(p).global_name||user(p).username||"Jogador",65),
+  kind:"discord",label:rolled.expression+(caption?" · "+caption:""),dice:rolled.dice,total:rolled.total,
+  hidden:false,special:"",discord_user_id:String(user(p).id),discord_interaction_id:receipt
+ };
+ try{
+  const inserted=await rest("ae_rolls?select=*","POST",record);
+  return say(rollText(inserted?.[0]||record));
+ }catch(e){
+  const duplicate=await rest(query).catch(()=>[]);
+  if(duplicate?.[0])return say(rollText(duplicate[0]));
+  throw e;
+ }
+}
+async function sheetCmd(p){
+ const id=String(opt(p,"id")||"").trim();
+ if(!/^[a-zA-Z0-9_-]{1,100}$/.test(id))return deny("Informe o ID de uma ficha.");
+ const found=(await sheets()).find(s=>s.id===id);
+ if(!permittedSheet(found))return deny("Ficha inexistente ou protegida. Solicite acesso ao mestre.");
+ const lines=["**"+txt(found.name,80)+"**","ID: "+id,"Nível: "+txt(found.level,10)];
+ if(found.race)lines.push("Raça: "+txt(found.race,55));
+ if(found.class)lines.push("Classe: "+txt(found.class,55));
+ const stats=["vida","estabilidade","alma"].flatMap(k=>{
+  const r=found.resources?.[k];
+  return r&&Number.isFinite(Number(r.current))&&Number.isFinite(Number(r.max))?[k+": "+r.current+"/"+r.max]:[];
+ });
+ if(stats.length)lines.push(stats.join(" · "));
+ if(/^https:\/\//.test(env("ARQUIVO_SITE_URL")))lines.push("Site: "+env("ARQUIVO_SITE_URL"));
+ return say(lines.join("\n"),true);
+}
+async function historyCmd(){
+ const rows=await rest("ae_rolls?select=id,account_name,sheet_id,label,total,hidden&hidden=eq.false&order=id.desc&limit=30");
+ const visible=new Set((await sheets()).filter(permittedSheet).map(s=>s.id));
+ const items=(rows||[]).filter(r=>!r.sheet_id||visible.has(r.sheet_id)).slice(0,8);
+ if(!items.length)return deny("Sem rolagens públicas registradas.");
+ return say("**Histórico compartilhado (site + Discord)**\n"+items.map(r=>"#"+r.id+" · "+txt(r.account_name,32)+" · "+txt(r.label,58)+" = **"+Number(r.total)+"**").join("\n"),true);
+}
+async function interaction(req){
+ const raw=await req.text();
+ if(raw.length>20000)return j({error:"Requisição muito grande."},413);
+ if(!await signed(req,raw))return j({error:"Assinatura inválida."},401);
+ let p;try{p=JSON.parse(raw)}catch{return j({error:"JSON inválido."},400)}
+ if(p.type===1)return j({type:1}); // PING after Ed25519 verification
+ if(p.type!==2)return j(deny("Interação não suportada."));
+ if(!publicGuild(p))return j(deny("Bot indisponível neste servidor."));
+ try{
+  if(p.data?.name==="rolar")return j(await rollCmd(p));
+  if(p.data?.name==="ficha")return j(await sheetCmd(p));
+  if(p.data?.name==="historico")return j(await historyCmd());
+  if(p.data?.name==="ajuda")return j(say("**Arquivo Espiritual · Comandos**\n/rolar expressao:2d6+3\n/rolar expressao:2d20kh1 (vantagem)\n/rolar expressao:2d20kl1 (desvantagem)\n/ficha id:IDENTIFICADOR\n/historico — rolagens do site e Discord\nAté 30 dados, d1 até d1000.",true));
+  return j(deny("Use /ajuda para ver os comandos."));
+ }catch{return j(deny("Não foi possível consultar o site. Tente novamente."))}
+}
+function cors(req){
+ const origin=req.headers.get("origin");
+ const allowed=env("ARQUIVO_SITE_ORIGIN");
+ return {"Access-Control-Allow-Origin":allowed&&origin===allowed?allowed:"null",
+ "Access-Control-Allow-Methods":"POST, OPTIONS",
+ "Access-Control-Allow-Headers":"authorization, apikey, content-type",Vary:"Origin"};
+}
+async function notify(req){
+ const extra=cors(req);
+ if(!env("ARQUIVO_SITE_ORIGIN")||extra["Access-Control-Allow-Origin"]==="null")return j({error:"Origem recusada."},403,extra);
+ const auth=req.headers.get("authorization")||"";
+ const anon=env("SUPABASE_ANON_KEY");
+ if(!/^Bearer [A-Za-z0-9_.-]+$/.test(auth)||!anon)return j({error:"Autenticação necessária."},401,extra);
+ const identity=await fetch(api()+"/auth/v1/user",{headers:{Authorization:auth,apikey:anon}});
+ if(!identity.ok)return j({error:"Sessão inválida."},401,extra);
+ const u=await identity.json();
+ if(!/^[0-9a-f-]{36}$/i.test(u.id||""))return j({error:"Sessão inválida."},401,extra);
+ let body;try{body=await req.json()}catch{return j({error:"JSON inválido."},400,extra)}
+ const id=Number(body?.rollId);
+ if(!Number.isSafeInteger(id)||id<=0)return j({error:"ID inválido."},400,extra);
+ const session=await rest("ae_sessions?select=account_id&user_id=eq."+encodeURIComponent(u.id)+"&limit=1");
+ const row=await findRoll(id);
+ if(!session?.[0]?.account_id||!row||row.account_id!==session[0].account_id||row.hidden||row.kind==="discord")return j({error:"Sem permissão."},403,extra);
+ if(row.discord_message_id)return j({ok:true,duplicate:true},200,extra);
+ const channel=env("DISCORD_ROLL_CHANNEL_ID"),bot=env("DISCORD_BOT_TOKEN");
+ if(!/^\d{17,22}$/.test(channel)||!bot)return j({ok:false,disabled:true},200,extra);
+ const sent=await fetch("https://discord.com/api/v10/channels/"+channel+"/messages",{
+  method:"POST",headers:{Authorization:"Bot "+bot,"Content-Type":"application/json"},
+  body:JSON.stringify({content:"**Rolagem feita no site**\n"+rollText(row),allowed_mentions:{parse:[]}})
+ });
+ if(!sent.ok)return j({ok:false,reason:"Discord indisponível."},503,extra);
+ const reply=await sent.json();
+ if(reply?.id)await rest("ae_rolls?id=eq."+id,"PATCH",{discord_message_id:String(reply.id)});
+ return j({ok:true},200,extra);
+}
+Deno.serve(async req=>{
+ const path=new URL(req.url).pathname;
+ if(path.endsWith("/notify")){
+  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors(req)});
+  if(req.method!=="POST")return j({error:"Método inválido."},405,cors(req));
+  try{return await notify(req)}catch{return j({error:"Falha temporária."},503,cors(req))}
+ }
+ if(req.method!=="POST")return j({error:"Método inválido."},405);
+ return interaction(req);
+});
