@@ -48,7 +48,7 @@
     try{
       Promise.resolve(player.play()).then(()=>{
         if(id!==requestId&&phase!==2)player.pause();
-      }).catch(()=>{
+      },()=>{
         if(id!==requestId||phase!==2)return;
         player.pause();
         phase=1;
