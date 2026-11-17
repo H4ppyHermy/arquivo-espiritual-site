@@ -1568,7 +1568,14 @@ html.performance-mode #page .ae-home-hero,
 html.performance-mode #page .panel,
 html.performance-mode .ae-home-tile{background-color:var(--theme-panel)!important}
 </style>
-<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=4"><link rel="stylesheet" href="biblioteca-ui.css?v=2"><link rel="stylesheet" href="biblioteca-grimorio.css?v=4"><link rel="stylesheet" href="master-preview.css?v=2"></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark"><button type="button" class="ae-master-preview-mark" id="masterPreviewMark" data-action="previewMasterKey" aria-label="Símbolo Bleach" aria-pressed="false" disabled><img src="assets/bleach-hollow.svg" width="43" height="43" alt="" decoding="async"></button></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
+<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=4"><link rel="stylesheet" href="biblioteca-ui.css?v=2"><link rel="stylesheet" href="biblioteca-grimorio.css?v=4"><link rel="stylesheet" href="master-preview.css?v=2"><style id="ae-glossary-dice">
+.ae-library-reading .ae-glossary-link{appearance:none;display:inline;padding:0;margin:0;border:0;background:none;color:inherit;font:inherit;line-height:inherit;letter-spacing:inherit;vertical-align:baseline;text-align:inherit;cursor:pointer;text-decoration:none;box-shadow:none;transition:color .15s}
+.ae-library-reading .ae-glossary-link:hover,.ae-library-reading .ae-glossary-link:focus-visible{color:var(--theme-accent)!important;background:none}
+.ae-library-reading .ae-glossary-link:focus-visible{outline:1px solid var(--theme-accent);outline-offset:2px}
+.ae-library-reading .die-figure.ae-inline-die{display:inline-flex;vertical-align:-.3em;width:1.6em;height:1.6em;color:var(--theme-cold);align-items:center;justify-content:center;margin:0 .08em;white-space:nowrap}
+.ae-library-reading .die-figure.ae-inline-die svg{display:block;width:100%;height:100%;stroke:currentColor;fill:color-mix(in srgb,currentColor 16%,transparent)}
+.ae-library-reading .die-figure.ae-inline-die svg text{fill:var(--theme-text);stroke:none}
+</style></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark"><button type="button" class="ae-master-preview-mark" id="masterPreviewMark" data-action="previewMasterKey" aria-label="Símbolo Bleach" aria-pressed="false" disabled><img src="assets/bleach-hollow.svg" width="43" height="43" alt="" decoding="async"></button></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
 <div id="mobileMoreBackdrop" class="ae-mobile-more-backdrop" data-action="mobileMoreToggle" hidden aria-hidden="true"></div>
 <div id="mobileMoreMenu" class="ae-mobile-more-menu" hidden aria-label="Mais opções">
  <div class="ae-mobile-more-header"><strong>OUTRAS ÁREAS</strong><button type="button" data-action="mobileMoreToggle" aria-label="Fechar menu">×</button></div>
@@ -2229,7 +2236,7 @@ function library(){
  ' autocomplete="off" spellcheck="false" placeholder="Buscar no sistema" aria-keyshortcuts="/ Escape" aria-describedby="ruleMatches">'+
  '<button class="ae-library-clear" id="libraryClearSearch" data-action="clearLibrarySearch" type="button" aria-label="Limpar pesquisa"'+(!query?' hidden':'')+'>LIMPAR</button></div>'+
  '<p id="ruleMatches" class="ae-library-search-count" role="status" aria-live="polite">'+librarySearchSummary(visible)+'</p>'+
- '<div class="ae-library-toolbar"><span>Toque no <b>?</b> para saber mais sobre uma mecânica.</span>'+
+ '<div class="ae-library-toolbar"><span>Clique em palavras do glossário para consultar sua definição.</span>'+
  '<div class="actions">'+btn('FECHAR TODOS','closeAllChapters','small')+btn('ABRIR TODOS','openAllChapters','small')+(master()?btn('GERENCIAR GLOSSÁRIO','manageGrimorio','small'):'')+'</div></div>'+
  '<div class="mobile-chapter"><label for="chapterJump">Ir ao capítulo</label>'+
  '<select id="chapterJump"><option value="">Selecione um capítulo</option>'+libraryMobileOptions()+'</select></div>'+
@@ -2330,8 +2337,7 @@ function glossaryAllEntries(){
  for(const key of disabled)if(!options.glossary.some(i=>glossaryKey(i.name)===key&&i.enabled!==false))entries.delete(key);
  return [...entries.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
 }
-/* O catálogo mostra todas as definições detectadas; os ícones ? no texto
-   continuam controlados apenas pelos verbetes ativados pelo mestre. */
+/* O catálogo mostra definições detectadas e verbetes ativos criam links discretos. */
 function grimorioCatalogEntries(){
  const cfg=grimorioSettings(),hidden=new Set(cfg.disabledTerms.map(glossaryKey)),items=new Map();
  for(const item of cfg.autoGlossary!==false?glossarySuggestions().values():[]){
@@ -2432,7 +2438,7 @@ function manageGrimorio(){
    '<button type="button" data-action="toggleGlossaryTerm:'+key+'">'+(enabled?'DESATIVAR':'ATIVAR')+'</button></div></div>';
  };
  modal('GERENCIAR GRIMÓRIO','<div class="ae-grimorio-manager">'+
-  '<p class="subtitle">Personalize o catálogo e os guias contextuais. Somente o mestre pode salvar.</p>'+
+  '<p class="subtitle">Personalize o catálogo e os termos clicáveis da Biblioteca. Somente o mestre pode salvar.</p>'+
   '<div class="ae-grimorio-config-grid">'+
    '<label>Título do botão<input id="grimorioTitleInput" maxlength="75" value="'+esc(opts.title)+'"></label>'+
    '<label>Descrição<textarea id="grimorioSubtitleInput" maxlength="180" rows="2">'+esc(opts.subtitle)+'</textarea></label></div>'+
@@ -2482,7 +2488,7 @@ function editGlossaryEntry(key){
  const options=db.rules.map(r=>'<option value="'+esc(r.id)+'"'+(r.id===item.chapterId?' selected':'')+'>'+esc(r.title)+'</option>').join('');
  const category=GRIMORIO_CATEGORIES.map(c=>'<option value="'+esc(c)+'"'+(c===item.category?' selected':'')+'>'+esc(c)+'</option>').join('');
  modal(name?'EDITAR GUIA DO GLOSSÁRIO':'NOVO GUIA DO GLOSSÁRIO','<div class="ae-glossary-editor">'+
- '<p class="subtitle">A palavra poderá abrir esta explicação na Biblioteca e aparecerá no Grimório.</p>'+
+ '<p class="subtitle">O termo ficará clicável na Biblioteca e aparecerá no Grimório.</p>'+
  '<label>Palavra ou expressão<input id="glossaryTermInput" maxlength="75" value="'+esc(item.name||'')+'" required></label>'+
  '<label>Explicação<textarea id="glossaryDescriptionInput" maxlength="6000" rows="7" required>'+esc(item.description||'')+'</textarea></label>'+
  '<label>Categoria<select id="glossaryCategoryInput">'+category+'</select></label>'+
@@ -2572,9 +2578,6 @@ function goLibraryMechanicChapter(code){
  let id='';try{id=decodeURIComponent(code)}catch(e){return}
  closeModal();openLibraryChapter(id);
 }
-function libraryQuickHelp(name){
- return '<button type="button" class="ae-library-help" data-action="explainRule:'+encodeURIComponent(name)+'" title="O que é '+esc(name)+'?" aria-label="Explicação de '+esc(name)+'">?</button>';
-}
 /* Capítulos são renderizados sob demanda; o texto original permanece intocado. */
 function ruleItems(rules){
  if(!rules.length)return query.trim()?
@@ -2656,19 +2659,21 @@ function libraryTermTone(name){
 function formatBook(source,chapterTitle=''){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
  const searchText=query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
- const seen=new Set();
  const names=[...libraryGlossary.keys()].sort((a,b)=>b.length-a.length);
+ const lookup=new Map(names.map(name=>[glossaryKey(name),name]));
  const pattern=names.length?new RegExp('(^|[^\\p{L}\\p{N}])('+names.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?![\\p{L}\\p{N}])','giu'):null;
  function inline(text){
   const markers=[];
   let raw=String(text||'');
   if(pattern)raw=raw.replace(pattern,(all,prefix,term)=>{
-   const found=names.find(name=>name.toLocaleLowerCase('pt-BR')===term.toLocaleLowerCase('pt-BR'));
-   if(!found||seen.has(found))return all;
-   seen.add(found);
-   const token='@@AEHELP'+markers.length+'@@';
-   markers.push(found);
-   return prefix+'@@AETERM'+(markers.length-1)+'@@'+token;
+   const found=lookup.get(glossaryKey(term));
+   if(!found)return all;
+   const index=markers.push({name:found,display:term})-1;
+   return prefix+'@@AEGLOSS'+index+'@@';
+  });
+  raw=raw.replace(/(^|[^\\p{L}\\p{N}])([dD](?:4|6|8|10|12|20))(?![\\p{L}\\p{N}])/gu,(all,prefix,die)=>{
+   const index=markers.push({die:Number(die.slice(1))})-1;
+   return prefix+'@@AEGLOSS'+index+'@@';
   });
   let t=esc(raw)
     .replace(/\[cor=(#[0-9a-f]{6})\]([\s\S]*?)\[\/cor\]/gi,(_,color,content)=>'<span class="ae-manual-color" style="color:'+color+'">'+content+'</span>')
@@ -2679,10 +2684,12 @@ function formatBook(source,chapterTitle=''){
     .replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>')
     .replace(/`([^`]+)`/g,'<code>$1</code>');
   if(search)t=t.split(/(<[^>]*>)/g).map(segment=>segment.startsWith('<')?segment:segment.replace(search,match=>'<mark>'+match+'</mark>')).join('');
-  return t.replace(/@@AETERM(\d+)@@/g,(_,index)=>{
-    const name=markers[Number(index)];
-    return '<span class="ae-term ae-term-'+libraryTermTone(name)+'">'+esc(name)+'</span>';
-   }).replace(/@@AEHELP(\d+)@@/g,(_,index)=>libraryQuickHelp(markers[Number(index)]));
+  return t.replace(/@@AEGLOSS(\d+)@@/g,(_,index)=>{
+   const marker=markers[Number(index)];
+   if(!marker)return '';
+   if(marker.die)return dieShape(marker.die,'ae-inline-die');
+   return '<button type="button" class="ae-glossary-link" data-action="explainRule:'+encodeURIComponent(marker.name)+'" aria-label="Consultar '+esc(marker.name)+' no glossário">'+esc(marker.display)+'</button>';
+  });
  }
  let html='',paragraph=[],listType=null,code=[],table=[],quote=[],defs=[];
  function flushPara(){if(paragraph.length){html+='<p class="book-paragraph">'+paragraph.map(inline).join(' ')+'</p>';paragraph=[]}}
