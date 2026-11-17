@@ -67,12 +67,14 @@ html.performance-mode body[data-palette]::before{background:none!important}
 body[data-palette="shinji"] :is(
  #page,#navigation,.brand,.toolbar,.sidefoot,
  .mobile-title,.ae-mobile-more-menu,.sidebar-extras,
- #dialogRoot,#toastRoot,#aeSpeechTools,#connectionBanner,.music
+ #dialogRoot,#toastRoot,#aeSpeechTools,#connectionBanner,.music,
+ .ae32-impact,.ae3-shinji-fx,.roll-impact
 ) :is(
  h1,h2,h3,h4,h5,h6,p,span,small,strong,b,em,i,
  a,button,label,legend,summary,li,dt,dd,
  output,blockquote,figcaption,th,td,caption,
- input,textarea,select,option
+ input,textarea,select,option,
+ code,pre,kbd,samp,mark,time,abbr,cite,ins,del,sup,sub
 ){
  direction:rtl!important;
  unicode-bidi:bidi-override!important;
@@ -86,6 +88,11 @@ body[data-palette="shinji"] :is(
  unicode-bidi:bidi-override!important;
 }
 body[data-palette="shinji"] :is(input,textarea)::placeholder{
+ direction:rtl!important;unicode-bidi:bidi-override!important;
+}
+body[data-palette="shinji"] :is(
+ #connectionBanner,.mobile-title,#editModeExit,.ae-edit-exit
+){
  direction:rtl!important;unicode-bidi:bidi-override!important;
 }
 /* A inversão não é aplicada aos nomes acessíveis, que não são conteúdo visual. */
