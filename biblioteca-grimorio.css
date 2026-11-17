@@ -213,6 +213,58 @@ html.dyslexia-mode #page :is(.ae-grimorio-entry-copy,.ae-grimorio-portal-copy,.a
 }
 
 
+
+/* Seleção de conexões: gerenciada pelo mestre, sem títulos digitados manualmente. */
+.ae-glossary-relations{
+ display:grid;gap:10px;min-width:0;padding:13px;
+ border:1px solid var(--theme-structure);background:var(--theme-panel)
+}
+.ae-glossary-relations-header{display:grid;gap:5px}
+.ae-glossary-relations-header strong{
+ color:var(--theme-text);font-size:12px;font-weight:850;letter-spacing:.06em
+}
+.ae-glossary-relations-header small{color:var(--theme-text);opacity:.75;font-size:11px;line-height:1.5}
+.ae-glossary-editor #glossaryConnectionsSearch{
+ min-height:44px;width:100%;border:1px solid var(--theme-structure);
+ background:var(--theme-bg);color:var(--theme-text);padding:10px 12px
+}
+.ae-glossary-editor #glossaryConnectionsSearch:focus-visible{
+ outline:2px solid var(--theme-accent);outline-offset:2px
+}
+.ae-glossary-relations-list{
+ display:grid;gap:6px;max-height:220px;overflow-y:auto;
+ overscroll-behavior:contain;min-width:0
+}
+.ae-glossary-editor .ae-glossary-connection{
+ display:flex;align-items:center;gap:10px;min-height:45px;
+ padding:8px 10px;border:1px solid var(--theme-structure);
+ background:var(--theme-bg);cursor:pointer;line-height:1.35
+}
+.ae-glossary-editor .ae-glossary-connection[hidden]{display:none!important}
+.ae-glossary-editor .ae-glossary-connection:has(input:checked){
+ border-color:var(--theme-accent);
+ background:color-mix(in srgb,var(--theme-accent) 7%,var(--theme-bg))
+}
+.ae-glossary-editor .ae-glossary-connection input[type=checkbox]{
+ flex:0 0 17px;width:17px;height:17px;min-height:17px;margin:0;
+ accent-color:var(--theme-accent)
+}
+.ae-glossary-editor .ae-glossary-connection>span{display:grid;gap:3px;min-width:0}
+.ae-glossary-connection strong{font-size:12px;font-weight:750;overflow-wrap:break-word}
+.ae-glossary-connection small{font-size:10px;font-weight:500;opacity:.75}
+.ae-glossary-related{margin:16px 0;display:grid;gap:10px}
+.ae-glossary-related>strong{font-size:11px;letter-spacing:.06em;color:var(--theme-text)}
+.ae-glossary-related>div{display:flex;flex-wrap:wrap;gap:8px}
+.ae-glossary-related button{
+ padding:9px 12px;border:1px solid var(--theme-structure);
+ background:var(--theme-raised);color:var(--theme-text);
+ font:inherit;font-size:12px;cursor:pointer
+}
+.ae-glossary-related button:hover,.ae-glossary-related button:focus-visible{
+ border-color:var(--theme-accent);color:var(--theme-accent)
+}
+html.performance-mode .ae-glossary-connection{transition:none!important}
+
 /* Editor de capítulos: composição com barra de formatação e prévia na mesma janela. */
 .dialog:has(.ae-library-editor){
  width:min(1120px,95vw);max-width:1120px;max-height:92dvh;overflow:auto
