@@ -1,3 +1,56 @@
+/* Conteúdo editorial existente: estilos preservados sem modificar as regras. */
+.ae-book-heading{font-family:'Barlow Condensed',sans-serif;letter-spacing:.035em;line-height:1.2;margin:1.55em 0 .7em}
+.ae-book-heading:first-child{margin-top:0}
+.ae-book-definitions{display:grid;gap:10px;margin:14px 0 23px;max-width:84ch}
+.ae-book-definition{border-left:3px solid var(--theme-structure);background:color-mix(in srgb,var(--theme-raised) 55%,transparent);padding:12px 17px}
+.ae-book-definition dt{font-weight:900;letter-spacing:.015em;margin:0 0 5px;color:var(--theme-text);line-height:1.5}
+.ae-book-definition dd{margin:0;line-height:1.75;font-size:14px}
+.ae-library-help{position:relative;display:inline-grid;place-items:center;vertical-align:super;min-width:20px;width:20px;height:20px;margin:0 3px 0 5px;padding:0;border:1px solid var(--theme-cold);border-radius:50%;color:var(--theme-cold);background:var(--theme-panel);font:900 11px/1 'Barlow Condensed',sans-serif;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.ae-library-help:hover,.ae-library-help:focus-visible{color:var(--accent-ink);background:var(--theme-cold);border-color:var(--theme-cold);outline:2px solid var(--theme-cold);outline-offset:2px}
+.ae-mechanic-explanation{padding:8px 1px 0}
+.ae-mechanic-explanation p:not(.subtitle){margin:14px 0 16px;line-height:1.85;font-size:15px;max-width:70ch}
+.ae-mechanic-explanation .eyebrow{line-height:1.6}
+.ae-mechanic-explanation .subtitle{line-height:1.7;font-size:12px}
+.book-text .book-quote,.book-text .book-code,.book-text .book-table-wrap{margin-block:16px 22px}
+.book-text .book-readable-list{padding-left:28px;margin-block:13px 22px}
+.book-text .book-readable-list li{padding-block:4px;line-height:1.8}
+
+#page button.ae-library-help{
+ position:relative;vertical-align:middle;display:inline-flex;align-items:center;justify-content:center;
+ box-sizing:border-box;min-height:22px!important;max-height:22px!important;height:22px!important;
+ min-width:22px!important;max-width:22px!important;width:22px!important;
+ margin:0 2px 0 5px!important;padding:0!important;line-height:1!important;
+ font:800 12px/1 system-ui,sans-serif!important;letter-spacing:0!important;
+ border-radius:50%!important;border:1px solid color-mix(in srgb,var(--theme-cold) 65%,var(--theme-structure))!important;
+ background:color-mix(in srgb,var(--theme-cold) 8%,var(--theme-panel))!important;
+ color:var(--theme-cold)!important;box-shadow:none!important;
+ transform:none!important;clip-path:none!important;text-align:center;cursor:help;
+ float:none;white-space:nowrap
+}
+#page button.ae-library-help:hover,#page button.ae-library-help:focus-visible{
+ border-color:var(--theme-accent)!important;background:color-mix(in srgb,var(--theme-accent) 16%,var(--theme-panel))!important;
+ color:var(--theme-accent)!important;outline:2px solid var(--theme-accent);outline-offset:2px
+}
+.ae-library-reading .ae-term{display:inline;padding:.05em .19em .09em;border-radius:2px;font-weight:800;
+ -webkit-box-decoration-break:clone;box-decoration-break:clone;white-space:normal}
+.ae-library-reading .ae-term-resource{color:var(--theme-cold);background:color-mix(in srgb,var(--theme-cold) 12%,transparent)}
+.ae-library-reading .ae-term-risk{color:var(--theme-accent);background:color-mix(in srgb,var(--theme-accent) 11%,transparent)}
+.ae-library-reading .ae-term-rule{color:var(--theme-text);background:color-mix(in srgb,var(--theme-structure) 30%,transparent);border-bottom:1px solid var(--theme-cold)}
+.ae-library-reading .ae-book-definition dt{font-family:'Barlow Condensed',sans-serif;font-size:18px;letter-spacing:.015em}
+.ae-library-reading .ae-book-definition:has(.ae-term-resource){border-left-color:var(--theme-cold)}
+.ae-library-reading .ae-book-definition:has(.ae-term-risk){border-left-color:var(--theme-accent)}
+.ae-library-reading .ae-book-heading{padding-left:12px;border-left:3px solid var(--theme-accent);color:var(--theme-text)}
+.ae-library-reading .ae-book-heading .ae-term{font-size:inherit}
+.ae-library-reading .ae-book-definition dd{color:var(--theme-text)}
+
+/* Destaques editoriais contidos por paleta; funciona com temas claro e alto contraste. */
+.ae-library-reading .ae-book-definition dt.ae-def-resource{color:var(--theme-cold)}
+.ae-library-reading .ae-book-definition dt.ae-def-risk{color:var(--theme-accent)}
+.ae-library-reading .ae-book-definition dt.ae-def-rule{color:var(--theme-text)}
+.ae-library-reading .ae-book-definition:has(dt.ae-def-resource){border-left-color:var(--theme-cold)}
+.ae-library-reading .ae-book-definition:has(dt.ae-def-risk){border-left-color:var(--theme-accent)}
+.ae-library-reading .ae-manual-color{font-weight:800;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+
 /* ARQUIVO ESPIRITUAL • BIBLIOTECA
    Camada visual isolada. Não altera conteúdo, formatação ou persistência das regras.
    Usa somente tokens de paleta e respeita zoom, leitura assistida e modo desempenho.
