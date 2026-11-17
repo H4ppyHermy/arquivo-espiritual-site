@@ -1569,6 +1569,10 @@ html.performance-mode #page .panel,
 html.performance-mode .ae-home-tile{background-color:var(--theme-panel)!important}
 </style>
 <link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=4"><link rel="stylesheet" href="biblioteca-ui.css?v=2"><link rel="stylesheet" href="biblioteca-grimorio.css?v=4"><link rel="stylesheet" href="master-preview.css?v=2"><style id="ae-glossary-dice">
+.die-figure.ae-inline-die{display:inline-flex;vertical-align:-.3em;width:1.6em;height:1.6em;color:var(--theme-cold)!important;align-items:center;justify-content:center;margin:0 .08em;white-space:nowrap}
+.die-figure.ae-inline-die svg{display:block;width:100%;height:100%;stroke:currentColor;fill:color-mix(in srgb,currentColor 16%,transparent)}
+.die-figure.ae-inline-die svg text{fill:var(--theme-text);stroke:none}
+
 .ae-library-reading .ae-glossary-link{appearance:none;display:inline;padding:0;margin:0;border:0;background:none;color:inherit;font:inherit;line-height:inherit;letter-spacing:inherit;vertical-align:baseline;text-align:inherit;cursor:pointer;text-decoration:none;box-shadow:none;transition:color .15s}
 .ae-library-reading .ae-glossary-link:hover,.ae-library-reading .ae-glossary-link:focus-visible{color:var(--theme-accent)!important;background:none}
 .ae-library-reading .ae-glossary-link:focus-visible{outline:1px solid var(--theme-accent);outline-offset:2px}
@@ -2873,7 +2877,25 @@ function abilityRoll(i){useAbility(i)}
 function customDiceEditor(ab,i,s){const custom=Array.isArray(ab.testDice)?ab.testDice:[];const colors=abilityDicePalette(s,ab);return `<div class="ability-custom-editor"><p class="color-hint">Dados do teste próprio (até 12). Cada dado tem uma cor individual. Ao usar a técnica, o teste será rolado junto do custo de Alma.</p>${custom.map((d,j)=>`<div class="custom-die-row"><label>Dado ${j+1}<select data-ability-die="${i}:${j}:sides">${VALID_DICE.map(n=>`<option value="${n}" ${Number(d.sides)===n?'selected':''}>d${n}</option>`).join('')}</select></label><label>Cor ${j+1}<input type="color" data-ability-die="${i}:${j}:color" value="${ABILITY_HEX.test(d.color||'')?d.color:colors.group}"></label>${btn('REMOVER','removeAbilityDie:'+i+':'+j,'small danger')}</div>`).join('')||'<p class="color-hint">Nenhum dado próprio definido.</p>'}${btn('+ DADO','addAbilityDie:'+i,'small')}</div>`}
 const DICE_POLYGONS={4:'12,2 2,21 22,21',6:'4,4 20,4 20,20 4,20',8:'12,2 22,12 12,22 2,12',10:'12,2 21,8 18,18 12,23 6,18 3,8',12:'12,2 21,7 21,17 12,22 3,17 3,7',20:'12,2 21,6 23,15 17,22 7,22 1,15 3,6'};
 function dieShape(n,kind=''){n=Number(n);if(!DICE_POLYGONS[n])return '<span>d'+esc(n)+'</span>';return `<span class="die-figure ${kind}" title="Dado de ${n} lados"><svg viewBox="0 0 24 24" role="img" aria-label="Dado de ${n} lados"><polygon points="${DICE_POLYGONS[n]}"></polygon><text x="12" y="13">${n}</text></svg></span>`}
-function sheetRich(text){const escaped=esc(text||'');const fragments=escaped.split(/(\[cor=#[0-9a-fA-F]{6}\]|\[\/cor\])/gi);let open=false,out='';for(const p of fragments){if(/^\[cor=#[0-9a-f]{6}\]$/i.test(p)){if(open)out+='</span>';out+='<span style="color:'+p.slice(5,12)+'">';open=true}else if(/^\[\/cor\]$/i.test(p)){if(open)out+='</span>';open=false}else{out+=p.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')}}return out+(open?'</span>':'')}
+function sheetRich(text){
+ const markers=[];
+ const raw=String(text||'').replace(/(^|[^\p{L}\p{N}])([dD](?:4|6|8|10|12|20))(?![\p{L}\p{N}])/gu,(all,prefix,die)=>{
+  const index=markers.push(Number(die.slice(1)))-1;
+  return prefix+'@@AEDIE'+index+'@@';
+ });
+ const escaped=esc(raw);
+ const fragments=escaped.split(/(\[cor=#[0-9a-fA-F]{6}\]|\[\/cor\])/gi);
+ let open=false,out='';
+ for(const p of fragments){
+  if(/^\[cor=#[0-9a-f]{6}\]$/i.test(p)){
+   if(open)out+='</span>';
+   out+='<span style="color:'+p.slice(5,12)+'">';open=true;
+  }else if(/^\[\/cor\]$/i.test(p)){
+   if(open)out+='</span>';open=false;
+  }else out+=p.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+ }
+ return (out+(open?'</span>':'')).replace(/@@AEDIE(\d+)@@/g,(_,index)=>dieShape(markers[Number(index)],'ae-inline-die'));
+}
 function wrapColoredSelection(textareaId,colorId){const t=el(textareaId),c=el(colorId);if(!t||!c)return;const start=t.selectionStart,end=t.selectionEnd,value=t.value;const before=value.slice(0,start),mid=value.slice(start,end)||'texto colorido',after=value.slice(end);t.value=before+'[cor='+c.value+']'+mid+'[/cor]'+after;t.focus();t.setSelectionRange(start+5+c.value.length,start+5+c.value.length+mid.length);t.dispatchEvent(new Event('input',{bubbles:true}))}
 
 async function noteImageUpload(input){
