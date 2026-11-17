@@ -1525,6 +1525,22 @@ body.theme-zangetsu .ae-home-play{color:var(--accent-ink)}
 @media(max-width:700px){
  .ae-palette-dialog .ae-palette-color{min-height:69px}
 }
+
+/* Navegação sem barras nativas: mantém rolagem por mouse, toque, teclado e touchpad. */
+html,body,
+.side .nav,.nav,.tabs,.history,.chapter-index,
+.modal-backdrop .dialog{
+ scrollbar-width:none;
+ -ms-overflow-style:none;
+}
+html::-webkit-scrollbar,body::-webkit-scrollbar,
+.side .nav::-webkit-scrollbar,.nav::-webkit-scrollbar,
+.tabs::-webkit-scrollbar,.history::-webkit-scrollbar,
+.chapter-index::-webkit-scrollbar,.modal-backdrop .dialog::-webkit-scrollbar{
+ display:none;
+ width:0;
+ height:0;
+}
 </style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><div class="sidebar-extras" aria-label="Estado do site e configurações">
  <span id="onlineStatus" class="online-status" title="Estado da sincronização">LOCAL</span>
