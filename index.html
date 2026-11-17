@@ -1505,6 +1505,26 @@ body.theme-zangetsu .ae-home-play{color:var(--accent-ink)}
 #page .ae-palette-select-row{display:flex;align-items:stretch;gap:10px;width:100%;min-width:0}
 #page .ae-palette-select-row select{flex:1 1 auto;min-width:0;width:auto;height:48px;min-height:48px;margin:0}
 #page .ae-palette-select-row .ae-palette-gear{align-self:stretch;display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;min-width:48px;min-height:48px;margin:0;padding:0}
+
+/* Editor de paleta: termos legíveis, grupos claros e o mesmo esquema de salvamento. */
+.ae-palette-dialog .ae-palette-editor{display:grid;gap:15px}
+.ae-palette-dialog .ae-palette-state{margin-bottom:0}
+.ae-palette-dialog .ae-palette-group{min-width:0}
+.ae-palette-dialog .ae-palette-group-heading{margin-bottom:9px}
+.ae-palette-dialog .ae-palette-group-heading h3{margin:0;font-size:11px;font-weight:900;letter-spacing:.09em;color:var(--theme-accent)}
+.ae-palette-dialog .ae-palette-group-heading p{margin:3px 0 0;font-size:11px;line-height:1.45;color:var(--theme-text);opacity:.76}
+.ae-palette-dialog .ae-palette-color{min-height:71px;padding:10px 12px;gap:10px}
+.ae-palette-dialog .ae-palette-color-copy{display:flex;flex-direction:column;min-width:0;gap:4px;line-height:1.35}
+.ae-palette-dialog .ae-palette-color-copy strong{font-size:12px;font-weight:800;color:var(--theme-text)}
+.ae-palette-dialog .ae-palette-color-copy small{font-size:10px;line-height:1.35;font-weight:500;color:var(--theme-text);opacity:.72}
+.ae-palette-dialog .ae-palette-color input{flex:0 0 42px}
+.ae-palette-dialog .ae-palette-color:focus-within{border-color:var(--theme-accent);outline:2px solid var(--theme-cold);outline-offset:1px}
+.ae-palette-dialog .ae-palette-gradient-group{border-top:1px solid var(--theme-structure);padding-top:14px}
+.ae-palette-dialog .ae-palette-gradient{border:0;margin:10px 0 0;padding:0}
+.ae-palette-dialog .ae-palette-live-preview{margin-top:1px}
+@media(max-width:700px){
+ .ae-palette-dialog .ae-palette-color{min-height:69px}
+}
 </style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><div class="sidebar-extras" aria-label="Estado do site e configurações">
  <span id="onlineStatus" class="online-status" title="Estado da sincronização">LOCAL</span>
@@ -1573,14 +1593,39 @@ function contrast(hex1,hex2){function lum(h){const a=h.replace('#','').match(/..
 
 function paletteEditor(){
  const p=currentPalette();
- const swatches=[['Fundo','bg'],['Painéis','panel'],['Superfícies','raised'],['Estrutura','structure'],['Ciano','cold'],['Texto','text'],['Destaque','accent'],['Destaque pressionado','pressed'],['Contorno','outline']];
+ const groups=[
+  ['CORES PRINCIPAIS','As cores mais visíveis durante a navegação.',[
+   ['Cor principal','accent','Botões e ações em destaque'],
+   ['Cor secundária','cold','Detalhes e destaques de apoio'],
+   ['Cor do texto','text','Títulos e textos do site']
+  ]],
+  ['FUNDOS','As superfícies onde as informações aparecem.',[
+   ['Cor de fundo','bg','Fundo geral da página'],
+   ['Cor dos painéis','panel','Janelas e painéis principais'],
+   ['Cor dos cartões','raised','Blocos e áreas elevadas']
+  ]],
+  ['DETALHES','Ajustes finos para bordas e interações.',[
+   ['Cor das bordas','structure','Linhas e divisões'],
+   ['Cor ao pressionar','pressed','Botões ao serem pressionados'],
+   ['Cor dos contornos','outline','Traços e molduras de destaque']
+  ]]
+ ];
+ const fields=groups.map(([title,description,colors])=>
+  '<section class="ae-palette-group" aria-label="'+title+'">'+
+  '<div class="ae-palette-group-heading"><h3>'+title+'</h3><p>'+description+'</p></div>'+
+  '<div class="ae-palette-editor-grid">'+colors.map(([label,key,hint])=>
+   '<label class="ae-palette-color"><span class="ae-palette-color-copy"><strong>'+label+'</strong><small>'+hint+'</small></span>'+
+   '<input type="color" data-palette="'+key+'" value="'+p[key]+'" aria-label="'+label+'" title="Alterar '+label.toLocaleLowerCase('pt-BR')+'"></label>'
+  ).join('')+'</div></section>'
+ ).join('');
  const body='<div class="ae-palette-editor">'+
- '<p class="ae-settings-muted">Personalize os elementos visuais. As alterações são aplicadas e salvas neste dispositivo.</p>'+
+ '<p class="ae-settings-muted">Escolha as cores de cada parte do site. As mudanças são salvas automaticamente neste dispositivo.</p>'+
  '<div class="ae-palette-state" id="paletteEditingState">'+(prefs.preset==='personalizado'?'PERSONALIZADA · ALTERAÇÕES SALVAS':prefs.preset==='padrao'?'ICHIGO':'VELHO ZANGETSU · PADRÃO')+'</div>'+
- '<div class="ae-palette-editor-grid">'+swatches.map(([label,key])=>'<label class="ae-palette-color"><span>'+label+'</span><input type="color" data-palette="'+key+'" value="'+p[key]+'" aria-label="Cor: '+label+'"></label>').join('')+'</div>'+
- '<div class="ae-palette-gradient"><label class="ae-settings-check"><input type="checkbox" id="globalGradient" '+(prefs.globalGradient?'checked':'')+'> Ativar gradiente nos painéis</label>'+
- '<label class="ae-palette-gradient-color">Segunda cor do gradiente<input type="color" id="globalGradientEnd" value="'+(prefs.globalGradientEnd||p.raised)+'" aria-label="Segunda cor do gradiente"></label></div>'+
- '<div class="ae-palette-live-preview" id="paletteLivePreview" aria-label="Prévia da paleta"><span>EXEMPLO DE INTERFACE</span><strong>Leitura e contraste</strong><span class="ae-palette-preview-action">BOTÃO DE AÇÃO</span></div>'+
+ fields+
+ '<section class="ae-palette-group ae-palette-gradient-group"><div class="ae-palette-group-heading"><h3>GRADIENTE</h3><p>Opcional: combine duas cores no fundo dos painéis.</p></div>'+
+ '<div class="ae-palette-gradient"><label class="ae-settings-check"><input type="checkbox" id="globalGradient" '+(prefs.globalGradient?'checked':'')+'> Usar gradiente nos painéis</label>'+
+ '<label class="ae-palette-gradient-color">Cor final do gradiente<input type="color" id="globalGradientEnd" value="'+(prefs.globalGradientEnd||p.raised)+'" aria-label="Cor final do gradiente"></label></div></section>'+
+ '<div class="ae-palette-live-preview" id="paletteLivePreview" aria-label="Prévia das cores"><span>PRÉVIA</span><strong>Exemplo de texto</strong><span class="ae-palette-preview-action">BOTÃO DE AÇÃO</span></div>'+
  '<p class="ae-palette-warning" id="contrastWarning"></p></div>';
  modal('PERSONALIZAR PALETA',body,[['CONCLUÍDO','closeModal','main']]);
  const dialog=el('dialogRoot')?.querySelector('.dialog');dialog?.classList.add('ae-palette-dialog');
