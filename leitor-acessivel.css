@@ -1,0 +1,71 @@
+
+/* Arquivo Espiritual — Painel flutuante de leitura, v2.
+   Escopado para não modificar pop-ups, fichas ou janelas do site. */
+.ae-speech-tools{
+ --ae-reader-scale:1;
+ position:fixed;
+ left:12px;top:calc(100dvh - 200px);right:auto;bottom:auto;
+ z-index:600;
+ display:grid;gap:calc(8px * var(--ae-reader-scale));
+ width:calc(284px * var(--ae-reader-scale));
+ max-width:calc(100vw - 16px);
+ max-height:calc(100dvh - 16px);
+ overflow:auto;overscroll-behavior:contain;
+ box-sizing:border-box;
+ padding:calc(10px * var(--ae-reader-scale));
+ color:var(--theme-text);background:var(--theme-panel);
+ border:1px solid var(--theme-structure);
+ box-shadow:0 10px 30px #0008;
+ font-family:Manrope,Arial,sans-serif;
+ font-size:calc(12px * var(--ae-reader-scale));
+ line-height:1.45;
+ border-radius:0;clip-path:none;
+}
+.ae-speech-tools[hidden],.ae-speech-tools [hidden]{display:none!important}
+.ae-speech-tools button{
+ display:inline-flex;justify-content:center;align-items:center;
+ font:inherit;font-size:inherit;font-weight:800;
+ color:var(--theme-text);background:var(--theme-raised);
+ border:1px solid var(--theme-structure);border-radius:0;
+ padding:8px 9px;min-width:44px;min-height:44px;
+ white-space:normal;line-height:1.25;text-align:center;
+ touch-action:manipulation;cursor:pointer;
+}
+.ae-speech-tools button:disabled{opacity:.5;cursor:not-allowed}
+.ae-speech-tools button:focus-visible{outline:3px solid var(--theme-cold);outline-offset:2px}
+.ae-speech-head{display:flex;gap:5px;align-items:stretch;min-width:0}
+.ae-speech-tools .ae-speech-drag{
+ display:flex;flex:1 1 auto;justify-content:flex-start;gap:6px;
+ min-width:0;padding:7px 9px;
+ background:var(--theme-bg);border-style:dashed;
+ touch-action:none;user-select:none;cursor:grab;
+ letter-spacing:.045em;font-size:calc(11px * var(--ae-reader-scale));
+}
+.ae-speech-tools .ae-speech-drag:active{cursor:grabbing}
+.ae-speech-tools .ae-speech-drag span{min-width:0;overflow-wrap:anywhere}
+.ae-speech-sizes{display:flex;flex:0 0 auto;gap:4px}
+.ae-speech-tools .ae-speech-sizes button{
+ width:44px;flex:0 0 44px;padding:0;
+ font-size:21px;line-height:1;
+}
+.ae-speech-actions{display:flex;gap:5px;flex-wrap:wrap;min-width:0}
+.ae-speech-tools .ae-speech-actions button{
+ flex:1 1 auto;
+ font-size:calc(11px * var(--ae-reader-scale));
+}
+.ae-speech-tools .ae-speech-primary{
+ background:var(--theme-accent);border-color:var(--theme-accent);
+ color:var(--accent-ink,var(--theme-outline));
+}
+.ae-speech-status{
+ font-size:calc(10px * var(--ae-reader-scale));
+ opacity:.85;overflow-wrap:anywhere;line-height:1.5;
+}
+html.dyslexia-mode .ae-speech-tools{
+ font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif;
+}
+html.performance-mode .ae-speech-tools{box-shadow:none!important}
+@media(max-width:680px){
+ .ae-speech-tools{width:calc(265px * var(--ae-reader-scale));max-width:calc(100vw - 16px)}
+ .ae-speech-tools .ae-speech-actions button{flex:1 1 45%}
+}
