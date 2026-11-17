@@ -137,7 +137,7 @@ async function notify(req){
  const row=await findRoll(id);
  if(!session?.[0]?.account_id||!row||row.account_id!==session[0].account_id||row.hidden||row.kind==="discord")return j({error:"Sem permissão."},403,extra);
  if(row.discord_message_id)return j({ok:true,duplicate:true},200,extra);
- const channel=env("DISCORD_ROLL_CHANNEL_ID"),bot=env("DISCORD_BOT_TOKEN");
+ const channel=env("DISCORD_ROLL_CHANNEL_ID")||"1558584343713157152",bot=env("DISCORD_BOT_TOKEN");
  if(!/^\d{17,22}$/.test(channel)||!bot)return j({ok:false,disabled:true},200,extra);
  const sent=await fetch("https://discord.com/api/v10/channels/"+channel+"/messages",{
   method:"POST",headers:{Authorization:"Bot "+bot,"Content-Type":"application/json"},
