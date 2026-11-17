@@ -77,21 +77,65 @@ async function rerollButton(p){
  if(String(previous.discord_user_id)!==String(user(p).id))return deny("Somente quem fez a rolagem pode re-rolar.");
  return rollCmd(p,previous);
 }
-async function sheetCmd(p){
+async function sheetCmd(){
+ // Slash commands never disclose protected sheets. Retrieval uses a linked account and private DM.
+ return deny("Para receber sua ficha completa, use bficha ID no servidor. Primeiro, use bvincular para conectar sua conta do site.");
+}
+async function sheetOwnerCmd(p){
  const id=String(opt(p,"id")||"").trim();
- if(!/^[a-zA-Z0-9_-]{1,100}$/.test(id))return deny("Informe o ID de uma ficha.");
- const found=(await sheets()).find(s=>s.id===id);
- if(!permittedSheet(found))return deny("Ficha inexistente ou protegida. Solicite acesso ao mestre.");
- const lines=["**"+txt(found.name,80)+"**","ID: "+id,"Nível: "+txt(found.level,10)];
- if(found.race)lines.push("Raça: "+txt(found.race,55));
- if(found.class)lines.push("Classe: "+txt(found.class,55));
- const stats=["vida","estabilidade","alma"].flatMap(k=>{
-  const r=found.resources?.[k];
-  return r&&Number.isFinite(Number(r.current))&&Number.isFinite(Number(r.max))?[k+": "+r.current+"/"+r.max]:[];
+ if(!/^[a-zA-Z0-9_-]{1,100}$/.test(id))return {content:"Use bficha ID (exemplo: bficha arquivo-hn9c15m7)."};
+ const discordId=String(user(p).id||"");
+ const linked=await rest("ae_discord_links?select=account_id,key_id&discord_user_id=eq."+encodeURIComponent(discordId)+"&limit=1");
+ if(!linked?.[0])return {content:"Discord não vinculado ao site. Digite bvincular e confira suas DMs."};
+ const accountId=linked[0].account_id,keyId=linked[0].key_id;
+ const [accounts,keys]=await Promise.all([
+  rest("ae_accounts?select=id,key_id&id=eq."+encodeURIComponent(accountId)+"&limit=1"),
+  rest("ae_keys?select=id,kind,active&id=eq."+encodeURIComponent(keyId)+"&limit=1")
+ ]);
+ if(accounts?.[0]?.key_id!==keyId||keys?.[0]?.active!==true||keys?.[0]?.kind!=="player"){
+  return {content:"Seu vínculo não está mais ativo. Entre na sua conta do site e vincule novamente usando bvincular."};
+ }
+ const sheet=(await sheets()).find(s=>s.id===id);
+ // Conhecer o ID não dá acesso; coautores não recebem fichas de outros donos.
+ if(!sheet||sheet.masterOnly||sheet.ownerKeyId!==keyId){
+  return {content:"Ficha não encontrada ou não pertence à sua conta. Confira o ID ou o vínculo no site."};
+ }
+ return {dmSheet:sheet,content:"Sua ficha completa foi enviada por mensagem privada."};
+}
+function challengeCode(){
+ const bytes=new Uint8Array(8);crypto.getRandomValues(bytes);
+ return [...bytes].map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
+}
+async function createLinkChallenge(discordId){
+ const code=challengeCode();
+ const hashed=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(code));
+ const digest=[...new Uint8Array(hashed)].map(x=>x.toString(16).padStart(2,"0")).join("");
+ const timestamp=new Date();
+ const body={
+  discord_user_id:discordId,code_hash:digest,
+  expires_at:new Date(timestamp.getTime()+10*60*1000).toISOString(),created_at:timestamp.toISOString()
+ };
+ const response=await fetch(api()+"/rest/v1/ae_discord_link_challenges?on_conflict=discord_user_id",{
+  method:"POST",
+  headers:{apikey:key(),Authorization:"Bearer "+key(),"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=representation"},
+  body:JSON.stringify(body)
  });
- if(stats.length)lines.push(stats.join(" · "));
- if(/^https:\/\//.test(env("ARQUIVO_SITE_URL"))){try{const link=new URL(env("ARQUIVO_SITE_URL"));link.searchParams.set("ficha",id);lines.push("Abrir ficha no site: "+link.toString())}catch{}}
- return say(lines.join("\n"),true);
+ if(!response.ok)throw Error("Não foi possível gerar o código de vínculo ("+response.status+").");
+ return code.match(/.{1,4}/g).join("-");
+}
+async function beginLinkCmd(p){
+ const discordId=String(user(p).id||"");
+ if(!/^\d{17,22}$/.test(discordId))return {content:"Usuário do Discord inválido."};
+ const code=await createLinkChallenge(discordId);
+ return {
+  dmContent:"**BLEACH CBB · VINCULAR CONTA**\n\n"+
+   "Código pessoal: **"+code+"**\n\n"+
+   "1. Entre no Arquivo Espiritual com sua chave de jogador.\n"+
+   "2. Abra sua ficha e clique em VINCULAR DISCORD.\n"+
+   "3. Cole este código e confirme.\n\n"+
+   "Expira em 10 minutos. Não compartilhe. Depois use bficha ID no servidor.",
+  content:"Enviei as instruções de vinculação por mensagem privada. Confira suas DMs."
+ };
 }
 async function historyCmd(){
  const rows=await rest("ae_rolls?select=id,account_name,sheet_id,label,total,hidden&hidden=eq.false&order=id.desc&limit=30");
@@ -222,7 +266,8 @@ async function prefixCommand(req){
  };
  try{
   const result=command==="rolar"?await rollCmd(payload):
-   command==="ficha"?await sheetCmd(payload):
+   command==="ficha"?{data:await sheetOwnerCmd(payload)}:
+   command==="vincular"?{data:await beginLinkCmd(payload)}:
    command==="historico"?await historyCmd():
    {data:helpCard()};
   return j(result.data||{content:"Comando indisponível."});
