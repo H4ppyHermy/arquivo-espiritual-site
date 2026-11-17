@@ -1696,7 +1696,7 @@ html.performance-mode #page .ae-home-hero,
 html.performance-mode #page .panel,
 html.performance-mode .ae-home-tile{background-color:var(--theme-panel)!important}
 </style>
-<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=3"></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
+<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=4"></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
 <div id="mobileMoreBackdrop" class="ae-mobile-more-backdrop" data-action="mobileMoreToggle" hidden aria-hidden="true"></div>
 <div id="mobileMoreMenu" class="ae-mobile-more-menu" hidden aria-label="Mais opções">
  <div class="ae-mobile-more-header"><strong>OUTRAS ÁREAS</strong><button type="button" data-action="mobileMoreToggle" aria-label="Fechar menu">×</button></div>
@@ -1744,17 +1744,25 @@ const PALETTES={
  // Chad: Camel, Attractive Brown, Native Wine, Husk, Dark Sage e Cod Gray.
  // Texto marfim derivado da família Camel para garantir contraste sobre o marrom.
  chad:{bg:'#0B0A0A',panel:'#483139',raised:'#77483A',structure:'#758159',cold:'#B8A35A',text:'#F7E9D7',accent:'#C3966D',pressed:'#77483A',outline:'#0B0A0A'},
+ // Rukia: Stygian, Country White, Taylor e Anna.
+ rukia:{bg:'#1E1F25',panel:'#292932',raised:'#595080',structure:'#595080',cold:'#EBEBE8',text:'#EBEBE8',accent:'#F0CBBB',pressed:'#595080',outline:'#121217'},
+ // Uryu: Cute Silver, Cool Blue, Sporty Navy, Comet e Bianchi Green.
+ uryu:{bg:'#282A47',panel:'#444974',raised:'#343658',structure:'#6F8DB3',cold:'#B5FFF6',text:'#E4E7EB',accent:'#B5FFF6',pressed:'#6F8DB3',outline:'#191A2C'},
  shinji:{bg:'#14120E',panel:'#251F15',raised:'#372D1A',structure:'#987B33',cold:'#FF7881',text:'#FFF9E7',accent:'#FFD44B',pressed:'#CFA731',outline:'#080704'}
 };
+// Ordem exibida em Configurações. Rukia vem após Uryu, já que não
+// foi indicada na sequência enviada.
 const PALETTE_CHOICES=[
  ['zangetsu','Velho Zangetsu','Ciano e laranja sobre azul profundo.'],
  ['padrao','Ichigo','Laranja intenso e tons escuros.'],
- ['ulquiorra','Ulquiorra','Verde espiritual sobre preto.'],
+ ['chad','Chad','Camel, marrom, vinho escuro, dourado envelhecido e verde-sálvia.'],
+ ['uryu','Uryu','Prata, azul, marinho e verde-água.'],
+ ['rukia','Rukia','Preto azulado, branco, rosa-claro e violeta.'],
  ['renji','Renji','Vermelho, preto e rosa.'],
  ['yoruichi','Yoruichi','Roxo noturno e dourado.'],
- ['zangetsu-prata','Zangetsu','Prata, grafite e preto.'],
- ['chad','Chad','Camel, marrom, vinho escuro, dourado envelhecido e verde-sálvia.'],
- ['shinji','Shinji','Amarelo, branco e vermelho · Sakanade: textos invertidos.']
+ ['shinji','Shinji','Amarelo, branco e vermelho · Sakanade: textos invertidos.'],
+ ['ulquiorra','Ulquiorra','Verde espiritual sobre preto.'],
+ ['zangetsu-prata','Zangetsu','Prata, grafite e preto.']
 ];
 const PALETTE_IDS=PALETTE_CHOICES.map(([id])=>id);
 const PALETTE_COLOR_KEYS=['bg','panel','raised','structure','cold','text','accent','pressed','outline'];
@@ -1885,7 +1893,13 @@ function updateSettingsVolumeSliders(){
 }
 function settings(){
  const p=currentPalette();
- const swatches=(prefs.preset==='chad'?['bg','panel','raised','structure','cold','accent']:['bg','panel','structure','cold','accent','text']).map(k=>'<span aria-hidden="true" style="background:'+p[k]+'"></span>').join('');
+ const paletteSwatches={
+ chad:['bg','panel','raised','structure','cold','accent'],
+ rukia:['bg','text','accent','structure'],
+ uryu:['text','structure','panel','bg','accent']
+ };
+ const swatches=(paletteSwatches[prefs.preset]||['bg','panel','structure','cold','accent','text']).map(k=>
+  '<span aria-hidden="true" style="background:'+p[k]+'"></span>').join('');
  return headline('PREFERÊNCIAS DO DISPOSITIVO','CONFIGURAÇÕES','Personalize sua experiência. As preferências são salvas neste dispositivo.')+
  '<div class="ae-settings-stack">'+
  '<section class="panel ae-settings-panel" aria-labelledby="settingsSoundTitle">'+
