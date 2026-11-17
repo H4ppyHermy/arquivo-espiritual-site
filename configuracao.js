@@ -5,6 +5,8 @@ window.ARQUIVO_ONLINE_CONFIG = {
   anonKey: "sb_publishable_xyUG_qTGBhAnNrKBpphLTw_fu5i6wkg",
   // STUN público. Para redes restritas, acrescente um TURN com credenciais válidas.
   // NÃO publique senhas TURN permanentes em repositórios públicos.
+  // Ative somente depois de configurar DISCORD_BOT_TOKEN, canal e CORS na Edge Function.
+  discordNotifications: false,
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' }
