@@ -111,7 +111,7 @@ async function saveAppearance(sheetId,appearance){if(!state.enabled)throw Error(
 async function playerDirectory(){return rpc('ae_player_directory')}
 async function sheetLink(sheetId,action,targetKey=null){return rpc('ae_sheet_link',{p_sheet_id:sheetId,p_action:action,p_target_key:targetKey||null})}
 async function saveOwnedSheet(sheet){if(!state.enabled||state.identity?.kind!=='player')throw Error('Entre com uma chave de jogador.');return rpc('ae_player_save_sheet',{p_sheet:sheet})}
-async function useAbility(sheetId,abilityIndex){if(!state.enabled)throw Error('Conexão online indisponível.');return rpc('ae_use_ability',{p_sheet_id:sheetId,p_ability_index:abilityIndex})}
+async function useAbility(sheetId,abilityIndex){if(!state.enabled)throw Error('Conexão online indisponível.');return rpc('ae_use_ability',{p_sheet_id:sheetId,p_ability_index:abilityIndex}).then(result=>{if(result?.roll?.id)notifyDiscordRoll(result.roll);return result})}
 async function notifyDiscordRoll(result){
  // Desabilitado até o mestre concluir a configuração do bot.
  if(config.discordNotifications!==true||!state.enabled||!result?.id||result.hidden)return;
