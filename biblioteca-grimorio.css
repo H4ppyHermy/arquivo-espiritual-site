@@ -340,3 +340,18 @@ html.dyslexia-mode .ae-library-editor :is(input,textarea,.book-text){
  .ae-library-editor-toolbar{gap:5px}
  .ae-library-editor-toolbar button{padding:7px 8px;font-size:10px}
 }
+
+/* Manter a rolagem sem a barra nativa aparente, como no restante do site. */
+.ae-grimorio-manage-list,
+.ae-library-editor-preview #rulePreview,
+.ae-grimorio-panel{
+ scrollbar-width:none;
+}
+.ae-grimorio-manage-list::-webkit-scrollbar,
+.ae-library-editor-preview #rulePreview::-webkit-scrollbar,
+.ae-grimorio-panel::-webkit-scrollbar{display:none}
+html.performance-mode #page .ae-grimorio-portal:after{display:none!important}
+html.performance-mode #page .ae-grimorio-portal-button,
+html.performance-mode #page .ae-grimorio-entry{
+ transition:none!important;filter:none!important;box-shadow:none!important
+}
