@@ -71,7 +71,7 @@ function rollCard(r){
   footer:{text:"BLEACH CBB  ·  ARQUIVO ESPIRITUAL"+(r.id?"  ·  #"+r.id:"")}
  };
  const components=r.kind==="discord"&&r.id?[{type:1,components:[{
-  type:2,style:2,label:"Re-rolar",emoji:{name:"🔄"},custom_id:"cbb:reroll:"+r.id
+  type:2,style:1,label:"Re-rolar",emoji:{name:"🎲"},custom_id:"cbb:reroll:"+r.id
  }]}]:[];
  return {embeds:[embed],components,allowed_mentions:{parse:[]}};
 }
