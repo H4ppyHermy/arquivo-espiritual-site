@@ -1568,7 +1568,7 @@ html.performance-mode #page .ae-home-hero,
 html.performance-mode #page .panel,
 html.performance-mode .ae-home-tile{background-color:var(--theme-panel)!important}
 </style>
-<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=4"><link rel="stylesheet" href="biblioteca-ui.css?v=2"></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
+<link rel="stylesheet" href="leitor-acessivel.css?v=3"><link rel="stylesheet" href="paletas-tematicas.css?v=4"><link rel="stylesheet" href="biblioteca-ui.css?v=2"><link rel="stylesheet" href="biblioteca-grimorio.css?v=1"></head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav>
 <div id="mobileMoreBackdrop" class="ae-mobile-more-backdrop" data-action="mobileMoreToggle" hidden aria-hidden="true"></div>
 <div id="mobileMoreMenu" class="ae-mobile-more-menu" hidden aria-label="Mais opções">
  <div class="ae-mobile-more-header"><strong>OUTRAS ÁREAS</strong><button type="button" data-action="mobileMoreToggle" aria-label="Fechar menu">×</button></div>
@@ -1604,7 +1604,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const clone=x=>JSON.parse(JSON.stringify(x));const el=id=>document.getElementById(id),uid=()=>('arquivo-'+Math.random().toString(36).slice(2,10)),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function safeStore(kind){try{const s=window[kind];const k='__arquivo_probe__';s.setItem(k,'ok');s.removeItem(k);return s}catch(e){return null}}
 const DATASTORE={local:safeStore('localStorage'),session:safeStore('sessionStorage'),blocked:false,load(){const base=clone(window.ARQUIVO_PUBLICADO||DEFAULT);if(!this.local){this.blocked=true;return base}try{const raw=this.local.getItem('arquivo_data')||this.local.getItem('c'+'bb_data');if(!raw)return base;const saved=JSON.parse(raw);if(!saved.site||!Array.isArray(saved.sheets)||!Array.isArray(saved.rules))return base;if(!this.local.getItem('arquivo_data'))this.local.setItem('arquivo_data',raw);if(!Array.isArray(saved.keys)){this.local.setItem('arquivo_owner_device','sim');return saved}if(this.getRole()==='master'||this.local.getItem('arquivo_owner_device')==='sim')return saved;for(const s of base.sheets){const local=saved.sheets.find(x=>x.id===s.id);if(!local)continue;for(const k of ['vida','estabilidade','alma'])if(local.resources?.[k])s.resources[k].current=clamp(local.resources[k].current,0,s.resources[k].max);s.conditions=local.conditions||[];s.notes=local.notes??s.notes;s.restCount=local.restCount||0;s.desgaste=local.desgaste||0;s.exposures=local.exposures||{}}return base}catch(e){this.blocked=true;return base}},save(data){if(!this.local){this.blocked=true;storageWarning();return false}try{this.local.setItem('arquivo_data',JSON.stringify(data));return true}catch(e){this.blocked=true;storageWarning();return false}},getRole(){try{return this.session?.getItem('arquivo_role')||'guest'}catch(e){return 'guest'}},getKeyId(){try{return this.session?.getItem('arquivo_key_id')||''}catch(e){return ''}},setRole(r,id=''){try{this.session?.setItem('arquivo_role',r);this.session?.setItem('arquivo_key_id',id);if(r==='master')this.local?.setItem('arquivo_owner_device','sim')}catch(e){this.blocked=true;storageWarning()}},clearRole(){try{this.session?.removeItem('arquivo_role');this.session?.removeItem('arquivo_key_id')}catch(e){}}};
-let db=DATASTORE.load(),role=DATASTORE.getRole(),page='home',currentSheet=null,tab='summary',query='',rollHistory=[],lastRoll=null,musicOn=false,soundOn=true,musicMuted=false,audioContext=null,noticeShown=false,flash='',lastResourceId='',pendingAction=null,keyOwnerId=DATASTORE.getKeyId(),adminSection='content',editorDraft=null,libraryExpandedChapters=new Set(),libraryActiveChapterId=null;
+let db=DATASTORE.load(),role=DATASTORE.getRole(),page='home',currentSheet=null,tab='summary',query='',rollHistory=[],lastRoll=null,musicOn=false,soundOn=true,musicMuted=false,audioContext=null,noticeShown=false,flash='',lastResourceId='',pendingAction=null,keyOwnerId=DATASTORE.getKeyId(),adminSection='content',editorDraft=null,libraryExpandedChapters=new Set(),libraryActiveChapterId=null,grimorioOpen=false,grimorioQuery='',grimorioCategory='Todos';
 /* Catálogo central das cores. O seletor e o editor usam os mesmos identificadores. */
 const PALETTES={
  padrao:{bg:'#090708',panel:'#17100F',raised:'#291A15',structure:'#99522F',cold:'#F1E2D2',text:'#FFF8F1',accent:'#FF791B',pressed:'#C6510D',outline:'#030202'},
@@ -2196,11 +2196,12 @@ function library(){
  '<button class="ae-library-clear" id="libraryClearSearch" data-action="clearLibrarySearch" type="button" aria-label="Limpar pesquisa"'+(!query?' hidden':'')+'>LIMPAR</button></div>'+
  '<p id="ruleMatches" class="ae-library-search-count" role="status" aria-live="polite">'+librarySearchSummary(visible)+'</p>'+
  '<div class="ae-library-toolbar"><span>Toque no <b>?</b> para saber mais sobre uma mecânica.</span>'+
- '<div class="actions">'+btn('FECHAR TODOS','closeAllChapters','small')+btn('ABRIR TODOS','openAllChapters','small')+'</div></div>'+
+ '<div class="actions">'+btn('FECHAR TODOS','closeAllChapters','small')+btn('ABRIR TODOS','openAllChapters','small')+(master()?btn('GERENCIAR GLOSSÁRIO','manageGrimorio','small'):'')+'</div></div>'+
  '<div class="mobile-chapter"><label for="chapterJump">Ir ao capítulo</label>'+
  '<select id="chapterJump"><option value="">Selecione um capítulo</option>'+libraryMobileOptions()+'</select></div>'+
  '</div>'+
  '<div id="ruleResults" class="ae-library-results" aria-label="Capítulos">'+ruleItems(visible)+'</div>'+
+ '<div id="libraryGrimorioArea" class="ae-library-grimorio-area">'+grimorioBanner()+'</div>'+ 
  '</section></div>';
 }
 function libraryRefreshResults(){
@@ -2226,29 +2227,259 @@ function librarySyncActiveIndex(){
  });
  const jump=el('chapterJump');if(jump)jump.value=libraryActiveChapterId||'';
 }
+/* GRIMÓRIO: dados editáveis persistidos em db.site e sincronizados pelo documento do mestre. */
+const GRIMORIO_CATEGORIES=['Recursos','Testes','Combate','Condições','Recuperação','Outros'];
+const GRIMORIO_ICONS={'Recursos':'✦','Testes':'🎲','Combate':'⚔','Condições':'◈','Recuperação':'✚','Outros':'📜'};
+const GRIMORIO_DICE_FALLBACK={4:'🔺',6:'🎲',8:'💠',10:'🔷',12:'✦',20:'🌟'};
+const GRIMORIO_DEFAULTS={visible:true,title:'CONSULTAR GRIMÓRIO',subtitle:'Explore as mecânicas e encontre rapidamente o que procura.',autoGlossary:true,showIcons:true,showDiceIcons:true,glossary:[],disabledTerms:[],diceEmoji:{}};
+function grimorioSettings(){
+ const saved=db.site?.grimorio;
+ if(!saved||typeof saved!=='object'||Array.isArray(saved))return {...GRIMORIO_DEFAULTS};
+ return {...GRIMORIO_DEFAULTS,...saved,
+  glossary:Array.isArray(saved.glossary)?saved.glossary:[],
+  disabledTerms:Array.isArray(saved.disabledTerms)?saved.disabledTerms:[],
+  diceEmoji:saved.diceEmoji&&typeof saved.diceEmoji==='object'?saved.diceEmoji:{}};
+}
+function grimorioStored(){
+ db.site??={};
+ if(!db.site.grimorio||typeof db.site.grimorio!=='object'||Array.isArray(db.site.grimorio))db.site.grimorio={};
+ const settings=grimorioSettings();
+ db.site.grimorio=settings;
+ return settings;
+}
+function glossaryKey(name){return String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLocaleLowerCase('pt-BR').replace(/\s+/g,' ')}
+function glossaryCategory(name){
+ const term=glossaryKey(name);
+ if(/vida|alma|estabilidade|energia/.test(term))return 'Recursos';
+ if(/dado|pericia|grupo|teste|dificuldade|modificador/.test(term))return 'Testes';
+ if(/recuper|descanso|tratamento|meditac|recompos/.test(term))return 'Recuperação';
+ if(/estado|condic|morto|desmaiado|acorrentado|pressionado/.test(term))return 'Condições';
+ if(/acao|reacao|combate|movimenta|dano|resistencia|cobertura|posicionamento|terreno/.test(term))return 'Combate';
+ return 'Outros';
+}
+function glossarySuggestions(){
+ const results=new Map();
+ for(const chapter of db.rules||[]){
+  for(const line of String(chapter.text||'').split(/\r?\n/)){
+   const found=line.trim().match(/^([^—\n]{2,55})\s+—\s+(.{15,})$/);
+   if(!found)continue;
+   const name=found[1].trim(),key=glossaryKey(name);
+   if(!key||results.has(key))continue;
+   results.set(key,{name,description:found[2].trim(),chapterId:chapter.id,chapterTitle:chapter.title,category:glossaryCategory(name),icon:'',source:'automatic'});
+  }
+ }
+ return results;
+}
+function glossaryAllEntries(){
+ const options=grimorioSettings(),disabled=new Set(options.disabledTerms.map(glossaryKey));
+ const suggestions=glossarySuggestions(),entries=new Map();
+ if(options.autoGlossary!==false){
+  for(const [key,item] of suggestions){
+   if(LIBRARY_HELP_TERMS.some(term=>glossaryKey(term)===key)&&!disabled.has(key))entries.set(key,item);
+  }
+ }
+ for(const item of options.glossary){
+  if(!item||typeof item!=='object')continue;
+  const name=String(item.name||'').trim(),key=glossaryKey(name);
+  if(!key)continue;
+  if(item.enabled===false){entries.delete(key);continue}
+  const chapter=db.rules.find(r=>r.id===item.chapterId);
+  entries.set(key,{
+   id:String(item.id||''),name:name.slice(0,75),description:String(item.description||'').slice(0,6000),
+   chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',
+   category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:glossaryCategory(name),
+   icon:String(item.icon||'').slice(0,8),source:'manual'
+  });
+ }
+ for(const key of disabled)if(!options.glossary.some(i=>glossaryKey(i.name)===key&&i.enabled!==false))entries.delete(key);
+ return [...entries.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+}
+function grimorioIcon(item){
+ const config=grimorioSettings();if(config.showIcons===false)return '';
+ return '<span class="ae-grimorio-glyph" aria-hidden="true">'+esc(item.icon||GRIMORIO_ICONS[item.category]||GRIMORIO_ICONS.Outros)+'</span>';
+}
+function grimorioFilteredEntries(){
+ const term=glossaryKey(grimorioQuery);
+ return glossaryAllEntries().filter(item=>
+  (grimorioCategory==='Todos'||item.category===grimorioCategory)&&
+  (!term||glossaryKey([item.name,item.description,item.chapterTitle,item.category].join(' ')).includes(term)));
+}
+function grimorioResultsMarkup(){
+ const items=grimorioFilteredEntries();
+ if(!items.length)return '<div class="ae-grimorio-empty"><strong>Nenhum verbete encontrado.</strong><span>Altere a busca ou escolha outra categoria.</span></div>';
+ return items.map(item=>'<button type="button" class="ae-grimorio-entry" data-action="explainRule:'+encodeURIComponent(item.name)+'" aria-label="Consultar '+esc(item.name)+'">'+
+  grimorioIcon(item)+'<span class="ae-grimorio-entry-copy"><strong>'+esc(item.name)+'</strong>'+
+  '<small>'+esc(item.category)+(item.chapterTitle?' · '+esc(item.chapterTitle):'')+'</small></span>'+
+  '<span class="ae-grimorio-arrow" aria-hidden="true">↗</span></button>').join('');
+}
+function grimorioPanel(){
+ const count=glossaryAllEntries().length;
+ return '<section class="ae-grimorio-panel" aria-label="Catálogo do Grimório">'+
+  '<div class="ae-grimorio-toolbar"><div><span class="ae-grimorio-kicker">CATÁLOGO DE MECÂNICAS</span>'+
+  '<h3>ACERVO DO GRIMÓRIO</h3><p>'+count+' '+(count===1?'verbete disponível':'verbetes disponíveis')+'</p></div>'+
+  (master()?btn('GERENCIAR VERBETES','manageGrimorio','small'):'')+'</div>'+
+  '<div class="ae-grimorio-search"><label for="grimorioSearch">Buscar no grimório</label>'+
+  '<input id="grimorioSearch" type="search" autocomplete="off" value="'+esc(grimorioQuery)+'" placeholder="Nome, explicação, capítulo ou categoria...">'+
+  '<label for="grimorioCategory">Categoria</label><select id="grimorioCategory">'+['Todos',...GRIMORIO_CATEGORIES].map(v=>'<option value="'+esc(v)+'"'+(grimorioCategory===v?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select></div>'+
+  '<p class="ae-grimorio-count" id="grimorioCount" aria-live="polite">'+grimorioFilteredEntries().length+' resultados</p>'+
+  '<div class="ae-grimorio-results" id="grimorioResults">'+grimorioResultsMarkup()+'</div></section>';
+}
+function grimorioBanner(){
+ const opts=grimorioSettings(),total=glossaryAllEntries().length;
+ if(opts.visible===false&&!master())return '';
+ return '<section class="ae-grimorio-portal" aria-label="Entrada do Grimório">'+
+  '<div class="ae-grimorio-portal-symbol" aria-hidden="true">✧</div>'+
+  '<div class="ae-grimorio-portal-copy"><span class="ae-grimorio-kicker">ARQUIVO DE CONHECIMENTO</span>'+
+  '<h2>'+esc(String(opts.title||GRIMORIO_DEFAULTS.title).slice(0,75))+'</h2>'+
+  '<p>'+esc(String(opts.subtitle||GRIMORIO_DEFAULTS.subtitle).slice(0,180))+'</p>'+
+  '<small>'+total+' '+(total===1?'mecânica catalogada':'mecânicas catalogadas')+(opts.visible===false?' · OCULTO PARA JOGADORES':'')+'</small></div>'+
+  '<div class="ae-grimorio-portal-actions"><button type="button" class="ae-grimorio-portal-button" data-action="toggleGrimorio" aria-expanded="'+grimorioOpen+'" aria-controls="libraryGrimorioMount">'+
+  (grimorioOpen?'FECHAR GRIMÓRIO':'CONSULTAR GRIMÓRIO')+' <span aria-hidden="true">↗</span></button>'+
+  (master()?'<button type="button" class="ae-grimorio-edit-button" data-action="manageGrimorio">CONFIGURAR</button>':'')+'</div></section>'+
+  '<div id="libraryGrimorioMount">'+(grimorioOpen?grimorioPanel():'')+'</div>';
+}
+function toggleGrimorio(){
+ grimorioOpen=!grimorioOpen;
+ const area=el('libraryGrimorioArea');if(!area)return;
+ area.innerHTML=grimorioBanner();
+ if(grimorioOpen){requestAnimationFrame(()=>{el('libraryGrimorioMount')?.scrollIntoView({behavior:motionOff()?'auto':'smooth',block:'start'});el('grimorioSearch')?.focus({preventScroll:true})})}
+}
+function grimorioRefreshResults(){
+ const root=el('grimorioResults');if(root)root.innerHTML=grimorioResultsMarkup();
+ const count=el('grimorioCount');if(count)count.textContent=grimorioFilteredEntries().length+' resultados';
+}
+function saveGrimorioOptions(){
+ if(!requireMaster())return;
+ const opts=grimorioStored();
+ const title=String(el('grimorioTitleInput')?.value||'').trim(),subtitle=String(el('grimorioSubtitleInput')?.value||'').trim();
+ if(!title){toast('Título obrigatório','Informe o título do Grimório.',true);return}
+ opts.title=title.slice(0,75);
+ opts.subtitle=subtitle.slice(0,180);
+ opts.visible=!!el('grimorioVisibleInput')?.checked;
+ opts.autoGlossary=!!el('grimorioAutoInput')?.checked;
+ opts.showIcons=!!el('grimorioIconsInput')?.checked;
+ opts.showDiceIcons=!!el('grimorioDiceInput')?.checked;
+ for(const n of [4,6,8,10,12,20])opts.diceEmoji[n]=String(el('grimorioDie'+n)?.value||GRIMORIO_DICE_FALLBACK[n]).trim().slice(0,8);
+ save();rebuildLibraryGlossary();closeModal();render();toast('Grimório atualizado');
+}
+function manageGrimorio(){
+ if(!requireMaster())return;
+ rebuildLibraryGlossary();
+ const opts=grimorioSettings(),suggestions=glossarySuggestions();
+ const known=new Set(opts.glossary.map(i=>glossaryKey(i.name)));
+ const hidden=new Set(opts.disabledTerms.map(glossaryKey));
+ const entries=[
+  ...opts.glossary.filter(i=>i&&i.name).map(item=>({...item,source:'manual'})),
+  ...[...suggestions.values()].filter(item=>!known.has(glossaryKey(item.name))).map(item=>({...item,enabled:!hidden.has(glossaryKey(item.name))&&opts.autoGlossary!==false&&LIBRARY_HELP_TERMS.some(t=>glossaryKey(t)===glossaryKey(item.name)),source:'automatic'}))
+ ].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+ const row=item=>{
+  const key=encodeURIComponent(item.name),enabled=item.enabled!==false;
+  return '<div class="ae-grimorio-manage-row"><div><strong>'+esc(item.name)+'</strong><small>'+
+   (item.source==='manual'?'PERSONALIZADO':'DETECTADO NO SISTEMA')+' · '+(enabled?'ATIVO':'INATIVO')+'</small></div>'+
+   '<div class="ae-grimorio-manage-actions"><button type="button" data-action="editGlossary:'+key+'">EDITAR</button>'+
+   '<button type="button" data-action="toggleGlossaryTerm:'+key+'">'+(enabled?'DESATIVAR':'ATIVAR')+'</button></div></div>';
+ };
+ const dieInputs=[4,6,8,10,12,20].map(n=>'<label>d'+n+'<input id="grimorioDie'+n+'" maxlength="8" value="'+esc(opts.diceEmoji[n]||GRIMORIO_DICE_FALLBACK[n])+'" aria-label="Ícone do dado de '+n+' faces"></label>').join('');
+ modal('GERENCIAR GRIMÓRIO','<div class="ae-grimorio-manager">'+
+  '<p class="subtitle">Personalize o catálogo, os guias contextuais e os símbolos dos dados. Somente o mestre pode salvar.</p>'+
+  '<div class="ae-grimorio-config-grid">'+
+   '<label>Título do botão<input id="grimorioTitleInput" maxlength="75" value="'+esc(opts.title)+'"></label>'+
+   '<label>Descrição<textarea id="grimorioSubtitleInput" maxlength="180" rows="2">'+esc(opts.subtitle)+'</textarea></label></div>'+
+  '<div class="ae-grimorio-toggles">'+
+   '<label><input id="grimorioVisibleInput" type="checkbox"'+(opts.visible?' checked':'')+'> Mostrar Grimório aos jogadores</label>'+
+   '<label><input id="grimorioAutoInput" type="checkbox"'+(opts.autoGlossary?' checked':'')+'> Detectar verbetes clássicos automaticamente</label>'+
+   '<label><input id="grimorioIconsInput" type="checkbox"'+(opts.showIcons?' checked':'')+'> Exibir ícones nos verbetes</label>'+
+   '<label><input id="grimorioDiceInput" type="checkbox"'+(opts.showDiceIcons?' checked':'')+'> Mostrar emojis discretos nos dados</label></div>'+
+  '<details class="ae-grimorio-dice-settings"><summary>PERSONALIZAR EMOJIS DOS DADOS</summary>'+
+   '<p class="subtitle">Símbolos temporários que podem ser substituídos por suas próprias imagens em uma etapa posterior.</p>'+
+   '<div class="ae-grimorio-dice-inputs">'+dieInputs+'</div></details>'+
+  '<div class="ae-grimorio-manager-head"><h3>VERBETES E GUIAS</h3>'+
+   '<button type="button" data-action="editGlossary:new">+ NOVO VERBETE</button></div>'+
+  '<div class="ae-grimorio-manage-list">'+entries.map(row).join('')+'</div></div>',
+  [['SALVAR CONFIGURAÇÕES','saveGrimorioOptions','main'],['FECHAR','closeModal','small']]);
+}
+function editGlossaryEntry(key){
+ if(!requireMaster())return;
+ let name='';try{name=key==='new'?'':decodeURIComponent(key)}catch(e){return}
+ const settings=grimorioSettings(),previous=settings.glossary.find(i=>glossaryKey(i.name)===glossaryKey(name));
+ const auto=glossarySuggestions().get(glossaryKey(name));
+ const item=previous||auto||{name:'',description:'',chapterId:'',category:'Outros',icon:'',enabled:true};
+ const options=db.rules.map(r=>'<option value="'+esc(r.id)+'"'+(r.id===item.chapterId?' selected':'')+'>'+esc(r.title)+'</option>').join('');
+ const category=GRIMORIO_CATEGORIES.map(c=>'<option value="'+esc(c)+'"'+(c===item.category?' selected':'')+'>'+esc(c)+'</option>').join('');
+ modal(name?'EDITAR GUIA DO GLOSSÁRIO':'NOVO GUIA DO GLOSSÁRIO','<div class="ae-glossary-editor">'+
+ '<p class="subtitle">A palavra poderá abrir esta explicação na Biblioteca e aparecerá no Grimório.</p>'+
+ '<label>Palavra ou expressão<input id="glossaryTermInput" maxlength="75" value="'+esc(item.name||'')+'" required></label>'+
+ '<label>Explicação<textarea id="glossaryDescriptionInput" maxlength="6000" rows="7" required>'+esc(item.description||'')+'</textarea></label>'+
+ '<div class="ae-glossary-editor-grid"><label>Categoria<select id="glossaryCategoryInput">'+category+'</select></label>'+
+ '<label>Ícone (opcional)<input id="glossaryIconInput" maxlength="8" value="'+esc(item.icon||'')+'" placeholder="🎲"></label></div>'+
+ '<label>Capítulo vinculado<select id="glossaryChapterInput"><option value="">Sem capítulo vinculado</option>'+options+'</select></label>'+
+ '<label class="ae-grimorio-editor-check"><input type="checkbox" id="glossaryEnabledInput"'+(item.enabled===false?'':' checked')+'> Verbete ativo</label>'+
+ '</div>',
+ [['SALVAR VERBETE','saveGlossaryEntry','main'],...(previous?[['APAGAR VERBETE','deleteGlossaryEntry','danger']]:[]),['VOLTAR','manageGrimorio','small']]);
+ el('dialogRoot').dataset.glossaryOldName=name;
+}
+function saveGlossaryEntry(){
+ if(!requireMaster())return;
+ const name=String(el('glossaryTermInput')?.value||'').trim(),description=String(el('glossaryDescriptionInput')?.value||'').trim();
+ if(name.length<2||!description){toast('Preencha o verbete','Informe uma palavra e sua explicação.',true);return}
+ const opts=grimorioStored(),old=el('dialogRoot').dataset.glossaryOldName||'';
+ if(opts.glossary.some(item=>glossaryKey(item.name)===glossaryKey(name)&&glossaryKey(item.name)!==glossaryKey(old))){
+  toast('Palavra duplicada','Este termo já possui um verbete personalizado.',true);return
+ }
+ const item={
+  id:opts.glossary.find(i=>glossaryKey(i.name)===glossaryKey(old))?.id||uid(),
+  name:name.slice(0,75),description:description.slice(0,6000),
+  category:GRIMORIO_CATEGORIES.includes(el('glossaryCategoryInput')?.value)?el('glossaryCategoryInput').value:'Outros',
+  chapterId:String(el('glossaryChapterInput')?.value||''),
+  icon:String(el('glossaryIconInput')?.value||'').trim().slice(0,8),
+  enabled:!!el('glossaryEnabledInput')?.checked
+ };
+ opts.glossary=opts.glossary.filter(i=>glossaryKey(i.name)!==glossaryKey(old));
+ opts.glossary.push(item);
+ opts.disabledTerms=opts.disabledTerms.filter(t=>glossaryKey(t)!==glossaryKey(name));
+ save();rebuildLibraryGlossary();closeModal();render();toast('Verbete salvo',name);
+}
+function toggleGlossaryTerm(key){
+ if(!requireMaster())return;
+ let name='';try{name=decodeURIComponent(key)}catch(e){return}
+ const opts=grimorioStored(),term=glossaryKey(name),manual=opts.glossary.find(item=>glossaryKey(item.name)===term);
+ if(manual)manual.enabled=manual.enabled===false;
+ else{
+  const has=opts.disabledTerms.some(t=>glossaryKey(t)===term);
+  if(has)opts.disabledTerms=opts.disabledTerms.filter(t=>glossaryKey(t)!==term);
+  else opts.disabledTerms.push(name);
+ }
+ save();rebuildLibraryGlossary();render();manageGrimorio();
+}
+function deleteGlossaryEntry(){
+ if(!requireMaster())return;
+ const name=el('dialogRoot').dataset.glossaryOldName||'';
+ confirmSite('APAGAR VERBETE','Remover a explicação personalizada? Uma definição automática poderá voltar a aparecer.',()=>{
+  const opts=grimorioStored();
+  opts.glossary=opts.glossary.filter(item=>glossaryKey(item.name)!==glossaryKey(name));
+  save();rebuildLibraryGlossary();render();manageGrimorio();
+ });
+}
+
 const LIBRARY_HELP_TERMS=['Vida','Estabilidade','Alma','Desmaiado','Acorrentado','Morto','Pressionado','Grupos','Perícias','Dificuldade','Modificadores','Rodada','Fases','Ação Principal','Reação','Movimentação','Dano-base','Resistência','Estados','Condições','Recuperação Natural','Recuperação Especializada','Descanso Breve','Descanso Completo','Tratamento','Recomposição','Meditação','Cobertura','Ocultação','Posicionamento','Terreno','Conjuração Completa','Conjuração Abreviada','Ruptura da Máscara','Resistência Hollow','Domínio'];
 let libraryGlossary=new Map();
 function rebuildLibraryGlossary(){
- const map=new Map();
- for(const chapter of db.rules||[]){
-  for(const line of String(chapter.text||'').split(/\r?\n/)){
-   const m=line.trim().match(/^([^—\n]{2,55})\s+—\s+(.{15,})$/);
-   if(!m)continue;
-   const name=m[1].trim();
-   if(!LIBRARY_HELP_TERMS.includes(name)||map.has(name))continue;
-   map.set(name,{name,description:m[2].trim(),chapterId:chapter.id,chapterTitle:chapter.title});
-  }
- }
- libraryGlossary=map;
+ libraryGlossary=new Map();
+ for(const entry of glossaryAllEntries())if(entry.enabled!==false)libraryGlossary.set(entry.name,entry);
 }
 function showLibraryMechanic(key){
- let decoded='';
- try{decoded=decodeURIComponent(key)}catch(e){return}
+ let decoded='';try{decoded=decodeURIComponent(key)}catch(e){return}
  rebuildLibraryGlossary();
- const item=libraryGlossary.get(decoded);
+ const item=[...libraryGlossary.values()].find(entry=>glossaryKey(entry.name)===glossaryKey(decoded));
  if(!item)return;
- modal('O QUE É '+item.name.toLocaleUpperCase('pt-BR')+'?',`<div class="ae-mechanic-explanation"><div class="eyebrow">GLOSSÁRIO · ${esc(item.chapterTitle)}</div><p>${esc(item.description)}</p><p class="subtitle">Definição extraída das próprias regras do sistema.</p></div>`,
- [['VER CAPÍTULO','goMechanicChapter:'+encodeURIComponent(item.chapterId),'main'],['FECHAR','closeModal','small']]);
+ const source=item.source==='manual'?'Guia personalizado pelo mestre.':'Definição extraída das próprias regras do sistema.';
+ const chapter=db.rules.find(r=>r.id===item.chapterId);
+ modal('O QUE É '+item.name.toLocaleUpperCase('pt-BR')+'?',
+  '<div class="ae-mechanic-explanation"><div class="eyebrow">GLOSSÁRIO · '+esc(chapter?.title||item.category||'GRIMÓRIO')+'</div>'+
+  '<p>'+esc(item.description)+'</p><p class="subtitle">'+source+'</p></div>',
+  [...(chapter?[['VER CAPÍTULO','goMechanicChapter:'+encodeURIComponent(chapter.id),'main']]:[]),
+   ...(master()?[['EDITAR VERBETE','editGlossary:'+encodeURIComponent(item.name),'small']]:[]),
+   ['FECHAR','closeModal','small']]);
 }
 function goLibraryMechanicChapter(code){
  let id='';try{id=decodeURIComponent(code)}catch(e){return}
@@ -2345,9 +2576,9 @@ function formatBook(source,chapterTitle=''){
  function inline(text){
   const markers=[];
   let raw=String(text||'');
-  if(pattern&&helpCount<8)raw=raw.replace(pattern,(all,prefix,term)=>{
+  if(pattern)raw=raw.replace(pattern,(all,prefix,term)=>{
    const found=names.find(name=>name.toLocaleLowerCase('pt-BR')===term.toLocaleLowerCase('pt-BR'));
-   if(!found||seen.has(found)||helpCount>=8)return all;
+   if(!found||seen.has(found))return all;
    seen.add(found);helpCount++;
    const token='@@AEHELP'+markers.length+'@@';
    markers.push(found);
@@ -2548,7 +2779,14 @@ function abilityTestButton(s,ab,i){if(!abilityHasTest(ab))return '';const custom
 function abilityRoll(i){useAbility(i)}
 function customDiceEditor(ab,i,s){const custom=Array.isArray(ab.testDice)?ab.testDice:[];const colors=abilityDicePalette(s,ab);return `<div class="ability-custom-editor"><p class="color-hint">Dados do teste próprio (até 12). Cada dado tem uma cor individual. Ao usar a técnica, o teste será rolado junto do custo de Alma.</p>${custom.map((d,j)=>`<div class="custom-die-row"><label>Dado ${j+1}<select data-ability-die="${i}:${j}:sides">${VALID_DICE.map(n=>`<option value="${n}" ${Number(d.sides)===n?'selected':''}>d${n}</option>`).join('')}</select></label><label>Cor ${j+1}<input type="color" data-ability-die="${i}:${j}:color" value="${ABILITY_HEX.test(d.color||'')?d.color:colors.group}"></label>${btn('REMOVER','removeAbilityDie:'+i+':'+j,'small danger')}</div>`).join('')||'<p class="color-hint">Nenhum dado próprio definido.</p>'}${btn('+ DADO','addAbilityDie:'+i,'small')}</div>`}
 const DICE_POLYGONS={4:'12,2 2,21 22,21',6:'4,4 20,4 20,20 4,20',8:'12,2 22,12 12,22 2,12',10:'12,2 21,8 18,18 12,23 6,18 3,8',12:'12,2 21,7 21,17 12,22 3,17 3,7',20:'12,2 21,6 23,15 17,22 7,22 1,15 3,6'};
-function dieShape(n,kind=''){n=Number(n);if(!DICE_POLYGONS[n])return '<span>d'+esc(n)+'</span>';return `<span class="die-figure ${kind}" title="Dado de ${n} lados"><svg viewBox="0 0 24 24" role="img" aria-label="Dado de ${n} lados"><polygon points="${DICE_POLYGONS[n]}"></polygon><text x="12" y="13">${n}</text></svg></span>`}
+function dieShape(n,kind=''){
+ n=Number(n);if(!DICE_POLYGONS[n])return '<span>d'+esc(n)+'</span>';
+ const cfg=grimorioSettings();
+ const glyph=cfg.showDiceIcons!==false?String(cfg.diceEmoji[n]||GRIMORIO_DICE_FALLBACK[n]||'').slice(0,8):'';
+ return '<span class="die-figure '+esc(kind)+'" title="Dado de '+n+' lados">'+
+  '<svg viewBox="0 0 24 24" role="img" aria-label="Dado de '+n+' lados"><polygon points="'+DICE_POLYGONS[n]+'"></polygon><text x="12" y="13">'+n+'</text></svg>'+
+  (glyph?'<span class="ae-dice-glyph" aria-hidden="true">'+esc(glyph)+'</span>':'')+'</span>';
+}
 function sheetRich(text){const escaped=esc(text||'');const fragments=escaped.split(/(\[cor=#[0-9a-fA-F]{6}\]|\[\/cor\])/gi);let open=false,out='';for(const p of fragments){if(/^\[cor=#[0-9a-f]{6}\]$/i.test(p)){if(open)out+='</span>';out+='<span style="color:'+p.slice(5,12)+'">';open=true}else if(/^\[\/cor\]$/i.test(p)){if(open)out+='</span>';open=false}else{out+=p.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')}}return out+(open?'</span>':'')}
 function wrapColoredSelection(textareaId,colorId){const t=el(textareaId),c=el(colorId);if(!t||!c)return;const start=t.selectionStart,end=t.selectionEnd,value=t.value;const before=value.slice(0,start),mid=value.slice(start,end)||'texto colorido',after=value.slice(end);t.value=before+'[cor='+c.value+']'+mid+'[/cor]'+after;t.focus();t.setSelectionRange(start+5+c.value.length,start+5+c.value.length+mid.length);t.dispatchEvent(new Event('input',{bubbles:true}))}
 
@@ -3267,7 +3505,7 @@ function bindEvents(){document.addEventListener('keydown',event=>{
  if(event.key==='Escape'&&document.activeElement?.id==='ruleSearch'&&query){
   event.preventDefault();libraryClearSearch();
  }
-});window.addEventListener('resize',()=>{if(window.innerWidth>680)setMobileMore(false)},{passive:true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!el('mobileMoreMenu')?.hidden){setMobileMore(false);e.preventDefault()}});document.addEventListener('pointerdown',e=>{const action=e.target.closest('[data-action]')?.dataset.action?.split(':')[0];if(['skill','freeRoll','shieldRoll','abilityRoll','useAbility','rerollVerifiedSkill','rollConfiguredSkill','testSound'].includes(action))prepareRollAudio()},{passive:true,capture:true});document.addEventListener('click',e=>{const t=e.target.closest('[data-action=musicExpand]');if(!t)return;e.stopImmediatePropagation();const m=el('music'),expanded=m.classList.toggle('expanded');t.textContent=expanded?(sharedMusic?.kind==='spotify'?'FECHAR SPOTIFY':'FECHAR PLAYER'):(sharedMusic?.kind==='spotify'?'ABRIR SPOTIFY':'ABRIR PLAYER');t.setAttribute('aria-expanded',String(expanded))},true);let backdropStart=false;document.addEventListener('pointerdown',e=>{backdropStart=e.target.id==='modalBackground'});document.addEventListener('pointerup',e=>{if(backdropStart&&e.target.id==='modalBackground'&&!el('dialogRoot').querySelector('input,textarea,select'))requestModalClose();backdropStart=false});document.addEventListener('click',async e=>{if(editMode&&master()){const target=e.target.closest('[data-edit-text]');if(target&&!e.target.closest('#dialogRoot')&&!e.target.closest('[data-action="toggleEditText"]')&&!e.target.closest('#editModeExit')){e.preventDefault();e.stopPropagation();editTextDialog(target.dataset.editText,target.dataset.originalText||'');return}}if(e.target.id==='modalBackground'){if(e.target===e.currentTarget)return;return}const nav=e.target.closest('[data-page]');if(nav){sound();setPage(nav.dataset.page);return}const open=e.target.closest('[data-open]');if(open){sound();setPage(open.dataset.open);return}const sheet=e.target.closest('[data-sheet]');if(sheet){sound();viewSheet(sheet.dataset.sheet);return}const tb=e.target.closest('[data-tab]');if(tb){tab=tb.dataset.tab;sound();render();return}const b=e.target.closest('[data-action]');if(!b)return;const parts=b.dataset.action.split(':'),a=parts[0];if(['skill','freeRoll','shieldRoll','abilityRoll','useAbility','rerollVerifiedSkill','rollConfiguredSkill','testSound'].includes(a))prepareRollAudio();if(['skill','freeRoll','shieldRoll','rerollVerifiedSkill','rollConfiguredSkill','abilityRoll'].includes(a)&&!rollingBusy)beginRollFeedback(b);if(!['resource','skill','freeRoll','shieldRoll','useAbility','rerollVerifiedSkill','rollConfiguredSkill','abilityRoll'].includes(a))sound();switch(a){case'mobileMoreToggle':setMobileMore(el('mobileMoreMenu')?.hidden);break;case'hudToggle':{const m=el('music'),small=m.classList.toggle('compact-hud');const t=el('hudToggle'),side=el('sidebarAudio');t.textContent=small?'▴':'▾';t.setAttribute('aria-expanded',String(!small));t.title=small?'Expandir player':'Minimizar player';if(side){side.setAttribute('aria-expanded',String(!small));side.title=small?'Abrir música':'Minimizar música'}prefs.hudMinimized=small;PREFSSTORE.save();const mobileAudio=el('mobileAudioButton');if(mobileAudio)mobileAudio.setAttribute('aria-expanded',String(!small));setMobileMore(false);break}case'resetSheetColor':resetSheetColor();break;case'importOldSheetColors':importOldSheetColors();break;case'abilityRoll':abilityRoll(Number(parts[1]));break;case'clearAbilityColors':if(editorDraft?.abilities?.[Number(parts[1])]){delete editorDraft.abilities[Number(parts[1])].diceColors;drawSheetForm()}break;case'colorNote':wrapColoredSelection('notesField','noteColorPicker');break;case'removeAbilityImage':removeAbilityImage(Number(parts[1]));break;case'removeNoteImage':removeNoteImage(Number(parts[1]));break;case'noteImageUrlDialog':noteImageUrlDialog();break;case'noteImageUrlSave':noteImageUrlSave();break;case'conditionInfo':conditionInfo(Number(parts[1]));break;case'forceSync':forceOnlineSync();break;case'toggleEditText':if(!master())break;editMode=!editMode;syncEditModeExit();render();toast(editMode?'Edição ativada · botão fixo para encerrar':'Edição desativada');break;case'saveEditedText':saveEditedText();break;case'restoreEditedText':restoreEditedText();break;case'onlineBootstrapDialog':onlineBootstrapDialog();break;case'onlineBootstrapSave':onlineBootstrapSave();break;case'resetSettings':resetSettings(parts[1]);break;case'paletteEditor':paletteEditor();break;case'testSound':prepareRollAudio();sound('critical');break;case'speechSample':window.ARQUIVO_SPEECH?.sample();break;case'speechRead':window.ARQUIVO_SPEECH?.readSelection();break;case'speechReadDialog':window.ARQUIVO_SPEECH?.readDialog();break;case'speechStop':window.ARQUIVO_SPEECH?.stop();break;case'speechResetPanel':window.ARQUIVO_SPEECH?.reset();break;case'access':showAccess();break;case'logout':logoutSite();break;case'submitKey':submitKey();break;case'toggleLoginKey':toggleLoginKeyVisibility();break;case'closeModal':requestModalClose();break;case'discardModal':discardModal();break;case'returnModal':returnModal();break;case'confirmPending':confirmPending();break;case'firstKeys':firstKeys();break;case'adminTab':adminTab(parts[1]);break;case'newKey':newKey(parts[1]);break;case'createKey':createKey(parts[1]);break;case'copyGenerated':copyGenerated();break;case'manageKey':manageKey(parts[1]);break;case'saveManagedKey':saveManagedKey(parts[1]);break;case'rotateManagedKey':rotateManagedKey(parts[1]);break;case'toggleKey':toggleKey(parts[1]);break;case'removeKey':removeKey(parts[1]);break;case'removeAccount':removeAccountSite(parts[1]);break;case'publishData':publishData();break;case'saveKeys':saveKeys();break;case'navSheets':setPage('sheets');break;case'navRolls':setPage('rolls');break;case'newSheet':newSheet();break;case'editSheetSection':editSheetSection(parts[1]);break;case'editAbilityDirect':editAbilityDirect(Number(parts[1]));break;case'newAbilityDirect':newAbilityDirect();break;case'inventoryAddItem':inventoryItemDialog(-1);break;case'inventoryEditItem':inventoryItemDialog(Number(parts[1]));break;case'inventorySaveItem':inventorySaveItem();break;case'inventoryDeleteItem':inventoryDeleteItem(Number(parts[1]));break;case'inventoryRemoveImage':inventoryRemoveImage();break;case'inventoryAddCurrency':inventoryCurrencyDialog(-1);break;case'inventoryEditCurrency':inventoryCurrencyDialog(Number(parts[1]));break;case'inventorySaveCurrency':inventorySaveCurrency();break;case'inventoryDeleteCurrency':inventoryDeleteCurrency(Number(parts[1]));break;case'newMasterSheet':newMasterSheet();break;case'editSheetForm':editSheetForm();break;case'sheetLinks':sheetLinks();break;case'claimSheet':changeSheetLink('claim');break;case'leaveSheet':changeSheetLink('leave');break;case'addSheetLink':changeSheetLink('add');break;case'removeSheetLink':changeSheetLink('remove');break;case'saveSheetForm':saveSheetForm();break;case'cancelSheetForm':cancelSheetForm();break;case'applyGroup':applyGroup(parts[1]);break;case'addAbility':addAbility();break;case'removeAbility':removeAbility(+parts[1]);break;case'moveAbility':moveAbility(+parts[1],+parts[2]);break;case'moveRule':moveRule(+parts[1]);break;case'toggleChapter':toggleLibraryChapter(parts[1]);break;case'openChapter':openLibraryChapter(parts[1]);break;case'openAllChapters':setAllLibraryChapters(true);break;case'closeAllChapters':setAllLibraryChapters(false);break;case'clearLibrarySearch':libraryClearSearch();break;case'explainRule':showLibraryMechanic(parts[1]);break;case'goMechanicChapter':goLibraryMechanicChapter(parts[1]);break;case'navLibrary':setPage('library');break;case'newRule':ruleEditor();break;case'editRule':ruleEditor(parts.slice(1).join(':'));break;case'saveRule':saveRule();break;case'deleteRule':deleteRule();break;case'import':importDialog();break;case'saveImport':saveImport();break;case'copyInstruction':copyInstruction();break;case'backSheets':currentSheet=null;render();break;case'exportSheet':sheetExport();break;case'editSheet':editSheet();break;case'deleteSheet':deleteSheet();break;case'sheetImage':imageDialog();break;case'skill':skillRoll(decodeURIComponent(parts.slice(1).join(':')));break;case'rerollVerifiedSkill':rerollVerifiedSkill();break;case'configureVerifiedSkill':configureVerifiedSkill();break;case'returnVerifiedSkill':returnVerifiedSkill();break;case'rollConfiguredSkill':rollConfiguredSkill();break;case'freeRoll':freeRoll();break;case'freeFaces':if(el('diceFaces')){el('diceFaces').value=String(Number(parts[1]));updateFreeDicePreview()}break;case'shieldRoll':freeRoll(true);break;case'historyNav':historyNavigate(decodeURIComponent(parts[1]),parts[2]);break;case'chooseMusic':chooseMusic();break;case'musicMasterPlay':musicMasterCommand('play');break;case'musicMasterPause':musicMasterCommand('pause');break;case'musicMasterLoop':musicMasterCommand('loop');break;case'musicMasterSeek':musicMasterCommand('seek');break;case'playUpload':{const path=decodeURIComponent(parts.slice(1).join(':'));const st=window.ARQUIVO_SYNC;const u=st.state.client.storage.from('musica').getPublicUrl(path).data.publicUrl;sharedMusicCommand('file',u,path,true,0,false);break}case'deleteUpload':deleteUploaded(decodeURIComponent(parts.slice(1).join(':')));break;case'musicAccess':musicSoundUnlocked=true;el('music').classList.remove('requires-gesture');syncSharedMusic(true);break;case'clearRolls':clearRollHistory();break;case'resource':changeResource(parts[1],Number(parts[2]));break;case'resourceMin':resourceBoundary(parts[1],false);break;case'resourceMax':resourceBoundary(parts[1],true);break;case'editResource':editResource(parts[1]);break;case'setResource':setResource();break;case'useAbility':useAbility(Number(parts[1]));break;case'addAbilityDie':addAbilityDie(Number(parts[1]));break;case'removeAbilityDie':removeAbilityDie(Number(parts[1]),Number(parts[2]));break;case'restDialog':restDialog();break;case'restShort':rest('breve');break;case'restFull':rest('completo');break;case'conditionAdd':addCondition();break;case'confirmCondition':confirmCondition();break;case'conditionRemove':removeCondition(Number(parts[1]));break;case'editNotes':editNotes();break;case'saveNotes':saveNotes();break;case'saveSite':saveSite();break;case'backup':exportBackup();break;case'restore':restoreDialog();break;case'restoreCheck':restoreCheck();break;case'saveMusic':saveMusic();break;case'musicToggle':musicToggle();break;case'mute':prefs.musicMuted=!prefs.musicMuted;PREFSSTORE.save();applyPrefs();break;case'soundToggle':prefs.effectsMuted=!prefs.effectsMuted;PREFSSTORE.save();applyPrefs();break;}});document.addEventListener('input',e=>{if(['diceCount','diceFaces'].includes(e.target.id))updateFreeDicePreview();if(e.target.id==='invImageUrl')inventoryLinkImage(e.target.value);if(e.target.closest('#dialogRoot')&&!modalGuard&&!e.target.closest('.ae-palette-dialog'))modalDirty=true;if(e.target.id==='ruleSearch'){query=e.target.value;libraryRefreshResults()}if(['settingsMaster','settingsMusic','settingsEffects'].includes(e.target.id)){changeSetting(e.target.id,e.target.value)}if(e.target.dataset.palette)changeCustomPaletteColor(e.target.dataset.palette,e.target.value);if((e.target.dataset.edit||e.target.dataset.ability||e.target.dataset.abilityDie)&&editorDraft)updateDraft(e.target);if(e.target.id==='ruleText'&&el('rulePreview'))el('rulePreview').innerHTML=formatBook(e.target.value);if(e.target.dataset.sheetPalette)setSheetPalette(e.target.dataset.sheetPalette,e.target.value);if(e.target.id==='globalGradientEnd')changeCustomGradient('end',e.target.value);if(e.target.dataset.sheetGradient==='end')setSheetGradient('gradientEnd',e.target.value);if(e.target.matches('input[type=range]'))updateRangeTrack(e.target);if(e.target.id==='musicVolume'){try{changeSetting('musicVolume',e.target.value)}catch(e){}}});document.addEventListener('change',e=>{if(e.target.id==='invImageFile')inventoryChooseImage(e.target);if(e.target.id==='globalGradient')changeCustomGradient('toggle',e.target.checked);if(e.target.dataset.sheetGradient==='toggle')setSheetGradient('gradient',e.target.checked);if(e.target.id==='configGroupSteps'||e.target.id==='configSkillSteps')updateSkillRollConfigPreview();if(['presetChoice','sizeChoice','interfaceScaleChoice','speechRateChoice'].includes(e.target.id))changeSetting(e.target.id,e.target.value);if(['settingsMuteMaster','settingsMuteMusic','settingsMuteEffects'].includes(e.target.id))changeSetting(e.target.id,e.target.checked);if(e.target.dataset.setting)changeSetting(e.target.dataset.setting,e.target.checked);if(e.target.id==='chapterJump'&&e.target.value)openLibraryChapter(e.target.value);if(e.target.id==='formImage')imageForForm(e.target);if(e.target.dataset.abilityImage!==undefined)abilityImageUpload(e.target);if(e.target.id==='noteImagesInput')noteImageUpload(e.target);if(e.target.id==='coverFile')imageFile(e.target,'cover');if(e.target.id==='sheetImageFile')imageFile(e.target,'sheet');if(e.target.id==='sharedUpload'&&e.target.files[0])uploadSharedAudio(e.target.files[0])});document.addEventListener('keydown',e=>{const dialog=el('dialogRoot').querySelector('[role=dialog]');if(!dialog)return;if(e.key==='Escape'){if(!el('firstPlayerKey')){if(modalGuard)returnModal();else requestModalClose()}e.preventDefault()}if(e.key==='Tab'){const fs=[...dialog.querySelectorAll('button,input,textarea,select,[tabindex]')].filter(x=>!x.disabled&&x.tabIndex!==-1);if(!fs.length)return;const first=fs[0],last=fs[fs.length-1];if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault()}else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault()}}});document.addEventListener('pointermove',e=>{const hero=e.target.closest('#character');if(!hero||sheetMotionOff())return;const rect=hero.getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width-.5,y=(e.clientY-rect.top)/rect.height-.5;hero.style.setProperty('--tilty',x*7+'deg');hero.style.setProperty('--tiltx',-y*6+'deg')},{passive:true});document.addEventListener('pointerout',e=>{const hero=e.target.closest('#character');if(hero&&!hero.contains(e.relatedTarget)){hero.style.setProperty('--tilty','0deg');hero.style.setProperty('--tiltx','0deg')}})}
+});window.addEventListener('resize',()=>{if(window.innerWidth>680)setMobileMore(false)},{passive:true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!el('mobileMoreMenu')?.hidden){setMobileMore(false);e.preventDefault()}});document.addEventListener('pointerdown',e=>{const action=e.target.closest('[data-action]')?.dataset.action?.split(':')[0];if(['skill','freeRoll','shieldRoll','abilityRoll','useAbility','rerollVerifiedSkill','rollConfiguredSkill','testSound'].includes(action))prepareRollAudio()},{passive:true,capture:true});document.addEventListener('click',e=>{const t=e.target.closest('[data-action=musicExpand]');if(!t)return;e.stopImmediatePropagation();const m=el('music'),expanded=m.classList.toggle('expanded');t.textContent=expanded?(sharedMusic?.kind==='spotify'?'FECHAR SPOTIFY':'FECHAR PLAYER'):(sharedMusic?.kind==='spotify'?'ABRIR SPOTIFY':'ABRIR PLAYER');t.setAttribute('aria-expanded',String(expanded))},true);let backdropStart=false;document.addEventListener('pointerdown',e=>{backdropStart=e.target.id==='modalBackground'});document.addEventListener('pointerup',e=>{if(backdropStart&&e.target.id==='modalBackground'&&!el('dialogRoot').querySelector('input,textarea,select'))requestModalClose();backdropStart=false});document.addEventListener('click',async e=>{if(editMode&&master()){const target=e.target.closest('[data-edit-text]');if(target&&!e.target.closest('#dialogRoot')&&!e.target.closest('[data-action="toggleEditText"]')&&!e.target.closest('#editModeExit')){e.preventDefault();e.stopPropagation();editTextDialog(target.dataset.editText,target.dataset.originalText||'');return}}if(e.target.id==='modalBackground'){if(e.target===e.currentTarget)return;return}const nav=e.target.closest('[data-page]');if(nav){sound();setPage(nav.dataset.page);return}const open=e.target.closest('[data-open]');if(open){sound();setPage(open.dataset.open);return}const sheet=e.target.closest('[data-sheet]');if(sheet){sound();viewSheet(sheet.dataset.sheet);return}const tb=e.target.closest('[data-tab]');if(tb){tab=tb.dataset.tab;sound();render();return}const b=e.target.closest('[data-action]');if(!b)return;const parts=b.dataset.action.split(':'),a=parts[0];if(['skill','freeRoll','shieldRoll','abilityRoll','useAbility','rerollVerifiedSkill','rollConfiguredSkill','testSound'].includes(a))prepareRollAudio();if(['skill','freeRoll','shieldRoll','rerollVerifiedSkill','rollConfiguredSkill','abilityRoll'].includes(a)&&!rollingBusy)beginRollFeedback(b);if(!['resource','skill','freeRoll','shieldRoll','useAbility','rerollVerifiedSkill','rollConfiguredSkill','abilityRoll'].includes(a))sound();switch(a){case'mobileMoreToggle':setMobileMore(el('mobileMoreMenu')?.hidden);break;case'hudToggle':{const m=el('music'),small=m.classList.toggle('compact-hud');const t=el('hudToggle'),side=el('sidebarAudio');t.textContent=small?'▴':'▾';t.setAttribute('aria-expanded',String(!small));t.title=small?'Expandir player':'Minimizar player';if(side){side.setAttribute('aria-expanded',String(!small));side.title=small?'Abrir música':'Minimizar música'}prefs.hudMinimized=small;PREFSSTORE.save();const mobileAudio=el('mobileAudioButton');if(mobileAudio)mobileAudio.setAttribute('aria-expanded',String(!small));setMobileMore(false);break}case'resetSheetColor':resetSheetColor();break;case'importOldSheetColors':importOldSheetColors();break;case'abilityRoll':abilityRoll(Number(parts[1]));break;case'clearAbilityColors':if(editorDraft?.abilities?.[Number(parts[1])]){delete editorDraft.abilities[Number(parts[1])].diceColors;drawSheetForm()}break;case'colorNote':wrapColoredSelection('notesField','noteColorPicker');break;case'removeAbilityImage':removeAbilityImage(Number(parts[1]));break;case'removeNoteImage':removeNoteImage(Number(parts[1]));break;case'noteImageUrlDialog':noteImageUrlDialog();break;case'noteImageUrlSave':noteImageUrlSave();break;case'conditionInfo':conditionInfo(Number(parts[1]));break;case'forceSync':forceOnlineSync();break;case'toggleEditText':if(!master())break;editMode=!editMode;syncEditModeExit();render();toast(editMode?'Edição ativada · botão fixo para encerrar':'Edição desativada');break;case'saveEditedText':saveEditedText();break;case'restoreEditedText':restoreEditedText();break;case'onlineBootstrapDialog':onlineBootstrapDialog();break;case'onlineBootstrapSave':onlineBootstrapSave();break;case'resetSettings':resetSettings(parts[1]);break;case'paletteEditor':paletteEditor();break;case'testSound':prepareRollAudio();sound('critical');break;case'speechSample':window.ARQUIVO_SPEECH?.sample();break;case'speechRead':window.ARQUIVO_SPEECH?.readSelection();break;case'speechReadDialog':window.ARQUIVO_SPEECH?.readDialog();break;case'speechStop':window.ARQUIVO_SPEECH?.stop();break;case'speechResetPanel':window.ARQUIVO_SPEECH?.reset();break;case'access':showAccess();break;case'logout':logoutSite();break;case'submitKey':submitKey();break;case'toggleLoginKey':toggleLoginKeyVisibility();break;case'closeModal':requestModalClose();break;case'discardModal':discardModal();break;case'returnModal':returnModal();break;case'confirmPending':confirmPending();break;case'firstKeys':firstKeys();break;case'adminTab':adminTab(parts[1]);break;case'newKey':newKey(parts[1]);break;case'createKey':createKey(parts[1]);break;case'copyGenerated':copyGenerated();break;case'manageKey':manageKey(parts[1]);break;case'saveManagedKey':saveManagedKey(parts[1]);break;case'rotateManagedKey':rotateManagedKey(parts[1]);break;case'toggleKey':toggleKey(parts[1]);break;case'removeKey':removeKey(parts[1]);break;case'removeAccount':removeAccountSite(parts[1]);break;case'publishData':publishData();break;case'saveKeys':saveKeys();break;case'navSheets':setPage('sheets');break;case'navRolls':setPage('rolls');break;case'newSheet':newSheet();break;case'editSheetSection':editSheetSection(parts[1]);break;case'editAbilityDirect':editAbilityDirect(Number(parts[1]));break;case'newAbilityDirect':newAbilityDirect();break;case'inventoryAddItem':inventoryItemDialog(-1);break;case'inventoryEditItem':inventoryItemDialog(Number(parts[1]));break;case'inventorySaveItem':inventorySaveItem();break;case'inventoryDeleteItem':inventoryDeleteItem(Number(parts[1]));break;case'inventoryRemoveImage':inventoryRemoveImage();break;case'inventoryAddCurrency':inventoryCurrencyDialog(-1);break;case'inventoryEditCurrency':inventoryCurrencyDialog(Number(parts[1]));break;case'inventorySaveCurrency':inventorySaveCurrency();break;case'inventoryDeleteCurrency':inventoryDeleteCurrency(Number(parts[1]));break;case'newMasterSheet':newMasterSheet();break;case'editSheetForm':editSheetForm();break;case'sheetLinks':sheetLinks();break;case'claimSheet':changeSheetLink('claim');break;case'leaveSheet':changeSheetLink('leave');break;case'addSheetLink':changeSheetLink('add');break;case'removeSheetLink':changeSheetLink('remove');break;case'saveSheetForm':saveSheetForm();break;case'cancelSheetForm':cancelSheetForm();break;case'applyGroup':applyGroup(parts[1]);break;case'addAbility':addAbility();break;case'removeAbility':removeAbility(+parts[1]);break;case'moveAbility':moveAbility(+parts[1],+parts[2]);break;case'moveRule':moveRule(+parts[1]);break;case'toggleChapter':toggleLibraryChapter(parts[1]);break;case'openChapter':openLibraryChapter(parts[1]);break;case'openAllChapters':setAllLibraryChapters(true);break;case'closeAllChapters':setAllLibraryChapters(false);break;case'clearLibrarySearch':libraryClearSearch();break;case'toggleGrimorio':toggleGrimorio();break;case'manageGrimorio':manageGrimorio();break;case'saveGrimorioOptions':saveGrimorioOptions();break;case'editGlossary':editGlossaryEntry(parts.slice(1).join(':'));break;case'saveGlossaryEntry':saveGlossaryEntry();break;case'toggleGlossaryTerm':toggleGlossaryTerm(parts.slice(1).join(':'));break;case'deleteGlossaryEntry':deleteGlossaryEntry();break;case'explainRule':showLibraryMechanic(parts[1]);break;case'goMechanicChapter':goLibraryMechanicChapter(parts[1]);break;case'navLibrary':setPage('library');break;case'newRule':ruleEditor();break;case'editRule':ruleEditor(parts.slice(1).join(':'));break;case'saveRule':saveRule();break;case'deleteRule':deleteRule();break;case'import':importDialog();break;case'saveImport':saveImport();break;case'copyInstruction':copyInstruction();break;case'backSheets':currentSheet=null;render();break;case'exportSheet':sheetExport();break;case'editSheet':editSheet();break;case'deleteSheet':deleteSheet();break;case'sheetImage':imageDialog();break;case'skill':skillRoll(decodeURIComponent(parts.slice(1).join(':')));break;case'rerollVerifiedSkill':rerollVerifiedSkill();break;case'configureVerifiedSkill':configureVerifiedSkill();break;case'returnVerifiedSkill':returnVerifiedSkill();break;case'rollConfiguredSkill':rollConfiguredSkill();break;case'freeRoll':freeRoll();break;case'freeFaces':if(el('diceFaces')){el('diceFaces').value=String(Number(parts[1]));updateFreeDicePreview()}break;case'shieldRoll':freeRoll(true);break;case'historyNav':historyNavigate(decodeURIComponent(parts[1]),parts[2]);break;case'chooseMusic':chooseMusic();break;case'musicMasterPlay':musicMasterCommand('play');break;case'musicMasterPause':musicMasterCommand('pause');break;case'musicMasterLoop':musicMasterCommand('loop');break;case'musicMasterSeek':musicMasterCommand('seek');break;case'playUpload':{const path=decodeURIComponent(parts.slice(1).join(':'));const st=window.ARQUIVO_SYNC;const u=st.state.client.storage.from('musica').getPublicUrl(path).data.publicUrl;sharedMusicCommand('file',u,path,true,0,false);break}case'deleteUpload':deleteUploaded(decodeURIComponent(parts.slice(1).join(':')));break;case'musicAccess':musicSoundUnlocked=true;el('music').classList.remove('requires-gesture');syncSharedMusic(true);break;case'clearRolls':clearRollHistory();break;case'resource':changeResource(parts[1],Number(parts[2]));break;case'resourceMin':resourceBoundary(parts[1],false);break;case'resourceMax':resourceBoundary(parts[1],true);break;case'editResource':editResource(parts[1]);break;case'setResource':setResource();break;case'useAbility':useAbility(Number(parts[1]));break;case'addAbilityDie':addAbilityDie(Number(parts[1]));break;case'removeAbilityDie':removeAbilityDie(Number(parts[1]),Number(parts[2]));break;case'restDialog':restDialog();break;case'restShort':rest('breve');break;case'restFull':rest('completo');break;case'conditionAdd':addCondition();break;case'confirmCondition':confirmCondition();break;case'conditionRemove':removeCondition(Number(parts[1]));break;case'editNotes':editNotes();break;case'saveNotes':saveNotes();break;case'saveSite':saveSite();break;case'backup':exportBackup();break;case'restore':restoreDialog();break;case'restoreCheck':restoreCheck();break;case'saveMusic':saveMusic();break;case'musicToggle':musicToggle();break;case'mute':prefs.musicMuted=!prefs.musicMuted;PREFSSTORE.save();applyPrefs();break;case'soundToggle':prefs.effectsMuted=!prefs.effectsMuted;PREFSSTORE.save();applyPrefs();break;}});document.addEventListener('input',e=>{if(['diceCount','diceFaces'].includes(e.target.id))updateFreeDicePreview();if(e.target.id==='invImageUrl')inventoryLinkImage(e.target.value);if(e.target.closest('#dialogRoot')&&!modalGuard&&!e.target.closest('.ae-palette-dialog'))modalDirty=true;if(e.target.id==='ruleSearch'){query=e.target.value;libraryRefreshResults()}if(e.target.id==='grimorioSearch'){grimorioQuery=e.target.value;grimorioRefreshResults()}if(['settingsMaster','settingsMusic','settingsEffects'].includes(e.target.id)){changeSetting(e.target.id,e.target.value)}if(e.target.dataset.palette)changeCustomPaletteColor(e.target.dataset.palette,e.target.value);if((e.target.dataset.edit||e.target.dataset.ability||e.target.dataset.abilityDie)&&editorDraft)updateDraft(e.target);if(e.target.id==='ruleText'&&el('rulePreview'))el('rulePreview').innerHTML=formatBook(e.target.value);if(e.target.dataset.sheetPalette)setSheetPalette(e.target.dataset.sheetPalette,e.target.value);if(e.target.id==='globalGradientEnd')changeCustomGradient('end',e.target.value);if(e.target.dataset.sheetGradient==='end')setSheetGradient('gradientEnd',e.target.value);if(e.target.matches('input[type=range]'))updateRangeTrack(e.target);if(e.target.id==='musicVolume'){try{changeSetting('musicVolume',e.target.value)}catch(e){}}});document.addEventListener('change',e=>{if(e.target.id==='invImageFile')inventoryChooseImage(e.target);if(e.target.id==='globalGradient')changeCustomGradient('toggle',e.target.checked);if(e.target.dataset.sheetGradient==='toggle')setSheetGradient('gradient',e.target.checked);if(e.target.id==='configGroupSteps'||e.target.id==='configSkillSteps')updateSkillRollConfigPreview();if(['presetChoice','sizeChoice','interfaceScaleChoice','speechRateChoice'].includes(e.target.id))changeSetting(e.target.id,e.target.value);if(['settingsMuteMaster','settingsMuteMusic','settingsMuteEffects'].includes(e.target.id))changeSetting(e.target.id,e.target.checked);if(e.target.dataset.setting)changeSetting(e.target.dataset.setting,e.target.checked);if(e.target.id==='chapterJump'&&e.target.value)openLibraryChapter(e.target.value);if(e.target.id==='grimorioCategory'){grimorioCategory=e.target.value;grimorioRefreshResults()}if(e.target.id==='formImage')imageForForm(e.target);if(e.target.dataset.abilityImage!==undefined)abilityImageUpload(e.target);if(e.target.id==='noteImagesInput')noteImageUpload(e.target);if(e.target.id==='coverFile')imageFile(e.target,'cover');if(e.target.id==='sheetImageFile')imageFile(e.target,'sheet');if(e.target.id==='sharedUpload'&&e.target.files[0])uploadSharedAudio(e.target.files[0])});document.addEventListener('keydown',e=>{const dialog=el('dialogRoot').querySelector('[role=dialog]');if(!dialog)return;if(e.key==='Escape'){if(!el('firstPlayerKey')){if(modalGuard)returnModal();else requestModalClose()}e.preventDefault()}if(e.key==='Tab'){const fs=[...dialog.querySelectorAll('button,input,textarea,select,[tabindex]')].filter(x=>!x.disabled&&x.tabIndex!==-1);if(!fs.length)return;const first=fs[0],last=fs[fs.length-1];if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault()}else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault()}}});document.addEventListener('pointermove',e=>{const hero=e.target.closest('#character');if(!hero||sheetMotionOff())return;const rect=hero.getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width-.5,y=(e.clientY-rect.top)/rect.height-.5;hero.style.setProperty('--tilty',x*7+'deg');hero.style.setProperty('--tiltx',-y*6+'deg')},{passive:true});document.addEventListener('pointerout',e=>{const hero=e.target.closest('#character');if(hero&&!hero.contains(e.relatedTarget)){hero.style.setProperty('--tilty','0deg');hero.style.setProperty('--tiltx','0deg')}})}
 function background(){
  const canvas=el('energy');if(!canvas)return;
  const ctx=canvas.getContext('2d');if(!ctx)return;
