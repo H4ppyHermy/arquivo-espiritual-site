@@ -1499,6 +1499,12 @@ body.theme-zangetsu .ae-home-play{color:var(--accent-ink)}
 #page .ae-volume-row.is-muted input[type="range"]::-moz-range-track{background:#555D65!important}
 #page .ae-volume-row.is-muted input[type="range"]::-moz-range-progress{background:#555D65!important}
 #page .ae-volume-row.is-muted input[type="range"]::-moz-range-thumb{background:#89939C!important;border-color:#3A4147!important}
+
+/* Paleta: seletor e engrenagem compartilham a mesma linha e altura. */
+#page .ae-palette-chooser{display:block;width:min(490px,100%);max-width:100%}
+#page .ae-palette-select-row{display:flex;align-items:stretch;gap:10px;width:100%;min-width:0}
+#page .ae-palette-select-row select{flex:1 1 auto;min-width:0;width:auto;height:48px;min-height:48px;margin:0}
+#page .ae-palette-select-row .ae-palette-gear{align-self:stretch;display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;min-width:48px;min-height:48px;margin:0;padding:0}
 </style>
 </head><body><div id="connectionBanner" role="alert" aria-live="polite" class="hidden"></div><canvas id="energy" aria-hidden="true"></canvas><div class="grain"></div><div class="app"><aside class="side"><div class="brand"><span class="label">BLEACH · CBB</span><b id="brandTitle">Bleach CBB</b><p>Um sistema em evolução.</p></div><div class="ae-side-brandmark" aria-hidden="true"><img src="assets/bleach-hollow.svg" width="58" height="58" alt="" decoding="async"></div><nav class="nav" id="navigation" aria-label="Navegação principal"></nav><div class="sidebar-extras" aria-label="Estado do site e configurações">
  <span id="onlineStatus" class="online-status" title="Estado da sincronização">LOCAL</span>
@@ -1620,12 +1626,12 @@ function settings(){
  '<p>O áudio incorporado do Spotify é controlado pelo próprio player ou dispositivo.</p></div></section>'+
  '<section class="panel ae-settings-panel ae-settings-palette" aria-labelledby="settingsPaletteTitle">'+
  '<div class="ae-settings-heading"><div><span class="ae-settings-index">APARÊNCIA</span><h2 id="settingsPaletteTitle">PALETA</h2><p>Escolha uma base ou ajuste cada cor separadamente.</p></div>'+btn('RESTAURAR','resetSettings:paleta','small')+'</div>'+
- '<div class="ae-palette-chooser"><div class="ae-palette-chooser-main"><label for="presetChoice">Paleta de cores</label><select id="presetChoice">'+
+ '<div class="ae-palette-chooser"><div class="ae-palette-chooser-main"><label for="presetChoice">Paleta de cores</label><div class="ae-palette-select-row"><select id="presetChoice">'+
  '<option value="zangetsu" '+(prefs.preset==='zangetsu'?'selected':'')+'>Velho Zangetsu</option>'+
  '<option value="padrao" '+(prefs.preset==='padrao'?'selected':'')+'>Ichigo</option>'+
  '<option value="personalizado" '+(prefs.preset==='personalizado'?'selected':'')+'>Personalizada</option>'+
- '</select><div class="ae-palette-swatches" aria-label="Cores da paleta">'+swatches+'</div></div>'+
- '<button class="ae-palette-gear" type="button" data-action="paletteEditor" title="Personalizar paleta" aria-label="Abrir editor de paleta">'+icon('settings')+'</button></div>'+
+ '</select><button class="ae-palette-gear" type="button" data-action="paletteEditor" title="Personalizar paleta" aria-label="Abrir editor de paleta">'+icon('settings')+'</button></div>'+
+ '<div class="ae-palette-swatches" aria-label="Cores da paleta">'+swatches+'</div></div></div>'+
  '</section>'+
  '<section class="panel ae-settings-panel" aria-labelledby="settingsAccessTitle">'+
  '<div class="ae-settings-heading"><div><span class="ae-settings-index">LEITURA</span><h2 id="settingsAccessTitle">ACESSIBILIDADE</h2><p>Controle legibilidade, movimento e efeitos visuais.</p></div>'+btn('RESTAURAR','resetSettings:acesso','small')+'</div>'+
