@@ -1,11 +1,12 @@
 /**
- * Prefixo principal: br 2d6 + 1d4. Aliases antigos CBB continuam funcionando.
+ * Prefixos permitidos: br, bajuda, bhistorico, bficha e bvincular.
  * Necessita de um processo Node 22+ sempre ligado. Não interfere nos slash commands.
  * Instalar: npm install
  * Usar: DISCORD_BOT_TOKEN=... node gateway.mjs
  * Discord Portal > Bot > Privileged Gateway Intents > Message Content Intent: ON
  */
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client, GatewayIntentBits, AttachmentBuilder } from "discord.js";
+import { renderSheetDM } from "./sheet-dm.mjs";
 import { parsePrefixMessage } from "./dice.mjs";
 import { COMMANDS } from "./commands.mjs";
 
@@ -65,6 +66,46 @@ client.on("messageCreate",async m=>{
    return;
   }
   const data=await res.json();
+  // Never echo protected sheet data or pairing codes into the guild channel.
+  if(data.dmContent){
+   try{
+    await m.author.send({content:String(data.dmContent).slice(0,1900),allowedMentions:{parse:[]}});
+    await m.reply({content:"Código enviado por DM. Abra sua ficha no site e clique em VINCULAR DISCORD.",allowedMentions:{parse:[],repliedUser:false}});
+   }catch{
+    await m.reply({content:"Não consegui abrir sua DM. Habilite mensagens privadas do servidor e tente bvincular novamente.",allowedMentions:{parse:[],repliedUser:false}});
+   }
+   return;
+  }
+  if(data.dmSheet){
+   try{
+    const sheet=renderSheetDM(data.dmSheet);
+    // Pack up to 8 embeds and 5.5k characters per message, under Discord API limits.
+    const packs=[];
+    let group=[],length=0;
+    for(const item of sheet.messages){
+     for(const embed of item.embeds||[]){
+      const n=String(embed.title||"").length+String(embed.description||"").length+String(embed.footer?.text||"").length;
+      if(group.length&&(group.length>=8||length+n>5400)){
+       packs.push(group);group=[];length=0;
+      }
+      group.push(embed);length+=n;
+     }
+    }
+    if(group.length)packs.push(group);
+    const exportBytes=Buffer.from(sheet.attachment,"utf8");
+    if(exportBytes.length>7*1024*1024)throw Error("Ficha muito grande para exportar via Discord.");
+    for(let i=0;i<packs.length;i++){
+     const packet={embeds:packs[i],allowedMentions:{parse:[]}};
+     if(i===0)packet.files=[new AttachmentBuilder(exportBytes,{name:sheet.exportName})];
+     await m.author.send(packet);
+    }
+    await m.reply({content:"Ficha completa enviada por mensagem privada. Consulte os cartões e o arquivo JSON anexado.",allowedMentions:{parse:[],repliedUser:false}});
+   }catch(error){
+    console.warn("Discord: não foi possível entregar ficha por DM:",error?.message||error);
+    await m.reply({content:"Não consegui entregar sua ficha por DM. Verifique suas configurações de privacidade e tente novamente.",allowedMentions:{parse:[],repliedUser:false}});
+   }
+   return;
+  }
   const safe={allowedMentions:{parse:[],repliedUser:false}};
   if(data.content)safe.content=String(data.content).slice(0,1900);
   if(Array.isArray(data.embeds))safe.embeds=data.embeds.slice(0,2);
