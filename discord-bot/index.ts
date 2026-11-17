@@ -43,37 +43,70 @@ async function sheets(){
 }
 const permittedSheet=s=>!!s&&!s.masterOnly&&!s.locked&&!s.redacted&&!s.private;
 function rollText(r){
- const dice=Array.isArray(r.dice)?r.dice:[];
- const values=dice.slice(0,30).map(d=>{
-  const value=Number(d.value),effective=d.effective===undefined?value:Number(d.effective);
-  return "d"+Number(d.sides)+": "+value+(effective!==value?" ["+effective+" efetivo]":"");
- });
- return "**"+txt(r.account_name,70)+"** · "+txt(r.label,100)+"\n"+
-   (values.length?values.join(" · ").slice(0,900)+"\n":"")+
-   "**Total: "+Number(r.total)+"**";
+ const roll=Array.isArray(r.dice)?r.dice:[];
+ const values=roll.slice(0,30).map(d=>String(d.value)).join(", ");
+ return txt(r.account_name,65)+" · "+txt(r.label,100)+" → ["+values+"] = "+Number(r.total);
 }
-async function rollCmd(p){
+function rollCard(r){
+ const rolls=Array.isArray(r.dice)?r.dice:[];
+ const special=String(r.special||"");
+ const accent=special==="CRÍTICO"?0xE5B85B:special==="FALHA CRÍTICA"?0xE96A78:0x8166E8;
+ const values=rolls.slice(0,30).map(d=>{
+  const value=Number(d.value),effect=Number(d.effective??d.value);
+  return effect===0||d.canceled===true?"("+value+")":String(value);
+ });
+ const diceText="["+values.join(", ")+"]";
+ const title=txt(r.label||"Rolagem",100);
+ const account=txt(r.account_name||"Jogador",70);
+ const status=special==="CRÍTICO"?"✦ CRÍTICO · TOTAL DUPLICADO":special==="FALHA CRÍTICA"?"⚠ FALHA CRÍTICA":"RESULTADO";
+ const description="## "+Number(r.total)+"  ⟵  "+diceText+
+  "\n"+(special?"**"+status+"**\n":"")+
+  (r.character_name?"**"+txt(r.character_name,80)+"**\n":"")+
+  (rolls.length?rolls.slice(0,16).map(d=>"d"+Number(d.sides)).join(" · "):"");
+ const embed={
+  color:accent,
+  author:{name:account},
+  title:"🎲 "+title,
+  description:description.slice(0,3900),
+  footer:{text:"BLEACH CBB  ·  ARQUIVO ESPIRITUAL"+(r.id?"  ·  #"+r.id:"")}
+ };
+ const components=r.kind==="discord"&&r.id?[{type:1,components:[{
+  type:2,style:2,label:"Re-rolar",emoji:{name:"🔄"},custom_id:"cbb:reroll:"+r.id
+ }]}]:[];
+ return {embeds:[embed],components,allowed_mentions:{parse:[]}};
+}
+const rollReply=r=>({type:4,data:rollCard(r)});
+async function rollCmd(p,fromRoll=null){
  let rolled;
- try{rolled=rollDiceExpression(opt(p,"expressao")||"1d20")}catch(e){return deny(txt(e.message,180))}
+ const expression=fromRoll?String(fromRoll.label||"").split(" · ")[0]:(opt(p,"expressao")||"1d20");
+ try{rolled=rollDiceExpression(expression)}catch(e){return deny(txt(e.message,180))}
  if(!user(p).id)return deny("Usuário desconhecido.");
  const receipt=String(p.id);
  const query="ae_rolls?select=*&discord_interaction_id=eq."+encodeURIComponent(receipt)+"&limit=1";
  const existing=await rest(query);
- if(existing?.[0])return say(rollText(existing[0]));
- const caption=txt(opt(p,"descricao"),70);
+ if(existing?.[0])return rollReply(existing[0]);
+ const caption=fromRoll?"↻ #"+fromRoll.id:txt(opt(p,"descricao"),70);
  const record={
   account_name:"Discord · "+txt(p.member?.nick||user(p).global_name||user(p).username||"Jogador",65),
   kind:"discord",label:rolled.expression+(caption?" · "+caption:""),dice:rolled.dice,total:rolled.total,
-  hidden:false,special:"",discord_user_id:String(user(p).id),discord_interaction_id:receipt
+  hidden:false,special:rolled.special||"",discord_user_id:String(user(p).id),discord_interaction_id:receipt
  };
  try{
   const inserted=await rest("ae_rolls?select=*","POST",record);
-  return say(rollText(inserted?.[0]||record));
+  return rollReply(inserted?.[0]||record);
  }catch(e){
   const duplicate=await rest(query).catch(()=>[]);
-  if(duplicate?.[0])return say(rollText(duplicate[0]));
+  if(duplicate?.[0])return rollReply(duplicate[0]);
   throw e;
  }
+}
+async function rerollButton(p){
+ const match=/^cbb:reroll:([1-9]\d{0,18})$/.exec(String(p.data?.custom_id||""));
+ if(!match)return deny("Botão inválido.");
+ const previous=await findRoll(match[1]);
+ if(!previous||previous.hidden||previous.kind!=="discord")return deny("Rolagem indisponível.");
+ if(String(previous.discord_user_id)!==String(user(p).id))return deny("Somente quem fez a rolagem pode re-rolar.");
+ return rollCmd(p,previous);
 }
 async function sheetCmd(p){
  const id=String(opt(p,"id")||"").trim();
@@ -136,9 +169,10 @@ async function interaction(req){
   }
   return j({type:1});
  }
- if(p.type!==2)return j(deny("Interação não suportada."));
+ if(p.type!==2&&p.type!==3)return j(deny("Interação não suportada."));
  if(!publicGuild(p))return j(deny("Bot indisponível neste servidor."));
  try{
+  if(p.type===3)return j(await rerollButton(p));
   if(p.data?.name==="rolar")return j(await rollCmd(p));
   if(p.data?.name==="ficha")return j(await sheetCmd(p));
   if(p.data?.name==="historico")return j(await historyCmd());
@@ -174,7 +208,7 @@ async function notify(req){
  if(!/^\d{17,22}$/.test(channel)||!bot)return j({ok:false,disabled:true},200,extra);
  const sent=await fetch("https://discord.com/api/v10/channels/"+channel+"/messages",{
   method:"POST",headers:{Authorization:"Bot "+bot,"Content-Type":"application/json"},
-  body:JSON.stringify({content:"**Rolagem feita no site**\n"+rollText(row),allowed_mentions:{parse:[]}})
+  body:JSON.stringify({content:"🎲 **Rolagem feita no Arquivo Espiritual**",...rollCard(row)})
  });
  if(!sent.ok)return j({ok:false,reason:"Discord indisponível."},503,extra);
  const reply=await sent.json();
