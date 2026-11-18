@@ -61,25 +61,8 @@
  font-size:calc(10px * var(--ae-reader-scale));
  opacity:.85;overflow-wrap:anywhere;line-height:1.5;
 }
-html.dyslexia-mode .ae-speech-tools{
- font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif;
-}
 html.performance-mode .ae-speech-tools{box-shadow:none!important}
 @media(max-width:680px){
  .ae-speech-tools{width:calc(265px * var(--ae-reader-scale));max-width:calc(100vw - 16px)}
  .ae-speech-tools .ae-speech-actions button{flex:1 1 45%}
-}
-
-/* Acessibilidade de leitura também nas janelas de glossário, fora de #page. */
-html.dyslexia-mode #dialogRoot .ae-mechanic-explanation{
- font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif;
-}
-html.dyslexia-mode #dialogRoot .ae-mechanic-explanation :is(p,.subtitle){
- max-width:68ch;line-height:1.95!important;letter-spacing:.025em;
- word-spacing:.12em;hyphens:none!important;text-align:left;overflow-wrap:break-word;
-}
-html.dyslexia-mode #dialogRoot .dialog:has(.ae-mechanic-explanation) h2{
- font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif!important;
- font-size:clamp(22px,3vw,34px);line-height:1.4;
- letter-spacing:0;overflow-wrap:break-word;
 }

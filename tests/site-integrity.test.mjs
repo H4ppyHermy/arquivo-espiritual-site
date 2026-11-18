@@ -31,3 +31,16 @@ test('YouTube so carrega ao selecionar essa fonte',()=>{
  assert.match(app,/function ensureYoutubeApi\(\)/);
  assert.match(app,/if\(kind==='youtube'\)\{ensureYoutubeApi\(\)/);
 });
+
+test('fonte personalizada substitui apoio a dislexia sem estilos antigos',()=>{
+ const css=['arquivo-base.css','arquivo-recursos.css','leitor-acessivel.css','biblioteca-ui.css','biblioteca-grimorio.css']
+  .map(read).join('\n');
+ assert.ok(fs.statSync(new URL('assets/CBBfont.ttf',root)).size>0);
+ assert.match(css,/@font-face\s*\{[^}]*CBBfont\.ttf/s);
+ assert.match(css,/html\.custom-font body/);
+ assert.match(app,/data-setting="customFont"/);
+ assert.match(app,/root\.classList\.toggle\('custom-font',!!prefs\.customFont\)/);
+ assert.match(app,/customFont:false/);
+ assert.doesNotMatch(css,/dyslexia-mode|Atkinson Hyperlegible/);
+ assert.doesNotMatch(app,/Apoio à dislexia|dyslexia-mode/);
+});

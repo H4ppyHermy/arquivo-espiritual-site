@@ -1094,29 +1094,6 @@ body{font-size:calc(14px * var(--ae-reading-scale))}
  #page .ae-access-reading-options{grid-template-columns:minmax(0,1fr)}
  #page .ae-access-option{min-height:0;padding:12px}
 }
-html.dyslexia-mode body{font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif}
-html.dyslexia-mode #page :is(.book-text,.rule .prose,.ae-mechanic-explanation,.ability,.sheet-entry,.character-text){
- font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif;
- text-align:left;hyphens:none;letter-spacing:.02em;word-spacing:.10em
-}
-html.dyslexia-mode #page :is(.book-text p,.book-text li,.book-text blockquote,.book-text dd,.rule .prose,.ae-mechanic-explanation p,.ability p,.sheet-entry p,.character-text p){
- max-width:68ch;text-align:left!important;hyphens:none!important;
- line-height:1.95!important;letter-spacing:.025em;word-spacing:.12em;
- overflow-wrap:break-word
-}
-html.dyslexia-mode #page :is(.book-text p,.book-text blockquote,.ae-mechanic-explanation p,.character-text p){margin-bottom:1.35em}
-html.dyslexia-mode #page :is(.book-text h2,.book-text h3,.book-text h4,.book-text h5,.book-text h6,.rule h3,.ability h3,.skill-block h3,.ae-mechanic-explanation h3){
- font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif!important;
- font-weight:700;letter-spacing:0;line-height:1.4;text-transform:none
-}
-html.dyslexia-mode #page .book-text :is(em,i){font-style:normal;font-weight:700}
-@media(hover:hover){
- html.dyslexia-mode #page .book-text :is(p,li):hover,
- html.dyslexia-mode #page .rule .prose:hover{
-  background:color-mix(in srgb,var(--theme-cold) 8%,transparent);
-  outline:4px solid color-mix(in srgb,var(--theme-cold) 8%,transparent)
- }
-}
 @media(max-width:600px){#page .ae-access-option{min-height:0}}
 
 

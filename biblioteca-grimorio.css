@@ -191,9 +191,6 @@
 .ae-glossary-editor .ae-grimorio-editor-check{display:flex}
 
 html.performance-mode #page :is(.ae-grimorio-portal,.ae-grimorio-panel,.ae-grimorio-entry){background-image:none!important;transition:none!important}
-html.dyslexia-mode #page :is(.ae-grimorio-entry-copy,.ae-grimorio-portal-copy,.ae-grimorio-panel){
- font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif
-}
 @media(max-width:1080px){
  #page .ae-grimorio-portal{grid-template-columns:60px minmax(0,1fr);gap:13px}
  #page .ae-grimorio-portal-symbol{width:60px;height:60px;font-size:36px}
@@ -361,9 +358,6 @@ html.performance-mode .ae-glossary-connection{transition:none!important}
 }
 .ae-library-editor-footer>.actions{margin:0}
 .ae-library-editor-footer>span{font-size:11px;opacity:.72;line-height:1.6}
-html.dyslexia-mode .ae-library-editor :is(input,textarea,.book-text){
- font-family:'Atkinson Hyperlegible',Verdana,Arial,sans-serif
-}
 @media(max-width:900px){
  .ae-library-editor-grid{grid-template-columns:minmax(0,1fr)}
  .ae-library-editor-compose textarea{min-height:270px}

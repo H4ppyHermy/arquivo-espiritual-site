@@ -336,11 +336,7 @@
  #page .ae-library-empty{padding:20px 16px}
 }
 
-/* Acessibilidade prevalece sobre efeitos decorativos e animações. */
-html.dyslexia-mode #page .ae-library-reading .book-paragraph{
- max-width:68ch;line-height:1.95!important;letter-spacing:.025em;
- word-spacing:.12em;text-align:left!important
-}
+/* Redução de efeitos visuais na biblioteca. */
 html.performance-mode #page .ae-library-layout *,
 html.reduce-motion #page .ae-library-layout *{
  transition:none!important;animation:none!important
