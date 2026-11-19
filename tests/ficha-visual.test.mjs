@@ -123,7 +123,7 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function updateDraft\(target\)/);
  assert.match(html,/ficha-visual\.js\?v=3/);
- assert.match(html,/ficha-visual\.css\?v=3/);
+ assert.match(html,/ficha-visual\.css\?v=4/);
  assert.ok(html.indexOf('arquivo-app.js?v=14')<html.indexOf('ficha-visual.js?v=3'));
 });
 
@@ -147,7 +147,10 @@ test('retrato usa área exclusiva e limites responsivos sem invadir o nome',()=>
  assert.match(css,/grid-template-columns:minmax\(0,1fr\) clamp\(185px,25%,330px\)/);
  assert.match(css,/grid-column:1;grid-row:2;align-self:center/);
  assert.match(css,/grid-column:2;grid-row:1\/3;position:relative/);
- assert.match(css,/object-fit:contain/);
+ assert.match(css,/object-fit:cover;object-position:50% 50%/);
+ assert.match(css,/#page \\.ae-ficha-art-image\\{[\\s\\S]*?position:absolute;inset:8px;/);
+ assert.match(css,/width:calc\\(100% - 16px\\);height:calc\\(100% - 16px\\)/);
+ assert.match(css,/#page \\.ae-ficha-hero-art::before\\{[\\s\\S]*?inset:8px;/);
  assert.doesNotMatch(css,/#page \.ae-ficha-section-title>span\{/);
 });
 test('perícias e recursos explicam as regras consolidadas sem implementar combate',()=>{
