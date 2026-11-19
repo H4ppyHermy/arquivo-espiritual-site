@@ -143,7 +143,7 @@
    .replace(/!\[([^\]]*)\]\([^)]+\)/g,'$1').replace(/\[([^\]]+)\]\([^)]+\)/g,'$1')
    .replace(/[#>*_~\u0060]/g,'').replace(/\s+/g,' ').trim();
  }
- function abilityCard(post,index,opened){
+ function abilityCard(post,opened){
   const id=text(post.id||''),category=text(post.category),title=text(post.title||'Sem título');
   const cost=text(post.cost).trim(),tags=visibleTags(post);
   const content=text(post.content||'Sem descrição.'),plain=abilityPlain(content);
@@ -162,19 +162,20 @@
    (long&&!opened?'<p class="ae-wh-ability-teaser">'+esc(teaser)+'</p>':'')+
    (!long||opened?'<div class="book-text ae-library-reading ae-wh-ability-description"'+
     (long?' id="warehouseBody-'+esc(id)+'"':'')+'>'+
-    api.formatBook(content,title)+'</div>':'')+
+    api.formatBook(content,title)+'</div>':
+    '<div id="warehouseBody-'+esc(id)+'" hidden></div>')+
    '</div>'+
    (tags.length?'<div class="ae-warehouse-tags ae-wh-ability-tags" aria-label="Tags">'+tags.map(tag=>
     '<button type="button" class="'+(tagIsHidden(post,tag)?'is-hidden-tag':'')+'" data-warehouse-action="tag:'+encodeURIComponent(tag)+'" title="'+(tagIsHidden(post,tag)?'Tag oculta para jogadores: ':'Filtrar por ')+esc(tag)+'">#'+esc(tag)+(tagIsHidden(post,tag)?'<small> · SÓ MESTRE</small>':'')+'</button>').join('')+'</div>':'')+
    (post.published===false&&api.master()?'<p class="ae-warehouse-draft">RASCUNHO · OCULTO PARA JOGADORES</p>':'')+
-   '<div class="ae-warehouse-actions ae-wh-ability-actions">'+
+   (long||api.master()?'<div class="ae-warehouse-actions ae-wh-ability-actions">':'')+
    (long?'<button type="button" class="ae-wh-ability-read" data-warehouse-action="open:'+encodeURIComponent(id)+
     '" aria-expanded="'+opened+'" aria-controls="warehouseBody-'+esc(id)+'">'+
     (opened?'RECOLHER DESCRIÇÃO':readLabel)+' <span aria-hidden="true">'+(opened?'−':'+')+'</span></button>':'')+
    (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+
     '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':-1" aria-label="Mover '+esc(title)+' para cima" title="Mover para cima">↑</button>'+
     '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':1" aria-label="Mover '+esc(title)+' para baixo" title="Mover para baixo">↓</button>':'')+
-   '</div></article>';
+   (long||api.master()?'</div>':'')+'</article>';
  }
  function cards(){
   const found=visible();
@@ -190,7 +191,7 @@
    const id=text(p.id||''),opened=openedPost===id,photo=safeImage(p.image);
    const summary=text(p.summary).trim(),cost=text(p.cost).trim(),tags=visibleTags(p);
    const category=text(p.category||'Outros');
-   if(isAbilityPost(p))return abilityCard(p,index,opened);
+   if(isAbilityPost(p))return abilityCard(p,opened);
    const abbr=({Classes:'CL',Itens:'IT'})[category]||'AR';
    return '<article class="ae-warehouse-post'+(opened?' is-open':'')+'" id="warehousePost-'+esc(id)+'">'+
     '<div class="ae-wh-post-accent" aria-hidden="true"></div>'+
