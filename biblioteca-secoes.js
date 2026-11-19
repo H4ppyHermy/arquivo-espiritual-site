@@ -11,6 +11,29 @@
  const esc=x=>api.esc(x);
  const action=(label,key,style='small')=>'<button type="button" class="btn '+style+'" data-warehouse-action="'+key+'">'+label+'</button>';
  const posts=()=>warehouse().posts;
+ // Compatibilidade com cópias antigas publicadas ou sincronizadas desta classe.
+ // Corrige apenas trechos conhecidos; preserva edições personalizadas e não grava dados.
+ function alignLegacyPortaVoz(post){
+  if(post.id!=='classe-porta-voz')return post;
+  let content=text(post.content);
+  const original=content;
+  const changes=[
+   ['escolha dois aliados com quem tenha pelo menos Afinidade',
+    'escolha dois aliados com os quais possua um Vínculo de grau I ou superior'],
+   ['conforme o grau de relação com o Porta-voz',
+    'conforme o grau de Vínculo de cada aliado com o Porta-voz (I: 1d6; II: 1d8; III: 1d12)'],
+   ['O dado tem −1 passo e seu resultado',
+    'O dado correspondente ao grau de Vínculo de cada aliado tem −1 passo e seu resultado'],
+   ['Os aliados recebem um dado adicional na próxima defesa contra ataque inimigo.',
+    'Os aliados recebem um dado adicional correspondente ao seu grau de Vínculo com o Porta-voz na próxima defesa contra ataque inimigo.'],
+   ['\\n\\n> O valor do dado por grau de Afinidade depende das regras de criação de personagem ainda em desenvolvimento.','']
+  ];
+  for(const [from,to] of changes)content=content.replace(from,to);
+  const staleLabel=post.damage?.label==='Dado de Afinidade (valor não definido)';
+  if(content===original&&!staleLabel)return post;
+  return {...post,content,...(staleLabel?
+   {damage:{...post.damage,label:'Dado de Vínculo (grau I: d6; II: d8; III: d12)'}}:{})};
+ }
  function warehouse(){
   const w=api.db.site?.warehouse;
   const defaults=Array.isArray(window.ARQUIVO_CLASSES_CBB)?window.ARQUIVO_CLASSES_CBB:[];
@@ -18,7 +41,7 @@
   const hidden=new Set(Array.isArray(w?.hiddenPosts)?w.hiddenPosts:[]);
   const merged=new Map(defaults.filter(p=>p&&p.id&&!hidden.has(p.id)).map(p=>[p.id,p]));
   for(const post of custom)if(post.id)merged.set(post.id,post);
-  const result=[...custom,...merged.values()].filter((p,i,arr)=>arr.findIndex(x=>x.id===p.id)===i&&!hidden.has(p.id));
+  const result=[...custom,...merged.values()].filter((p,i,arr)=>arr.findIndex(x=>x.id===p.id)===i&&!hidden.has(p.id)).map(alignLegacyPortaVoz);
   const categories=Array.isArray(w?.categories)&&w.categories.length?w.categories.filter(x=>typeof x==='string'&&x.trim()).slice(0,25):BASE_CATEGORIES.slice();
   for(const post of result)if(!categories.includes(post.category)&&categories.length<25)categories.push(post.category);
   return {categories,posts:result};
