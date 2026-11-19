@@ -355,7 +355,14 @@ function navRender(){
   `<button type="button" data-page="${id}" class="${page===id?'active':''}" aria-current="${page===id?'page':'false'}">${icon(ic)}<span>${name}</span></button>`
  ).join('');
 const name=db.site.title||'Bleach CBB';el('brandTitle').textContent=name;el('mobileTitle').textContent=name;const tag=isPlayerPreview()?'JOGADOR · TESTE':master()?'MESTRE':role==='player'?'JOGADOR':'VISITANTE';el('rolePill').textContent=bearer()||'VISITANTE';el('roleText').textContent='ACESSO // '+tag;document.body.classList.toggle('ae-master-preview',isPlayerPreview());const mark=el('masterPreviewMark');if(mark){mark.disabled=!ownerIsMaster();mark.setAttribute('aria-pressed',String(isPlayerPreview()));}const out=el('logoutTop');if(out)out.classList.toggle('hidden',!window.ARQUIVO_SYNC?.state.identity);el('storageText').textContent=DATASTORE.blocked?'Sem armazenamento: memória temporária':'Dados locais deste dispositivo';el('headerStatus').textContent=PAGES.find(x=>x[0]===page)?.[1]||'Visão geral'}
-function applyTheme(){applyPrefs();document.title=(db.site.title||'Bleach CBB')+' · Bleach CBB';el('musicName').textContent=db.site.musicName||'AMBIENTE';}
+let lastRenderedThemeState='';
+function applyTheme(){
+ const key=JSON.stringify([page,prefs]);
+ if(lastRenderedThemeState!==key){lastRenderedThemeState=key;applyPrefs()}
+ document.title=(db.site.title||'Bleach CBB')+' · Bleach CBB';
+ const title=el('musicName'),musicName=db.site.musicName||'AMBIENTE';
+ if(title&&title.textContent!==musicName)title.textContent=musicName;
+}
 function setPage(p){window.ARQUIVO_SPEECH?.clear(true);setMobileMore(false);if(p==='masterSheets')p='sheets';if(p==='admin'&&!master()){toast('Acesso restrito','Somente o mestre pode usar esse painel.',true);return}page=p;currentSheet=null;tab='summary';render();window.scrollTo({top:0,behavior:'instant'})}
 
 let editMode=false,editingTextKey='',lastOnlineWarning='';
@@ -390,6 +397,7 @@ function textKey(node,root){
 function applyTextOverrides(){
  document.body.classList.toggle('editing-text',editMode&&master());syncEditModeExit();
  const overrides=db.site.textOverrides||{};
+ if(!editMode&&!Object.keys(overrides).length)return;
  for(const root of [el('navigation'),el('page'),document.querySelector('.brand'),document.querySelector('.toolbar')]){
   if(!root)continue;
   const all=[...root.querySelectorAll('*')].filter(n=>n.children.length===0&&n.textContent.trim()&&
