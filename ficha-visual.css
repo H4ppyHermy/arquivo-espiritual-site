@@ -37,7 +37,9 @@
 #page .ae-ficha-links{margin:0 0 9px}
 #page .ae-ficha-palette{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 13px;position:relative;z-index:2}
 #page .ae-ficha-hero{
- min-width:0;min-height:clamp(255px,26vw,330px);position:relative;overflow:hidden;
+ display:grid;grid-template-columns:minmax(0,1fr) clamp(185px,25%,330px);
+ grid-template-rows:auto minmax(0,1fr);
+ min-width:0;min-height:clamp(280px,24vw,320px);position:relative;overflow:hidden;
  background:
  linear-gradient(90deg,var(--ae-ficha-ink) 0%,color-mix(in srgb,var(--theme-panel) 78%,#000) 48%,transparent 100%),
  repeating-linear-gradient(0deg,transparent 0,transparent 49px,color-mix(in srgb,var(--theme-cold) 8%,transparent) 50px,transparent 52px),
@@ -57,19 +59,22 @@
 }
 #page .ae-ficha-hero-top{
  display:flex;align-items:center;justify-content:space-between;gap:10px;
+ grid-column:1;grid-row:1;min-width:0;
  position:relative;z-index:3;padding:21px clamp(17px,3vw,35px) 0;
  font-size:9px;letter-spacing:.21em;font-weight:900;color:var(--ae-ficha-muted)
 }
 #page .ae-ficha-hero-top>span:first-child{color:var(--theme-cold)}
 #page .ae-ficha-hero-copy{
- position:relative;z-index:3;max-width:70%;padding:clamp(27px,4vw,47px) 0 35px clamp(17px,3vw,35px)
+ grid-column:1;grid-row:2;align-self:center;min-width:0;
+ position:relative;z-index:3;max-width:none;
+ padding:clamp(23px,3vw,35px) 17px 28px clamp(17px,3vw,35px)
 }
 #page .ae-ficha-overline{
  display:block;line-height:1.5;color:var(--theme-cold);
  font-size:11px;font-weight:900;letter-spacing:.18em
 }
 #page .ae-ficha-hero h1{
- font:900 clamp(48px,7vw,94px)/.91 'Barlow Condensed',Impact,sans-serif;
+ font:900 clamp(43px,5.2vw,82px)/.94 'Barlow Condensed',Impact,sans-serif;
  color:var(--theme-text);text-transform:uppercase;
  max-width:100%;overflow-wrap:anywhere;letter-spacing:.025em;
  text-shadow:0 2px 10px color-mix(in srgb,#000 35%,transparent);
@@ -90,15 +95,16 @@
  background:var(--ae-ficha-accent);color:var(--sheet-ink,#000);border-color:var(--ae-ficha-accent)
 }
 #page .ae-ficha-hero-art{
- pointer-events:none;position:absolute;right:0;bottom:0;top:0;width:44%;
+ pointer-events:none;grid-column:2;grid-row:1/3;position:relative;
+ right:auto;bottom:auto;top:auto;width:100%;height:100%;max-height:320px;
  display:flex;align-items:flex-end;justify-content:center;overflow:hidden;z-index:2;
  background:radial-gradient(ellipse at 55% 70%,var(--ae-ficha-glow),transparent 63%)
 }
 #page .ae-ficha-art-image{
- display:block;position:relative;width:100%;height:100%;max-width:none;
- object-fit:contain;object-position:bottom center;
+ display:block;position:relative;width:100%;height:100%;max-width:100%;max-height:320px;
+ object-fit:contain;object-position:center bottom;
  filter:drop-shadow(-18px 4px 30px color-mix(in srgb,#000 34%,transparent));
- mask-image:linear-gradient(to bottom,#000 78%,transparent 100%)
+ mask-image:linear-gradient(to bottom,#000 91%,transparent 100%)
 }
 #page .ae-ficha-art-glyph{
  margin:auto;opacity:.12;font:900 clamp(90px,15vw,250px)/1 serif;
@@ -106,7 +112,7 @@
 }
 #page .ae-ficha-art-stamp{
  position:absolute;bottom:14px;right:14px;
- writing-mode:vertical-rl;opacity:.38;color:var(--theme-text);
+ writing-mode:vertical-rl;opacity:.18;color:var(--theme-text);
  font-size:9px;letter-spacing:.25em;font-weight:900
 }
 #page .ae-ficha-hero-rule{
@@ -152,11 +158,8 @@
 #page .ae-ficha-nav-symbol{font-size:19px;line-height:1}
 #page .ae-ficha-nav-label{font-size:8px;font-weight:850;line-height:1.15;text-align:center;overflow-wrap:anywhere}
 #page .ae-ficha-section-title{
- display:flex;align-items:baseline;gap:12px;min-width:0;padding-bottom:11px;
- border-bottom:1px solid var(--ae-ficha-line)
-}
-#page .ae-ficha-section-title>span{
- font:900 18px/1 'Barlow Condensed',Impact,sans-serif;color:var(--theme-cold)
+ display:flex;align-items:baseline;gap:12px;min-width:0;padding:0 0 11px 12px;
+ border-left:3px solid var(--theme-cold);border-bottom:1px solid var(--ae-ficha-line)
 }
 #page .ae-ficha-section-title h2{
  margin:0;font:900 clamp(24px,3vw,33px)/1.05 'Barlow Condensed',Impact,sans-serif;
@@ -218,6 +221,7 @@
 #page .ae-ficha-resource-estabilidade .ae-ficha-resource-track>span{background:var(--theme-cold)}
 #page .ae-ficha-resource-alma .ae-ficha-resource-track>span{background:var(--theme-accent)}
 #page .ae-ficha-resource-extra{display:block;margin-top:6px;font-size:9px;color:var(--theme-cold)}
+#page .ae-ficha-resource-note{margin:11px 1px 0;max-width:72ch;font-size:10px;line-height:1.75;color:var(--ae-ficha-muted)}
 #page .ae-ficha-summary-notes{display:grid;gap:12px}
 #page .ae-ficha-record-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 #page .ae-ficha-record-grid button{
@@ -434,16 +438,18 @@
  #page .ae-ficha-nav-rule{height:26px;width:1px}
  #page .ae-ficha-nav-button{flex:0 0 63px;min-height:45px}
  #page .ae-ficha-body{width:100%}
- #page .ae-ficha-hero-copy{max-width:68%}
+ #page .ae-ficha-hero-copy{max-width:none}
 }
 @media(max-width:680px){
  #page .ae-ficha-v2{padding:10px 9px 16px}
- #page .ae-ficha-hero{min-height:260px}
+ #page .ae-ficha-hero{
+  min-height:238px;grid-template-columns:minmax(0,1fr) minmax(95px,30%);
+ }
  #page .ae-ficha-hero-top{padding:16px 13px 0;font-size:8px}
  #page .ae-ficha-hero-top>span:last-child{display:none}
- #page .ae-ficha-hero-copy{max-width:77%;padding:35px 4px 25px 14px}
- #page .ae-ficha-hero h1{font-size:clamp(37px,10vw,67px)}
- #page .ae-ficha-hero-art{width:50%;opacity:.82}
+ #page .ae-ficha-hero-copy{max-width:none;padding:24px 8px 20px 14px}
+ #page .ae-ficha-hero h1{font-size:clamp(29px,7.5vw,56px)}
+ #page .ae-ficha-hero-art{width:100%;max-height:260px;opacity:.82}
  #page .ae-ficha-overline{font-size:9px}
  #page .ae-ficha-hero-tags{gap:5px;margin-top:14px}
  #page .ae-ficha-hero-tags span{padding:6px 8px;font-size:9px}
@@ -468,7 +474,7 @@
  #page .ae-ficha-skills-grid{grid-template-columns:minmax(0,1fr)}
  #page .ae-ficha-skills-col+.ae-ficha-skills-col{margin-top:4px}
  #page .ae-ficha-hero h1{font-size:39px}
- #page .ae-ficha-hero-art{width:46%;opacity:.54}
+ #page .ae-ficha-hero-art{width:100%;opacity:.54}
  #page .ae-ficha-skill-name{flex:1 1 auto}
  #page .ae-ficha-skill-row{flex-wrap:nowrap}
 }
