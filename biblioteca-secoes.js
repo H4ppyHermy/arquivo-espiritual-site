@@ -320,10 +320,16 @@
   if(image&&!safeImage(image)){api.toast('Imagem inválida','Informe um endereço HTTPS direto.',true);return}
   if(!id&&w.posts.length>=300){api.toast('Limite do Armazém','Máximo de 300 publicações.',true);return}
   if(id&&!previous&&!defaultPost)return;
+  let bars=[];try{bars=readEditorBars(previous?.bars??defaultPost?.bars??[])}
+  catch(error){api.toast('Revise as barras',error.message,true);return}
+  const tags=parseTags(get('warehouseTagsInput'));
+  const joinedTags=tags.join(', ');
+  if(joinedTags.length>200){api.toast('Tags extensas','Reduza os nomes ou o número de tags.',true);return}
+  const selectedVisibility=document.getElementById('warehouseVisibilityInput')?.value;
+  const published=selectedVisibility?selectedVisibility==='published':!!document.getElementById('warehousePublishedInput')?.checked;
   const entry={...(defaultPost||{}),...(previous||{}),id:previous?.id||defaultPost?.id||api.uid(),title,category,
    summary:get('warehouseSummaryInput').slice(0,280),image,cost:get('warehouseCostInput').slice(0,45),
-   tags:get('warehouseTagsInput').slice(0,120),content:content.slice(0,20000),
-   published:!!document.getElementById('warehousePublishedInput')?.checked};
+   tags:joinedTags,content:content.slice(0,20000),bars,published};
   if(previous)Object.assign(previous,entry);else w.posts.unshift(entry);
   w.hiddenPosts=w.hiddenPosts.filter(key=>key!==entry.id);
   openedPost=entry.id;selectedCategory='Todas';selectedTag='';search='';
@@ -424,5 +430,5 @@
    if(field)field.hidden=!warehouseAllowsImage(event.target.value);
   }
  });
- window.ARQUIVO_SECOES={get active(){return active},set active(value){if(['book1','book2','warehouse'].includes(value))active=value},shelf,warehousePage,select,warehouse,getPost:id=>posts().find(p=>p.id===id),refresh};
+ window.ARQUIVO_SECOES={get active(){return active},set active(value){if(['book1','book2','warehouse'].includes(value))active=value},shelf,warehousePage,select,warehouse,getPost:id=>posts().find(p=>p.id===id),refresh,barEditorRow,parseTags};
 })();
