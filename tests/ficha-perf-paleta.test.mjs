@@ -141,3 +141,22 @@ test('vínculos confirmados atualizam apenas o contador quando acesso não muda'
  assert.match(fn,/editableBefore!==canEditSheet\(id\)/);
  assert.match(fn,/render\(\)/);
 });
+
+test('estilos da antiga ficha foram eliminados sem remover componentes atuais',()=>{
+ const css=read('arquivo-base.css');
+ for(const old of ['.sheet-personal .character','.sheet-personal .tabs','.sheet-personal .skill-block','.sheet-personal .resource:nth-child'])
+  assert.ok(!css.includes(old),old);
+ for(const kept of ['.sheet-personal .panel','.sheet-palette-controls','.die-figure'])
+  assert.ok(css.includes(kept),kept);
+ const index=read('index.html');
+ assert.match(index,/arquivo-base\.css\?v=5/);
+});
+
+test('campos da paleta enviados ao servidor permanecem compatíveis com a versão online',()=>{
+ const app=read('arquivo-app.js');
+ const fields=app.slice(app.indexOf('const SHEET_PALETTE_FIELDS='),app.indexOf('const SHEET_HEX='));
+ for(const name of ['accent','panel','raised','cold','text','bg','diceGroup','diceSkill'])
+  assert.ok(fields.includes("['"+name+"'"),name);
+ assert.ok(!fields.includes("['structure'"));
+ assert.match(app,/--theme-structure:\$\{p\.cold\}/);
+});
