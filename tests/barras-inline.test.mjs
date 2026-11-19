@@ -49,8 +49,8 @@ test('a leitura dos capítulos e das fichas utiliza o mesmo parser',()=>{
  assert.match(read('biblioteca-editor.js'),/function insertEditorBar\(/);
  assert.match(read('biblioteca-secoes.js'),/data-warehouse-editor="insert-bar"/);
  assert.match(read('biblioteca-secoes.js'),/warehouseEditorResourceKind/);
- assert.ok(html.indexOf('barras-inline.js?v=2')<html.indexOf('arquivo-app.js?v=14'));
- assert.match(html,/barras-inline\.css\?v=2/);
+ assert.ok(html.indexOf('barras-inline.js?v=3')<html.indexOf('arquivo-app.js?v=15'));
+ assert.match(html,/barras-inline\.css\?v=3/);
 });
 test('custos de Têmpera e Armadilhas usam a notação visual sem alterar regras',()=>{
  const classesSource=read('classes-armazem.js');
@@ -90,4 +90,31 @@ test('as classes reutilizam tipos genéricos, sem códigos específicos de habil
  assert.ok(records.find(p=>p.id==='classe-porta-voz').content.includes('[marca:1]'));
  assert.ok(records.find(p=>p.id==='classe-cacador').content.includes('[contador:5/5]'));
  assert.doesNotMatch(records.map(x=>x.content).join('\n'),/\[(?:rastro|armadilha|voz):/i);
+});
+
+test('sequência mostra níveis cumulativos e usa o mesmo renderer da Biblioteca e ficha',()=>{
+ const api=load();
+ assert.ok(api.types.includes('sequencia'));
+ for(let n=0;n<=3;n++){
+  const output=replace('[sequencia:'+n+'/3]');
+  assert.match(output,/ae-inline-resource--sequencia/);
+  assert.match(output,new RegExp('aria-label="Sequência: nível '+n+' de 3"'));
+  assert.equal((output.match(/ae-inline-resource-segment/g)||[]).length,3);
+  assert.equal((output.match(/ae-inline-resource-segment is-filled/g)||[]).length,n);
+  assert.doesNotMatch(output,/\\[sequencia:/);
+ }
+ const shorthand=replace('[sequencia]');
+ assert.match(shorthand,/Sequência: nível 0 de 3/);
+ assert.equal((shorthand.match(/ae-inline-resource-segment/g)||[]).length,3);
+ assert.equal(replace('[sequencia: 2 / 3]').includes('nível 2 de 3'),true);
+ assert.match(read('barras-inline.css'),/ae-inline-resource--sequencia/);
+ assert.match(read('biblioteca-secoes.css'),/ae-wh-resource-slots--sequencia/);
+});
+test('sequência inválida permanece literal e não modifica regras de combate',()=>{
+ const source='[sequencia:4/3] [sequencia:0/0] [sequencia:21/21] [sequencia:-1/3]';
+ assert.equal(replace(source),source);
+ assert.equal(replace('[barra] [marca] [contador]'),'[barra] [marca] [contador]');
+ assert.match(read('arquivo-app.js'),/option value="sequencia">Sequência/);
+ assert.match(read('biblioteca-secoes.js'),/option value="sequencia">Sequência/);
+ assert.match(read('ficha-visual.js'),/sequencia\\(\\?:/);
 });
