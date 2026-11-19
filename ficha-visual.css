@@ -91,7 +91,7 @@
  text-transform:uppercase;border:1px solid var(--ae-ficha-line);
  color:var(--theme-text);background:color-mix(in srgb,var(--theme-bg) 67%,transparent)
 }
-#page .ae-ficha-hero-tags span:first-child{
+#page .ae-ficha-hero-tags .ae-ficha-race{
  background:var(--ae-ficha-accent);color:var(--sheet-ink,#000);border-color:var(--ae-ficha-accent)
 }
 #page .ae-ficha-hero-art{
