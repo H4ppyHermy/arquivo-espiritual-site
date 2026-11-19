@@ -197,13 +197,14 @@
    '<div class="ae-warehouse-mobile-categories"><label for="warehouseCategorySelect">Categoria</label>'+
    '<select id="warehouseCategorySelect"><option value="Todas">Todas</option>'+w.categories.map(name=>'<option value="'+esc(name)+'"'+(selectedCategory===name?' selected':'')+'>'+esc(name)+'</option>').join('')+'</select></div>'+
    (api.master()?'<div class="ae-warehouse-mobile-manage">'+action('EDITAR CATEGORIAS','categories')+'</div>':'')+'</div>'+
-   '<div class="ae-warehouse-posts" id="warehousePosts">'+cards()+'</div></section>'+shelf()+'</div>';
+   '<div id="warehouseTagFilters">'+tagFilters()+'</div><div class="ae-warehouse-posts" id="warehousePosts">'+cards()+'</div></section>'+shelf()+'</div>';
  }
  function refresh(){
   const root=document.getElementById('warehousePosts');if(root)root.innerHTML=cards();
   const nav=document.getElementById('warehouseCategoryList');if(nav)nav.innerHTML=categoryMarkup();
   const count=document.getElementById('warehouseMatches');if(count){const n=visible().length;count.textContent=n+' '+(n===1?'publicação encontrada':'publicações encontradas')}
   const select=document.getElementById('warehouseCategorySelect');if(select)select.value=selectedCategory;
+  const tags=document.getElementById('warehouseTagFilters');if(tags)tags.innerHTML=tagFilters();
  }
  function edit(raw){
   if(!api.master())return;
@@ -266,7 +267,7 @@
    published:!!document.getElementById('warehousePublishedInput')?.checked};
   if(previous)Object.assign(previous,entry);else w.posts.unshift(entry);
   w.hiddenPosts=w.hiddenPosts.filter(key=>key!==entry.id);
-  openedPost=entry.id;selectedCategory='Todas';search='';
+  openedPost=entry.id;selectedCategory='Todas';selectedTag='';search='';
   api.save();api.closeModal();api.render();api.toast('Publicação salva',title);
  }
  function removePost(){
@@ -318,6 +319,13 @@
   if(type==='move')move(parts[0],Number(parts[1]));
   if(type==='categories')categories();
   if(type==='save-categories')saveCategories();
+  if(type==='clear-filters'){
+   selectedCategory='Todas';selectedTag='';search='';openedPost=null;api.render();return;
+  }
+  if(type==='tag'){
+   let value='';try{value=decodeURIComponent(parts.join(':'))}catch{return}
+   selectedTag=fold(selectedTag)===fold(value)?'':value;openedPost=null;refresh();return;
+  }
   if(type==='category'){
    let value='';try{value=decodeURIComponent(parts.join(':'))}catch{return}
    if(value!=='Todas'&&!warehouse().categories.includes(value))return;
