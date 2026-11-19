@@ -370,7 +370,9 @@ test('efeito extenso abre sem duplicar a prévia; descrição é uma única habi
  assert.match(html,/<p>## Ativação/);
  assert.doesNotMatch(html,/Uma investida silenciosa/);
  assert.doesNotMatch(html,/DESCRIÇÃO & FUNCIONAMENTO/);
- assert.doesNotMatch(html,/ae-wh-emblem|ae-warehouse-image/);
+ const technique=html.match(/<article class="ae-warehouse-post ae-wh-ability-post is-open" id="warehousePost-tecnica-longa">[\\s\\S]*?<\\/article>/)?.[0];
+ assert.ok(technique);
+ assert.doesNotMatch(technique,/ae-wh-emblem|ae-warehouse-image/);
 });
 
 test('editor atualiza campos e não salva imagem em habilidade ou técnica',()=>{
