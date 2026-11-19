@@ -24,6 +24,7 @@ function setup(master=true){
  const sandbox={window,document,console,requestAnimationFrame:callback=>callback(),
   Event:class{constructor(type){this.type=type;}}};
  vm.runInNewContext(file('classes-armazem.js'),sandbox);
+ vm.runInNewContext(file('habilidades-armazem.js'),sandbox);
  vm.runInNewContext(file('biblioteca-secoes.js'),sandbox);
  vm.runInNewContext(file('biblioteca-editor.js'),sandbox);
  function dispatch(type,id,action='',extra={}){
@@ -47,7 +48,7 @@ function setup(master=true){
 
 test('livros e quatro classes permanecem disponíveis, mas sem conexão com a ficha',()=>{
  const {window,db}=setup();
- assert.equal(window.ARQUIVO_SECOES.warehouse().posts.length,4);
+ assert.equal(window.ARQUIVO_SECOES.warehouse().posts.length,10);
  const html=window.ARQUIVO_SECOES.warehousePage();
  for(const name of ['Coração de Aço','Especialista em Hohō','Caçador','Porta-voz'])
   assert.ok(html.includes(name),name);
@@ -407,4 +408,54 @@ test('editor atualiza campos e não salva imagem em habilidade ou técnica',()=>
  assert.equal(post.category,'Habilidades');
  assert.equal(post.content,'Efeito direto');
  assert.equal(post.image,'');
+});
+
+test('três técnicas livres e três habilidades raciais constam do Armazém sem imagens',()=>{
+ const ctx=setup();
+ const source=ctx.window.ARQUIVO_HABILIDADES_CBB;
+ const expected=[
+  ['Mira Estável','Técnicas','2 ALMA','Ao realizar um ataque à distância sem ter se movimentado na rodada, aumente em 1 passo o dado da perícia utilizada no ataque.'],
+  ['Disparo de Contenção','Técnicas','2 ALMA','Ao acertar um ataque à distância, reduza a movimentação do alvo pela metade até o próximo Desfecho.'],
+  ['Fogo de Cobertura','Técnicas','3 ALMA','Quando um aliado dentro do alcance de seus disparos for alvo de um ataque, utilize sua reação para realizar um Teste-Clash de Precisão contra o agressor. Caso vença, interrompe o ataque inimigo.'],
+  ['Hierro','Habilidades','2 ALMA','Ao sofrer um ataque que afete sua Vida, acrescente 1d6 à resistência de Vida até o término da fase. Esse dado é considerado uma proteção adicional.'],
+  ['Sonído','Habilidades','2 ALMA','Ao se movimentar, dobre a distância percorrida e ignore bloqueios formados por criaturas durante o deslocamento.'],
+  ['Cero','Habilidades','3 ALMA','Utilize sua ação principal na fase de Distância para realizar um ataque de Liberação, concentrando sua energia espiritual em um disparo. Ao acertar, acrescente 1d8 ao dano-base.']
+ ];
+ assert.equal(source.length,6);
+ const ids=new Set();
+ const published=ctx.window.ARQUIVO_SECOES.warehouse().posts;
+ for(const [title,category,cost,description] of expected){
+  const post=source.find(x=>x.title===title);
+  assert.ok(post,title);
+  assert.equal(post.category,category);
+  assert.equal(post.cost,cost);
+  assert.equal(post.content,description);
+  assert.equal(post.summary,'');
+  assert.equal(post.image,'');
+  assert.equal(post.published,true);
+  assert.equal(published.filter(x=>x.id===post.id).length,1);
+  assert.ok(!ids.has(post.id),'IDs não podem repetir');
+  ids.add(post.id);
+  const card=ctx.window.ARQUIVO_SECOES.warehousePage().match(
+   new RegExp('<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-'+post.id+'">[\\\\s\\\\S]*?<\\\\/article>')
+  )?.[0];
+  assert.ok(card,'Cartão especial não encontrado: '+title);
+  assert.doesNotMatch(card,/ae-wh-emblem|ae-warehouse-image|魂/);
+  assert.match(card,/CUSTO \\/ USO/);
+ }
+ assert.equal(ctx.db.sheets.length,1,'Não deve alterar fichas de jogadores');
+});
+
+test('registro oficial pode ser editado, ocultado e substituído sem reaparecer em duplicidade',()=>{
+ const ctx=setup(true);
+ const id='tecnica-mira-estavel';
+ ctx.db.site.warehouse.posts.push({id,title:'Mira Estável personalizada',category:'Técnicas',
+  content:'Descrição editada pelo mestre',published:true,cost:'1 ALMA'});
+ const records=ctx.window.ARQUIVO_SECOES.warehouse().posts.filter(x=>x.id===id);
+ assert.equal(records.length,1);
+ assert.equal(records[0].title,'Mira Estável personalizada');
+ ctx.elements.dialogRoot.dataset.warehouseId=id;
+ ctx.dispatch('click','','warehouse-delete',{kind:'modal'});
+ assert.equal(ctx.window.ARQUIVO_SECOES.warehouse().posts.some(x=>x.id===id),false);
+ assert.ok(ctx.db.site.warehouse.hiddenPosts.includes(id));
 });
