@@ -175,16 +175,6 @@
   if(next.length>200){api.toast('Tags extensas','Reduza o tamanho dos marcadores.',true);return}
   field.value=next;field.dispatchEvent(new Event('input',{bubbles:true}));field.focus();
  }
- function addResourceBar(){
-  const root=document.getElementById('warehouseBarRows');if(!root)return;
-  const count=root.querySelectorAll('[data-warehouse-bar]').length;
-  if(count>=8){api.toast('Limite de barras','Máximo de 8 recursos informativos.',true);return}
-  const markup=window.ARQUIVO_SECOES?.barEditorRow({},count);
-  if(!markup)return;
-  root.insertAdjacentHTML('beforeend',markup);
-  root.querySelector('[data-warehouse-bar]:last-child [data-bar-field="label"]')?.focus();
- }
-
  document.addEventListener('click',event=>{
   const button=event.target?.closest?.('[data-warehouse-editor]');
   if(!button)return;
@@ -195,8 +185,6 @@
   else if(action==='insert-template')insertTemplate();
   else if(action==='insert-die')insertEditorDie();
   else if(action==='insert-bar')insertEditorBar();
-  else if(action==='add-bar')addResourceBar();
-  else if(action==='remove-bar')button.closest('[data-warehouse-bar]')?.remove();
   else if(action?.startsWith('add-tag:'))addSuggestedTag(action.slice(8));
   else if(action?.startsWith('toggle-tag:'))toggleTag(action.slice(11));
   else if(action==='remove-image')removeImage();
