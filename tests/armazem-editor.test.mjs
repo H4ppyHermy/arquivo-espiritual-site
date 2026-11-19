@@ -176,7 +176,7 @@ test('GIF local pequeno pode ser preparado como miniatura animada',async()=>{
  ctx.sandbox.FileReader=Reader;
  ctx.dispatch('change','warehouseImageFile','',{files:[{type:'image/gif',size:60}]});
  await new Promise(resolve=>setImmediate(resolve));
- assert.match(ctx.elements.warehouseImagePreview.innerHTML,/data:image\\/gif;base64/);
+ assert.match(ctx.elements.warehouseImagePreview.innerHTML,/data:image\/gif;base64/);
  assert.equal(ctx.window.ARQUIVO_EDITOR_ARMAZEM.imageValue(),sample);
 });
 
