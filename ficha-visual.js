@@ -93,7 +93,7 @@
   const mid=Math.ceil(all.length/2),columns=[all.slice(0,mid),all.slice(mid)];
   const row=({group,name})=>
    '<div class="ae-ficha-skill-row"><span class="ae-ficha-skill-name">'+esc(name)+'</span>'+
-   '<span class="ae-ficha-skill-dice">'+numberDie(s.skills?.[name],'skill')+'<span aria-hidden="true" class="ae-ficha-skill-plus">+</span>'+numberDie(s.groups?.[group],'group')
+   '<span class="ae-ficha-skill-dice">'+numberDie(s.skills?.[name],'skill')+'<span aria-hidden="true" class="ae-ficha-skill-plus">+</span>'+numberDie(s.groups?.[group],'group')+
    '<small>'+esc(group)+'</small></span></div>';
   return '<section class="ae-ficha-skills" aria-labelledby="aeFichaSkillsTitle">'+
    '<div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2 id="aeFichaSkillsTitle">Grupos & perícias</h2></div>'+
