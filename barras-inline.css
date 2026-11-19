@@ -1,0 +1,20 @@
+/* Ícones de barras inseridos no texto, no mesmo nível dos dados inline. */
+.ae-inline-resource-bar{
+ display:inline-flex;vertical-align:-.15em;align-items:center;justify-content:flex-start;
+ gap:.13em;max-width:100%;white-space:nowrap;margin-inline:.13em;
+ padding:.08em .13em;border-radius:2px;
+ background:color-mix(in srgb,var(--theme-cold) 5%,transparent);
+ line-height:1;isolation:isolate
+}
+.ae-inline-resource-segment{
+ box-sizing:border-box;display:inline-block;flex:0 0 auto;
+ width:.52em;height:.92em;min-width:2px;transform:skewX(-13deg);
+ border:1px solid color-mix(in srgb,var(--theme-cold) 62%,var(--theme-structure));
+ background:color-mix(in srgb,var(--theme-cold) 7%,var(--theme-panel))
+}
+.ae-inline-resource-segment.is-filled{
+ background:var(--theme-cold);border-color:var(--theme-cold);
+ box-shadow:0 0 .2em color-mix(in srgb,var(--theme-cold) 30%,transparent)
+}
+@media(prefers-reduced-motion:reduce){.ae-inline-resource-bar,.ae-inline-resource-segment{animation:none;transition:none}}
+html.reduce-motion .ae-inline-resource-segment,html.performance-mode .ae-inline-resource-segment{box-shadow:none!important}
