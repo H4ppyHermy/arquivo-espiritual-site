@@ -14,6 +14,7 @@ jobs:
       - name: Verificar sintaxe JavaScript
         run: |
           node --check arquivo-app.js
+          node --check ficha-visual.js
           node --check biblioteca-secoes.js
           node --check biblioteca-editor.js
           node --check barras-inline.js
