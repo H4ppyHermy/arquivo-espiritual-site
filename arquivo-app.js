@@ -1484,6 +1484,7 @@ function sheetLinks(){
 async function changeSheetLink(action){
  const id=currentSheet,sh=db.sheets.find(x=>x.id===id);
  if(!sh||!player()||sheetLinkBusy)return;
+ const editableBefore=canEditSheet(id);
  const target=action==='add'?el('linkPlayerTarget')?.value:action==='remove'?el('unlinkPlayerTarget')?.value:null;
  if(['add','remove'].includes(action)&&!target){toast('Selecione um jogador','Nenhuma chave escolhida.',true);return}
  if(action==='leave'&&!confirm('Desvincular esta ficha da sua chave? Se for a última chave, a ficha ficará pública e disponível para novo vínculo.'))return;
@@ -1518,7 +1519,10 @@ async function changeSheetLink(action){
   closeModal();
   const updated=db.sheets.find(x=>x.id===id);
   if(!master()&&!isLinked(updated)&&updated?.locked)currentSheet=null;
-  render();toast('VÍNCULOS ATUALIZADOS');
+  const badge=document.querySelector('#page .ae-ficha-links [data-action="sheetLinks"]');
+  if(!currentSheet||editableBefore!==canEditSheet(id)||!badge)render();
+  else badge.textContent='JOGADORES VINCULADOS · '+linkedIds(updated).length;
+  toast('VÍNCULOS ATUALIZADOS');
  }catch(error){toast('Vínculo não alterado',error.message,true)}
  finally{
   sheetLinkBusy=false;
