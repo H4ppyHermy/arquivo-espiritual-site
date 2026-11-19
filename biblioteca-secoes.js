@@ -71,7 +71,7 @@
    '" aria-pressed="'+(fold(selectedTag)===fold(tag))+'" data-warehouse-action="tag:'+encodeURIComponent(tag)+'">#'+esc(tag)+
    '<small>'+count+'</small></button>').join('')+'</div>':'<p class="ae-wh-tags-help">As tags das publicações aparecerão aqui.</p>')+'</div>';
  }
- function resourceKind(raw){return ['barra','marca','contador'].includes(raw)?raw:'barra'}
+ function resourceKind(raw){return ['barra','marca','contador','sequencia'].includes(raw)?raw:'barra'}
  function resourceBars(post){
   const bars=Array.isArray(post.bars)?post.bars.slice(0,8):[];
   return bars.filter(b=>b&&typeof b==='object').map(b=>{
@@ -215,7 +215,8 @@
    '<div class="ae-wh-bar-fields"><label>Nome do recurso<input data-bar-field="label" maxlength="65" placeholder="Ex.: Têmpera" value="'+esc(raw.label||'')+'"></label>'+
    '<label>Formato visual<select data-bar-field="visual"><option value="barra"'+(visual==='barra'?' selected':'')+'>Barra</option>'+
    '<option value="marca"'+(visual==='marca'?' selected':'')+'>Marca</option>'+
-   '<option value="contador"'+(visual==='contador'?' selected':'')+'>Contador</option></select></label>'+
+   '<option value="contador"'+(visual==='contador'?' selected':'')+'>Contador</option>'+
+   '<option value="sequencia"'+(visual==='sequencia'?' selected':'')+'>Sequência</option></select></label>'+
    '<label>Máximo<input data-bar-field="max" type="number" inputmode="numeric" min="1" max="20" value="'+max+'"></label>'+
    '<label>Valor inicial<input data-bar-field="initial" type="number" inputmode="numeric" min="0" max="20" value="'+initial+'"></label></div>'+
    '<label>Como funciona? (opcional)<textarea data-bar-field="description" rows="2" maxlength="450" placeholder="Quando ganha ou gasta marcas, e para quê.">'+esc(raw.description||'')+'</textarea></label>'+
@@ -292,10 +293,10 @@
      '<label>DADO<select id="warehouseEditorDie">'+[4,6,8,10,12,14,16,18,20].map(n=>
        '<option value="'+n+'">d'+n+'</option>').join('')+'</select></label>'+
      '<button type="button" class="btn small" data-warehouse-editor="insert-die">INSERIR DADO</button>'+
-     '<label>TIPO<select id="warehouseEditorResourceKind" aria-label="Tipo de representação"><option value="barra">Barra</option><option value="marca">Marca</option><option value="contador">Contador</option></select></label>'+
+     '<label>TIPO<select id="warehouseEditorResourceKind" aria-label="Tipo de representação"><option value="barra">Barra</option><option value="marca">Marca</option><option value="contador">Contador</option><option value="sequencia">Sequência</option></select></label>'+
       '<label>MARCAS<input id="warehouseEditorBarFilled" type="number" min="0" max="20" step="1" value="1" aria-label="Marcas preenchidas"></label>'+
      '<label>DE<input id="warehouseEditorBarTotal" type="number" min="1" max="20" step="1" value="3" aria-label="Total de marcas"></label>'+
-     '<button type="button" class="btn small" data-warehouse-editor="insert-bar" title="Insere barra, marca ou contador visual no texto">INSERIR RECURSO</button></div>'+
+     '<button type="button" class="btn small" data-warehouse-editor="insert-bar" title="Insere barra, marca, contador ou sequência visual no texto">INSERIR RECURSO</button></div>'+
      '<div class="ae-warehouse-compose-grid"><div class="ae-warehouse-compose-source">'+
      '<label for="warehouseContentInput">Texto completo<textarea id="warehouseContentInput" rows="14" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="## Descrição\n\nExplique a classe, habilidade ou técnica.">'+esc(p.content||'')+'</textarea></label>'+
      '<p id="warehouseEditorHint" class="ae-cat-help">Selecione o texto para aplicar formatação. Ctrl+B e Ctrl+I também funcionam.</p></div>'+
