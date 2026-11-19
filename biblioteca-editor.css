@@ -82,30 +82,15 @@
 .ae-wh-advanced-chevron{font-size:20px;color:var(--theme-cold)}
 .ae-wh-editor-advanced[open] .ae-wh-advanced-chevron{transform:rotate(180deg)}
 .ae-wh-editor-advanced-body{display:grid;gap:13px;border-top:1px solid var(--theme-structure);padding:17px}
-.ae-wh-bar-editor-heading{display:grid;gap:5px}
-.ae-wh-bar-editor-heading strong{font:900 18px/1.1 'Barlow Condensed',sans-serif;color:var(--theme-cold)}
-.ae-wh-bar-editor-heading p{margin:0;font-size:11px;line-height:1.65;opacity:.8}
-.ae-wh-bar-rows{display:grid;gap:9px}
-.ae-wh-bar-row{display:grid;gap:12px;min-width:0;padding:13px;border:1px solid var(--theme-structure);background:var(--theme-raised)}
-.ae-wh-bar-row-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.ae-wh-bar-row-heading strong{font:900 15px/1.1 'Barlow Condensed',sans-serif;letter-spacing:.06em}
-.ae-wh-bar-row-heading button{min-height:30px}
-.ae-wh-bar-fields{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(2,minmax(70px,.7fr));gap:9px}
-.ae-wh-bar-mode{max-width:380px}
-.ae-wh-add-bar{justify-self:start}
 @media(max-width:760px){
  .ae-wh-editor-section{padding:13px}
- .ae-wh-bar-fields{grid-template-columns:minmax(0,1fr) repeat(2,minmax(65px,80px))}
  .ae-wh-simple-editor .ae-warehouse-compose-templates label{min-width:105px}
 }
 @media(max-width:480px){
  .ae-wh-editor-intro{padding:13px}
  .ae-wh-editor-intro>strong{font-size:23px}
- .ae-wh-bar-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
- .ae-wh-bar-fields>label:first-child{grid-column:1/-1}
  .ae-wh-editor-advanced>summary{padding:12px}
  .ae-wh-editor-advanced-body{padding:11px}
- .ae-wh-bar-row{padding:10px}
 }
 
 
@@ -150,14 +135,5 @@
 .ae-warehouse-compose-templates [data-warehouse-editor="insert-bar"]{border-color:var(--theme-cold);font-weight:900}
 
 
-/* Editor de recursos com tipos genéricos reutilizáveis. */
-.ae-wh-bar-fields{
- display:grid;grid-template-columns:minmax(135px,1.4fr) minmax(105px,1fr)
- minmax(70px,.6fr) minmax(70px,.6fr);gap:9px
-}
-.ae-wh-bar-fields :is(input,select){min-width:0}
+/* Seletor de shortcode inline: permanece disponível no editor textual. */
 .ae-warehouse-compose-templates label:has(#warehouseEditorResourceKind){flex:0 1 125px;min-width:95px}
-.ae-warehouse-compose-templates [data-warehouse-editor="insert-bar"]{border-color:var(--theme-cold)}
-@media(max-width:760px){.ae-wh-bar-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:480px){.ae-wh-bar-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
- .ae-wh-bar-fields>label:first-child{grid-column:1/-1}}
