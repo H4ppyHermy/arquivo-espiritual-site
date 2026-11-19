@@ -30,8 +30,8 @@ test('quatro classes disponíveis como publicações do Armazém',()=>{
  const {window}=setup();
  const classes=window.ARQUIVO_CLASSES_CBB;
  assert.equal(classes.length,4);
- assert.deepEqual(classes.map(c=>c.bars[0].max),[3,1,5,1]);
- assert.deepEqual(classes.map(c=>c.bars[0].initial),[0,0,1,1]);
+ assert.deepEqual(Array.from(classes,c=>c.bars[0].max),[3,1,5,1]);
+ assert.deepEqual(Array.from(classes,c=>c.bars[0].initial),[0,0,1,1]);
  const page=window.ARQUIVO_SECOES.warehousePage();
  for(const title of ['Coração de Aço','Especialista em Hohō','Caçador','Porta-voz'])assert.ok(page.includes(title),title);
  assert.match(page,/ENVIAR À FICHA/);
