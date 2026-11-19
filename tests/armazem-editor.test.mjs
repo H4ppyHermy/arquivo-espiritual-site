@@ -201,7 +201,7 @@ test('um registro expandido apresenta HUD informativo, dados e descrição sem a
  const html=ctx.elements.warehousePosts.innerHTML;
  assert.match(html,/HUD DE REFERÊNCIA/);
  assert.match(html,/Têmpera/);
- assert.match(html,/BARRAS DE RECURSO/);
+ assert.match(html,/RECURSOS VISUAIS/);
  assert.match(html,/role="meter"/);
  assert.match(html,/aria-valuemax="3"/);
  assert.match(html,/REDUÇÃO/);
@@ -272,4 +272,38 @@ test('o mestre pode salvar tags deduplicadas e barras informativas sem afetar fi
  assert.equal(post.bars[0].initial,2);
  assert.equal(post.bars[0].max,5);
  assert.equal(JSON.stringify(ctx.db.sheets),before);
+});
+
+test('HUD de classes respeita apenas o formato genérico configurado no recurso',()=>{
+ const ctx=setup(true);
+ ctx.elements.warehousePosts={innerHTML:''};
+ ctx.dispatch('click','','open:classe-cacador',{kind:'warehouse'});
+ let markup=ctx.elements.warehousePosts.innerHTML;
+ assert.match(markup,/ae-wh-resource-slots--contador/);
+ assert.match(markup,/aria-valuemax="5"/);
+ ctx.dispatch('click','','open:classe-especialista-hoho',{kind:'warehouse'});
+ markup=ctx.elements.warehousePosts.innerHTML;
+ assert.match(markup,/ae-wh-resource-slots--marca/);
+ assert.match(markup,/Rastro ativo/);
+ assert.doesNotMatch(markup,/ENVIAR À FICHA/);
+});
+test('editor do Armazém salva tipo visual genérico sem automação',()=>{
+ const ctx=setup(true);
+ ctx.elements.dialogRoot.dataset.warehouseId='';
+ Object.assign(ctx.elements,{
+  warehouseTitleInput:{value:'Talento'},warehouseContentInput:{value:'Uma capacidade'},
+  warehouseCategoryInput:{value:'Habilidades'},warehouseVisibilityInput:{value:'published'},
+  warehouseSummaryInput:{value:'Referência'},warehouseTagsInput:{value:''},
+  warehouseImageInput:{value:''},warehouseCostInput:{value:''},
+  warehouseBarRows:{querySelectorAll(){return [{
+   dataset:{barId:''},querySelector(selector){
+    const fields={label:{value:'Acúmulo'},visual:{value:'contador'},max:{value:'5'},
+     initial:{value:'1'},reset:{value:'scene'},description:{value:'Descrição livre'}};
+    return fields[/\[data-bar-field="([^"]+)"\]/.exec(selector)?.[1]]||null;
+   }
+  }]}}
+ });
+ ctx.dispatch('click','','warehouse-save',{kind:'modal'});
+ assert.equal(ctx.db.site.warehouse.posts[0].bars[0].visual,'contador');
+ assert.equal(ctx.db.sheets[0].catalogEntries.length,1);
 });
