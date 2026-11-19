@@ -1288,8 +1288,29 @@ function sheetThemeRecord(id){return db.sheets.find(s=>s.id===id)?.appearance||{
 function sheetPalette(id){const base=currentPalette(),custom=sheetThemeRecord(id),values={};for(const [key] of SHEET_PALETTE_FIELDS){const value=custom[key];const fallback=key==='diceGroup'?base.accent:key==='diceSkill'?base.cold:base[key];values[key]=SHEET_HEX.test(value||'')?value:fallback}return values}
 function sheetPaletteStyle(id){const p=sheetPalette(id),extra=sheetThemeRecord(id);const grad=extra.gradient===true&&SHEET_HEX.test(extra.gradientEnd||'')?`linear-gradient(135deg, ${p.panel}, ${extra.gradientEnd})`:'none';return `--sheet-gradient:${grad};--sheet-accent:${p.accent};--sheet-dice-group:${p.diceGroup};--sheet-dice-skill:${p.diceSkill};--theme-accent:${p.accent};--orange:${p.accent};--theme-panel:${p.panel};--theme-raised:${p.raised};--theme-structure:${p.structure};--theme-outline:${p.structure};--theme-cold:${p.cold};--theme-text:${p.text};--text:${p.text};--theme-bg:${p.bg};--cyan:${p.cold};--line:${p.cold};--muted:${p.cold};`}
 function applySheetPaletteLive(){const panel=document.querySelector('.sheet-personal');if(panel){panel.style.cssText=sheetPaletteStyle(currentSheet);const c=sheetPalette(currentSheet).accent;panel.style.setProperty('--sheet-ink',contrast('#000000',c)>=contrast('#FFFFFF',c)?'#000000':'#FFFFFF')}}
-let appearanceTimer=null;
-function appearanceChanged(){if(!currentSheet)return;const s=db.sheets.find(x=>x.id===currentSheet);if(!s)return;applySheetPaletteLive();DATASTORE.save(db);if(appearanceTimer)clearTimeout(appearanceTimer);appearanceTimer=setTimeout(async()=>{appearanceTimer=null;const st=window.ARQUIVO_SYNC;if(st?.state.enabled){try{await st.saveAppearance(s.id,s.appearance||{});toast('PALETA SINCRONIZADA','As cores desta ficha agora são compartilhadas.')}catch(e){toast('PALETA NÃO SALVA',e.message,true);await st.refresh(true).catch(()=>{})}}},600)}
+let appearanceTimer=null,appearanceLocalTimer=null;
+function appearanceChanged(){
+ if(!currentSheet)return;
+ const s=db.sheets.find(x=>x.id===currentSheet);
+ if(!s)return;
+ applySheetPaletteLive();
+ if(appearanceLocalTimer)clearTimeout(appearanceLocalTimer);
+ appearanceLocalTimer=setTimeout(()=>{appearanceLocalTimer=null;DATASTORE.save(db)},150);
+ if(appearanceTimer)clearTimeout(appearanceTimer);
+ appearanceTimer=setTimeout(async()=>{
+  appearanceTimer=null;
+  const st=window.ARQUIVO_SYNC;
+  if(st?.state.enabled){
+   try{
+    await st.saveAppearance(s.id,s.appearance||{});
+    toast('PALETA SINCRONIZADA','As cores desta ficha agora são compartilhadas.');
+   }catch(e){
+    toast('PALETA NÃO SALVA',e.message,true);
+    await st.refresh(true).catch(()=>{});
+   }
+  }
+ },650);
+}
 function setSheetPalette(key,value){if(!currentSheet||!canEditSheet(currentSheet)||!SHEET_PALETTE_FIELDS.some(([k])=>k===key)||!SHEET_HEX.test(value))return;const s=db.sheets.find(x=>x.id===currentSheet);s.appearance={...(s.appearance||{}),[key]:value};appearanceChanged()}
 function setSheetGradient(key,value){if(!currentSheet||!canEditSheet(currentSheet))return;if(key==='gradientEnd'&&!SHEET_HEX.test(value))return;const s=db.sheets.find(x=>x.id===currentSheet);s.appearance={...(s.appearance||{}),[key]:value};appearanceChanged()}
 function resetSheetColor(){if(!currentSheet||!canEditSheet(currentSheet))return;const s=db.sheets.find(x=>x.id===currentSheet);s.appearance={};appearanceChanged();render()}
@@ -2024,7 +2045,13 @@ function updateDraft(target){
   const [index,key]=target.dataset.ability.split(':');
   const ab=editorDraft.abilities[Number(index)];if(!ab)return;
   if(key==='category'){
-   ab.category=target.value;ab.passive=target.value==='passive';drawSheetForm();return;
+   ab.category=target.value;ab.passive=target.value==='passive';
+   const input=target.closest('.ability-edit')?.querySelector('[data-ability="'+index+':cost"]');
+   if(input){
+    input.disabled=ab.passive;
+    if(ab.passive){ab.cost=0;input.value='0'}
+   }
+   return;
   }
   if(['name','cost','description','image'].includes(key))
    ab[key]=key==='cost'?Number(target.value):target.value;
@@ -2034,7 +2061,15 @@ function updateDraft(target){
  if(subtitle)subtitle.textContent='Nível '+editorDraft.level+' · '+(editorDraft.subtitle||'');
  if(resources)resources.innerHTML=['vida','estabilidade','alma'].map(k=>'<p>'+k+': '+editorDraft.resources[k].max+'</p>').join('');
 }
-function applyGroup(g){for(const sk of GROUPS[g])editorDraft.skills[sk]=editorDraft.groups[g];drawSheetForm()}
+function applyGroup(g){
+ if(!editorDraft||!Object.hasOwn(GROUPS,g))return;
+ for(const name of GROUPS[g]){
+  editorDraft.skills[name]=editorDraft.groups[g];
+  const field=el('dialogRoot')?.querySelector('[data-edit="skills.'+name+'"]');
+  if(field)field.value=String(editorDraft.groups[g]);
+ }
+ toast('PERÍCIAS ATUALIZADAS','Os dados do grupo foram aplicados sem fechar o editor.');
+}
 function addAbility(){editorDraft.abilities.push({name:'',category:'active',cost:0,description:''});if(editorScope==='abilities')editorAbilityOnly=editorDraft.abilities.length-1;drawSheetForm()}
 function removeAbility(i){editorDraft.abilities.splice(i,1);editorAbilityOnly=null;drawSheetForm()}
 function moveAbility(i,d){const j=i+d;if(j<0||j>=editorDraft.abilities.length)return;[editorDraft.abilities[i],editorDraft.abilities[j]]=[editorDraft.abilities[j],editorDraft.abilities[i]];drawSheetForm()}
