@@ -72,3 +72,26 @@
 @media(prefers-reduced-motion:reduce){#page .ae-catalog-bar-meter>span{transition:none}}
 html.performance-mode #page .ae-catalog-bar-meter>span,
 html.reduce-motion #page .ae-catalog-bar-meter>span{transition:none;box-shadow:none!important}
+/* Compositor de publicações: editor e visualização sincronizados. */
+.dialog:has(.ae-warehouse-compose){width:min(1160px,calc(100vw - 24px));max-width:1160px;max-height:92dvh;overflow-y:auto}
+.ae-warehouse-compose{display:grid;gap:12px;min-width:0;margin:8px 0;border:1px solid var(--theme-structure);padding:13px;background:color-mix(in srgb,var(--theme-raised) 35%,transparent)}
+.ae-warehouse-compose-heading{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.ae-warehouse-compose-heading strong{font:900 18px/1.1 'Barlow Condensed',sans-serif;color:var(--theme-cold)}
+.ae-warehouse-compose-heading small{font-size:11px;opacity:.72}
+.ae-warehouse-editor-toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ae-warehouse-editor-toolbar>button{appearance:none;border:1px solid var(--theme-structure);background:var(--theme-panel);color:var(--theme-text);padding:9px;min-height:36px;cursor:pointer;font-size:11px;font-weight:800}
+.ae-warehouse-editor-toolbar>button:hover{background:var(--theme-raised);border-color:var(--theme-accent)}
+.ae-warehouse-editor-toolbar>button:focus-visible{outline:2px solid var(--theme-cold);outline-offset:2px}
+.ae-warehouse-editor-toolbar label{display:inline-flex;flex-direction:row;align-items:center;gap:6px;margin:0;font-size:11px}
+.ae-warehouse-editor-toolbar input[type=color]{padding:0;width:35px;min-height:36px;height:36px;cursor:pointer;border:1px solid var(--theme-structure);background:var(--theme-panel)}
+.ae-warehouse-compose-templates{display:flex;gap:8px;flex-wrap:wrap;align-items:end;padding:8px 0;border-top:1px solid var(--theme-structure)}
+.ae-warehouse-compose-templates label{flex:1 1 130px;min-width:100px;display:grid;gap:5px}
+.ae-warehouse-compose-templates .btn{min-height:37px}
+.ae-warehouse-compose-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0}
+.ae-warehouse-compose-source,.ae-warehouse-compose-preview{min-width:0;display:grid;gap:9px;align-content:start;background:var(--theme-panel);border:1px solid var(--theme-structure);padding:11px}
+.ae-warehouse-compose-source textarea{width:100%;min-height:300px;max-height:55dvh;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.65;resize:vertical}
+.ae-warehouse-compose-preview>strong{font:900 14px/1 'Barlow Condensed',sans-serif;color:var(--theme-cold)}
+.ae-warehouse-compose-preview>#aeWarehouseEditorPreview{min-width:0;max-height:55dvh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:4px;overflow-wrap:anywhere}
+.ae-warehouse-editor-status{margin:0;font-size:11px;opacity:.72;font-variant-numeric:tabular-nums}
+@media(max-width:840px){.ae-warehouse-compose-grid{grid-template-columns:minmax(0,1fr)}.ae-warehouse-compose-source textarea{min-height:230px}.ae-warehouse-compose-preview>#aeWarehouseEditorPreview{max-height:320px}}
+@media(max-width:680px){.ae-warehouse-compose{padding:10px}.ae-warehouse-editor-toolbar>button{padding:7px}.ae-warehouse-compose-templates .btn{flex:1 1 110px}.ae-warehouse-compose-source,.ae-warehouse-compose-preview{padding:9px}}

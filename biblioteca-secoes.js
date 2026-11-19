@@ -138,7 +138,29 @@
    '<label>Resumo<input id="warehouseSummaryInput" maxlength="280" value="'+esc(p.summary)+'" placeholder="Uma frase sobre a publicação"></label>'+
    '<label>Imagem (URL HTTPS)<input id="warehouseImageInput" type="url" maxlength="1200" value="'+esc(p.image)+'" placeholder="https://..."></label>'+
    '<label>Marcadores separados por vírgula<input id="warehouseTagsInput" maxlength="120" value="'+esc(p.tags)+'" placeholder="Mobilidade, Shinigami"></label>'+
-   '<label>Conteúdo completo<textarea id="warehouseContentInput" rows="12" maxlength="20000" spellcheck="false" placeholder="## Descrição\n\nExplique a classe, habilidade ou técnica.">'+esc(p.content)+'</textarea></label>'+
+   '<section class="ae-warehouse-compose" aria-label="Editor da publicação"><div class="ae-warehouse-compose-heading">'+
+    '<strong>CONTEÚDO DA PUBLICAÇÃO</strong><small>Formatação e prévia ao vivo</small></div>'+
+    '<div class="ae-warehouse-editor-toolbar" role="toolbar" aria-label="Formatar publicação">'+
+    '<button type="button" data-cat-action="format:bold" title="Negrito (Ctrl+B)"><b>B</b></button>'+
+    '<button type="button" data-cat-action="format:italic" title="Itálico (Ctrl+I)"><em>I</em></button>'+
+    '<button type="button" data-cat-action="format:heading">TÍTULO</button>'+
+    '<button type="button" data-cat-action="format:list">LISTA</button>'+
+    '<button type="button" data-cat-action="format:quote">CITAÇÃO</button>'+
+    '<label>COR <input id="warehouseEditorColor" type="color" value="#39D6F4" aria-label="Cor do trecho selecionado"></label>'+
+    '<button type="button" data-cat-action="format:color">COLORIR</button></div>'+
+    '<div class="ae-warehouse-compose-templates"><label>ESTRUTURA PRONTA<select id="warehouseEditorTemplate">'+
+    '<option value="ability">Habilidade / técnica</option><option value="class">Classe</option>'+
+    '<option value="item">Item</option><option value="rule">Regra / mecânica</option></select></label>'+
+    '<button type="button" class="btn small" data-cat-action="insert-template">INSERIR BLOCO</button>'+
+    '<label>DADO<select id="warehouseEditorDie">'+[4,6,8,10,12,14,16,18,20].map(n=>'<option value="'+n+'">d'+n+'</option>').join('')+'</select></label>'+
+    '<button type="button" class="btn small" data-cat-action="insert-die">INSERIR DADO</button></div>'+
+    '<div class="ae-warehouse-compose-grid"><div class="ae-warehouse-compose-source">'+
+    '<label for="warehouseContentInput">Escrever conteúdo<textarea id="warehouseContentInput" rows="16" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="## Descrição\n\nExplique a classe, habilidade ou técnica.">'+esc(p.content)+'</textarea></label>'+
+    '<p id="warehouseEditorHint" class="ae-cat-help">Selecione palavras e use os botões acima. Ctrl+B e Ctrl+I também funcionam.</p></div>'+
+    '<div class="ae-warehouse-compose-preview"><strong>PRÉ-VISUALIZAÇÃO</strong>'+
+    '<div class="book-text ae-library-reading" id="aeWarehouseEditorPreview" aria-live="polite">'+api.formatBook(p.content||'')+'</div></div></div>'+
+    '<p class="ae-warehouse-editor-status" id="warehouseEditorStats" role="status">'+String(p.content||'').length+' caracteres · '+String(p.content||'').trim().split(/\s+/).filter(Boolean).length+' palavras</p>'+
+    '</section>'+
    '<label class="ae-warehouse-publish"><input type="checkbox" id="warehousePublishedInput"'+(p.published===false?'':' checked')+'> Publicar para jogadores</label>'+(window.ARQUIVO_CATALOGO?.editorFields(p)||'')+'</div>',
    [['SALVAR','warehouse-save','main'],...(found?[['EXCLUIR','warehouse-delete','danger']]:[]),['CANCELAR','closeModal','small']]);
   document.getElementById('dialogRoot').dataset.warehouseId=id;
