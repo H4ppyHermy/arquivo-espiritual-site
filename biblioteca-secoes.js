@@ -71,18 +71,19 @@
    '" aria-pressed="'+(fold(selectedTag)===fold(tag))+'" data-warehouse-action="tag:'+encodeURIComponent(tag)+'">#'+esc(tag)+
    '<small>'+count+'</small></button>').join('')+'</div>':'<p class="ae-wh-tags-help">As tags das publicações aparecerão aqui.</p>')+'</div>';
  }
+ function resourceKind(raw){return ['barra','marca','contador'].includes(raw)?raw:'barra'}
  function resourceBars(post){
-  const list=Array.isArray(post.bars)?post.bars.slice(0,8):[];
-  return list.filter(b=>b&&typeof b==='object').map(b=>{
-   const max=Number(b.max),raw=Number(b.initial);
-   if(!Number.isInteger(max)||max<1||max>20)return '';
+  const bars=Array.isArray(post.bars)?post.bars.slice(0,8):[];
+  return bars.filter(b=>b&&typeof b==='object').map(b=>{
+   const max=Number(b.max),raw=Number(b.initial);if(!Number.isInteger(max)||max<1||max>20)return '';
    const current=Number.isInteger(raw)?Math.max(0,Math.min(max,raw)):0;
-   const label=text(b.label||'Recurso').slice(0,65);
-   return '<div class="ae-wh-resource"><div class="ae-wh-resource-top"><strong>'+esc(label)+'</strong><span>'+current+' / '+max+'</span></div>'+
-    '<div class="ae-wh-resource-slots" role="meter" aria-label="'+esc(label)+' · valor inicial" aria-valuemin="0" aria-valuemax="'+max+'" aria-valuenow="'+current+'">'+
+   const label=text(b.label||'Recurso').slice(0,65),kind=resourceKind(b.visual);
+   return '<div class="ae-wh-resource" data-resource-kind="'+kind+'">'+
+    '<div class="ae-wh-resource-top"><strong>'+esc(label)+'</strong><span>'+current+' / '+max+'</span></div>'+
+    '<div class="ae-wh-resource-slots ae-wh-resource-slots--'+kind+'" role="meter" aria-label="'+esc(label)+' · valor inicial" aria-valuemin="0" aria-valuemax="'+max+'" aria-valuenow="'+current+'">'+
     Array.from({length:max},(_,i)=>'<i aria-hidden="true"'+(i<current?' class="filled"':'')+'></i>').join('')+'</div>'+
     (b.description?'<p>'+esc(text(b.description).slice(0,450))+'</p>':'')+
-    '<small>Valor inicial'+(b.reset==='scene'?' · por cena':' · ajuste manual')+'</small></div>';
+    '<small>Referência inicial'+(b.reset==='scene'?' · por cena':' · ajuste manual')+'</small></div>';
   }).join('');
  }
  function diceReference(post){
@@ -96,20 +97,21 @@
  }
  function postDetail(post){
   const title=text(post.title||'Registro'),bars=resourceBars(post),cost=text(post.cost).trim(),tags=visibleTags(post);
+  const primary=(Array.isArray(post.bars)?post.bars:[]).find(b=>b&&text(b.label).trim());
+  const heading=primary?text(primary.label):title;
   return '<div class="ae-wh-detail-layout"><div class="ae-wh-detail-text">'+
    '<div class="ae-wh-detail-eyebrow">DESCRIÇÃO & FUNCIONAMENTO</div>'+
    '<div class="book-text ae-library-reading ae-warehouse-reading">'+api.formatBook(post.content||'',title)+'</div></div>'+
-   '<aside class="ae-wh-detail-hud" aria-label="Referências da publicação">'+
-   '<div class="ae-wh-hud-heading"><span>REGISTRO TÉCNICO</span><strong>HUD DE REFERÊNCIA</strong></div>'+
-   '<div class="ae-wh-meta-line"><span>CATEGORIA</span><strong>'+esc(post.category||'Outros')+'</strong></div>'+
+   '<aside class="ae-wh-detail-hud" aria-label="Registro técnico de '+esc(title)+'">'+
+   '<div class="ae-wh-hud-heading"><span>REGISTRO TÉCNICO</span><strong>'+esc(heading)+'</strong></div>'+
+   '<div class="ae-wh-hud-facts"><div class="ae-wh-meta-line"><span>CATEGORIA</span><strong>'+esc(post.category||'Outros')+'</strong></div>'+
+   (tags.length?'<div class="ae-wh-meta-tagline"><span class="ae-wh-hud-label">MARCADORES</span>'+
+    '<div class="ae-wh-meta-tags">'+tags.map(t=>'<span class="'+(tagIsHidden(post,t)?'is-hidden-tag':'')+'">#'+esc(t)+(tagIsHidden(post,t)?' · SÓ MESTRE':'')+'</span>').join('')+'</div></div>':'')+
    (cost?'<div class="ae-wh-meta-line"><span>CUSTO / USO</span><strong>'+esc(cost)+'</strong></div>':'')+
-   diceReference(post)+
-   (bars?'<div class="ae-wh-hud-section"><span class="ae-wh-hud-label">BARRAS DE RECURSO</span>'+bars+'</div>':'')+
-   (tags.length?'<div class="ae-wh-hud-section"><span class="ae-wh-hud-label">MARCADORES</span><div class="ae-wh-meta-tags">'+
-   tags.map(t=>'<span class="'+(tagIsHidden(post,t)?'is-hidden-tag':'')+'">#'+esc(t)+(tagIsHidden(post,t)?' · SÓ MESTRE':'')+'</span>').join('')+'</div></div>':'')+
-   '<p class="ae-wh-hud-footnote">Referência visual. Nenhum recurso é alterado automaticamente.</p></aside></div>';
+   diceReference(post)+'</div>'+
+   (bars?'<div class="ae-wh-hud-section ae-wh-hud-resources"><span class="ae-wh-hud-label">RECURSOS VISUAIS</span>'+bars+'</div>':'')+
+   '<p class="ae-wh-hud-footnote">Referência visual: não altera recursos da ficha.</p></aside></div>';
  }
-
  function visible(){
   const terms=fold(search).split(/\s+/).filter(Boolean);
   return posts().filter(p=>isPublished(p)&&(selectedCategory==='Todas'||p.category===selectedCategory)&&
@@ -215,10 +217,14 @@
 
  function barEditorRow(raw={},index=0){
   const max=Math.max(1,Math.min(20,Number(raw.max)||3)),initial=Math.max(0,Math.min(max,Number(raw.initial)||0));
+  const visual=resourceKind(raw.visual);
   return '<div class="ae-wh-bar-row" data-warehouse-bar data-bar-id="'+esc(raw.id||'')+'">'+
    '<div class="ae-wh-bar-row-heading"><strong>RECURSO '+(index+1)+'</strong>'+
    '<button type="button" class="btn small danger" data-warehouse-editor="remove-bar">REMOVER</button></div>'+
    '<div class="ae-wh-bar-fields"><label>Nome do recurso<input data-bar-field="label" maxlength="65" placeholder="Ex.: Têmpera" value="'+esc(raw.label||'')+'"></label>'+
+   '<label>Formato visual<select data-bar-field="visual"><option value="barra"'+(visual==='barra'?' selected':'')+'>Barra</option>'+
+   '<option value="marca"'+(visual==='marca'?' selected':'')+'>Marca</option>'+
+   '<option value="contador"'+(visual==='contador'?' selected':'')+'>Contador</option></select></label>'+
    '<label>Máximo<input data-bar-field="max" type="number" inputmode="numeric" min="1" max="20" value="'+max+'"></label>'+
    '<label>Valor inicial<input data-bar-field="initial" type="number" inputmode="numeric" min="0" max="20" value="'+initial+'"></label></div>'+
    '<label>Como funciona? (opcional)<textarea data-bar-field="description" rows="2" maxlength="450" placeholder="Quando ganha ou gasta marcas, e para quê.">'+esc(raw.description||'')+'</textarea></label>'+
@@ -239,7 +245,7 @@
     throw Error('Na barra "'+label+'", use máximo de 1 a 20 e valor inicial entre 0 e o máximo.');
    const id=text(node.dataset.barId||'').trim()||api.uid();
    if(seen.has(id))throw Error('Barras com identificadores duplicados.');seen.add(id);
-   return {id,label,max,initial,reset:field('reset')?.value==='scene'?'scene':'manual',
+   return {id,label,max,initial,visual:resourceKind(field('visual')?.value),reset:field('reset')?.value==='scene'?'scene':'manual',
     description:text(field('description')?.value).trim().slice(0,450)};
   });
  }
@@ -295,9 +301,10 @@
      '<label>DADO<select id="warehouseEditorDie">'+[4,6,8,10,12,14,16,18,20].map(n=>
        '<option value="'+n+'">d'+n+'</option>').join('')+'</select></label>'+
      '<button type="button" class="btn small" data-warehouse-editor="insert-die">INSERIR DADO</button>'+
-     '<label>MARCAS<input id="warehouseEditorBarFilled" type="number" min="0" max="20" step="1" value="1" aria-label="Marcas preenchidas"></label>'+
+     '<label>TIPO<select id="warehouseEditorResourceKind" aria-label="Tipo de representação"><option value="barra">Barra</option><option value="marca">Marca</option><option value="contador">Contador</option></select></label>'+
+      '<label>MARCAS<input id="warehouseEditorBarFilled" type="number" min="0" max="20" step="1" value="1" aria-label="Marcas preenchidas"></label>'+
      '<label>DE<input id="warehouseEditorBarTotal" type="number" min="1" max="20" step="1" value="3" aria-label="Total de marcas"></label>'+
-     '<button type="button" class="btn small" data-warehouse-editor="insert-bar" title="Insere uma barra visual, como [barra:1/3]">INSERIR BARRA</button></div>'+
+     '<button type="button" class="btn small" data-warehouse-editor="insert-bar" title="Insere barra, marca ou contador visual no texto">INSERIR RECURSO</button></div>'+
      '<div class="ae-warehouse-compose-grid"><div class="ae-warehouse-compose-source">'+
      '<label for="warehouseContentInput">Texto completo<textarea id="warehouseContentInput" rows="14" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="## Descrição\n\nExplique a classe, habilidade ou técnica.">'+esc(p.content||'')+'</textarea></label>'+
      '<p id="warehouseEditorHint" class="ae-cat-help">Selecione o texto para aplicar formatação. Ctrl+B e Ctrl+I também funcionam.</p></div>'+
