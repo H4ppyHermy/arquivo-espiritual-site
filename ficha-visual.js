@@ -37,16 +37,16 @@
     '<span class="ae-ficha-art-stamp" aria-hidden="true">SOUL ARCHIVE</span></div>'+
    '<div class="ae-ficha-hero-rule" aria-hidden="true"></div></header>';
  }
- function numberDie(value){
+ function numberDie(value,type='skill'){
   const n=Number(value)||4;
-  return '<span class="ae-ficha-die">'+api.sheetRich('d'+n)+'</span>';
+  return '<span class="ae-ficha-die ae-ficha-die--'+(type==='group'?'group':'skill')+'">'+api.sheetRich('d'+n)+'</span>';
  }
  function attributes(s,ctx){
   const g=ctx.groups||{};
   return '<section class="ae-ficha-attributes" aria-labelledby="aeFichaAttrTitle">'+
    '<div class="ae-ficha-section-title"><h2 id="aeFichaAttrTitle">Grupos</h2></div>'+
    '<div class="ae-ficha-attribute-grid">'+Object.keys(g).map(key=>
-     '<div class="ae-ficha-attribute"><span>'+esc(key)+'</span>'+numberDie(s.groups?.[key])+'</div>'
+     '<div class="ae-ficha-attribute"><span>'+esc(key)+'</span>'+numberDie(s.groups?.[key],'group')+'</div>'
    ).join('')+'</div></section>';
  }
  function resources(s,ctx){
@@ -93,7 +93,7 @@
   const mid=Math.ceil(all.length/2),columns=[all.slice(0,mid),all.slice(mid)];
   const row=({group,name})=>
    '<div class="ae-ficha-skill-row"><span class="ae-ficha-skill-name">'+esc(name)+'</span>'+
-   '<span class="ae-ficha-skill-dice">'+numberDie(s.skills?.[name])+'<span aria-hidden="true" class="ae-ficha-skill-plus">+</span>'+numberDie(s.groups?.[group])+
+   '<span class="ae-ficha-skill-dice">'+numberDie(s.skills?.[name],'skill')+'<span aria-hidden="true" class="ae-ficha-skill-plus">+</span>'+numberDie(s.groups?.[group],'group')
    '<small>'+esc(group)+'</small></span></div>';
   return '<section class="ae-ficha-skills" aria-labelledby="aeFichaSkillsTitle">'+
    '<div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2 id="aeFichaSkillsTitle">Grupos & perícias</h2></div>'+
@@ -158,12 +158,38 @@
    }).join('')+'</div>'+
    '<button type="button" class="ae-ficha-guide-library" data-ficha-library>ABRIR BIBLIOTECA COMPLETA</button></section>';
  }
+ function content(s,selected,ctx){
+  return selected==='summary'?summary(s,ctx):selected==='skills'?skills(s,ctx):
+   selected==='abilities'?abilities(s,ctx):selected==='guide'?guide():
+   '<section class="ae-ficha-extras"><div class="ae-ficha-section-title"><h2>'+labels[selected]+'</h2></div>'+
+    (ctx.body||'')+'</section>';
+ }
+ function switchTab(s,ctx={}){
+  const selected=Object.hasOwn(labels,ctx.tab)?ctx.tab:'summary';
+  const panel=document.querySelector('#page .ae-ficha-v2');
+  const body=panel?.querySelector('#sheetBody');
+  if(!body)return false;
+  const overline=body.querySelector('.ae-ficha-content-overline');
+  if(!overline)return false;
+  const previous=panel.querySelector('[data-tab].is-active');
+  if(previous?.dataset.tab===selected)return true;
+  overline.querySelector('span:last-child').textContent='// '+labels[selected].toUpperCase();
+  for(const button of panel.querySelectorAll('.ae-ficha-navigation [data-tab]')){
+   const active=button.dataset.tab===selected;
+   button.classList.toggle('is-active',active);
+   button.setAttribute('aria-current',active?'page':'false');
+  }
+  const existing=body.querySelector('.ae-ficha-section-content');
+  const section=document.createElement('div');
+  section.className='ae-ficha-section-content';
+  section.innerHTML=content(s,selected,ctx);
+  if(existing)existing.replaceWith(section);else body.appendChild(section);
+  body.setAttribute('aria-label',labels[selected]);
+  return true;
+ }
  function render(s,ctx={}){
   const selected=Object.hasOwn(labels,ctx.tab)?ctx.tab:'summary';
-  const body=selected==='summary'?summary(s,ctx):selected==='skills'?skills(s,ctx):
-    selected==='abilities'?abilities(s,ctx):selected==='guide'?guide():
-    '<section class="ae-ficha-extras"><div class="ae-ficha-section-title"><h2>'+labels[selected]+'</h2></div>'+
-     (ctx.body||'')+'</section>';
+  const body=content(s,selected,ctx);
   const actions=api.btn('VOLTAR','backSheets','quiet')+
     (ctx.canEdit?api.btn('EDITAR FICHA','editSheetForm','main'):'')+
     (ctx.master?api.btn('IMAGEM','sheetImage','small')+api.btn('EDITAR JSON','editSheet','small'):'')+
@@ -175,7 +201,7 @@
     header(s)+
     '<div class="ae-ficha-workspace"><div class="ae-ficha-body" id="sheetBody" aria-label="'+labels[selected]+'">'+
      '<div class="ae-ficha-content-overline"><span>'+esc(s.name||'Personagem')+'</span><span>// '+esc(labels[selected]).toUpperCase()+'</span></div>'+
-     body+'</div>'+tabs(selected)+'</div>'+
+     '<div class="ae-ficha-section-content">'+body+'</div></div>'+tabs(selected)+'</div>'+
     '<div class="ae-ficha-footer"><span>BLEACH CBB // ARQUIVO ESPIRITUAL</span><span>REGISTRO DE PERSONAGEM</span></div>'+
    '</div>';
  }
@@ -239,5 +265,5 @@
   const item=(api.db?.rules||[]).find(x=>x.id===guideBtn.dataset.fichaGuide);
   if(item)api.modal(item.title||'Guia rápido','<div class="ae-ficha-guide-modal">'+api.formatBook(item.text||'',item.title||'')+'</div>');
  });
- window.ARQUIVO_FICHA_VISUAL=Object.freeze({render,upgradeEditor});
+ window.ARQUIVO_FICHA_VISUAL=Object.freeze({render,switchTab,upgradeEditor});
 })();
