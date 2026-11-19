@@ -48,8 +48,9 @@ test('a leitura dos capítulos e das fichas utiliza o mesmo parser',()=>{
  assert.match(app,/case'libraryInsertBar':libraryInsertBar\(\)/);
  assert.match(read('biblioteca-editor.js'),/function insertEditorBar\(/);
  assert.match(read('biblioteca-secoes.js'),/data-warehouse-editor="insert-bar"/);
- assert.ok(html.indexOf('barras-inline.js?v=1')<html.indexOf('arquivo-app.js?v=8'));
- assert.match(html,/barras-inline\.css\?v=1/);
+ assert.match(read('biblioteca-secoes.js'),/warehouseEditorResourceKind/);
+ assert.ok(html.indexOf('barras-inline.js?v=2')<html.indexOf('arquivo-app.js?v=9'));
+ assert.match(html,/barras-inline\.css\?v=2/);
 });
 test('custos de Têmpera e Armadilhas usam a notação visual sem alterar regras',()=>{
  const classesSource=read('classes-armazem.js');
@@ -57,8 +58,36 @@ test('custos de Têmpera e Armadilhas usam a notação visual sem alterar regras
  const heart=classes.find(c=>c.id==='classe-coracao-de-aco');
  const hunter=classes.find(c=>c.id==='classe-cacador');
  for(const n of [1,2,3])assert.ok(heart.content.includes('[barra:'+n+'/3]'));
- for(const n of [1,2,3,4,5])assert.ok(hunter.content.includes('[barra:'+n+'/5]'));
+ for(const n of [1,2,3,4,5])assert.ok(hunter.content.includes('[contador:'+n+'/5]'));
  assert.match(heart.content,/1d4/);
  assert.match(hunter.content,/8 metros/);
  assert.doesNotMatch(heart.content,/\*\*[123] espaç(?:o|os):\*\*/);
+});
+
+test('marca é uma unidade genérica, sem vínculo ao nome da classe',()=>{
+ const output=replace('Rastro [marca:1] e indisponível [marca:0].');
+ assert.match(output,/ae-inline-resource--marca/);
+ assert.match(output,/Marca disponível/);
+ assert.match(output,/Marca indisponível/);
+ assert.equal((output.match(/ae-inline-resource-segment/g)||[]).length,2);
+ assert.doesNotMatch(output,/\[marca:/);
+});
+test('contador utiliza fichas redondas e respeita limites',()=>{
+ const output=replace('[contador:3/5]');
+ assert.match(output,/ae-inline-resource--contador/);
+ assert.match(output,/aria-label="3 de 5 contadores de recurso"/);
+ assert.equal((output.match(/ae-inline-resource-segment/g)||[]).length,5);
+ assert.equal((output.match(/ae-inline-resource-segment is-filled/g)||[]).length,3);
+ assert.equal(replace('[contador:21/21]'),'[contador:21/21]');
+ assert.equal(replace('[marca:3/2]'),'[marca:3/2]');
+});
+test('as classes reutilizam tipos genéricos, sem códigos específicos de habilidade',()=>{
+ const src=read('classes-armazem.js');
+ const records=JSON.parse(src.split('window.ARQUIVO_CLASSES_CBB = ')[1].trim().replace(/;$/,''));
+ const kinds=records.map(item=>item.bars[0].visual);
+ assert.deepEqual(kinds,['barra','marca','contador','marca']);
+ assert.ok(records.find(p=>p.id==='classe-especialista-hoho').content.includes('[marca:1]'));
+ assert.ok(records.find(p=>p.id==='classe-porta-voz').content.includes('[marca:1]'));
+ assert.ok(records.find(p=>p.id==='classe-cacador').content.includes('[contador:5/5]'));
+ assert.doesNotMatch(records.map(x=>x.content).join('\n'),/\[(?:rastro|armadilha|voz):/i);
 });
