@@ -90,6 +90,7 @@
  }
  function sheetEntries(sheet){return Array.isArray(sheet?.catalogEntries)?sheet.catalogEntries:[]}
  function entryPost(entry){
+  if(!entry)return null;
   const published=getPost(entry.sourceId);
   return published&&published.published!==false?published:(entry.snapshot||entry);
  }
@@ -214,7 +215,9 @@
  function adjustBar(id,barId,delta){
   const sheet=api.db.sheets.find(s=>s.id===api.currentSheet);
   if(!sheet||!api.canEditSheet(sheet.id)||![-1,1].includes(delta))return;
-  const entry=sheetEntries(sheet).find(e=>e.sourceId===id),bar=barDefs(entryPost(entry)).find(x=>x.id===barId);
+  const entry=sheetEntries(sheet).find(e=>e.sourceId===id);
+  if(!entry)return;
+  const bar=barDefs(entryPost(entry)).find(x=>x.id===barId);
   if(!bar)return;
   sheet.inventory??={items:[],currencies:[]};sheet.inventory.catalogBars??={};
   const old=valueFor(sheet,{id},bar),next=Math.max(0,Math.min(bar.max,old+delta));
