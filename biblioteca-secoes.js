@@ -206,45 +206,104 @@
   const select=document.getElementById('warehouseCategorySelect');if(select)select.value=selectedCategory;
   const tags=document.getElementById('warehouseTagFilters');if(tags)tags.innerHTML=tagFilters();
  }
+
+ function barEditorRow(raw={},index=0){
+  const max=Math.max(1,Math.min(20,Number(raw.max)||3)),initial=Math.max(0,Math.min(max,Number(raw.initial)||0));
+  return '<div class="ae-wh-bar-row" data-warehouse-bar data-bar-id="'+esc(raw.id||'')+'">'+
+   '<div class="ae-wh-bar-row-heading"><strong>RECURSO '+(index+1)+'</strong>'+
+   '<button type="button" class="btn small danger" data-warehouse-editor="remove-bar">REMOVER</button></div>'+
+   '<div class="ae-wh-bar-fields"><label>Nome do recurso<input data-bar-field="label" maxlength="65" placeholder="Ex.: Têmpera" value="'+esc(raw.label||'')+'"></label>'+
+   '<label>Máximo<input data-bar-field="max" type="number" inputmode="numeric" min="1" max="20" value="'+max+'"></label>'+
+   '<label>Valor inicial<input data-bar-field="initial" type="number" inputmode="numeric" min="0" max="20" value="'+initial+'"></label></div>'+
+   '<label>Como funciona? (opcional)<textarea data-bar-field="description" rows="2" maxlength="450" placeholder="Quando ganha ou gasta marcas, e para quê.">'+esc(raw.description||'')+'</textarea></label>'+
+   '<label class="ae-wh-bar-mode">Referência de uso<select data-bar-field="reset"><option value="manual"'+(raw.reset==='scene'?'':' selected')+'>Ajuste manual</option>'+
+   '<option value="scene"'+(raw.reset==='scene'?' selected':'')+'>Reinicia por cena (referência)</option></select></label></div>';
+ }
+ function readEditorBars(fallback){
+  const area=document.getElementById('warehouseBarRows');
+  if(!area)return Array.isArray(fallback)?fallback:[];
+  const nodes=[...area.querySelectorAll('[data-warehouse-bar]')];
+  if(nodes.length>8)throw Error('O limite é de 8 barras por publicação.');
+  const seen=new Set();
+  return nodes.map((node,index)=>{
+   const field=name=>node.querySelector('[data-bar-field="'+name+'"]');
+   const label=text(field('label')?.value).trim(),max=Number(field('max')?.value),initial=Number(field('initial')?.value);
+   if(!label||label.length>65)throw Error('Informe o nome da barra '+(index+1)+'.');
+   if(!Number.isInteger(max)||max<1||max>20||!Number.isInteger(initial)||initial<0||initial>max)
+    throw Error('Na barra "'+label+'", use máximo de 1 a 20 e valor inicial entre 0 e o máximo.');
+   const id=text(node.dataset.barId||'').trim()||api.uid();
+   if(seen.has(id))throw Error('Barras com identificadores duplicados.');seen.add(id);
+   return {id,label,max,initial,reset:field('reset')?.value==='scene'?'scene':'manual',
+    description:text(field('description')?.value).trim().slice(0,450)};
+  });
+ }
+ function editorTagSuggestions(current){
+  const used=new Set(parseTags(current).map(fold));
+  const suggestions=popularTags().filter(({tag})=>!used.has(fold(tag))).slice(0,8);
+  return '<div class="ae-wh-editor-suggest"><span>ADICIONAR RAPIDAMENTE</span><div>'+
+   (suggestions.length?suggestions.map(({tag})=>
+    '<button type="button" data-warehouse-editor="add-tag:'+encodeURIComponent(tag)+'">+ '+esc(tag)+'</button>').join(''):
+    '<small>Digite as tags separadas por vírgulas.</small>')+'</div></div>';
+ }
+
  function edit(raw){
   if(!api.master())return;
   let id='';try{id=raw==='new'?'':decodeURIComponent(raw)}catch{return}
   const w=warehouse(),found=w.posts.find(p=>p.id===id);
   if(id&&!found)return;
   const p=found||{title:'',category:w.categories[0],summary:'',content:'',image:'',cost:'',tags:'',published:true};
-  api.modal(id?'EDITAR PUBLICAÇÃO':'NOVA PUBLICAÇÃO','<div class="ae-warehouse-editor">'+
-   '<p class="subtitle">Registros publicados ou rascunhos ocultos na interface dos jogadores. Rascunhos ainda fazem parte dos dados sincronizados.</p>'+
-   '<label>Título<input id="warehouseTitleInput" maxlength="100" required value="'+esc(p.title)+'" placeholder="Ex.: Shunpō"></label>'+
-   '<div class="ae-warehouse-editor-row"><label>Categoria<select id="warehouseCategoryInput">'+w.categories.map(c=>'<option value="'+esc(c)+'"'+(p.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'+
-   '<label>Custo (opcional)<input id="warehouseCostInput" maxlength="45" value="'+esc(p.cost)+'" placeholder="Ex.: 2 ALMA"></label></div>'+
-   '<label>Resumo<input id="warehouseSummaryInput" maxlength="280" value="'+esc(p.summary)+'" placeholder="Uma frase sobre a publicação"></label>'+
-   '<div class="ae-warehouse-image-field" id="warehouseImageField"'+(warehouseAllowsImage(p.category)?'':' hidden')+'><label>Imagem (URL HTTPS)<input id="warehouseImageInput" type="url" maxlength="1200" value="'+esc(p.image||'')+'" placeholder="https://..."></label></div>'+
-   '<label>Marcadores separados por vírgula<input id="warehouseTagsInput" maxlength="120" value="'+esc(p.tags)+'" placeholder="Mobilidade, Shinigami"></label>'+
-   '<section class="ae-warehouse-compose" aria-label="Editor da publicação"><div class="ae-warehouse-compose-heading">'+
-    '<strong>CONTEÚDO DA PUBLICAÇÃO</strong><small>Formatação e prévia ao vivo</small></div>'+
-    '<div class="ae-warehouse-editor-toolbar" role="toolbar" aria-label="Formatar publicação">'+
-    '<button type="button" data-warehouse-editor="format:bold" title="Negrito (Ctrl+B)"><b>B</b></button>'+
-    '<button type="button" data-warehouse-editor="format:italic" title="Itálico (Ctrl+I)"><em>I</em></button>'+
-    '<button type="button" data-warehouse-editor="format:heading">TÍTULO</button>'+
-    '<button type="button" data-warehouse-editor="format:list">LISTA</button>'+
-    '<button type="button" data-warehouse-editor="format:quote">CITAÇÃO</button>'+
-    '<label>COR <input id="warehouseEditorColor" type="color" value="#39D6F4" aria-label="Cor do trecho selecionado"></label>'+
-    '<button type="button" data-warehouse-editor="format:color">COLORIR</button></div>'+
-    '<div class="ae-warehouse-compose-templates"><label>ESTRUTURA PRONTA<select id="warehouseEditorTemplate">'+
-    '<option value="ability">Habilidade / técnica</option><option value="class">Classe</option>'+
-    '<option value="item">Item</option><option value="rule">Regra / mecânica</option></select></label>'+
-    '<button type="button" class="btn small" data-warehouse-editor="insert-template">INSERIR BLOCO</button>'+
-    '<label>DADO<select id="warehouseEditorDie">'+[4,6,8,10,12,14,16,18,20].map(n=>'<option value="'+n+'">d'+n+'</option>').join('')+'</select></label>'+
-    '<button type="button" class="btn small" data-warehouse-editor="insert-die">INSERIR DADO</button></div>'+
-    '<div class="ae-warehouse-compose-grid"><div class="ae-warehouse-compose-source">'+
-    '<label for="warehouseContentInput">Escrever conteúdo<textarea id="warehouseContentInput" rows="16" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="## Descrição\n\nExplique a classe, habilidade ou técnica.">'+esc(p.content)+'</textarea></label>'+
-    '<p id="warehouseEditorHint" class="ae-cat-help">Selecione palavras e use os botões acima. Ctrl+B e Ctrl+I também funcionam.</p></div>'+
-    '<div class="ae-warehouse-compose-preview"><strong>PRÉ-VISUALIZAÇÃO</strong>'+
-    '<div class="book-text ae-library-reading" id="aeWarehouseEditorPreview" aria-live="polite">'+api.formatBook(p.content||'')+'</div></div></div>'+
-    '<p class="ae-warehouse-editor-status" id="warehouseEditorStats" role="status">'+String(p.content||'').length+' caracteres · '+String(p.content||'').trim().split(/\s+/).filter(Boolean).length+' palavras</p>'+
-    '</section>'+
-   '<label class="ae-warehouse-publish"><input type="checkbox" id="warehousePublishedInput"'+(p.published===false?'':' checked')+'> Publicar para jogadores</label>'+'</div>',
-   [['SALVAR','warehouse-save','main'],...(found?[['EXCLUIR','warehouse-delete','danger']]:[]),['CANCELAR','closeModal','small']]);
+  const count=(Array.isArray(p.bars)?p.bars:[]).length;
+  api.modal(id?'EDITAR PUBLICAÇÃO':'NOVA PUBLICAÇÃO',
+   '<div class="ae-warehouse-editor ae-wh-simple-editor">'+
+    '<div class="ae-wh-editor-intro"><span>EDIÇÃO DO ACERVO</span><strong>'+ (id?'Atualize os detalhes do registro':'Crie um novo registro')+'</strong>'+
+    '<p>Preencha o essencial primeiro. Informações técnicas e recursos são opcionais.</p></div>'+
+    '<section class="ae-wh-editor-section" aria-label="Informações principais"><div class="ae-wh-editor-section-title"><span>01</span><strong>IDENTIDADE</strong></div>'+
+    '<label>Nome da publicação<input id="warehouseTitleInput" maxlength="100" required autofocus value="'+esc(p.title||'')+'" placeholder="Ex.: Especialista em Hohō"></label>'+
+    '<div class="ae-warehouse-editor-row"><label>Categoria<select id="warehouseCategoryInput">'+w.categories.map(c=>
+     '<option value="'+esc(c)+'"'+(p.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'+
+    '<label>Visibilidade<select id="warehouseVisibilityInput"><option value="published"'+(p.published===false?'':' selected')+'>Publicado para jogadores</option>'+
+    '<option value="draft"'+(p.published===false?' selected':'')+'>Rascunho do mestre</option></select></label></div>'+
+    '<label>Resumo para o cartão<input id="warehouseSummaryInput" maxlength="280" value="'+esc(p.summary||'')+'" placeholder="O que esta classe, técnica ou item faz?"></label>'+
+    '<div class="ae-wh-editor-tags"><label>Tags <span class="ae-wh-field-helper">Separe por vírgulas · máximo de 8</span>'+
+     '<input id="warehouseTagsInput" maxlength="220" value="'+esc(p.tags||'')+'" placeholder="Ex.: Mobilidade, Defesa, Hohō"></label>'+
+    '<div id="warehouseTagPreview" class="ae-wh-editor-tag-preview">'+parseTags(p.tags).map(t=>'<span>#'+esc(t)+'</span>').join('')+'</div>'+
+    editorTagSuggestions(p.tags)+'</div></section>'+
+    '<section class="ae-wh-editor-section" aria-label="Descrição"><div class="ae-wh-editor-section-title"><span>02</span><strong>DESCRIÇÃO</strong></div>'+
+    '<div class="ae-warehouse-compose" aria-label="Editor da publicação">'+
+     '<div class="ae-warehouse-compose-heading"><strong>CONTEÚDO DA PUBLICAÇÃO</strong><small>Escrita e pré-visualização</small></div>'+
+     '<div class="ae-warehouse-editor-toolbar" role="toolbar" aria-label="Formatar publicação">'+
+     '<button type="button" data-warehouse-editor="format:bold" title="Negrito (Ctrl+B)"><b>B</b></button>'+
+     '<button type="button" data-warehouse-editor="format:italic" title="Itálico (Ctrl+I)"><em>I</em></button>'+
+     '<button type="button" data-warehouse-editor="format:heading">TÍTULO</button>'+
+     '<button type="button" data-warehouse-editor="format:list">LISTA</button>'+
+     '<button type="button" data-warehouse-editor="format:quote">CITAÇÃO</button>'+
+     '<label>COR <input id="warehouseEditorColor" type="color" value="#39D6F4" aria-label="Cor do trecho selecionado"></label>'+
+     '<button type="button" data-warehouse-editor="format:color">COLORIR</button></div>'+
+     '<div class="ae-warehouse-compose-templates"><label>MODELO<select id="warehouseEditorTemplate">'+
+      '<option value="ability">Habilidade / técnica</option><option value="class">Classe</option>'+
+      '<option value="item">Item</option><option value="rule">Regra / mecânica</option></select></label>'+
+     '<button type="button" class="btn small" data-warehouse-editor="insert-template">INSERIR MODELO</button>'+
+     '<label>DADO<select id="warehouseEditorDie">'+[4,6,8,10,12,14,16,18,20].map(n=>
+       '<option value="'+n+'">d'+n+'</option>').join('')+'</select></label>'+
+     '<button type="button" class="btn small" data-warehouse-editor="insert-die">INSERIR DADO</button></div>'+
+     '<div class="ae-warehouse-compose-grid"><div class="ae-warehouse-compose-source">'+
+     '<label for="warehouseContentInput">Texto completo<textarea id="warehouseContentInput" rows="14" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="## Descrição\n\nExplique a classe, habilidade ou técnica.">'+esc(p.content||'')+'</textarea></label>'+
+     '<p id="warehouseEditorHint" class="ae-cat-help">Selecione o texto para aplicar formatação. Ctrl+B e Ctrl+I também funcionam.</p></div>'+
+     '<div class="ae-warehouse-compose-preview"><strong>COMO SERÁ EXIBIDO</strong>'+
+     '<div class="book-text ae-library-reading" id="aeWarehouseEditorPreview" aria-live="polite">'+api.formatBook(p.content||'')+'</div></div></div>'+
+     '<p class="ae-warehouse-editor-status" id="warehouseEditorStats" role="status">'+text(p.content||'').length+' caracteres · '+
+      text(p.content||'').trim().split(/\s+/).filter(Boolean).length+' palavras</p></div></section>'+
+    '<details class="ae-wh-editor-advanced"'+(count?' open':'')+'><summary><span class="ae-wh-adv-number">03</span>'+
+     '<span><strong>DETALHES & HUD DE RECURSOS</strong><small>Opcional · custo, imagem permitida e barras informativas</small></span>'+
+     '<span class="ae-wh-advanced-chevron" aria-hidden="true">⌄</span></summary>'+
+     '<div class="ae-wh-editor-advanced-body"><label>Custo ou referência (opcional)<input id="warehouseCostInput" maxlength="45" value="'+esc(p.cost||'')+'" placeholder="Ex.: 2 Alma ou Sem custo"></label>'+
+     '<div class="ae-warehouse-image-field" id="warehouseImageField"'+(warehouseAllowsImage(p.category)?'':' hidden')+'>'+
+      '<label>Imagem ilustrativa (URL HTTPS)<input id="warehouseImageInput" type="url" maxlength="1200" value="'+esc(p.image||'')+'" placeholder="https://..."></label></div>'+
+     '<div class="ae-wh-bar-editor-heading"><strong>BARRAS DE RECURSO</strong><p>O jogador verá o valor inicial e as regras de cada recurso na leitura expandida. Não é uma automação de ficha.</p></div>'+
+     '<div id="warehouseBarRows" class="ae-wh-bar-rows">'+(Array.isArray(p.bars)?p.bars.slice(0,8):[]).map(barEditorRow).join('')+'</div>'+
+     '<button type="button" class="btn small ae-wh-add-bar" data-warehouse-editor="add-bar">+ ADICIONAR BARRA</button>'+
+     '</div></details></div>',
+   [['SALVAR PUBLICAÇÃO','warehouse-save','main'],...(found?[['EXCLUIR','warehouse-delete','danger']]:[]),['CANCELAR','closeModal','small']]);
   document.getElementById('dialogRoot').dataset.warehouseId=id;
   /* Os botões do modal são criados pelo aplicativo; redirecionamento no capturador abaixo. */
  }
