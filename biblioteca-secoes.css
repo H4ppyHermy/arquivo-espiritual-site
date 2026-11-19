@@ -273,3 +273,15 @@ html.reduce-motion #page .ae-shelf-option,html.performance-mode #page .ae-shelf-
 }
 @media(prefers-reduced-motion:reduce){#page .ae-warehouse-post,#page .ae-wh-tag-option,#page .ae-warehouse-tags button{transition:none}}
 html.reduce-motion #page .ae-warehouse-post,html.performance-mode #page .ae-warehouse-post{transition:none;box-shadow:none}
+
+
+/* Tags de mestre: estilo discreto, separado dos marcadores de jogabilidade públicos. */
+#page .ae-warehouse-tags button.is-hidden-tag,
+#page .ae-wh-meta-tags .is-hidden-tag{
+ border-style:dashed;border-color:var(--theme-cold);
+ background:color-mix(in srgb,var(--theme-cold) 9%,var(--theme-panel));
+ color:var(--theme-text)
+}
+#page .ae-warehouse-tags button.is-hidden-tag small{font-size:9px;letter-spacing:.04em;font-weight:850;opacity:.85}
+#page .ae-warehouse-image{aspect-ratio:1;flex:none}
+#page .ae-warehouse-image img{width:100%;height:100%;object-fit:cover;display:block}
