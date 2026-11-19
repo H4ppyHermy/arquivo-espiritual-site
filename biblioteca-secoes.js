@@ -289,7 +289,8 @@
    tags:joinedTags,hiddenTags,content:content.slice(0,20000),published};
   // Não levar o esquema aposentado do HUD para publicações editadas.
   delete entry.bars;
-  if(previous)Object.assign(previous,entry);else w.posts.unshift(entry);
+  if(previous){Object.assign(previous,entry);delete previous.bars}
+  else w.posts.unshift(entry);
   w.hiddenPosts=w.hiddenPosts.filter(key=>key!==entry.id);
   openedPost=entry.id;selectedCategory='Todas';selectedTag='';search='';
   api.save();api.closeModal();api.render();api.toast('Publicação salva',title);
