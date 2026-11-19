@@ -1,0 +1,74 @@
+/* Arquivo Espiritual — Acervo das fichas, barras e edição guiada. */
+#page .ae-catalog-meta{display:flex;flex-wrap:wrap;gap:6px}
+#page .ae-catalog-meta span{
+ display:inline-flex;max-width:100%;font-size:10px;line-height:1.4;font-weight:800;
+ color:var(--theme-text);background:var(--theme-raised);border:1px solid var(--theme-structure);
+ padding:6px 8px;overflow-wrap:anywhere
+}
+#page .ae-warehouse-actions .ae-catalog-send{background:var(--theme-accent);color:var(--theme-bg);border-color:var(--theme-accent);font-weight:900}
+#page .ae-warehouse-actions .ae-catalog-send:hover{background:var(--theme-cold);border-color:var(--theme-cold)}
+.ae-catalog-extra-editor{margin:8px 0 0;border:1px solid var(--theme-structure);padding:14px;display:grid;gap:12px;min-width:0}
+.ae-catalog-extra-editor .ae-cat-editor-title{display:grid;gap:5px}
+.ae-catalog-extra-editor .ae-cat-editor-title strong{color:var(--theme-cold);font:900 18px/1.2 'Barlow Condensed',sans-serif}
+.ae-catalog-extra-editor .ae-cat-editor-title p{margin:0;font-size:11px;line-height:1.5;opacity:.82}
+.ae-catalog-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.ae-cat-bar-list{display:grid;gap:9px}
+.ae-catalog-bar-editor{border:1px solid var(--theme-structure);padding:12px;background:var(--theme-raised);display:grid;gap:9px}
+.ae-cat-bar-head{display:flex;align-items:center;justify-content:space-between;gap:7px}
+.ae-cat-bar-head strong{font:900 16px/1 'Barlow Condensed',sans-serif}
+.ae-cat-help{font-size:11px;opacity:.75;line-height:1.6;margin:0}
+.ae-catalog-transfer{display:grid;gap:14px}
+.ae-catalog-transfer label{display:grid;gap:6px;min-width:0;font-size:12px;font-weight:800}
+.ae-catalog-transfer :is(input,select){width:100%;padding:10px;min-width:0;background:var(--theme-bg);border:1px solid var(--theme-structure);color:var(--theme-text)}
+#page .ae-catalog-sheet{display:grid;gap:12px}
+#page .ae-catalog-sheet-entry{display:grid;gap:12px;min-width:0}
+#page .ae-catalog-sheet-entry .sectionhead{align-items:flex-start;gap:10px;flex-wrap:wrap}
+#page .ae-catalog-sheet-entry .sectionhead h2{font-size:clamp(24px,2vw,31px)}
+#page .ae-catalog-sheet-image{display:block;width:min(240px,100%);max-height:260px;object-fit:contain;object-position:left;background:var(--theme-bg);border:1px solid var(--theme-structure)}
+#page .ae-catalog-dice-reference{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:11px;border:1px solid var(--theme-structure);font-size:12px;color:var(--theme-text);font-weight:800;overflow-wrap:anywhere}
+#page .ae-catalog-dice-reference span{font-weight:500;opacity:.7}
+#page .ae-catalog-bars{display:grid;gap:12px}
+#page .ae-catalog-bar{min-width:0;display:grid;gap:9px;padding:13px;border:1px solid var(--theme-structure);background:var(--theme-raised)}
+#page .ae-catalog-bar-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#page .ae-catalog-bar-heading strong{font-size:12px;font-weight:900;overflow-wrap:anywhere}
+#page .ae-catalog-bar-heading span{font-size:12px;font-weight:900;color:var(--theme-cold);white-space:nowrap;font-variant-numeric:tabular-nums}
+#page .ae-catalog-bar-meter{display:flex;gap:4px;min-width:0}
+#page .ae-catalog-bar-meter>span{
+ flex:1 1 0;min-width:0;height:15px;transform:skewX(-12deg);background:var(--theme-bg);
+ border:1px solid var(--theme-structure);transition:background .15s
+}
+#page .ae-catalog-bar-meter>span.filled{background:var(--theme-accent);border-color:var(--theme-accent);box-shadow:0 0 6px color-mix(in srgb,var(--theme-accent) 32%,transparent)}
+#page .ae-catalog-bar p{margin:0;line-height:1.5;color:var(--theme-text);font-size:11px;opacity:.84;overflow-wrap:anywhere}
+#page .ae-catalog-bar-actions{display:flex;gap:7px;flex-wrap:wrap}
+#page .ae-catalog-bar-actions .btn{font-size:10px}
+#page .ae-catalog-bar-actions .btn:disabled{opacity:.4;cursor:not-allowed}
+#page .ae-catalog-sheet-details{border-top:1px solid var(--theme-structure);padding-top:10px}
+#page .ae-catalog-sheet-details summary{font-size:12px;letter-spacing:.03em;font-weight:900;color:var(--theme-cold);cursor:pointer}
+#page .ae-catalog-sheet-details summary:focus-visible{outline:2px solid var(--theme-cold);outline-offset:3px}
+#page .ae-catalog-sheet-details>.book-text{padding:12px 3px 0}
+#page .ae-catalog-summary{display:grid;gap:12px;margin:10px 0}
+#page .ae-catalog-summary .sectionhead{flex-wrap:wrap}
+#page .ae-catalog-summary-entry{display:grid;gap:7px}
+#page .ae-catalog-summary-entry>strong{font:900 17px/1.2 'Barlow Condensed',sans-serif}
+#page .ae-catalog-summary-entry .ae-catalog-bar{padding:9px}
+#page .ae-catalog-summary-entry .ae-catalog-bar p{font-size:10px}
+#page .ae-catalog-summary-entry .ae-catalog-bar-meter>span{height:12px}
+#page .ae-catalog-summary-entry .ae-catalog-bar-actions .btn{padding:6px 8px}
+#page .ae-manual-abilities{display:grid;gap:12px}
+#page .ae-skill-pair{display:inline-flex;align-items:center;gap:7px;padding:3px 6px;min-height:30px;white-space:nowrap;color:var(--theme-text)}
+#page .ae-bonds-grid{display:grid;gap:10px}
+#page .ae-bond-simple{display:grid;gap:10px;border:1px solid var(--theme-structure);padding:13px;background:var(--theme-raised)}
+#page .ae-bond-simple>div:first-child{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#page .ae-bond-simple p{margin:0;overflow-wrap:anywhere;font-size:12px;line-height:1.6}
+@media(max-width:680px){
+ .ae-catalog-extra-editor{padding:11px}
+ .ae-catalog-editor-grid{grid-template-columns:minmax(0,1fr)}
+ #page .ae-warehouse-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ #page .ae-warehouse-actions .ae-catalog-send{grid-column:1/-1}
+ #page .ae-catalog-bar-meter>span{height:14px}
+ #page .ae-catalog-sheet-entry{padding:13px}
+ #page .ae-catalog-sheet-entry .sectionhead h2{font-size:23px}
+}
+@media(prefers-reduced-motion:reduce){#page .ae-catalog-bar-meter>span{transition:none}}
+html.performance-mode #page .ae-catalog-bar-meter>span,
+html.reduce-motion #page .ae-catalog-bar-meter>span{transition:none;box-shadow:none!important}
