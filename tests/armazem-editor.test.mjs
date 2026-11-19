@@ -302,11 +302,11 @@ test('Porta-voz em cache ou documento online recebe termos atuais sem perder edi
  const old={
   id:'classe-porta-voz',title:'Porta-voz',category:'Classes',published:true,
   tags:'Suporte, Campanha',summary:'Versão personalizada pelo mestre',
-  content:'## Manobrista\\nAo utilizar Auxílio, escolha dois aliados com quem tenha pelo menos Afinidade. '+
+  content:'## Manobrista\nAo utilizar Auxílio, escolha dois aliados com quem tenha pelo menos Afinidade. '+
     'O dado é usado conforme o grau de relação com o Porta-voz. '+
     'O dado tem −1 passo e seu resultado é reduzido à metade. '+
-    'Os aliados recebem um dado adicional na próxima defesa contra ataque inimigo.\\n\\n'+
-    '> O valor do dado por grau de Afinidade depende das regras de criação de personagem ainda em desenvolvimento.\\n\\n'+
+    'Os aliados recebem um dado adicional na próxima defesa contra ataque inimigo.\n\n'+
+    '> O valor do dado por grau de Afinidade depende das regras de criação de personagem ainda em desenvolvimento.\n\n'+
     'Parágrafo exclusivo do mestre.',
   damage:{kind:'bonus',count:1,faces:0,label:'Dado de Afinidade (valor não definido)'}
  };
