@@ -119,3 +119,24 @@ test('sequência inválida permanece literal e não modifica regras de combate',
  assert.doesNotMatch(read('biblioteca-secoes.js'),/resourceBars\(|barEditorRow\(/);
  assert.match(read('ficha-visual.js'),/sequencia/);
 });
+
+test('Porta-voz usa os graus oficiais de Vínculos em ambas as fontes',()=>{
+ const records=JSON.parse(read('classes-armazem.js').split('window.ARQUIVO_CLASSES_CBB = ')[1].trim().replace(/;$/,''));
+ const published=JSON.parse(read('dados.js').split('window.ARQUIVO_PUBLICADO = ')[1].trim().replace(/;$/,''));
+ const source=records.find(x=>x.id==='classe-porta-voz');
+ const copy=published.site.warehouse.posts.find(x=>x.id==='classe-porta-voz');
+ const rule=published.rules.find(x=>x.id==='cap8')?.text||'';
+ assert.equal(source.content,copy.content);
+ assert.equal(source.damage.label,copy.damage.label);
+ assert.match(source.content,/Vínculo de grau I ou superior/);
+ assert.match(source.content,/I: 1d6; II: 1d8; III: 1d12/);
+ assert.match(source.content,/grau de Vínculo de cada aliado/);
+ assert.match(source.damage.label,/grau I: d6; II: d8; III: d12/);
+ assert.doesNotMatch(source.content,/grau de Afinidade|regras de criação de personagem ainda em desenvolvimento|pelo menos Afinidade/i);
+ assert.doesNotMatch(source.damage.label,/não definido|Dado de Afinidade/i);
+ for(const [name,die] of [['Afinidade','d6'],['Vínculo','d8'],['Devoção','d12']]){
+  assert.ok(rule.includes(name),name);
+  assert.ok(rule.includes('+1'+die),die);
+ }
+ assert.match(read('vinculos-simples.js'),/Benefícios dos Vínculos não são aplicados automaticamente/);
+});
