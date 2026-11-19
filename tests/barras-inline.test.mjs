@@ -49,7 +49,7 @@ test('a leitura dos capítulos e das fichas utiliza o mesmo parser',()=>{
  assert.match(read('biblioteca-editor.js'),/function insertEditorBar\(/);
  assert.match(read('biblioteca-secoes.js'),/data-warehouse-editor="insert-bar"/);
  assert.match(read('biblioteca-secoes.js'),/warehouseEditorResourceKind/);
- assert.ok(html.indexOf('barras-inline.js?v=2')<html.indexOf('arquivo-app.js?v=12'));
+ assert.ok(html.indexOf('barras-inline.js?v=2')<html.indexOf('arquivo-app.js?v=13'));
  assert.match(html,/barras-inline\.css\?v=2/);
 });
 test('custos de Têmpera e Armadilhas usam a notação visual sem alterar regras',()=>{

@@ -122,7 +122,40 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  assert.match(app,/window\.ARQUIVO_FICHA_VISUAL\?\.upgradeEditor\?\.\(\)/);
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function updateDraft\(target\)/);
- assert.match(html,/ficha-visual\.js\?v=1/);
- assert.match(html,/ficha-visual\.css\?v=1/);
- assert.ok(html.indexOf('arquivo-app.js?v=12')<html.indexOf('ficha-visual.js?v=1'));
+ assert.match(html,/ficha-visual\.js\?v=2/);
+ assert.match(html,/ficha-visual\.css\?v=2/);
+ assert.ok(html.indexOf('arquivo-app.js?v=13')<html.indexOf('ficha-visual.js?v=2'));
+});
+
+test('cabeçalho não inventa raça e os títulos não recebem numeração',()=>{
+ const {view}=setup(),sheet=example();sheet.race='';
+ const html=view.render(sheet,settings());
+ assert.doesNotMatch(html,/RAÇA NÃO DEFINIDA|Raça não definida/);
+ assert.doesNotMatch(html,/class="ae-ficha-race"/);
+ assert.match(html,/class="ae-ficha-level">NÍVEL 3/);
+ assert.match(html,/GRUPOS/i);
+ for(const tab of ['summary','skills','abilities','notes','guide']){
+  const content=view.render(sheet,settings(tab));
+  assert.doesNotMatch(content,/<span>0[123]<\/span>\s*<h2/);
+ }
+ assert.match(html,/Vida, Estabilidade &amp; Alma|Vida, Estabilidade & Alma/);
+ assert.match(html,/Acorrentado/);
+ assert.match(html,/Esgotamento Espiritual/);
+});
+test('retrato usa área exclusiva e limites responsivos sem invadir o nome',()=>{
+ const css=read('ficha-visual.css');
+ assert.match(css,/grid-template-columns:minmax\(0,1fr\) clamp\(185px,25%,330px\)/);
+ assert.match(css,/grid-column:1;grid-row:2;align-self:center/);
+ assert.match(css,/grid-column:2;grid-row:1\/3;position:relative/);
+ assert.match(css,/object-fit:contain/);
+ assert.doesNotMatch(css,/#page \.ae-ficha-section-title>span\{/);
+});
+test('perícias e recursos explicam as regras consolidadas sem implementar combate',()=>{
+ const {view}=setup();
+ const html=view.render(example(),settings('skills'));
+ assert.match(html,/RT é a soma/);
+ assert.match(html,/RA o maior e RB o menor/);
+ const summary=view.render(example(),settings('summary'));
+ assert.match(summary,/Valores atualizados manualmente/);
+ assert.match(summary,/Vida inicia Morte/);
 });

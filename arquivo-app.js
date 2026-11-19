@@ -1289,7 +1289,7 @@ async function historyNavigate(scope,action){
 }
 function onlineHistoryHtml(sheet=false){const scope=historyScope(sheet);return `<div class="history-list" data-history-scope="${esc(scope)}">${historyContents(scope)}</div>`}
 function historyHtml(){const online=!!window.ARQUIVO_SYNC?.state.enabled;return `<div class="history"><span class="eyebrow">${online?'ROLAGENS VERIFICADAS':'ROLAGENS LOCAIS'}</span>${online?onlineHistoryHtml(page==='sheets'):`<div data-history-scope="local">${historyContents('local')}</div>`}</div>`}
-const CONDITIONS_CATALOG=['Desmaiado','Acorrentado','Pressionado','Morto','Derrubado','Agarrado','Imobilizado','Atordoado','Sangrando','Exausto','Queimando','Congelado','Envenenado','Eletrificado','Corroído','Sufocando','Cego','Surdo','Desorientado','Ofuscado','Iludido','Insensível','Amedrontado','Confuso','Provocado','Silenciado','Suprimido','Dominado'];
+const CONDITIONS_CATALOG=['Derrubado','Agarrado','Imobilizado','Atordoado','Exausto','Fragilizado','Ofuscado','Cego','Insensível','Desorientado','Iludido','Amedrontado','Confuso','Provocado','Silenciado','Suprimido','Dominado'];
 const SHEET_PALETTE_FIELDS=[['accent','Destaque'],['panel','Painel'],['raised','Painel elevado'],['cold','Ícones e linhas'],['text','Texto'],['bg','Fundo da ficha'],['diceGroup','Dados de grupo'],['diceSkill','Dados de perícia']];
 const SHEET_HEX=/^#[0-9a-f]{6}$/i;
 function sheetThemeRecord(id){return db.sheets.find(s=>s.id===id)?.appearance||{}}
@@ -1389,7 +1389,7 @@ async function abilityImageUpload(input){
  }catch(e){toast('Imagem inválida',e.message,true)}
 }
 function removeAbilityImage(index){if(!requirePlayer()||!editorDraft?.abilities?.[index])return;pendingAbilityImages.delete(editorDraft.abilities[index]);editorDraft.abilities[index].image='';drawSheetForm()}
-function conditionInfo(index){const s=db.sheets.find(x=>x.id===currentSheet);const name=s?.conditions?.[index];if(!name)return;const found=db.rules.find(x=>x.title.toLocaleLowerCase('pt-BR').includes('condiç'));const text=found?.text||'';const idx=text.toLocaleLowerCase('pt-BR').indexOf(name.toLocaleLowerCase('pt-BR'));let context=idx>=0?text.slice(idx,idx+850).split(/\n\s*\n/).slice(0,2).join('\n\n'):'Não há uma descrição específica dessa condição na biblioteca.';modal('REGRA · '+name,`<div class="sheet-rich">${sheetRich(context)}</div><p class="color-hint">Consulte o capítulo Estados & Condições na Biblioteca para o texto integral.</p>`,[['FECHAR','closeModal']])}
+function conditionInfo(index){const s=db.sheets.find(x=>x.id===currentSheet);const name=s?.conditions?.[index];if(!name)return;const found=db.rules.find(x=>x.title.toLocaleLowerCase('pt-BR').includes('condiç'));const text=found?.text||'';const idx=text.toLocaleLowerCase('pt-BR').indexOf(name.toLocaleLowerCase('pt-BR'));let context=idx>=0?text.slice(idx,idx+850).split(/\n\s*\n/).slice(0,2).join('\n\n'):'Não há uma descrição específica dessa condição na biblioteca.';modal('REGRA · '+name,`<div class="sheet-rich">${sheetRich(context)}</div><p class="color-hint">Consulte o capítulo Condições & Pavor na Biblioteca para o texto integral.</p>`,[['FECHAR','closeModal']])}
 
 
 function inventoryItemHasQuantity(it){return it?.quantity!==null&&it?.quantity!==undefined&&it?.quantity!==''}
@@ -1421,48 +1421,103 @@ if(tab==='abilities')return '<div class="ae-manual-abilities"><div class="panel"
  '</div>'+historyHtml()+'</div>';
  if(tab==='conditions')return `<div class="panel"><div class="sectionhead"><h2>ESTADOS & CONDIÇÕES</h2>${canEditSheet(s.id)?btn('+ ADICIONAR','conditionAdd','main'):''}</div><div class="actions">${(s.conditions||[]).length?s.conditions.map((c,i)=>`<span class="tag warn condition-pill">${esc(c)} ${CONDITIONS_CATALOG.some(x=>x.toLowerCase()===String(c).toLowerCase())?`<button class="rule-lookup" data-action="conditionInfo:${i}" aria-label="Ver regra de ${esc(c)}">?</button>`:''} ${canEditSheet(s.id)?`<button class="btn small quiet" data-action="conditionRemove:${i}" title="Remover condição">${icon('close','pill-icon')}</button>`:''}</span>`).join(''):'<span class="subtitle">Nenhuma condição aplicada.</span>'}</div></div>`;
 return `<div class="panel"><div class="sectionhead"><h2>NOTAS</h2>${canEditSheet(s.id)?btn('EDITAR NOTAS','editNotes','small'):''}</div><div class="rule"><div class="prose sheet-rich">${sheetRich(s.notes||'Sem anotações.')}</div></div>${s.noteImages?.length?`<div class="note-gallery">${s.noteImages.map((image,i)=>`<figure><img src="${esc(mediaSrc(image)||CLEAR_IMAGE)}" alt="Anexo ${i+1} das notas" loading="lazy">${canEditSheet(s.id)?btn('REMOVER ANEXO','removeNoteImage:'+i,'small danger'):''}</figure>`).join('')}</div>`:''}${canEditSheet(s.id)?`<div class="field"><label>ANEXAR IMAGENS OU GIFS (até 4 · 15 MB cada)<input id="noteImagesInput" type="file" accept="image/gif,image/png,image/jpeg,image/webp" multiple></label>${btn('ADICIONAR POR LINK','noteImageUrlDialog','small')}</div>`:''}</div>`}
-async function sheetLinks(){
+const sheetLinkDirectoryCache={account:'',entries:[],updated:0,pending:null};
+let sheetLinkBusy=false;
+function sheetLinks(){
  const sh=db.sheets.find(x=>x.id===currentSheet);
  if(!sh||!player())return;
- let directory=[];
- try{
-  if(window.ARQUIVO_SYNC?.state.enabled)directory=await window.ARQUIVO_SYNC.playerDirectory();
-  else directory=(db.keys||[]).filter(k=>k.kind==='player').map(k=>({id:k.id,name:k.name}));
- }catch(e){toast('Vínculos indisponíveis',e.message,true);return}
+ const session=String(keyOwnerId||'')+':'+(master()?'master':'player');
+ if(sheetLinkDirectoryCache.account!==session){
+  sheetLinkDirectoryCache.account=session;
+  sheetLinkDirectoryCache.entries=[];
+  sheetLinkDirectoryCache.updated=0;
+  sheetLinkDirectoryCache.pending=null;
+ }
+ const local=(db.keys||[]).filter(k=>k?.kind==='player');
+ const fromSync=(window.ARQUIVO_SYNC?.state.keys||[]).filter(k=>k?.kind==='player');
+ const directory=[...local,...fromSync,...sheetLinkDirectoryCache.entries]
+  .filter((k,i,all)=>k?.id&&all.findIndex(x=>x?.id===k.id)===i);
  const ids=linkedIds(sh),own=isLinked(sh);
  const canManage=master()||(own&&sh.ownerKeyId===keyOwnerId);
  const claimable=!sh.locked&&!ids.length&&role==='player';
- const names=id=>directory.find(k=>k.id===id)?.name||(id===keyOwnerId?'Você':'Jogador vinculado');
- const members=ids.length?ids.map(id=>`<span class="tag">${esc(names(id))}${id===keyOwnerId?' · VOCÊ':''}</span>`).join(''):'<span class="subtitle">Nenhum jogador vinculado.</span>';
- const options=directory.filter(k=>!ids.includes(k.id)).map(k=>`<option value="${esc(k.id)}">${esc(k.name)}</option>`).join('');
- modal('JOGADORES VINCULADOS',`<p class="subtitle">Apenas jogadores vinculados podem editar e interagir com a ficha. O mestre mantém acesso administrativo.</p><div class="sheet-link-members">${members}</div>${claimable?btn('VINCULAR À MINHA CHAVE','claimSheet','small main'):''}${own?btn('DESVINCULAR MINHA CHAVE','leaveSheet','small quiet'):''}${canManage&&options?`<div class="field"><label>Adicionar outro jogador<select id="linkPlayerTarget">${options}</select></label>${btn('VINCULAR JOGADOR','addSheetLink','small')}</div>`:''}${canManage&&ids.length>1?`<div class="field"><label>Desvincular jogador<select id="unlinkPlayerTarget">${ids.filter(id=>id!==keyOwnerId||master()).map(id=>`<option value="${esc(id)}">${esc(names(id))}</option>`).join('')}</select></label>${btn('REMOVER VÍNCULO','removeSheetLink','small quiet')}</div>`:''}${ids.length&&!own&&!master()?'<p class="color-hint">Solicite acesso a um jogador já vinculado.</p>':''}`, [['FECHAR','closeModal']]);
+ const nameFor=id=>directory.find(k=>k.id===id)?.name||(id===keyOwnerId?'Você':'Jogador vinculado');
+ const members=ids.length?ids.map(id=>'<span class="tag">'+esc(nameFor(id))+(id===keyOwnerId?' · VOCÊ':'')+'</span>').join(''):
+  '<span class="subtitle">Nenhum jogador vinculado.</span>';
+ const options=directory.filter(k=>!ids.includes(k.id)).map(k=>
+  '<option value="'+esc(k.id)+'">'+esc(k.name)+'</option>').join('');
+ const removable=ids.filter(id=>master()||id!==keyOwnerId);
+ const removeOptions=removable.map(id=>'<option value="'+esc(id)+'">'+esc(nameFor(id))+'</option>').join('');
+ const body='<div class="ae-sheet-links-dialog" data-sheet-links-panel="'+esc(sh.id)+'">'+
+  '<p class="subtitle">Somente jogadores vinculados podem editar esta ficha. O mestre mantém acesso administrativo.</p>'+
+  '<div class="sheet-link-members">'+members+'</div>'+
+  (claimable?btn('VINCULAR À MINHA CHAVE','claimSheet','small main'):'')+
+  (own?btn('DESVINCULAR MINHA CHAVE','leaveSheet','small quiet'):'')+
+  (canManage&&options?'<div class="field"><label>Adicionar jogador<select id="linkPlayerTarget">'+options+
+     '</select></label>'+btn('VINCULAR JOGADOR','addSheetLink','small')+'</div>':'')+
+  (canManage&&removeOptions?'<div class="field"><label>Remover jogador<select id="unlinkPlayerTarget">'+removeOptions+
+     '</select></label>'+btn('REMOVER VÍNCULO','removeSheetLink','small quiet')+'</div>':'')+
+  (ids.length&&!own&&!master()?'<p class="color-hint">Solicite acesso a um jogador vinculado.</p>':'')+
+  '</div>';
+ modal('JOGADORES VINCULADOS',body,[['FECHAR','closeModal']]);
+ const sync=window.ARQUIVO_SYNC;
+ if(sync?.state.enabled&&!sheetLinkDirectoryCache.pending&&Date.now()-sheetLinkDirectoryCache.updated>60000){
+  sheetLinkDirectoryCache.pending=sync.playerDirectory().then(list=>{
+   if(sheetLinkDirectoryCache.account!==session)return;
+   sheetLinkDirectoryCache.entries=Array.isArray(list)?list.filter(k=>k?.id):[];
+   sheetLinkDirectoryCache.updated=Date.now();
+   const dialog=el('dialogRoot')?.querySelector('[data-sheet-links-panel]');
+   if(dialog?.dataset.sheetLinksPanel===sh.id&&!sheetLinkBusy&&!dialog.querySelector('select:focus,input:focus')){
+    sheetLinks();
+   }
+  }).catch(error=>{
+   sheetLinkDirectoryCache.updated=Date.now();
+   if(!directory.length)toast('Lista de jogadores indisponível',error.message,true);
+  }).finally(()=>{sheetLinkDirectoryCache.pending=null});
+ }
 }
 async function changeSheetLink(action){
  const id=currentSheet,sh=db.sheets.find(x=>x.id===id);
- if(!sh||!player())return;
+ if(!sh||!player()||sheetLinkBusy)return;
  const target=action==='add'?el('linkPlayerTarget')?.value:action==='remove'?el('unlinkPlayerTarget')?.value:null;
  if(['add','remove'].includes(action)&&!target){toast('Selecione um jogador','Nenhuma chave escolhida.',true);return}
  if(action==='leave'&&!confirm('Desvincular esta ficha da sua chave? Se for a última chave, a ficha ficará pública e disponível para novo vínculo.'))return;
+ sheetLinkBusy=true;
+ const controls=[...(el('dialogRoot')?.querySelectorAll('.ae-sheet-links-dialog button')||[])];
+ const labels=controls.map(b=>b.textContent);
+ const actionName=({claim:'claimSheet',leave:'leaveSheet',add:'addSheetLink',remove:'removeSheetLink'})[action];
+ const active=controls.find(b=>b.dataset.action===actionName);
+ controls.forEach(b=>{b.disabled=true;b.setAttribute('aria-busy','true')});
+ if(active)active.textContent='SALVANDO...';
  try{
-  if(window.ARQUIVO_SYNC?.state.enabled){
-   await window.ARQUIVO_SYNC.sheetLink(id,action,target);
-   await window.ARQUIVO_SYNC.refresh(true);
+  const sync=window.ARQUIVO_SYNC;
+  if(sync?.state.enabled){
+   const result=await sync.sheetLink(id,action,target);
+   const changed=result?.sheet;
+   if(!changed||changed.id!==id)throw Error('O servidor não confirmou o novo vínculo.');
+   const index=db.sheets.findIndex(x=>x.id===id);
+   if(index<0)throw Error('A ficha alterada não está mais disponível.');
+   db.sheets[index]=changed;
   }else{
    let ids=linkedIds(sh);
    if(action==='claim'&&ids.length===0&&!sh.locked){ids=[keyOwnerId];sh.ownerKeyId=keyOwnerId}
    else if(action==='leave'&&ids.includes(keyOwnerId)){ids=ids.filter(x=>x!==keyOwnerId)}
    else if(action==='add'&&canEditSheet(id)&&target&&!ids.includes(target))ids.push(target);
-   else if(action==='remove'&&canEditSheet(id))ids=ids.filter(x=>x!==target);
+   else if(action==='remove'&&canEditSheet(id)&&ids.includes(target))ids=ids.filter(x=>x!==target);
    else throw Error('Vínculo não autorizado.');
    sh.linkedKeyIds=ids;
    if(!ids.length){sh.locked=false;sh.ownerKeyId=''}
    else if(!ids.includes(sh.ownerKeyId))sh.ownerKeyId=ids[0];
-   DATASTORE.save(db);
   }
+  DATASTORE.save(db);
   closeModal();
-  if(!master()&&!isLinked(db.sheets.find(x=>x.id===id))&&db.sheets.find(x=>x.id===id)?.locked)currentSheet=null;
+  const updated=db.sheets.find(x=>x.id===id);
+  if(!master()&&!isLinked(updated)&&updated?.locked)currentSheet=null;
   render();toast('VÍNCULOS ATUALIZADOS');
- }catch(e){toast('Vínculo não alterado',e.message,true)}
+ }catch(error){toast('Vínculo não alterado',error.message,true)}
+ finally{
+  sheetLinkBusy=false;
+  controls.forEach((b,i)=>{if(b.isConnected){b.disabled=false;b.removeAttribute('aria-busy');b.textContent=labels[i]}});
+ }
 }
 function sheetPage(){if(tab==='catalog')tab='summary';const s=db.sheets.find(x=>x.id===currentSheet);if(s?.masterOnly&&!master())return headline('ACESSO RESTRITO','SOMENTE MESTRES','');if(!s){currentSheet=null;return sheets()}if(s.locked&&(!canEditSheet(s.id)||s.redacted))return headline('ACESSO RESTRITO','FICHA DESCONHECIDA','Você não tem permissão para visualizar esta ficha.',btn('VOLTAR','backSheets'));const art=imgStyle(s.image);
  if(window.ARQUIVO_FICHA_VISUAL?.render){
@@ -1920,7 +1975,7 @@ function deleteRule(){if(!requireMaster())return;const id=el('dialogRoot').datas
 const SHEET_SAMPLE=clone(DEFAULT.sheets[0]);
 function cleanJsonInput(input){return input.trim().replace(/^```(?:json|JSON)?\s*\n?/,'').replace(/\n?```\s*$/,'').trim()}
 function validationError(i,field,msg){throw Error(`Ficha ${i}: campo "${field}" ${msg}.`)}
-function validateSheet(raw,i){if(!raw||typeof raw!=='object'||Array.isArray(raw))validationError(i,'ficha','deve ser um objeto JSON');const s=clone(raw);if(typeof s.name!=='string'||!s.name.trim())validationError(i,'name','deve ser um texto não vazio');if(!Number.isInteger(s.level)||s.level<1)validationError(i,'level','deve ser um número inteiro maior ou igual a 1');if(s.race!==undefined&&(typeof s.race!=='string'||s.race.length>40))validationError(i,'race','deve ser texto com até 40 caracteres');if(s.subtitle!==undefined&&typeof s.subtitle!=='string')validationError(i,'subtitle','deve ser texto');if(s.image!==undefined&&typeof s.image!=='string')validationError(i,'image','deve ser texto com URL ou imagem');if(s.notes!==undefined&&typeof s.notes!=='string')validationError(i,'notes','deve ser texto');if(!s.resources||typeof s.resources!=='object')validationError(i,'resources','deve existir como objeto');for(const k of ['vida','estabilidade','alma']){const v=s.resources[k];if(!v||typeof v!=='object')validationError(i,'resources.'+k,'deve conter current e max');if(!Number.isInteger(v.max)||v.max<0)validationError(i,'resources.'+k+'.max','deve ser inteiro não negativo');if(typeof v.current!=='number'||!Number.isFinite(v.current)||v.current<0||v.current>100000000||Math.abs(v.current*100-Math.round(v.current*100))>0.00001)validationError(i,'resources.'+k+'.current','deve ser um número de 0 a 100 milhões com até duas casas decimais')}if(!s.groups||typeof s.groups!=='object')validationError(i,'groups','deve existir');for(const g of Object.keys(GROUPS))if(!VALID_DICE.includes(s.groups[g]))validationError(i,'groups.'+g,'deve ser um dos dados d4, d6, d8, d10, d12 ou d20 (número sem d)');if(!s.skills||typeof s.skills!=='object')validationError(i,'skills','deve existir');for(const k of Object.values(GROUPS).flat())if(!VALID_DICE.includes(s.skills[k]))validationError(i,'skills.'+k,'deve ser um dos números 4, 6, 8, 10, 12 ou 20');if(s.abilities!==undefined&&!Array.isArray(s.abilities))validationError(i,'abilities','deve ser uma lista');s.abilities??=[];for(let j=0;j<s.abilities.length;j++){const ab=s.abilities[j];if(!ab||typeof ab.name!=='string'||!ab.name.trim())validationError(i,`abilities[${j}].name`,'deve ser texto');if(!Number.isInteger(ab.cost)||ab.cost<0)validationError(i,`abilities[${j}].cost`,'deve ser inteiro não negativo');if(ab.passive!==undefined&&typeof ab.passive!=='boolean')validationError(i,`abilities[${j}].passive`,'deve ser verdadeiro ou falso');if(ab.noTest!==undefined&&typeof ab.noTest!=='boolean')validationError(i,`abilities[${j}].noTest`,'deve ser verdadeiro ou falso');if(ab.category!==undefined&&!['active','passive','mechanic','item','release','transformation','ultimate'].includes(ab.category))validationError(i,`abilities[${j}].category`,'deve ser ATIVA, PASSIVA, MECÂNICA, ITEM, LIBERAÇÃO, TRANSFORMAÇÃO ou ULTIMATE');ab.category=abilityCategory(ab);ab.passive=ab.category==='passive';if(ab.passive){ab.cost=0;ab.noTest=true}if(ab.inventoryItemId!==undefined&&(typeof ab.inventoryItemId!=='string'||ab.inventoryItemId.length>100))validationError(i,`abilities[${j}].inventoryItemId`,'deve ser um identificador de item ou texto vazio');if(ab.description!==undefined&&typeof ab.description!=='string')validationError(i,`abilities[${j}].description`,'deve ser texto');if(ab.testDice!==undefined){if(!Array.isArray(ab.testDice)||ab.testDice.length>12)validationError(i,`abilities[${j}].testDice`,'deve ser lista com no máximo 12 dados');for(let k=0;k<ab.testDice.length;k++){const d=ab.testDice[k];if(!d||!VALID_DICE.includes(Number(d.sides)))validationError(i,`abilities[${j}].testDice[${k}].sides`,'deve ser d4, d6, d8, d10, d12 ou d20');if(d.color!==undefined&&!ABILITY_HEX.test(d.color))validationError(i,`abilities[${j}].testDice[${k}].color`,'deve ser uma cor #RRGGBB')}}}if(s.linkedKeyIds!==undefined&&(!Array.isArray(s.linkedKeyIds)||s.linkedKeyIds.some(x=>typeof x!=='string')))validationError(i,'linkedKeyIds','deve ser uma lista de vínculos');s.locked=typeof s.locked==='boolean'?s.locked:true;if(s.noteImages!==undefined&&(!Array.isArray(s.noteImages)||s.noteImages.some(v=>typeof v!=='string'||!dataUrlOk(v))))validationError(i,'noteImages','deve ser lista de imagens');if(s.noteImages?.length>4)validationError(i,'noteImages','permite até quatro imagens');s.noteImages??=[];s.inventory??={items:[],currencies:[]};if(!Array.isArray(s.inventory.items)||!Array.isArray(s.inventory.currencies))validationError(i,'inventory','deve ter listas items e currencies');for(const it of s.inventory.items){if(!it.id)it.id=crypto.randomUUID()}if(s.abilities.some(ab=>ab.image!==undefined&&(typeof ab.image!=='string'||(ab.image&&!dataUrlOk(ab.image)))))validationError(i,'abilities.image','deve conter imagem válida');if(s.conditions!==undefined&&(!Array.isArray(s.conditions)||s.conditions.some(c=>typeof c!=='string')))validationError(i,'conditions','deve ser uma lista de textos');s.conditions??=[];s.id=typeof s.id==='string'&&s.id.trim()?s.id:uid();s.subtitle??='';s.notes??='';s.image??='';s.restCount=Number.isInteger(s.restCount)?clamp(s.restCount,0,2):0;return s}
+function validateSheet(raw,i){if(!raw||typeof raw!=='object'||Array.isArray(raw))validationError(i,'ficha','deve ser um objeto JSON');const s=clone(raw);if(typeof s.name!=='string'||!s.name.trim())validationError(i,'name','deve ser um texto não vazio');if(!Number.isInteger(s.level)||s.level<1)validationError(i,'level','deve ser um número inteiro maior ou igual a 1');if(s.race!==undefined&&(typeof s.race!=='string'||s.race.length>40))validationError(i,'race','deve ser texto com até 40 caracteres');if(s.subtitle!==undefined&&typeof s.subtitle!=='string')validationError(i,'subtitle','deve ser texto');if(s.image!==undefined&&typeof s.image!=='string')validationError(i,'image','deve ser texto com URL ou imagem');if(s.notes!==undefined&&typeof s.notes!=='string')validationError(i,'notes','deve ser texto');if(!s.resources||typeof s.resources!=='object')validationError(i,'resources','deve existir como objeto');for(const k of ['vida','estabilidade','alma']){const v=s.resources[k];if(!v||typeof v!=='object')validationError(i,'resources.'+k,'deve conter current e max');if(!Number.isInteger(v.max)||v.max<0)validationError(i,'resources.'+k+'.max','deve ser inteiro não negativo');if(typeof v.current!=='number'||!Number.isFinite(v.current)||v.current<0||v.current>100000000||Math.abs(v.current*100-Math.round(v.current*100))>0.00001)validationError(i,'resources.'+k+'.current','deve ser um número de 0 a 100 milhões com até duas casas decimais')}if(!s.groups||typeof s.groups!=='object')validationError(i,'groups','deve existir');for(const g of Object.keys(GROUPS))if(!VALID_DICE.includes(s.groups[g]))validationError(i,'groups.'+g,'deve ser um dos dados d4, d6, d8, d10, d12 ou d20 (número sem d)');if(!s.skills||typeof s.skills!=='object')validationError(i,'skills','deve existir');for(const k of Object.values(GROUPS).flat())if(!VALID_DICE.includes(s.skills[k]))validationError(i,'skills.'+k,'deve ser um dos números 4, 6, 8, 10, 12 ou 20');if(s.abilities!==undefined&&!Array.isArray(s.abilities))validationError(i,'abilities','deve ser uma lista');s.abilities??=[];for(let j=0;j<s.abilities.length;j++){const ab=s.abilities[j];if(!ab||typeof ab.name!=='string'||!ab.name.trim())validationError(i,`abilities[${j}].name`,'deve ser texto');if(!Number.isInteger(ab.cost)||ab.cost<0)validationError(i,`abilities[${j}].cost`,'deve ser inteiro não negativo');if(ab.passive!==undefined&&typeof ab.passive!=='boolean')validationError(i,`abilities[${j}].passive`,'deve ser verdadeiro ou falso');if(ab.noTest!==undefined&&typeof ab.noTest!=='boolean')validationError(i,`abilities[${j}].noTest`,'deve ser verdadeiro ou falso');if(ab.category!==undefined&&!['active','passive','mechanic','item','release','transformation','ultimate'].includes(ab.category))validationError(i,`abilities[${j}].category`,'deve ser ATIVA, PASSIVA, MECÂNICA, ITEM, LIBERAÇÃO, TRANSFORMAÇÃO ou ULTIMATE');ab.category=abilityCategory(ab);ab.passive=ab.category==='passive';if(ab.passive){ab.cost=0;ab.noTest=true}if(ab.inventoryItemId!==undefined&&(typeof ab.inventoryItemId!=='string'||ab.inventoryItemId.length>100))validationError(i,`abilities[${j}].inventoryItemId`,'deve ser um identificador de item ou texto vazio');if(ab.description!==undefined&&typeof ab.description!=='string')validationError(i,`abilities[${j}].description`,'deve ser texto');}if(s.linkedKeyIds!==undefined&&(!Array.isArray(s.linkedKeyIds)||s.linkedKeyIds.some(x=>typeof x!=='string')))validationError(i,'linkedKeyIds','deve ser uma lista de vínculos');s.locked=typeof s.locked==='boolean'?s.locked:true;if(s.noteImages!==undefined&&(!Array.isArray(s.noteImages)||s.noteImages.some(v=>typeof v!=='string'||!dataUrlOk(v))))validationError(i,'noteImages','deve ser lista de imagens');if(s.noteImages?.length>4)validationError(i,'noteImages','permite até quatro imagens');s.noteImages??=[];s.inventory??={items:[],currencies:[]};if(!Array.isArray(s.inventory.items)||!Array.isArray(s.inventory.currencies))validationError(i,'inventory','deve ter listas items e currencies');for(const it of s.inventory.items){if(!it.id)it.id=crypto.randomUUID()}if(s.abilities.some(ab=>ab.image!==undefined&&(typeof ab.image!=='string'||(ab.image&&!dataUrlOk(ab.image)))))validationError(i,'abilities.image','deve conter imagem válida');if(s.conditions!==undefined&&(!Array.isArray(s.conditions)||s.conditions.some(c=>typeof c!=='string')))validationError(i,'conditions','deve ser uma lista de textos');s.conditions??=[];s.id=typeof s.id==='string'&&s.id.trim()?s.id:uid();s.subtitle??='';s.notes??='';s.image??='';return s}
 function importDialog(prefill=''){if(!requirePlayer())return;modal('IMPORTAR FICHAS POR CÓDIGO',`<p>Cole um objeto JSON, uma lista de fichas ou código cercado por <b>\`\`\`json</b> e <b>\`\`\`</b>.</p><div class="field"><label>Código JSON</label><textarea id="importInput" rows="13" placeholder='{"name":"Zaraki Kenpachi", "level":3, ...}'>${esc(prefill)}</textarea></div><p class="subtitle">Se houver um erro, o campo será indicado em português. Você pode criar fichas e atualizar apenas as suas. IDs de outras pessoas não serão substituídos.</p><div class="actions">${btn('COPIAR INSTRUÇÃO PARA IA','copyInstruction','small')}</div>`,[['IMPORTAR','saveImport','main'],['Cancelar','closeModal']])}
 async function saveImport(){if(!requirePlayer())return;let raw;try{raw=JSON.parse(cleanJsonInput(el('importInput').value))}catch(e){toast('JSON inválido','Revise aspas, vírgulas e colchetes. '+e.message,true);return}const items=Array.isArray(raw)?raw:Array.isArray(raw.sheets)?raw.sheets:[raw];if(!items.length){toast('Lista vazia','Informe ao menos uma ficha.',true);return}let parsed;try{parsed=items.map((s,i)=>validateSheet(s,i+1))}catch(e){toast('Erro na ficha',e.message,true);return}if(!master()&&window.ARQUIVO_SYNC?.state.enabled){
   try{
