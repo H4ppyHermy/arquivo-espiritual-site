@@ -15,7 +15,7 @@ jobs:
         run: |
           node --check arquivo-app.js
           node --check biblioteca-secoes.js
-          node --check biblioteca-fichas.js
+          node --check biblioteca-editor.js
           node --check vinculos-simples.js
           node --check classes-armazem.js
           node --check easter-egg-larp.js
