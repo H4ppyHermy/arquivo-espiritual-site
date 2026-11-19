@@ -335,7 +335,7 @@ test('Sequência é configurável, persistida e exibida no HUD do Armazém',()=>
    dataset:{barId:'cadencia'},querySelector(selector){
     const fields={label:{value:'Cadência'},visual:{value:'sequencia'},max:{value:'3'},
      initial:{value:'0'},reset:{value:'manual'},description:{value:'Aumenta em ataques à distância'}};
-    return fields[/\\[data-bar-field="([^"]+)"\\]/.exec(selector)?.[1]]||null;
+    return fields[/\[data-bar-field="([^"]+)"\]/.exec(selector)?.[1]]||null;
    }
   }]}}
  });
