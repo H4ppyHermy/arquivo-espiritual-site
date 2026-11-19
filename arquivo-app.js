@@ -584,28 +584,31 @@ function home(){
   </div>
  </section>`;
 }
+/* Os capítulos legados sem campo book pertencem ao Livro 1. */
+function libraryVolume(){return window.ARQUIVO_SECOES?.active||'book1'}
+function libraryRules(){return db.rules.filter(r=>libraryVolume()==='book2'?r.book==='book2':r.book!=='book2')}
 /* Biblioteca: estado e filtros compartilhados entre índice, pesquisa e capítulos. */
 function libraryVisibleRules(){
  const term=query.trim().toLocaleLowerCase('pt-BR');
- return term?db.rules.filter(r=>(String(r.title||'')+' '+String(r.text||'')).toLocaleLowerCase('pt-BR').includes(term)):db.rules.slice();
+ const rules=libraryRules();return term?rules.filter(r=>(String(r.title||'')+' '+String(r.text||'')).toLocaleLowerCase('pt-BR').includes(term)):rules;
 }
 function librarySearchCount(){
  const term=query.trim().toLocaleLowerCase('pt-BR');
  if(!term)return 0;
- return db.rules.reduce((sum,r)=>{
+ return libraryRules().reduce((sum,r)=>{
   const combined=(String(r.title||'')+' '+String(r.text||'')).toLocaleLowerCase('pt-BR');
   return sum+combined.split(term).length-1;
  },0);
 }
 function librarySearchSummary(visible){
- const count=visible.length,total=db.rules.length;
+ const count=visible.length,total=libraryRules().length;
  if(!query.trim())return count+' '+(count===1?'capítulo disponível':'capítulos disponíveis');
  const matches=librarySearchCount();
  return count+' '+(count===1?'capítulo encontrado':'capítulos encontrados')+' · '+matches+' '+(matches===1?'ocorrência':'ocorrências');
 }
 function libraryIndexMarkup(visible){
  return visible.map(r=>{
-  const index=db.rules.indexOf(r)+1,active=libraryActiveChapterId===r.id;
+  const index=libraryRules().indexOf(r)+1,active=libraryActiveChapterId===r.id;
   return '<button type="button" class="ae-lib-index-link'+(active?' is-active':'')+'" '+
    'data-action="openChapter:'+esc(r.id)+'"'+(active?' aria-current="location"':'')+
    ' aria-label="Abrir capítulo '+index+': '+esc(r.title)+'">'+
@@ -615,13 +618,15 @@ function libraryIndexMarkup(visible){
  }).join('')||'<p class="ae-library-index-empty">'+(query.trim()?'Nenhum capítulo encontrado.':'Nenhum capítulo cadastrado.')+'</p>';
 }
 function libraryMobileOptions(){
- return db.rules.map(r=>'<option value="'+esc(r.id)+'"'+(r.id===libraryActiveChapterId?' selected':'')+'>'+esc(r.title)+'</option>').join('');
+ return libraryRules().map(r=>'<option value="'+esc(r.id)+'"'+(r.id===libraryActiveChapterId?' selected':'')+'>'+esc(r.title)+'</option>').join('');
 }
 function library(){
  rebuildLibraryGlossary();
+ if(libraryVolume()==='warehouse')return window.ARQUIVO_SECOES.warehousePage();
  const visible=libraryVisibleRules();
- const number=db.rules.length;
- return headline('CONHECIMENTO','BIBLIOTECA','Sistema completo, organizado por capítulos.',master()?btn('+ NOVO CAPÍTULO','newRule','main'):'')+
+ const number=libraryRules().length;
+ const second=libraryVolume()==='book2';
+ return headline('CONHECIMENTO',second?'LIVRO 2':'BIBLIOTECA',second?'Criação de personagem · novos capítulos do CBB.':'Livro 1 · fundamentos e regras do sistema.',master()?btn('+ NOVO CAPÍTULO','newRule','main'):'')+
  '<div class="library-layout ae-library-layout">'+
  '<aside class="chapter-index panel ae-library-index" aria-labelledby="libraryIndexTitle">'+
  '<div class="ae-library-index-heading"><div><span class="ae-library-kicker">NAVEGAÇÃO</span>'+
@@ -644,7 +649,7 @@ function library(){
  '</div>'+
  '<div id="ruleResults" class="ae-library-results" aria-label="Capítulos">'+ruleItems(visible)+'</div>'+
  '<div id="libraryGrimorioArea" class="ae-library-grimorio-area">'+grimorioBanner()+'</div>'+ 
- '</section></div>';
+ '</section>'+(window.ARQUIVO_SECOES?.shelf()||'')+'</div>';
 }
 function libraryRefreshResults(){
  const root=el('ruleResults');if(!root)return;
@@ -1003,7 +1008,7 @@ function ruleItems(rules){
   '<div class="ae-library-empty" role="status"><strong>Nenhum capítulo disponível</strong><p>A biblioteca ainda não possui capítulos cadastrados.</p></div>';
  return rules.map(r=>{
   const opened=libraryExpandedChapters.has(r.id);
-  const chapterNumber=String(db.rules.indexOf(r)+1).padStart(2,'0');
+  const chapterNumber=String(libraryRules().indexOf(r)+1).padStart(2,'0');
   const bodyId='chapterBody-'+r.id,headingId='chapterHeading-'+r.id;
   return '<article class="rule chapter ae-library-chapter'+(opened?' is-open':'')+'" id="'+esc(r.id)+'">'+
    '<div class="sectionhead"><h3 id="'+esc(headingId)+'">'+
@@ -1043,6 +1048,7 @@ function toggleLibraryChapter(id){
 function openLibraryChapter(id){
  const rule=db.rules.find(r=>r.id===id);
  if(!rule)return;
+ if(window.ARQUIVO_SECOES)window.ARQUIVO_SECOES.active=rule.book==='book2'?'book2':'book1';
  const visible=libraryVisibleRules().some(r=>r.id===id);
  libraryActiveChapterId=id;
  if(page!=='library'||!visible){
@@ -2018,8 +2024,11 @@ function duplicateRuleDraft(){
 }
 function moveRule(d){
  if(!requireMaster())return;
- const id=el('dialogRoot').dataset.ruleId,i=db.rules.findIndex(r=>r.id===id),j=i+d;
- if(i<0||j<0||j>=db.rules.length)return;
+ const id=el('dialogRoot').dataset.ruleId,i=db.rules.findIndex(r=>r.id===id);
+ if(i<0)return;
+ const siblings=db.rules.filter(r=>db.rules[i].book==='book2'?r.book==='book2':r.book!=='book2');
+ const next=siblings[siblings.findIndex(r=>r.id===id)+d];if(!next)return;
+ const j=db.rules.findIndex(r=>r.id===next.id);
  const draftTitle=el('ruleTitle')?.value||'',draftText=el('ruleText')?.value||'';
  const changed=draftTitle!==db.rules[i].title||draftText!==db.rules[i].text;
  [db.rules[i],db.rules[j]]=[db.rules[j],db.rules[i]];
@@ -2029,7 +2038,7 @@ function moveRule(d){
   libraryEditorRefresh();modalDirty=true;
  }
 }
-function saveRule(){if(!requireMaster())return;const id=el('dialogRoot').dataset.ruleId,title=el('ruleTitle').value.trim(),text=el('ruleText').value;if(!title){toast('Título obrigatório','Informe um nome para esta regra.',true);return}const rule=db.rules.find(r=>r.id===id);if(rule){rule.title=title;rule.text=text}else db.rules.push({id:uid(),title,text});save();closeModal();render();toast('Regra salva')}
+function saveRule(){if(!requireMaster())return;const id=el('dialogRoot').dataset.ruleId,title=el('ruleTitle').value.trim(),text=el('ruleText').value;if(!title){toast('Título obrigatório','Informe um nome para esta regra.',true);return}const rule=db.rules.find(r=>r.id===id);if(rule){rule.title=title;rule.text=text}else db.rules.push({id:uid(),title,text,book:libraryVolume()==='book2'?'book2':'book1'});save();closeModal();render();toast('Regra salva')}
 function deleteRule(){if(!requireMaster())return;const id=el('dialogRoot').dataset.ruleId;confirmSite('EXCLUIR REGRA','Esta regra será removida da biblioteca.',()=>{db.rules=db.rules.filter(r=>r.id!==id);save();render()})}
 const SHEET_SAMPLE=clone(DEFAULT.sheets[0]);
 function cleanJsonInput(input){return input.trim().replace(/^```(?:json|JSON)?\s*\n?/,'').replace(/\n?```\s*$/,'').trim()}
@@ -2304,6 +2313,6 @@ function background(){
  resize();refresh();
 }
 async function init(){await migrateLegacyKeys();db.site??={};db.site.defaultPalette??='zangetsu';db.rules??=[];db.sheets??=[];db.sheets.forEach(s=>{s.conditions??=[];s.abilities??=[];s.inventory??={items:[],currencies:[]}});if(role!=='guest'&&!db.keys.some(k=>k.id===keyOwnerId&&k.active)){role='guest';keyOwnerId='';DATASTORE.clearRole()}soundOn=effectiveEffectsVolume()>0;musicMuted=!!(prefs.musicMuted||prefs.masterMuted);applyPrefs();try{setMusicSource()}catch(e){}if(prefs.hudMinimized){el('music').classList.add('compact-hud');const b=el('hudToggle');b.textContent='▴';b.setAttribute('aria-expanded','false')}const audioTab=el('sidebarAudio');if(audioTab)audioTab.setAttribute('aria-expanded',String(!prefs.hudMinimized));bindEvents();render();background();if(DATASTORE.blocked)storageWarning();el('audio').addEventListener('ended',()=>{musicOn=false;updateMusicUi()});el('audio').addEventListener('error',()=>{if(musicOn){musicOn=false;updateMusicUi()}})}
-window.ARQUIVO_INTERNAL={get page(){return page},get db(){return db},get prefs(){return prefs},get currentSheet(){return currentSheet},get role(){return isPlayerPreview()?'player':role},get editorDraft(){return editorDraft},canEditSheet,master,save,render,toast,redrawSheetForm:drawSheetForm,modal,historyHtml,dataUrlOk,mediaSrc,inventoryItemCanUse,inventoryItemAbilityLabel,abilityBadge,abilityTestButton,sheetRich,conditionsCatalog:CONDITIONS_CATALOG};
+window.ARQUIVO_INTERNAL={get page(){return page},get db(){return db},get prefs(){return prefs},get currentSheet(){return currentSheet},get role(){return isPlayerPreview()?'player':role},get editorDraft(){return editorDraft},canEditSheet,master,save,render,toast,redrawSheetForm:drawSheetForm,modal,historyHtml,dataUrlOk,mediaSrc,inventoryItemCanUse,inventoryItemAbilityLabel,abilityBadge,abilityTestButton,sheetRich,formatBook,esc,btn,headline,conditionsCatalog:CONDITIONS_CATALOG};
 init();
 if(window.ARQUIVO_SYNC?.state.configured)window.ARQUIVO_SYNC.init();
