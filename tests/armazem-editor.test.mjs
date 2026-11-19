@@ -358,8 +358,7 @@ test('efeito extenso abre sem duplicar a prévia; descrição é uma única habi
   summary:'Uma investida silenciosa',content:'## Ativação\nDeslocamento de 4 metros.\n\n## Efeito\nConcede +1d6 ao teste.'
  });
  ctx.elements.warehousePosts={innerHTML:''};
- ctx.dispatch('click','','open:tecnica-longa',{kind:'warehouse'});
- let html=ctx.elements.warehousePosts.innerHTML;
+ let html=ctx.window.ARQUIVO_SECOES.warehousePage();
  assert.match(html,/LER TÉCNICA COMPLETA/);
  assert.match(html,/Uma investida silenciosa/);
  assert.match(html,/id="warehouseBody-tecnica-longa" hidden/);
