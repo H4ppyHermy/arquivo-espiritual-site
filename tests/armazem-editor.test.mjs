@@ -218,12 +218,12 @@ test('tags dos registros são clicáveis, pesquisáveis e não diferenciam acent
  ctx.elements.warehousePosts={innerHTML:''};
  ctx.elements.warehouseMatches={textContent:''};
  ctx.elements.warehouseTagFilters={innerHTML:''};
- ctx.dispatch('click','','tag:Defesa',{kind:'warehouse'});
+ ctx.dispatch('click','','tag:Tanque',{kind:'warehouse'});
  assert.match(ctx.elements.warehousePosts.innerHTML,/Coração de Aço/);
  assert.doesNotMatch(ctx.elements.warehousePosts.innerHTML,/Porta-voz/);
  assert.match(ctx.elements.warehouseTagFilters.innerHTML,/aria-pressed="true"/);
  assert.match(ctx.elements.warehouseMatches.textContent,/1 publicação encontrada/);
- ctx.dispatch('click','','tag:Defesa',{kind:'warehouse'});
+ ctx.dispatch('click','','tag:Tanque',{kind:'warehouse'});
  assert.match(ctx.elements.warehousePosts.innerHTML,/Porta-voz/);
  ctx.dispatch('input','warehouseSearch','',{value:'hoho'});
  assert.match(ctx.elements.warehousePosts.innerHTML,/Especialista em Hohō/);
