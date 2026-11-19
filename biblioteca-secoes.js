@@ -136,6 +136,46 @@
     (selectedCategory===name?' aria-current="true"':'')+'><span>'+esc(name)+'</span><small>'+n+'</small></button>';
   }).join('');
  }
+ function isAbilityPost(post){return post.category==='Habilidades'||post.category==='Técnicas'}
+ function abilityPlain(raw){
+  return text(raw).replace(/\[\/?cor(?:=#[0-9a-f]{6})?\]/gi,'')
+   .replace(/\[(?:barra|marca|contador|sequencia)(?::[^\]]*)?\]/gi,'[recurso]')
+   .replace(/!\[([^\]]*)\]\([^)]+\)/g,'$1').replace(/\[([^\]]+)\]\([^)]+\)/g,'$1')
+   .replace(/[#>*_~\u0060]/g,'').replace(/\s+/g,' ').trim();
+ }
+ function abilityCard(post,index,opened){
+  const id=text(post.id||''),category=text(post.category),title=text(post.title||'Sem título');
+  const cost=text(post.cost).trim(),tags=visibleTags(post);
+  const content=text(post.content||'Sem descrição.'),plain=abilityPlain(content);
+  // Uma única habilidade: a descrição curta é exibida inteira; textos extensos
+  // revelam um único efeito completo, sem segunda cópia do resumo.
+  const long=plain.length>225||content.includes('\n');
+  const preview=abilityPlain(post.summary)||plain;
+  const teaser=preview.slice(0,230)+(preview.length>230?'…':'');
+  const type=category==='Técnicas'?'TÉCNICA':'HABILIDADE';
+  const readLabel=category==='Técnicas'?'LER TÉCNICA COMPLETA':'LER EFEITO COMPLETO';
+  return '<article class="ae-warehouse-post ae-wh-ability-post'+(opened?' is-open':'')+'" id="warehousePost-'+esc(id)+'">'+
+   '<div class="ae-wh-ability-main">'+
+   '<h3 class="ae-wh-ability-title">'+esc(title)+'</h3>'+
+   '<div class="ae-wh-ability-meta"><span>'+type+'</span>'+
+   (cost?'<span>CUSTO / USO · '+esc(cost)+'</span>':'')+'</div>'+
+   (long&&!opened?'<p class="ae-wh-ability-teaser">'+esc(teaser)+'</p>':'')+
+   (!long||opened?'<div class="book-text ae-library-reading ae-wh-ability-description"'+
+    (long?' id="warehouseBody-'+esc(id)+'"':'')+'>'+
+    api.formatBook(content,title)+'</div>':'')+
+   '</div>'+
+   (tags.length?'<div class="ae-warehouse-tags ae-wh-ability-tags" aria-label="Tags">'+tags.map(tag=>
+    '<button type="button" class="'+(tagIsHidden(post,tag)?'is-hidden-tag':'')+'" data-warehouse-action="tag:'+encodeURIComponent(tag)+'" title="'+(tagIsHidden(post,tag)?'Tag oculta para jogadores: ':'Filtrar por ')+esc(tag)+'">#'+esc(tag)+(tagIsHidden(post,tag)?'<small> · SÓ MESTRE</small>':'')+'</button>').join('')+'</div>':'')+
+   (post.published===false&&api.master()?'<p class="ae-warehouse-draft">RASCUNHO · OCULTO PARA JOGADORES</p>':'')+
+   '<div class="ae-warehouse-actions ae-wh-ability-actions">'+
+   (long?'<button type="button" class="ae-wh-ability-read" data-warehouse-action="open:'+encodeURIComponent(id)+
+    '" aria-expanded="'+opened+'" aria-controls="warehouseBody-'+esc(id)+'">'+
+    (opened?'RECOLHER DESCRIÇÃO':readLabel)+' <span aria-hidden="true">'+(opened?'−':'+')+'</span></button>':'')+
+   (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+
+    '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':-1" aria-label="Mover '+esc(title)+' para cima" title="Mover para cima">↑</button>'+
+    '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':1" aria-label="Mover '+esc(title)+' para baixo" title="Mover para baixo">↓</button>':'')+
+   '</div></article>';
+ }
  function cards(){
   const found=visible();
   if(!found.length){
@@ -149,7 +189,9 @@
   return found.map((p,index)=>{
    const id=text(p.id||''),opened=openedPost===id,photo=safeImage(p.image);
    const summary=text(p.summary).trim(),cost=text(p.cost).trim(),tags=visibleTags(p);
-   const category=text(p.category||'Outros'),abbr=({Classes:'CL',Habilidades:'HB',Técnicas:'TC',Itens:'IT'})[category]||'AR';
+   const category=text(p.category||'Outros');
+   if(isAbilityPost(p))return abilityCard(p,index,opened);
+   const abbr=({Classes:'CL',Itens:'IT'})[category]||'AR';
    return '<article class="ae-warehouse-post'+(opened?' is-open':'')+'" id="warehousePost-'+esc(id)+'">'+
     '<div class="ae-wh-post-accent" aria-hidden="true"></div>'+
     '<div class="ae-wh-post-heading"><div class="ae-wh-post-id"><span class="ae-wh-number">'+String(index+1).padStart(2,'0')+'</span>'+
