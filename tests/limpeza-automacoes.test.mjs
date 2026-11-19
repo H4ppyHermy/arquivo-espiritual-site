@@ -8,12 +8,13 @@ const app=read('arquivo-app.js');
 const sections=read('biblioteca-secoes.js');
 const client=read('online.js');
 
-test('Registro Técnico não repete danos já descritos na publicação',()=>{
+test('Armazém renderiza a descrição sem o Registro Técnico removido',()=>{
  assert.doesNotMatch(sections,/function diceReference\(/);
  assert.doesNotMatch(sections,/diceReference\(post\)/);
- assert.match(sections,/function resourceBars\(/);
- assert.match(sections,/RECURSOS VISUAIS/);
- assert.match(sections,/visibleTags\(post\)/);
+ assert.match(sections,/function postDetail\(/);
+ assert.match(sections,/api\.formatBook\(post\.content/);
+ assert.doesNotMatch(sections,/function resourceBars\(|RECURSOS VISUAIS|ae-wh-detail-hud/);
+ assert.match(sections,/delete entry\.bars/);
 });
 test('scripts extintos de combate realmente foram excluídos',()=>{
  for(const name of ['mecanicas-ficha.js','habilidades-3.0.js'])
@@ -58,5 +59,7 @@ test('CSS não mantém o mecanismo antigo de combate e habilidades',()=>{
  assert.doesNotMatch(css,/\.ae3-(?:ability|progress|shinji|book|automation)/);
  assert.doesNotMatch(css,/\.ae32-(?:impact|halo|spark)/);
  assert.match(css,/\.ae-home/);
- assert.match(read('biblioteca-secoes.css'),/\.ae-wh-resource/);
+ const warehouseCss=read('biblioteca-secoes.css');
+ assert.doesNotMatch(warehouseCss,/\.ae-wh-resource|\.ae-wh-detail-hud|\.ae-wh-hud/);
+ assert.match(warehouseCss,/\.ae-wh-detail-text/);
 });
