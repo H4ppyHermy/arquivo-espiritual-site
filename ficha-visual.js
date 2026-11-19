@@ -31,7 +31,7 @@
    '<div class="ae-ficha-hero-copy"><span class="ae-ficha-overline">REGISTRO ESPIRITUAL</span>'+
     '<h1>'+name+'</h1>'+
     (s.subtitle?'<p class="ae-ficha-subtitle">'+esc(s.subtitle)+'</p>':'')+
-    '<div class="ae-ficha-hero-tags">'+(race?'<span>'+esc(race)+'</span>':'')+'<span>NÍVEL '+level+'</span></div>'+
+    '<div class="ae-ficha-hero-tags">'+(race?'<span class="ae-ficha-race">'+esc(race)+'</span>':'')+'<span class="ae-ficha-level">NÍVEL '+level+'</span></div>'+
    '</div><div class="ae-ficha-hero-art" aria-label="Retrato">'+
     (portrait(s.image)||'<span class="ae-ficha-art-glyph" aria-hidden="true">魂</span>')+
     '<span class="ae-ficha-art-stamp" aria-hidden="true">SOUL ARCHIVE</span></div>'+
