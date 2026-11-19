@@ -108,7 +108,7 @@ test('sequência mostra níveis cumulativos e usa o mesmo renderer da Biblioteca
  assert.equal((shorthand.match(/ae-inline-resource-segment/g)||[]).length,3);
  assert.equal(replace('[sequencia: 2 / 3]').includes('nível 2 de 3'),true);
  assert.match(read('barras-inline.css'),/ae-inline-resource--sequencia/);
- assert.match(read('biblioteca-secoes.css'),/ae-wh-resource-slots--sequencia/);
+ assert.doesNotMatch(read('biblioteca-secoes.css'),/ae-wh-resource-slots--sequencia/);
 });
 test('sequência inválida permanece literal e não modifica regras de combate',()=>{
  const source='[sequencia:4/3] [sequencia:0/0] [sequencia:21/21] [sequencia:-1/3]';
@@ -116,5 +116,6 @@ test('sequência inválida permanece literal e não modifica regras de combate',
  assert.equal(replace('[barra] [marca] [contador]'),'[barra] [marca] [contador]');
  assert.match(read('arquivo-app.js'),/option value="sequencia">Sequência/);
  assert.match(read('biblioteca-secoes.js'),/option value="sequencia">Sequência/);
+ assert.doesNotMatch(read('biblioteca-secoes.js'),/resourceBars\(|barEditorRow\(/);
  assert.match(read('ficha-visual.js'),/sequencia/);
 });
