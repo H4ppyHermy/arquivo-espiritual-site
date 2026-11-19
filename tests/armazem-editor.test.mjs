@@ -436,12 +436,13 @@ test('três técnicas livres e três habilidades raciais constam do Armazém sem
   assert.equal(published.filter(x=>x.id===post.id).length,1);
   assert.ok(!ids.has(post.id),'IDs não podem repetir');
   ids.add(post.id);
-  const card=ctx.window.ARQUIVO_SECOES.warehousePage().match(
-   new RegExp('<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-'+post.id+'">[\\\\s\\\\S]*?<\\\\/article>')
-  )?.[0];
+  const markup=ctx.window.ARQUIVO_SECOES.warehousePage();
+  const start=markup.indexOf('<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-'+post.id+'">');
+  const end=markup.indexOf('</article>',start);
+  const card=start<0||end<0?'':markup.slice(start,end+10);
   assert.ok(card,'Cartão especial não encontrado: '+title);
   assert.doesNotMatch(card,/ae-wh-emblem|ae-warehouse-image|魂/);
-  assert.match(card,/CUSTO \\/ USO/);
+  assert.ok(card.includes('CUSTO / USO'));
  }
  assert.equal(ctx.db.sheets.length,1,'Não deve alterar fichas de jogadores');
 });
