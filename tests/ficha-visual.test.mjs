@@ -148,9 +148,9 @@ test('retrato usa área exclusiva e limites responsivos sem invadir o nome',()=>
  assert.match(css,/grid-column:1;grid-row:2;align-self:center/);
  assert.match(css,/grid-column:2;grid-row:1\/3;position:relative/);
  assert.match(css,/object-fit:cover;object-position:50% 50%/);
- assert.match(css,/#page \\.ae-ficha-art-image\\{[\\s\\S]*?position:absolute;inset:8px;/);
- assert.match(css,/width:calc\\(100% - 16px\\);height:calc\\(100% - 16px\\)/);
- assert.match(css,/#page \\.ae-ficha-hero-art::before\\{[\\s\\S]*?inset:8px;/);
+ assert.match(css,/#page \.ae-ficha-art-image\{[\s\S]*?position:absolute;inset:8px;/);
+ assert.match(css,/width:calc\(100% - 16px\);height:calc\(100% - 16px\)/);
+ assert.match(css,/#page \.ae-ficha-hero-art::before\{[\s\S]*?inset:8px;/);
  assert.doesNotMatch(css,/#page \.ae-ficha-section-title>span\{/);
 });
 test('perícias e recursos explicam as regras consolidadas sem implementar combate',()=>{
