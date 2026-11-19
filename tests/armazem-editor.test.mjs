@@ -55,22 +55,31 @@ test('livros e quatro classes permanecem disponíveis, mas sem conexão com a fi
  assert.equal(db.sheets[0].catalogEntries[0].title,'Antigo');
 });
 
-test('foto e GIF ficam no mesmo quadrado de todas as categorias',()=>{
+test('habilidades e técnicas usam cartão textual sem quadrado de imagem, itens preservam foto',()=>{
  const ctx=setup();
  const {db,window}=ctx;
  db.site.warehouse.posts.push(
-  {id:'skill',title:'Habilidade teste',category:'Habilidades',content:'Regra',image:'https://example.com/skill.gif',published:true},
+  {id:'skill',title:'Habilidade teste',category:'Habilidades',content:'Efeito único',image:'https://example.com/skill.gif',published:true,cost:'2 Alma'},
+  {id:'tech',title:'Técnica teste',category:'Técnicas',content:'Movimento breve',published:true},
   {id:'item',title:'Item teste',category:'Itens',content:'Regra',image:'https://example.com/item.png',published:true});
  const html=window.ARQUIVO_SECOES.warehousePage();
- assert.match(html,/src="https:\/\/example\.com\/skill\.gif"/);
+ const skill=html.match(/<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-skill">[\s\S]*?<\/article>/)?.[0];
+ const tech=html.match(/<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-tech">[\s\S]*?<\/article>/)?.[0];
+ assert.ok(skill&&tech,'habilidade e técnica devem possuir cartões específicos');
+ assert.match(skill,/ae-wh-ability-title|CUSTO \/ USO · 2 Alma/);
+ assert.match(skill,/Efeito único/);
+ assert.match(tech,/Movimento breve/);
+ assert.doesNotMatch(skill+tech,/ae-wh-emblem|ae-warehouse-image|魂|src="https:\/\/example.com\/skill.gif"|ae-wh-read-btn/);
+ assert.doesNotMatch(skill,/LER EFEITO COMPLETO/);
  assert.match(html,/src="https:\/\/example\.com\/item\.png"/);
- assert.match(html,/ae-warehouse-image/);
  ctx.dispatch('click','','edit:item',{kind:'warehouse'});
  assert.match(ctx.modal(),/id="warehouseImageFile"/);
- assert.match(ctx.modal(),/accept="image\/gif,image\/png,image\/jpeg,image\/webp"/);
  assert.doesNotMatch(ctx.modal(),/id="warehouseImageField" hidden/);
  ctx.dispatch('click','','edit:skill',{kind:'warehouse'});
- assert.match(ctx.modal(),/Foto ou GIF para o quadrado pequeno/);
+ assert.match(ctx.modal(),/id="warehouseImageField" hidden/);
+ assert.match(ctx.modal(),/Descrição da habilidade/);
+ assert.match(ctx.modal(),/EFEITO DA HABILIDADE/);
+ assert.doesNotMatch(ctx.modal(),/Texto completo<textarea/);
 });
 
 test('salvar item mantém atributos válidos e descarta metadados do HUD antigo',()=>{
@@ -340,4 +349,61 @@ test('Porta-voz em cache ou documento online recebe termos atuais sem perder edi
  assert.match(old.damage.label,/Dado de Vínculo/);
  assert.doesNotMatch(old.content,/ainda em desenvolvimento|pelo menos Afinidade/);
  assert.equal(old.summary,'Versão personalizada pelo mestre');
+});
+
+test('efeito extenso abre sem duplicar a prévia; descrição é uma única habilidade',()=>{
+ const ctx=setup(false);
+ ctx.db.site.warehouse.posts.push({
+  id:'tecnica-longa',title:'Passo da Sombra',category:'Técnicas',published:true,
+  summary:'Uma investida silenciosa',content:'## Ativação\nDeslocamento de 4 metros.\n\n## Efeito\nConcede +1d6 ao teste.'
+ });
+ ctx.elements.warehousePosts={innerHTML:''};
+ ctx.dispatch('click','','open:tecnica-longa',{kind:'warehouse'});
+ let html=ctx.elements.warehousePosts.innerHTML;
+ assert.match(html,/LER TÉCNICA COMPLETA/);
+ assert.match(html,/Uma investida silenciosa/);
+ assert.match(html,/id="warehouseBody-tecnica-longa" hidden/);
+ assert.doesNotMatch(html,/<p>## Ativação/);
+ ctx.dispatch('click','','open:tecnica-longa',{kind:'warehouse'});
+ html=ctx.elements.warehousePosts.innerHTML;
+ assert.match(html,/RECOLHER DESCRIÇÃO/);
+ assert.match(html,/id="warehouseBody-tecnica-longa"/);
+ assert.match(html,/<p>## Ativação/);
+ assert.doesNotMatch(html,/Uma investida silenciosa/);
+ assert.doesNotMatch(html,/DESCRIÇÃO & FUNCIONAMENTO/);
+ assert.doesNotMatch(html,/ae-wh-emblem|ae-warehouse-image/);
+});
+
+test('editor atualiza campos e não salva imagem em habilidade ou técnica',()=>{
+ const ctx=setup(true);
+ const labels=['warehouseContentLabel','warehouseSummaryLabel','warehouseContentHeading','warehousePreviewHeading','warehouseAdvancedHint'];
+ for(const key of labels)ctx.elements[key]={textContent:''};
+ ctx.elements.warehouseImageField={hidden:false};
+ ctx.elements.warehouseCategoryInput={value:'Habilidades'};
+ ctx.elements.warehouseSummaryInput={value:'Prévia'};
+ ctx.elements.warehouseContentInput={value:'Efeito de uma técnica'};
+ ctx.dispatch('change','warehouseCategoryInput','',{value:'Habilidades'});
+ assert.equal(ctx.elements.warehouseImageField.hidden,true);
+ assert.equal(ctx.elements.warehouseContentLabel.textContent,'Descrição da habilidade');
+ assert.equal(ctx.elements.warehouseAdvancedHint.textContent,'Opcional · custo');
+ ctx.elements.warehouseCategoryInput.value='Técnicas';
+ ctx.dispatch('change','warehouseCategoryInput','',{value:'Técnicas'});
+ assert.equal(ctx.elements.warehouseContentLabel.textContent,'Descrição da técnica');
+ ctx.elements.warehouseCategoryInput.value='Itens';
+ ctx.dispatch('change','warehouseCategoryInput','',{value:'Itens'});
+ assert.equal(ctx.elements.warehouseImageField.hidden,false);
+ ctx.elements.warehouseCategoryInput.value='Habilidades';
+ ctx.elements.dialogRoot.dataset.warehouseId='';
+ Object.assign(ctx.elements,{
+  warehouseTitleInput:{value:'Golpe'},warehouseContentInput:{value:'Efeito direto'},
+  warehouseVisibilityInput:{value:'published'},
+  warehouseSummaryInput:{value:'Prévia'},warehouseTagsInput:{value:'Ofensivo'},
+  warehouseCostInput:{value:'2 Alma'},
+  warehouseImageInput:{value:'https://example.com/nao-deve-salvar.png'}
+ });
+ ctx.dispatch('click','','warehouse-save',{kind:'modal'});
+ const post=ctx.db.site.warehouse.posts[0];
+ assert.equal(post.category,'Habilidades');
+ assert.equal(post.content,'Efeito direto');
+ assert.equal(post.image,'');
 });
