@@ -135,13 +135,14 @@
   editorInsert(prefix+blocks[kind]+'\n\n','Descreva');
  }
  function insertEditorBar(){
+  const kind=document.getElementById('warehouseEditorResourceKind')?.value||'barra';
   const filled=Number(document.getElementById('warehouseEditorBarFilled')?.value);
   const total=Number(document.getElementById('warehouseEditorBarTotal')?.value);
-  if(!window.ARQUIVO_BARRAS_INLINE?.valid(filled,total)){
-   api.toast('Barra inválida','Preenchidas: 0 a 20; total: 1 a 20; preenchidas não podem superar o total.',true);
-   return;
+  if(!window.ARQUIVO_BARRAS_INLINE?.valid(filled,total,kind)){
+   api.toast('Recurso inválido','Use até 20 unidades e não ultrapasse o total.',true);return;
   }
-  editorInsert('[barra:'+filled+'/'+total+']');
+  const notation=kind==='marca'&&total===1?'[marca:'+filled+']':'['+kind+':'+filled+'/'+total+']';
+  editorInsert(notation);
  }
  function insertEditorDie(){
   const faces=Number(document.getElementById('warehouseEditorDie')?.value||6);
@@ -213,6 +214,11 @@
  });
  document.addEventListener('change',event=>{
   if(event.target?.id==='warehouseImageFile')setPhotoFile(event.target.files?.[0]);
+  if(event.target?.id==='warehouseEditorResourceKind'&&event.target.value==='marca'){
+   const total=document.getElementById('warehouseEditorBarTotal');
+   const filled=document.getElementById('warehouseEditorBarFilled');
+   if(total)total.value='1';if(filled&&Number(filled.value)>1)filled.value='1';
+  }
  });
  window.ARQUIVO_EDITOR_ARMAZEM={refresh:editorUpdatePreview,beginEdit,readHiddenTags,imageValue};
 })();
