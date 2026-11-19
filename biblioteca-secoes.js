@@ -261,6 +261,7 @@
   const w=warehouse(),found=w.posts.find(p=>p.id===id);
   if(id&&!found)return;
   const p=found||{title:'',category:w.categories[0],summary:'',content:'',image:'',cost:'',tags:'',published:true};
+  const single=isAbilityPost(p),technique=p.category==='Técnicas';
   api.modal(id?'EDITAR PUBLICAÇÃO':'NOVA PUBLICAÇÃO',
    '<div class="ae-warehouse-editor ae-wh-simple-editor">'+
     '<div class="ae-wh-editor-intro"><span>EDIÇÃO DO ACERVO</span><strong>'+ (id?'Atualize os detalhes do registro':'Crie um novo registro')+'</strong>'+
@@ -271,7 +272,9 @@
      '<option value="'+esc(c)+'"'+(p.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'+
     '<label>Visibilidade<select id="warehouseVisibilityInput"><option value="published"'+(p.published===false?'':' selected')+'>Publicado para jogadores</option>'+
     '<option value="draft"'+(p.published===false?' selected':'')+'>Rascunho do mestre</option></select></label></div>'+
-    '<label>Resumo para o cartão<input id="warehouseSummaryInput" maxlength="280" value="'+esc(p.summary||'')+'" placeholder="O que esta classe, técnica ou item faz?"></label>'+
+    '<label><span id="warehouseSummaryLabel">'+(single?'Prévia curta (opcional)':'Resumo para o cartão')+'</span>'+
+     '<input id="warehouseSummaryInput" maxlength="280" value="'+esc(p.summary||'')+'" placeholder="'+
+     (single?'Usada apenas quando a descrição precisar ser expandida':'O que esta publicação faz?')+'"></label>'+
     '<div class="ae-wh-editor-tags"><label>Tags <span class="ae-wh-field-helper">Separe por vírgulas · máximo de 8</span>'+
      '<input id="warehouseTagsInput" maxlength="220" value="'+esc(p.tags||'')+'" placeholder="Ex.: Mobilidade, Defesa, Hohō"></label>'+
     '<div id="warehouseTagPreview" class="ae-wh-editor-tag-preview">'+parseTags(p.tags).map(t=>
@@ -281,7 +284,9 @@
     editorTagSuggestions(p.tags)+'</div></section>'+
     '<section class="ae-wh-editor-section" aria-label="Descrição"><div class="ae-wh-editor-section-title"><span>02</span><strong>DESCRIÇÃO</strong></div>'+
     '<div class="ae-warehouse-compose" aria-label="Editor da publicação">'+
-     '<div class="ae-warehouse-compose-heading"><strong>CONTEÚDO DA PUBLICAÇÃO</strong><small>Escrita e pré-visualização</small></div>'+
+     '<div class="ae-warehouse-compose-heading"><strong id="warehouseContentHeading">'+
+      (single?(technique?'DESCRIÇÃO DA TÉCNICA':'DESCRIÇÃO DA HABILIDADE'):'CONTEÚDO DA PUBLICAÇÃO')+
+      '</strong><small>Escrita e pré-visualização</small></div>'+
      '<div class="ae-warehouse-editor-toolbar" role="toolbar" aria-label="Formatar publicação">'+
      '<button type="button" data-warehouse-editor="format:bold" title="Negrito (Ctrl+B)"><b>B</b></button>'+
      '<button type="button" data-warehouse-editor="format:italic" title="Itálico (Ctrl+I)"><em>I</em></button>'+
@@ -302,17 +307,23 @@
      '<label>DE<input id="warehouseEditorBarTotal" type="number" min="1" max="20" step="1" value="3" aria-label="Total de marcas"></label>'+
      '<button type="button" class="btn small" data-warehouse-editor="insert-bar" title="Insere barra, marca, contador ou sequência visual no texto">INSERIR RECURSO</button></div>'+
      '<div class="ae-warehouse-compose-grid"><div class="ae-warehouse-compose-source">'+
-     '<label for="warehouseContentInput">Texto completo<textarea id="warehouseContentInput" rows="14" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="## Descrição\n\nExplique a classe, habilidade ou técnica.">'+esc(p.content||'')+'</textarea></label>'+
+     '<label for="warehouseContentInput"><span id="warehouseContentLabel">'+
+      (single?(technique?'Descrição da técnica':'Descrição da habilidade'):'Texto completo')+'</span>'+
+      '<textarea id="warehouseContentInput" rows="14" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="'+
+      (single?'Descreva a ativação, os custos, o teste e o efeito desta única '+(technique?'técnica':'habilidade')+'.':
+       '## Descrição\n\nExplique o funcionamento da publicação.')+'">'+esc(p.content||'')+'</textarea></label>'+
      '<p id="warehouseEditorHint" class="ae-cat-help">Selecione o texto para aplicar formatação. Ctrl+B e Ctrl+I também funcionam.</p></div>'+
-     '<div class="ae-warehouse-compose-preview"><strong>COMO SERÁ EXIBIDO</strong>'+
+     '<div class="ae-warehouse-compose-preview"><strong id="warehousePreviewHeading">'+
+      (single?(technique?'EFEITO DA TÉCNICA':'EFEITO DA HABILIDADE'):'COMO SERÁ EXIBIDO')+'</strong>'+
      '<div class="book-text ae-library-reading" id="aeWarehouseEditorPreview" aria-live="polite">'+api.formatBook(p.content||'')+'</div></div></div>'+
      '<p class="ae-warehouse-editor-status" id="warehouseEditorStats" role="status">'+text(p.content||'').length+' caracteres · '+
       text(p.content||'').trim().split(/\s+/).filter(Boolean).length+' palavras</p></div></section>'+
     '<details class="ae-wh-editor-advanced"'+((p.cost||p.image)?' open':'')+'><summary><span class="ae-wh-adv-number">03</span>'+
-     '<span><strong>DETALHES ADICIONAIS</strong><small>Opcional · custo e imagem</small></span>'+
+     '<span><strong>DETALHES ADICIONAIS</strong><small id="warehouseAdvancedHint">'+
+      (single?'Opcional · custo':'Opcional · custo e imagem')+'</small></span>'+
      '<span class="ae-wh-advanced-chevron" aria-hidden="true">⌄</span></summary>'+
      '<div class="ae-wh-editor-advanced-body"><label>Custo ou referência (opcional)<input id="warehouseCostInput" maxlength="45" value="'+esc(p.cost||'')+'" placeholder="Ex.: 2 Alma ou Sem custo"></label>'+
-     '<div class="ae-warehouse-image-field" id="warehouseImageField">'+
+     '<div class="ae-warehouse-image-field" id="warehouseImageField"'+(single?' hidden':'')+'>'+
       '<div class="ae-wh-image-editor"><div class="ae-wh-image-thumbnail" id="warehouseImagePreview" aria-live="polite">'+
        (safeImage(p.image)?'<img src="'+esc(safeImage(p.image))+'" alt="Miniatura atual" loading="lazy">':'<span>CL</span>')+
        '</div><div class="ae-wh-image-fields"><label>Foto ou GIF para o quadrado pequeno'+
@@ -334,7 +345,7 @@
   const get=id=>text(document.getElementById(id)?.value).trim();
   const title=get('warehouseTitleInput'),content=get('warehouseContentInput'),category=get('warehouseCategoryInput');
   const previous=w.posts.find(p=>p.id===id),defaultPost=warehouse().posts.find(p=>p.id===id);
-  const selectedImage=window.ARQUIVO_EDITOR_ARMAZEM?.imageValue?.();
+  const selectedImage=isAbilityPost({category})?'':window.ARQUIVO_EDITOR_ARMAZEM?.imageValue?.();
   const image=selectedImage===undefined?(get('warehouseImageInput')||text(previous?.image??defaultPost?.image??'')):selectedImage;
   if(image===null){api.toast('Imagem em processamento','Conclua a seleção da miniatura antes de salvar.',true);return}
   if(!title||title.length>100){api.toast('Título obrigatório','Informe até 100 caracteres.',true);return}
