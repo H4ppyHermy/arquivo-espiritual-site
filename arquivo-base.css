@@ -110,15 +110,10 @@ body.editing-text [data-edit-text]:hover{outline:3px solid var(--theme-accent)}
 
 /* Personalização da ficha e legibilidade */
 .sheet-personal{--sheet-accent:var(--theme-accent)}
-.sheet-personal .character{border-left:4px solid var(--sheet-accent)}
-.sheet-personal .character .eyebrow,.sheet-personal .skill-block h3{color:var(--sheet-accent)}
-.sheet-personal .tabs button.active{background:var(--sheet-accent);color:var(--theme-outline);border-color:var(--theme-outline)}
-.sheet-personal .skill-block{min-width:0}.sheet-personal .skill-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.sheet-personal .skill-line .die-button{display:inline-flex;align-items:center;gap:5px;min-height:44px;white-space:nowrap}
 .die-figure{width:25px;height:25px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;color:var(--theme-cold)}
 .die-figure svg{width:25px;height:25px;stroke:currentColor;fill:color-mix(in srgb,currentColor 10%,transparent);stroke-width:1.5;stroke-linejoin:round}
 .die-figure text{stroke:none;fill:currentColor;font:800 9px sans-serif;text-anchor:middle;dominant-baseline:middle}
-.die-figure.group-die{color:var(--dice-tone,var(--sheet-dice-group,var(--sheet-accent,var(--theme-accent))))}.sheet-personal .die-figure:not(.group-die){color:var(--dice-tone,var(--sheet-dice-skill,var(--theme-cold)))}
+.die-figure.group-die{color:var(--dice-tone,var(--sheet-dice-group,var(--sheet-accent,var(--theme-accent))))}
 .sheet-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}
 .sheet-toolbar label{display:flex;gap:8px;align-items:center;font-size:.85rem;color:var(--theme-text)}
 .sheet-toolbar input[type=color]{width:46px;height:44px;padding:2px;cursor:pointer}
@@ -127,7 +122,6 @@ body.editing-text [data-edit-text]:hover{outline:3px solid var(--theme-accent)}
 .note-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr));gap:12px}
 .note-gallery figure{margin:0;min-width:0}.note-gallery figcaption{font-size:.75rem;color:var(--theme-cold)}
 .color-hint{font-size:.8rem;color:var(--theme-cold)}
-.sheet-personal .ability{min-width:0}.ability .ability-media{max-height:260px}
 .condition-pill{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
 .condition-pill .rule-lookup{border:1px solid var(--theme-structure);background:transparent;color:var(--theme-text);padding:5px 8px;min-height:36px;cursor:pointer}
 .music.compact-hud{width:52px;max-width:52px;height:52px;padding:5px;display:flex;overflow:hidden;justify-content:center}
@@ -136,7 +130,7 @@ body.editing-text [data-edit-text]:hover{outline:3px solid var(--theme-accent)}
 .music:not(.compact-hud) #hudToggle{margin-left:3px}
 .music #soundButton{display:inline-flex;align-items:center;gap:4px;min-width:44px;min-height:44px}
 .music #soundButton .sound-caption{font-size:10px;font-weight:700}
-@media(max-width:720px){.sheet-personal .tabs{overflow-x:auto}.music.compact-hud{bottom:calc(80px + env(safe-area-inset-bottom,0px));right:10px}}
+@media(max-width:720px){.music.compact-hud{bottom:calc(80px + env(safe-area-inset-bottom,0px));right:10px}}
 
 /* Música fica no menu lateral quando minimizada: nenhum dock cobre a página. */
 .music.compact-hud{display:none!important}
@@ -148,22 +142,15 @@ body.editing-text [data-edit-text]:hover{outline:3px solid var(--theme-accent)}
 
 /* Paleta individual da ficha — controle completo, sem alterar o tema do site */
 .sheet-personal{background:var(--theme-bg);color:var(--theme-text);padding:clamp(12px,2vw,22px);border:1px solid var(--theme-raised);--sheet-ink:#000000}
-.sheet-personal .character{background:linear-gradient(108deg,var(--theme-panel),var(--theme-raised));border-top-color:var(--sheet-accent)}
-.sheet-personal .panel,.sheet-personal .skill-block,.sheet-personal .resource,.sheet-personal .ability{background:var(--theme-panel);color:var(--theme-text)}
-.sheet-personal .resource:nth-child(even),.sheet-personal .skill-block:nth-child(even),.sheet-personal .ability:nth-child(even){background:var(--theme-raised)}
+.sheet-personal .panel{background:var(--theme-panel);color:var(--theme-text)}
 .sheet-personal .tag,.sheet-personal input,.sheet-personal textarea,.sheet-personal select{background:var(--theme-raised);color:var(--theme-text)}
 .sheet-personal .btn:not(.main):not(.alert):not(.danger){color:var(--theme-text);background:var(--theme-raised)}
-.sheet-personal .tabs button.active{color:var(--sheet-ink);background:var(--sheet-accent);border-color:var(--sheet-accent)}
-.sheet-personal .eyebrow,.sheet-personal .skill-block h3{color:var(--sheet-accent)}
+.sheet-personal .eyebrow{color:var(--sheet-accent)}
 .sheet-palette-editor{width:100%;border:1px solid var(--theme-raised);padding:12px 15px;background:var(--theme-panel)}
 .sheet-palette-editor summary{cursor:pointer;font-weight:800;color:var(--theme-text);min-height:44px;display:list-item;align-content:center}
 .sheet-palette-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:12px;margin:14px 0}
 .sheet-palette-controls label{display:flex;flex-direction:column;align-items:flex-start;gap:7px;font-weight:700;color:var(--theme-text)}
 .sheet-palette-controls input[type=color]{width:100%;height:44px;background:var(--theme-raised)}
-.sheet-personal .count .die-figure{width:52px;height:52px}
-.sheet-personal .count .die-figure svg{width:52px;height:52px}
-.sheet-personal .count .die-figure text{font-size:9px}
-.group-die-label{display:flex;align-items:center;gap:9px;min-height:32px}
 @media(max-width:600px){.sheet-personal{padding:10px}.sheet-palette-controls{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 
@@ -182,8 +169,7 @@ input[type="range"]::-moz-range-progress{height:9px;border-radius:999px;backgrou
 input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:19px;height:19px;border-radius:50%;margin-top:-5px;background:var(--theme-cold);border:2px solid var(--theme-outline)}
 input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--theme-cold);border:2px solid var(--theme-outline)}
 /* Gradientes são opcionais e mantêm o texto legível em cor sólida. */
-.sheet-personal .character,.sheet-personal .sheet-entry,.sheet-personal .resource,.sheet-personal .panel{background-image:var(--sheet-gradient,none)}
-.sheet-personal .character{background-image:var(--sheet-gradient,linear-gradient(100deg,var(--theme-panel),var(--theme-raised)))}
+.sheet-personal .panel{background-image:var(--sheet-gradient,none)}
 .sheet-palette-controls .grad-row{grid-column:1/-1;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .sheet-palette-controls .grad-row label{min-width:120px;flex:1}
 .sheet-palette-controls .grad-row input[type=color]{width:100%}
@@ -316,12 +302,6 @@ input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;b
 .sheet-entry h3{margin:8px 0 11px;line-height:1.13}
 .sheet-entry p{line-height:1.6;margin:6px 0 12px}
 .sheet-entry .tag{display:inline-flex;margin-top:5px}
-.sheet-personal .character{padding:clamp(20px,3vw,34px);gap:16px}
-.sheet-personal .character .eyebrow{margin-bottom:12px}
-.sheet-personal .character .sectionhead{margin-bottom:22px}
-.sheet-personal .skill-line{gap:13px}
-.sheet-personal .skill-block{padding-block:9px}
-.sheet-personal .tabs{margin-block:20px}
 .ae-free-layout{display:grid;grid-template-columns:minmax(280px,1fr) minmax(0,1.1fr);gap:18px;align-items:start}
 .ae-free-panel,.ae-free-history{min-width:0}
 .ae-free-quick{margin:12px 0 22px}

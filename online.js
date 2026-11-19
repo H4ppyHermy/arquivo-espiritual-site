@@ -52,7 +52,7 @@ let nextDocumentRefresh=0;
 setInterval(()=>{
  if(!state.enabled||document.hidden)return;
  const page=window.ARQUIVO_INTERNAL?.page||'home';
- const period=page==='sheets'?5000:page==='admin'?8000:20000;
+ const period=page==='sheets'?(state.documentRealtime==='connected'?12000:6000):page==='admin'?14000:25000;
  const now=Date.now();
  if(now<nextDocumentRefresh)return;
  nextDocumentRefresh=now+period;
@@ -66,12 +66,23 @@ document.addEventListener('visibilitychange',()=>{
  }catch(e){state.error=e.message;state.enabled=false;window.dispatchEvent(new CustomEvent('arquivo-sync-error',{detail:e.message}));return false}
  finally{state.connecting=false;window.dispatchEvent(new Event('arquivo-online-state'))}
 }
-async function refresh(force=false){if(!state.enabled)return;
+let refreshInFlight=null;
+async function refresh(force=false){
+ if(!state.enabled)return;
  if(!force&&(state.saving||Date.now()<state.busyUntil))return;
- const data=await rpc('ae_read_document');
+ if(refreshInFlight){
+  await refreshInFlight;
+  if(!force)return;
+ }
+ const request=rpc('ae_read_document');
+ refreshInFlight=request;
+ let data;
+ try{data=await request}
+ finally{if(refreshInFlight===request)refreshInFlight=null}
  if(!data)return;
  if(state.error){state.error='';window.dispatchEvent(new Event('arquivo-online-state'))}
- if(!force&&Number(data.revision)<=Number(state.revision))return;
+ if(Number(data.revision)<Number(state.revision))return;
+ if(!force&&Number(data.revision)===Number(state.revision))return;
  state.revision=data.revision;
  if(Object.keys(data.data||{}).length===0){window.dispatchEvent(new CustomEvent('arquivo-online-empty'));return}
  window.dispatchEvent(new CustomEvent('arquivo-online-snapshot',{detail:{data:data.data,identity:state.identity,keys:state.keys,revision:state.revision}}));
