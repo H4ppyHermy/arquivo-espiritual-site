@@ -287,7 +287,7 @@ html.reduce-motion #page .ae-warehouse-post,html.performance-mode #page .ae-ware
 
 
 /* Registro técnico refinado: leitura clara, sem fundos opacos sobre as tags.
-   O formato é definido no recurso (barra/marca/contador), jamais no nome da classe. */
+   O formato é definido no recurso (barra/marca/contador/sequencia), jamais no nome da classe. */
 #page .ae-wh-detail-hud{
  display:grid;gap:0;padding:0;min-width:0;overflow:hidden;
  background:var(--theme-panel);border:1px solid var(--theme-structure);
@@ -363,3 +363,15 @@ html.reduce-motion #page .ae-warehouse-post,html.performance-mode #page .ae-ware
  #page .ae-wh-hud-facts,#page .ae-wh-hud-section.ae-wh-hud-resources{padding:12px 13px}
  #page .ae-wh-hud-footnote{padding:10px 13px}
 }
+
+/* Sequência: níveis sucessivos e cumulativos, com a mesma paleta do HUD. */
+#page .ae-wh-resource-slots--sequencia{gap:6px;align-items:center}
+#page .ae-wh-resource-slots--sequencia i{
+ flex:0 1 28px;width:28px;min-width:9px;height:17px;border:0;
+ transform:none;border-radius:0;
+ clip-path:polygon(0 0,68% 0,100% 50%,68% 100%,0 100%,30% 50%);
+ background:color-mix(in srgb,var(--theme-cold) 28%,var(--theme-panel))
+}
+#page .ae-wh-resource-slots--sequencia i:nth-child(2){height:21px}
+#page .ae-wh-resource-slots--sequencia i:nth-child(n+3){height:25px}
+#page .ae-wh-resource-slots--sequencia i.filled{background:var(--theme-cold);box-shadow:none}
