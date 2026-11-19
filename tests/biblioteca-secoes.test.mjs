@@ -63,6 +63,6 @@ test('HTML de títulos é escapado e URL insegura não é renderizada',()=>{
 test('integração mantém os capítulos originais e carrega recursos em ordem',()=>{
  assert.match(app,/r\.book!=='book2'/);
  assert.match(app,/book:libraryVolume\(\)==='book2'\?'book2':'book1'/);
- assert.match(html,/biblioteca-secoes\.css\?v=6/);
- assert.ok(html.indexOf('arquivo-app.js?v=14')<html.indexOf('biblioteca-secoes.js?v=9'));
+ assert.match(html,/biblioteca-secoes\.css\?v=7/);
+ assert.ok(html.indexOf('arquivo-app.js?v=15')<html.indexOf('biblioteca-secoes.js?v=10'));
 });
