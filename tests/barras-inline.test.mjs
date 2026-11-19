@@ -101,7 +101,7 @@ test('sequência mostra níveis cumulativos e usa o mesmo renderer da Biblioteca
   assert.match(output,new RegExp('aria-label="Sequência: nível '+n+' de 3"'));
   assert.equal((output.match(/ae-inline-resource-segment/g)||[]).length,3);
   assert.equal((output.match(/ae-inline-resource-segment is-filled/g)||[]).length,n);
-  assert.doesNotMatch(output,/\\[sequencia:/);
+  assert.ok(!output.includes('[sequencia:'));
  }
  const shorthand=replace('[sequencia]');
  assert.match(shorthand,/Sequência: nível 0 de 3/);
@@ -116,5 +116,5 @@ test('sequência inválida permanece literal e não modifica regras de combate',
  assert.equal(replace('[barra] [marca] [contador]'),'[barra] [marca] [contador]');
  assert.match(read('arquivo-app.js'),/option value="sequencia">Sequência/);
  assert.match(read('biblioteca-secoes.js'),/option value="sequencia">Sequência/);
- assert.match(read('ficha-visual.js'),/sequencia\\(\\?:/);
+ assert.match(read('ficha-visual.js'),/sequencia/);
 });
