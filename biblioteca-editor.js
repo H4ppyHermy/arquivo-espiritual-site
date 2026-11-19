@@ -56,6 +56,35 @@
   editorInsert('1d'+faces);
  }
 
+
+ function updateTagPreview(){
+  const field=document.getElementById('warehouseTagsInput'),target=document.getElementById('warehouseTagPreview');
+  if(!field||!target)return;
+  const tags=window.ARQUIVO_SECOES?.parseTags(field.value)||[];
+  target.innerHTML=tags.map(tag=>'<span>#'+api.esc(tag)+'</span>').join('');
+ }
+ function addSuggestedTag(raw){
+  let tag='';try{tag=decodeURIComponent(raw)}catch{return}
+  const field=document.getElementById('warehouseTagsInput');if(!field)return;
+  const split=window.ARQUIVO_SECOES?.parseTags;
+  if(!split)return;
+  const items=split(field.value),lower=x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
+  if(!tag||items.some(x=>lower(x)===lower(tag)))return;
+  if(items.length>=8){api.toast('Limite de tags','Máximo de 8 tags por publicação.',true);return}
+  const next=[...items,tag].join(', ');
+  if(next.length>200){api.toast('Tags extensas','Reduza o tamanho dos marcadores.',true);return}
+  field.value=next;field.dispatchEvent(new Event('input',{bubbles:true}));field.focus();
+ }
+ function addResourceBar(){
+  const root=document.getElementById('warehouseBarRows');if(!root)return;
+  const count=root.querySelectorAll('[data-warehouse-bar]').length;
+  if(count>=8){api.toast('Limite de barras','Máximo de 8 recursos informativos.',true);return}
+  const markup=window.ARQUIVO_SECOES?.barEditorRow({},count);
+  if(!markup)return;
+  root.insertAdjacentHTML('beforeend',markup);
+  root.querySelector('[data-warehouse-bar]:last-child [data-bar-field="label"]')?.focus();
+ }
+
  document.addEventListener('click',event=>{
   const button=event.target?.closest?.('[data-warehouse-editor]');
   if(!button)return;
@@ -65,6 +94,9 @@
   if(action?.startsWith('format:'))editorFormat(action.slice(7));
   else if(action==='insert-template')insertTemplate();
   else if(action==='insert-die')insertEditorDie();
+  else if(action==='add-bar')addResourceBar();
+  else if(action==='remove-bar')button.closest('[data-warehouse-bar]')?.remove();
+  else if(action?.startsWith('add-tag:'))addSuggestedTag(action.slice(8));
  },true);
  document.addEventListener('keydown',event=>{
   if(event.target?.id==='warehouseContentInput'&&(event.ctrlKey||event.metaKey)&&['b','i'].includes(event.key.toLowerCase())){
@@ -74,6 +106,7 @@
  });
  document.addEventListener('input',event=>{
   if(event.target?.id==='warehouseContentInput')editorUpdatePreview();
+  if(event.target?.id==='warehouseTagsInput')updateTagPreview();
  });
  window.ARQUIVO_EDITOR_ARMAZEM={refresh:editorUpdatePreview};
 })();
