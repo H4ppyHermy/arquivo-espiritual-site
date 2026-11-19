@@ -28,7 +28,7 @@ function setup(master=true){
  vm.runInNewContext(file('biblioteca-editor.js'),sandbox);
  function dispatch(type,id,action='',extra={}){
   const target={
-   id,value:extra.value,
+   id,value:extra.value,files:extra.files,
    closest(selector){
     if(selector==='[data-warehouse-action]'&&type==='click'&&extra.kind==='warehouse')
      return {dataset:{warehouseAction:action}};
@@ -42,7 +42,7 @@ function setup(master=true){
   const ev={target,preventDefault(){},stopImmediatePropagation(){},key:'',ctrlKey:false,metaKey:false};
   for(const fn of handlers[type]||[])fn(ev);
  }
- return {window,document,db,api,handlers,elements,dispatch,modal:()=>modalMarkup,saves:()=>saved};
+ return {window,document,db,api,handlers,elements,dispatch,sandbox,modal:()=>modalMarkup,saves:()=>saved};
 }
 
 test('livros e quatro classes permanecem disponíveis, mas sem conexão com a ficha',()=>{
@@ -55,32 +55,22 @@ test('livros e quatro classes permanecem disponíveis, mas sem conexão com a fi
  assert.equal(db.sheets[0].catalogEntries[0].title,'Antigo');
 });
 
-test('imagem de Classe permanece, mas imagens de Habilidade, Técnica e Item não aparecem',()=>{
+test('foto e GIF ficam no mesmo quadrado de todas as categorias',()=>{
  const ctx=setup();
  const {db,window}=ctx;
  db.site.warehouse.posts.push(
-  {id:'skill',title:'Habilidade teste',category:'Habilidades',content:'Regra',image:'https://example.com/skill.png',published:true},
-  {id:'tech',title:'Técnica teste',category:'Técnicas',content:'Regra',image:'https://example.com/tech.png',published:true},
+  {id:'skill',title:'Habilidade teste',category:'Habilidades',content:'Regra',image:'https://example.com/skill.gif',published:true},
   {id:'item',title:'Item teste',category:'Itens',content:'Regra',image:'https://example.com/item.png',published:true});
  const html=window.ARQUIVO_SECOES.warehousePage();
- assert.doesNotMatch(html,/src="https:\/\/example\.com\/(skill|tech|item)\.png"/);
- assert.match(html,/src="https:\/\/media\.discordapp\.net/);
+ assert.match(html,/src="https:\/\/example\.com\/skill\.gif"/);
+ assert.match(html,/src="https:\/\/example\.com\/item\.png"/);
+ assert.match(html,/ae-warehouse-image/);
  ctx.dispatch('click','','edit:item',{kind:'warehouse'});
- assert.match(ctx.modal(),/id="warehouseImageField" hidden/);
- ctx.dispatch('click','','edit:classe-cacador',{kind:'warehouse'});
- assert.match(ctx.modal(),/id="warehouseImageField"/);
+ assert.match(ctx.modal(),/id="warehouseImageFile"/);
+ assert.match(ctx.modal(),/accept="image\/gif,image\/png,image\/jpeg,image\/webp"/);
  assert.doesNotMatch(ctx.modal(),/id="warehouseImageField" hidden/);
-});
-
-test('trocar a categoria esconde e reexibe o campo de imagem',()=>{
- const ctx=setup();
- ctx.elements.warehouseImageField={hidden:false};
- ctx.dispatch('change','warehouseCategoryInput','',{value:'Itens'});
- assert.equal(ctx.elements.warehouseImageField.hidden,true);
- ctx.dispatch('change','warehouseCategoryInput','',{value:'Habilidades'});
- assert.equal(ctx.elements.warehouseImageField.hidden,true);
- ctx.dispatch('change','warehouseCategoryInput','',{value:'Classes'});
- assert.equal(ctx.elements.warehouseImageField.hidden,false);
+ ctx.dispatch('click','','edit:skill',{kind:'warehouse'});
+ assert.match(ctx.modal(),/Foto ou GIF para o quadrado pequeno/);
 });
 
 test('salvar item preserva imagem e metadados anteriores sem executar automações',()=>{
@@ -123,6 +113,73 @@ test('editor textual continua com modelos, prévia e atalhos, sem controles de a
  assert.match(ctx.elements.warehouseEditorStats.textContent,/1 palavras/);
 });
 
+
+test('tags de jogabilidade das quatro classes foram resumidas',()=>{
+ const {window}=setup();
+ const arr=window.ARQUIVO_CLASSES_CBB;
+ assert.deepEqual(Array.from(arr,p=>p.tags),['Tanque','Combatente, Mobilidade','Controle','Suporte']);
+});
+
+test('tags ocultas não aparecem, não filtram e não entram na busca do jogador',()=>{
+ const owner=setup(true),guest=setup(false);
+ const post={id:'segredo',title:'Classe teste',category:'Classes',content:'Um efeito simples',
+  summary:'Classe experimental',tags:'Tanque, Estratégia',hiddenTags:['Estratégia'],published:true};
+ owner.db.site.warehouse.posts.push(post);
+ guest.db.site.warehouse.posts.push({...post});
+ const masterHtml=owner.window.ARQUIVO_SECOES.warehousePage();
+ assert.match(masterHtml,/Estratégia/);
+ assert.match(masterHtml,/SÓ MESTRE/);
+ const guestHtml=guest.window.ARQUIVO_SECOES.warehousePage();
+ assert.match(guestHtml,/Tanque/);
+ assert.doesNotMatch(guestHtml,/Estratégia/);
+ guest.elements.warehousePosts={innerHTML:''};
+ guest.elements.warehouseMatches={textContent:''};
+ guest.dispatch('input','warehouseSearch','',{value:'Estratégia'});
+ assert.doesNotMatch(guest.elements.warehousePosts.innerHTML,/Classe teste/);
+ assert.match(guest.elements.warehousePosts.innerHTML,/Nenhuma publicação encontrada/);
+});
+
+test('mestre alterna visibilidade individual sem alterar outros marcadores',()=>{
+ const ctx=setup(true);
+ const item={id:'segredo2',title:'Treino',category:'Classes',content:'Regras',tags:'Tanque, Defesa',hiddenTags:[],published:true};
+ ctx.db.site.warehouse.posts.push(item);
+ ctx.dispatch('click','','edit:segredo2',{kind:'warehouse'});
+ ctx.elements.warehouseTagsInput={value:'Tanque, Defesa'};
+ ctx.elements.warehouseTagPreview={innerHTML:''};
+ ctx.dispatch('click','','toggle-tag:Defesa',{kind:'editor'});
+ assert.match(ctx.elements.warehouseTagPreview.innerHTML,/OCULTA/);
+ assert.match(ctx.elements.warehouseTagPreview.innerHTML,/VISÍVEL/);
+ ctx.elements.dialogRoot.dataset.warehouseId='segredo2';
+ Object.assign(ctx.elements,{
+  warehouseTitleInput:{value:'Treino'},warehouseContentInput:{value:'Regras'},
+  warehouseCategoryInput:{value:'Classes'},warehouseVisibilityInput:{value:'published'},
+  warehouseCostInput:{value:''},warehouseSummaryInput:{value:'Resumo'},
+  warehouseImageInput:{value:''}
+ });
+ ctx.dispatch('click','','warehouse-save',{kind:'modal'});
+ const saved=ctx.db.site.warehouse.posts.find(p=>p.id==='segredo2');
+ assert.deepEqual(Array.from(saved.hiddenTags),['Defesa']);
+ assert.equal(saved.tags,'Tanque, Defesa');
+});
+
+test('GIF local pequeno pode ser preparado como miniatura animada',async()=>{
+ const ctx=setup(true);
+ ctx.dispatch('click','','edit:new',{kind:'warehouse'});
+ const sample='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+ // Mock do leitor de arquivo; GIF é mantido sem conversão para imagem estática.
+ class Reader{
+  readAsDataURL(){this.result=sample;this.onload?.()}
+ }
+ ctx.elements.warehouseImageInput={value:''};
+ ctx.elements.warehouseImagePreview={innerHTML:''};
+ ctx.elements.warehouseImageFile={value:'teste.gif'};
+ ctx.sandbox.FileReader=Reader;
+ ctx.dispatch('change','warehouseImageFile','',{files:[{type:'image/gif',size:60}]});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.match(ctx.elements.warehouseImagePreview.innerHTML,/data:image\/gif;base64/);
+ assert.equal(ctx.window.ARQUIVO_EDITOR_ARMAZEM.imageValue(),sample);
+});
+
 test('interface de fichas não apresenta a aba Acervo nem executa o módulo anterior',()=>{
  const html=file('index.html'),app=file('arquivo-app.js');
  assert.doesNotMatch(html,/biblioteca-fichas\.(css|js)/);
@@ -161,12 +218,12 @@ test('tags dos registros são clicáveis, pesquisáveis e não diferenciam acent
  ctx.elements.warehousePosts={innerHTML:''};
  ctx.elements.warehouseMatches={textContent:''};
  ctx.elements.warehouseTagFilters={innerHTML:''};
- ctx.dispatch('click','','tag:Defesa',{kind:'warehouse'});
+ ctx.dispatch('click','','tag:Tanque',{kind:'warehouse'});
  assert.match(ctx.elements.warehousePosts.innerHTML,/Coração de Aço/);
  assert.doesNotMatch(ctx.elements.warehousePosts.innerHTML,/Porta-voz/);
  assert.match(ctx.elements.warehouseTagFilters.innerHTML,/aria-pressed="true"/);
  assert.match(ctx.elements.warehouseMatches.textContent,/1 publicação encontrada/);
- ctx.dispatch('click','','tag:Defesa',{kind:'warehouse'});
+ ctx.dispatch('click','','tag:Tanque',{kind:'warehouse'});
  assert.match(ctx.elements.warehousePosts.innerHTML,/Porta-voz/);
  ctx.dispatch('input','warehouseSearch','',{value:'hoho'});
  assert.match(ctx.elements.warehousePosts.innerHTML,/Especialista em Hohō/);

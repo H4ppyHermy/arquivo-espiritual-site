@@ -6,7 +6,7 @@ window.ARQUIVO_CLASSES_CBB = [
     "title": "Coração de Aço",
     "summary": "Resistência física e absorção de ataques: acumule Têmpera ao sofrer dano e gaste-a para proteger a si ou aliados.",
     "image": "https://media.discordapp.net/attachments/1141172502106746961/1572424484068134922/image.png",
-    "tags": "Defesa, Têmpera, Corpo",
+    "tags": "Tanque",
     "cost": "",
     "damage": {
       "kind": "reduction",
@@ -33,7 +33,7 @@ window.ARQUIVO_CLASSES_CBB = [
     "title": "Especialista em Hohō",
     "summary": "Movimentação e reposicionamento: marque um Rastro e retorne a ele para reagir, atacar ou interceptar.",
     "image": "https://media.discordapp.net/attachments/1141172502106746961/1572427519171502270/image.png",
-    "tags": "Mobilidade, Hohō, Rastro",
+    "tags": "Combatente, Mobilidade",
     "cost": "",
     "damage": null,
     "bars": [
@@ -55,7 +55,7 @@ window.ARQUIVO_CLASSES_CBB = [
     "title": "Caçador",
     "summary": "Controle de campo com armadilhas: acumule contadores, instale dispositivos e desencadeie efeitos em área.",
     "image": "https://media.discordapp.net/attachments/1141172502106746961/1572429790101774357/image.png",
-    "tags": "Armadilhas, Emboscada, Controle",
+    "tags": "Controle",
     "cost": "1 contador por armadilha",
     "damage": null,
     "bars": [
@@ -77,7 +77,7 @@ window.ARQUIVO_CLASSES_CBB = [
     "title": "Porta-voz",
     "summary": "Liderança e manobras coordenadas: use Auxílio para encadear ações e oferecer bônus ofensivos ou defensivos.",
     "image": "",
-    "tags": "Suporte, Afinidade, Auxílio",
+    "tags": "Suporte",
     "cost": "1 uso por cena",
     "damage": {
       "kind": "bonus",
