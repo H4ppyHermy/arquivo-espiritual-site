@@ -82,7 +82,7 @@
     (photo?'<figure class="ae-warehouse-image"><img loading="lazy" decoding="async" referrerpolicy="no-referrer" src="'+esc(photo)+'" alt="'+esc(p.title||'Imagem da publicação')+'"></figure>':'')+
     (summary?'<p class="ae-warehouse-summary">'+esc(summary)+'</p>':'')+
     (tags.length?'<div class="ae-warehouse-tags">'+tags.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div>':'')+
-    (p.published===false&&api.master()?'<p class="ae-warehouse-draft">RASCUNHO · VISÍVEL SOMENTE AO MESTRE</p>':'')+
+    (p.published===false&&api.master()?'<p class="ae-warehouse-draft">RASCUNHO · OCULTO NA INTERFACE DO JOGADOR</p>':'')+
     '<div class="ae-warehouse-actions">'+action(opened?'RECOLHER':'LER PUBLICAÇÃO','open:'+encodeURIComponent(id))+
     (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+action('↑','move:'+encodeURIComponent(id)+':-1')+
      action('↓','move:'+encodeURIComponent(id)+':1'):'')+'</div>'+
@@ -123,7 +123,7 @@
   if(id&&!found)return;
   const p=found||{title:'',category:w.categories[0],summary:'',content:'',image:'',cost:'',tags:'',published:true};
   api.modal(id?'EDITAR PUBLICAÇÃO':'NOVA PUBLICAÇÃO','<div class="ae-warehouse-editor">'+
-   '<p class="subtitle">Registros públicos ou rascunhos privados do mestre. Use a formatação dos capítulos no conteúdo.</p>'+
+   '<p class="subtitle">Registros publicados ou rascunhos ocultos na interface dos jogadores. Rascunhos ainda fazem parte dos dados sincronizados.</p>'+
    '<label>Título<input id="warehouseTitleInput" maxlength="100" required value="'+esc(p.title)+'" placeholder="Ex.: Shunpō"></label>'+
    '<div class="ae-warehouse-editor-row"><label>Categoria<select id="warehouseCategoryInput">'+w.categories.map(c=>'<option value="'+esc(c)+'"'+(p.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'+
    '<label>Custo (opcional)<input id="warehouseCostInput" maxlength="45" value="'+esc(p.cost)+'" placeholder="Ex.: 2 ALMA"></label></div>'+
@@ -147,7 +147,7 @@
   if(image&&!safeImage(image)){api.toast('Imagem inválida','Informe um endereço HTTPS direto.',true);return}
   if(!id&&w.posts.length>=300){api.toast('Limite do Armazém','Máximo de 300 publicações.',true);return}
   const previous=w.posts.find(p=>p.id===id);if(id&&!previous)return;
-  const entry={id:previous?.id||'post-'+crypto.randomUUID(),title,category,
+  const entry={id:previous?.id||api.uid(),title,category,
    summary:get('warehouseSummaryInput').slice(0,280),image,cost:get('warehouseCostInput').slice(0,45),
    tags:get('warehouseTagsInput').slice(0,120),content:content.slice(0,20000),
    published:!!document.getElementById('warehousePublishedInput')?.checked};
