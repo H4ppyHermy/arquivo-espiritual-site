@@ -6,7 +6,7 @@
  const api=window.ARQUIVO_INTERNAL;
  if(!api)return;
  const BASE_CATEGORIES=['Classes','Habilidades','Técnicas','Itens','Outros'];
- let active='book1',selectedCategory='Todas',search='',openedPost=null;
+ let active='book1',selectedCategory='Todas',selectedTag='',search='',openedPost=null;
  const text=x=>String(x??'');
  const esc=x=>api.esc(x);
  const action=(label,key,style='small')=>'<button type="button" class="btn '+style+'" data-warehouse-action="'+key+'">'+label+'</button>';
@@ -41,10 +41,74 @@
   v=text(v).trim();
   return v.length<=1200&&/^https:\/\/[^\s"'<>]+$/i.test(v)?v:'';
  }
+
+ const fold=x=>text(x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR').trim();
+ function parseTags(raw){
+  const seen=new Set(),items=Array.isArray(raw)?raw:text(raw).split(/[,;\n]/);
+  return items.map(t=>text(t).trim().replace(/\s+/g,' ').slice(0,28)).filter(t=>{
+   const key=fold(t);if(!key||seen.has(key))return false;seen.add(key);return true;
+  }).slice(0,8);
+ }
+ function popularTags(){
+  const map=new Map();
+  for(const p of posts().filter(isPublished))for(const tag of parseTags(p.tags)){
+   const key=fold(tag),value=map.get(key)||{tag,count:0};value.count++;map.set(key,value);
+  }
+  return [...map.values()].sort((a,b)=>b.count-a.count||a.tag.localeCompare(b.tag,'pt-BR')).slice(0,12);
+ }
+ function tagFilters(){
+  const tags=popularTags(),hasFilter=!!search.trim()||!!selectedTag||selectedCategory!=='Todas';
+  return '<div class="ae-wh-tag-filter"><div class="ae-wh-tag-filter-heading"><span>TAGS EM DESTAQUE</span>'+
+   (hasFilter?'<button type="button" class="ae-wh-clear" data-warehouse-action="clear-filters">LIMPAR FILTROS</button>':'')+'</div>'+
+   (tags.length?'<div class="ae-wh-tag-options" aria-label="Filtrar por tags">'+tags.map(({tag,count})=>
+   '<button type="button" class="ae-wh-tag-option'+(fold(selectedTag)===fold(tag)?' is-active':'')+
+   '" aria-pressed="'+(fold(selectedTag)===fold(tag))+'" data-warehouse-action="tag:'+encodeURIComponent(tag)+'">#'+esc(tag)+
+   '<small>'+count+'</small></button>').join('')+'</div>':'<p class="ae-wh-tags-help">As tags das publicações aparecerão aqui.</p>')+'</div>';
+ }
+ function resourceBars(post){
+  const list=Array.isArray(post.bars)?post.bars.slice(0,8):[];
+  return list.filter(b=>b&&typeof b==='object').map(b=>{
+   const max=Number(b.max),raw=Number(b.initial);
+   if(!Number.isInteger(max)||max<1||max>20)return '';
+   const current=Number.isInteger(raw)?Math.max(0,Math.min(max,raw)):0;
+   const label=text(b.label||'Recurso').slice(0,65);
+   return '<div class="ae-wh-resource"><div class="ae-wh-resource-top"><strong>'+esc(label)+'</strong><span>'+current+' / '+max+'</span></div>'+
+    '<div class="ae-wh-resource-slots" role="meter" aria-label="'+esc(label)+' · valor inicial" aria-valuemin="0" aria-valuemax="'+max+'" aria-valuenow="'+current+'">'+
+    Array.from({length:max},(_,i)=>'<i aria-hidden="true"'+(i<current?' class="filled"':'')+'></i>').join('')+'</div>'+
+    (b.description?'<p>'+esc(text(b.description).slice(0,450))+'</p>':'')+
+    '<small>Valor inicial'+(b.reset==='scene'?' · por cena':' · ajuste manual')+'</small></div>';
+  }).join('');
+ }
+ function diceReference(post){
+  const d=post.damage;if(!d||typeof d!=='object'||d.kind==='none')return '';
+  const count=Number(d.count),faces=Number(d.faces);
+  const n=Number.isInteger(count)&&count>=1&&count<=6?count:1;
+  const notation=Number.isInteger(faces)&&faces>=2&&faces<=1000?n+'d'+faces:'A definir';
+  const name=({damage:'DANO',reduction:'REDUÇÃO',bonus:'BÔNUS',healing:'RECUPERAÇÃO'})[d.kind]||'DADO';
+  return '<div class="ae-wh-meta-line"><span>'+name+'</span><strong>'+esc(notation)+'</strong></div>'+
+   (d.label?'<p class="ae-wh-meta-hint">'+esc(text(d.label).slice(0,65))+'</p>':'');
+ }
+ function postDetail(post){
+  const title=text(post.title||'Registro'),bars=resourceBars(post),cost=text(post.cost).trim(),tags=parseTags(post.tags);
+  return '<div class="ae-wh-detail-layout"><div class="ae-wh-detail-text">'+
+   '<div class="ae-wh-detail-eyebrow">DESCRIÇÃO & FUNCIONAMENTO</div>'+
+   '<div class="book-text ae-library-reading ae-warehouse-reading">'+api.formatBook(post.content||'',title)+'</div></div>'+
+   '<aside class="ae-wh-detail-hud" aria-label="Referências da publicação">'+
+   '<div class="ae-wh-hud-heading"><span>REGISTRO TÉCNICO</span><strong>HUD DE REFERÊNCIA</strong></div>'+
+   '<div class="ae-wh-meta-line"><span>CATEGORIA</span><strong>'+esc(post.category||'Outros')+'</strong></div>'+
+   (cost?'<div class="ae-wh-meta-line"><span>CUSTO / USO</span><strong>'+esc(cost)+'</strong></div>':'')+
+   diceReference(post)+
+   (bars?'<div class="ae-wh-hud-section"><span class="ae-wh-hud-label">BARRAS DE RECURSO</span>'+bars+'</div>':'')+
+   (tags.length?'<div class="ae-wh-hud-section"><span class="ae-wh-hud-label">MARCADORES</span><div class="ae-wh-meta-tags">'+
+   tags.map(t=>'<span>#'+esc(t)+'</span>').join('')+'</div></div>':'')+
+   '<p class="ae-wh-hud-footnote">Referência visual. Nenhum recurso é alterado automaticamente.</p></aside></div>';
+ }
+
  function visible(){
-  const term=search.toLocaleLowerCase('pt-BR').trim();
+  const terms=fold(search).split(/\s+/).filter(Boolean);
   return posts().filter(p=>isPublished(p)&&(selectedCategory==='Todas'||p.category===selectedCategory)&&
-   (!term||[p.title,p.summary,p.content,p.category,p.tags].join(' ').toLocaleLowerCase('pt-BR').includes(term)));
+   (!selectedTag||parseTags(p.tags).some(t=>fold(t)===fold(selectedTag)))&&
+   (!terms.length||terms.every(term=>fold([p.title,p.summary,p.content,p.category,...parseTags(p.tags)].join(' ')).includes(term))));
  }
  function shelf(){
   const volumes=[
@@ -64,7 +128,7 @@
  }
  function select(section){
   if(!['book1','book2','warehouse'].includes(section)||active===section)return;
-  active=section;search='';selectedCategory='Todas';openedPost=null;
+  active=section;search='';selectedCategory='Todas';selectedTag='';openedPost=null;
   api.resetLibraryState();
   api.render();
  }
@@ -79,27 +143,40 @@
  function cards(){
   const found=visible();
   if(!found.length){
-   const empty=!search.trim()&&selectedCategory==='Todas';
+   const empty=!search.trim()&&selectedCategory==='Todas'&&!selectedTag;
    return '<div class="ae-warehouse-empty" role="status"><strong>'+
     (empty?'O Armazém ainda não possui publicações.':'Nenhuma publicação encontrada.')+'</strong><p>'+
-    (empty&&api.master()?'Crie uma publicação e organize-a por categoria.':'Experimente outra pesquisa ou categoria.')+'</p>'+
-    (empty&&api.master()?action('+ NOVA PUBLICAÇÃO','edit:new','main'):'')+'</div>';
+    (empty&&api.master()?'Crie a primeira publicação e organize o acervo.':'Experimente outra tag, categoria ou pesquisa.')+'</p>'+
+    (empty&&api.master()?action('+ NOVA PUBLICAÇÃO','edit:new','main'):'')+
+    (!empty?action('LIMPAR FILTROS','clear-filters','small'):'')+'</div>';
   }
-  return found.map(p=>{
-   const id=text(p.id),opened=openedPost===id,photo=warehouseAllowsImage(p.category)?safeImage(p.image):'',summary=text(p.summary).trim(),cost=text(p.cost).trim();
-   const tags=text(p.tags).split(',').map(x=>x.trim()).filter(Boolean).slice(0,5);
+  return found.map((p,index)=>{
+   const id=text(p.id||''),opened=openedPost===id,photo=warehouseAllowsImage(p.category)?safeImage(p.image):'';
+   const summary=text(p.summary).trim(),cost=text(p.cost).trim(),tags=parseTags(p.tags);
+   const category=text(p.category||'Outros'),abbr=({Classes:'CL',Habilidades:'HB',Técnicas:'TC',Itens:'IT'})[category]||'AR';
    return '<article class="ae-warehouse-post'+(opened?' is-open':'')+'" id="warehousePost-'+esc(id)+'">'+
-    '<div class="ae-warehouse-post-head"><div><span class="ae-library-kicker">'+esc(p.category||'Outros')+'</span>'+
-    '<h3>'+esc(p.title||'Sem título')+'</h3></div>'+(cost?'<span class="ae-warehouse-cost">'+esc(cost)+'</span>':'')+'</div>'+
-    (photo?'<figure class="ae-warehouse-image"><img loading="lazy" decoding="async" referrerpolicy="no-referrer" src="'+esc(photo)+'" alt="'+esc(p.title||'Imagem da publicação')+'"></figure>':'')+
-    (summary?'<p class="ae-warehouse-summary">'+esc(summary)+'</p>':'')+
-    (tags.length?'<div class="ae-warehouse-tags">'+tags.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div>':'')+
-    (p.published===false&&api.master()?'<p class="ae-warehouse-draft">RASCUNHO · OCULTO NA INTERFACE DO JOGADOR</p>':'')+
-    '<div class="ae-warehouse-actions">'+action(opened?'RECOLHER':'LER PUBLICAÇÃO','open:'+encodeURIComponent(id))+
-    (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+action('↑','move:'+encodeURIComponent(id)+':-1')+
-     action('↓','move:'+encodeURIComponent(id)+':1'):'')+'</div>'+
-    '<div class="ae-warehouse-reading book-text ae-library-reading" id="warehouseBody-'+esc(id)+'" role="region" aria-label="Conteúdo de '+esc(p.title)+'"'+(opened?'':' hidden')+'>'+
-    (opened?api.formatBook(p.content||'',p.title||''):'')+'</div></article>';
+    '<div class="ae-wh-post-accent" aria-hidden="true"></div>'+
+    '<div class="ae-wh-post-heading"><div class="ae-wh-post-id"><span class="ae-wh-number">'+String(index+1).padStart(2,'0')+'</span>'+
+    '<span class="ae-wh-kind">'+esc(category)+'</span></div>'+
+    (cost?'<span class="ae-warehouse-cost">'+esc(cost)+'</span>':'')+'</div>'+
+    '<div class="ae-wh-post-showcase">'+
+    (photo?'<figure class="ae-warehouse-image"><img loading="lazy" decoding="async" referrerpolicy="no-referrer" src="'+esc(photo)+'" alt="'+esc(p.title||'Imagem da publicação')+'"></figure>':
+    '<div class="ae-wh-emblem" aria-hidden="true"><span>'+abbr+'</span><small>魂</small></div>')+
+    '<div class="ae-wh-post-copy"><span class="ae-wh-file-label">ARQUIVO ESPIRITUAL / '+esc(category.toLocaleUpperCase('pt-BR'))+'</span>'+
+    '<h3>'+esc(p.title||'Sem título')+'</h3>'+
+    (summary?'<p class="ae-warehouse-summary">'+esc(summary)+'</p>':'<p class="ae-warehouse-summary ae-wh-summary-muted">Abra para consultar a descrição completa.</p>')+
+    '</div></div>'+
+    (tags.length?'<div class="ae-warehouse-tags" aria-label="Tags">'+tags.map(tag=>
+    '<button type="button" data-warehouse-action="tag:'+encodeURIComponent(tag)+'" title="Filtrar por '+esc(tag)+'">#'+esc(tag)+'</button>').join('')+'</div>':'')+
+    (p.published===false&&api.master()?'<p class="ae-warehouse-draft">RASCUNHO · OCULTO PARA JOGADORES</p>':'')+
+    '<div class="ae-warehouse-actions"><button type="button" class="btn small ae-wh-read-btn" data-warehouse-action="open:'+encodeURIComponent(id)+
+    '" aria-expanded="'+opened+'" aria-controls="warehouseBody-'+esc(id)+'">'+(opened?'RECOLHER REGISTRO':'CONSULTAR REGISTRO')+
+    '<span aria-hidden="true">'+(opened?'−':'+')+'</span></button>'+
+    (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+
+     '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':-1" aria-label="Mover '+esc(p.title)+' para cima" title="Mover para cima">↑</button>'+
+     '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':1" aria-label="Mover '+esc(p.title)+' para baixo" title="Mover para baixo">↓</button>':'')+'</div>'+
+    '<section id="warehouseBody-'+esc(id)+'" class="ae-wh-expanded" aria-label="Detalhes de '+esc(p.title||'Publicação')+'"'+(opened?'':' hidden')+'>'+
+    (opened?postDetail(p):'')+'</section></article>';
   }).join('');
  }
  function warehousePage(){
