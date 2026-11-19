@@ -95,3 +95,20 @@ test('script de combate antigo não é executado na página',()=>{
  assert.ok(html.indexOf('classes-armazem.js')<html.indexOf('biblioteca-secoes.js'));
  assert.ok(html.indexOf('biblioteca-secoes.js')<html.indexOf('biblioteca-fichas.js'));
 });
+
+test('editor de publicações apresenta modelos, formatação e prévia sem salvar',()=>{
+ const {window,api}=setup(true);
+ let markup='',buttons=[];
+ api.modal=(title,body,actions)=>{markup=body;buttons=actions};
+ const src=load('biblioteca-secoes.js');
+ assert.match(src,/ae-warehouse-editor-toolbar/);
+ assert.match(src,/warehouseEditorTemplate/);
+ assert.match(src,/aeWarehouseEditorPreview/);
+ assert.match(src,/warehouseEditorStats/);
+ const post=window.ARQUIVO_SECOES.getPost('classe-cacador');
+ assert.equal(post.title,'Caçador');
+ assert.ok(window.ARQUIVO_CATALOGO.editorFields(post).includes('aeCatalogBarRows'));
+ assert.match(load('biblioteca-fichas.js'),/function editorUpdatePreview/);
+ assert.match(load('biblioteca-fichas.js'),/function editorFormat/);
+ assert.match(load('biblioteca-fichas.js'),/function insertTemplate/);
+});
