@@ -247,3 +247,64 @@ html.reduce-motion #page .ae-warehouse-post,html.performance-mode #page .ae-ware
 #page .ae-warehouse-tags button.is-hidden-tag small{font-size:9px;letter-spacing:.04em;font-weight:850;opacity:.85}
 #page .ae-warehouse-image{aspect-ratio:1;flex:none}
 #page .ae-warehouse-image img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* Habilidades e técnicas usam o cartão textual de habilidade da ficha.
+   Sem ilustração ou emblema: uma publicação equivale a uma habilidade. */
+#page .ae-warehouse-post.ae-wh-ability-post{
+ display:flex;flex-direction:column;gap:0;overflow:hidden;
+ background:linear-gradient(145deg,color-mix(in srgb,var(--theme-raised) 60%,var(--theme-panel)),var(--theme-panel));
+ box-shadow:inset 0 0 0 5px color-mix(in srgb,var(--theme-bg) 25%,transparent)
+}
+#page .ae-wh-ability-post::before{
+ content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+ background:linear-gradient(var(--theme-cold),transparent 80%);pointer-events:none
+}
+#page .ae-wh-ability-main{
+ display:grid;gap:11px;min-width:0;padding:19px 17px 13px
+}
+#page .ae-wh-ability-post .ae-wh-ability-title{
+ display:inline-flex;justify-self:start;align-items:center;
+ max-width:calc(100% + 12px);padding:7px 13px;margin:-2px 0 0 -22px;
+ background:var(--theme-text);color:var(--theme-bg);
+ font:900 19px/1.15 'Barlow Condensed',Impact,sans-serif;
+ text-transform:uppercase;letter-spacing:.03em;overflow-wrap:anywhere
+}
+#page .ae-wh-ability-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+#page .ae-wh-ability-meta>span{
+ color:var(--theme-cold);font-size:10px;letter-spacing:.06em;font-weight:900
+}
+#page .ae-wh-ability-meta>span+span{
+ color:var(--theme-text);opacity:.78;
+ padding-left:8px;border-left:1px solid var(--theme-structure)
+}
+#page .ae-wh-ability-teaser,#page .ae-wh-ability-description{
+ min-width:0;justify-self:stretch;color:var(--theme-text);
+ font-size:12px;line-height:1.8;overflow-wrap:anywhere
+}
+#page .ae-wh-ability-teaser{margin:0;white-space:pre-wrap;opacity:.9}
+#page .ae-wh-ability-description{padding:0;margin:0}
+#page .ae-wh-ability-description .book-paragraph{font-size:inherit;line-height:inherit}
+#page .ae-wh-ability-description > :first-child{margin-top:0}
+#page .ae-wh-ability-description > :last-child{margin-bottom:0}
+#page .ae-wh-ability-tags{padding:1px 17px 10px}
+#page .ae-wh-ability-actions{
+ display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+ margin-top:auto;padding:9px 17px 11px;
+ border-top:1px solid var(--theme-structure);background:transparent
+}
+#page .ae-wh-ability-post .ae-wh-ability-read{
+ display:flex;justify-content:space-between;align-items:center;gap:14px;
+ flex:1 1 180px;min-height:36px;padding:8px 2px;
+ background:transparent;border:0;color:var(--theme-cold);
+ font-size:10px;letter-spacing:.06em;font-weight:900;text-align:left;cursor:pointer
+}
+#page .ae-wh-ability-read>span{font-size:17px;line-height:1}
+#page .ae-wh-ability-read:is(:hover,:focus-visible){color:var(--theme-accent)}
+#page .ae-wh-ability-read:focus-visible{outline:2px solid var(--theme-cold);outline-offset:2px}
+#page .ae-wh-ability-actions .btn{font-size:10px}
+@media(max-width:680px){
+ #page .ae-wh-ability-main{padding:16px 13px 11px}
+ #page .ae-wh-ability-post .ae-wh-ability-title{margin-left:-18px}
+ #page .ae-wh-ability-tags{padding:1px 13px 10px}
+ #page .ae-wh-ability-actions{padding:8px 13px 10px}
+}
