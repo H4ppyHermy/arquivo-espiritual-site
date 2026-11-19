@@ -14,6 +14,7 @@
   updateTagPreview();updateImagePreview();
  }
  function readHiddenTags(tags){
+  if(!editActive)return undefined;
   return (Array.isArray(tags)?tags:[]).filter(tag=>hiddenDraft.has(fold(tag)));
  }
  function imageValue(){
