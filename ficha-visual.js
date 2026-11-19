@@ -107,7 +107,7 @@
  }
  function plain(value){
   return text(value).replace(/\[\/?cor(?:=#[0-9a-f]{6})?\]/gi,'')
-   .replace(/\[(?:barra|marca|contador):[^\]]+\]/gi,'[recurso]')
+   .replace(/\[(?:(?:barra|marca|contador):[^\]]+|sequencia(?::[^\]]+)?)\]/gi,'[recurso]')
    .replace(/[*_#>]/g,'').replace(/\s+/g,' ').trim();
  }
  function abilityCard(ab,index,ctx){
