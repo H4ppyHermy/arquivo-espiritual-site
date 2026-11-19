@@ -307,3 +307,41 @@ test('editor do Armazém salva tipo visual genérico sem automação',()=>{
  assert.equal(ctx.db.site.warehouse.posts[0].bars[0].visual,'contador');
  assert.equal(ctx.db.sheets[0].catalogEntries.length,1);
 });
+
+test('Sequência é configurável, persistida e exibida no HUD do Armazém',()=>{
+ const ctx=setup(true);
+ ctx.db.site.warehouse.posts.push({
+  id:'sequencia-teste',title:'Cadência',category:'Classes',published:true,content:'Recurso cumulativo.',
+  bars:[{id:'cadencia',label:'Cadência',visual:'sequencia',max:3,initial:2,reset:'manual'}]
+ });
+ ctx.elements.warehousePosts={innerHTML:''};
+ ctx.dispatch('click','','open:sequencia-teste',{kind:'warehouse'});
+ const html=ctx.elements.warehousePosts.innerHTML;
+ assert.match(html,/ae-wh-resource-slots--sequencia/);
+ assert.match(html,/aria-valuemax="3"/);
+ assert.match(html,/aria-valuenow="2"/);
+ assert.equal((html.match(/class="filled"/g)||[]).length,2);
+ ctx.dispatch('click','','edit:sequencia-teste',{kind:'warehouse'});
+ assert.match(ctx.modal(),/option value="sequencia" selected>Sequência/);
+ assert.match(ctx.modal(),/option value="sequencia">Sequência/);
+ const before=JSON.stringify(ctx.db.sheets);
+ ctx.elements.dialogRoot.dataset.warehouseId='';
+ Object.assign(ctx.elements,{
+  warehouseTitleInput:{value:'Cadência'},warehouseContentInput:{value:'[sequencia:2/3] Cadência'},
+  warehouseCategoryInput:{value:'Classes'},warehouseVisibilityInput:{value:'published'},
+  warehouseSummaryInput:{value:'Níveis cumulativos'},warehouseTagsInput:{value:'Artilharia'},
+  warehouseImageInput:{value:''},warehouseCostInput:{value:''},
+  warehouseBarRows:{querySelectorAll(){return [{
+   dataset:{barId:'cadencia'},querySelector(selector){
+    const fields={label:{value:'Cadência'},visual:{value:'sequencia'},max:{value:'3'},
+     initial:{value:'0'},reset:{value:'manual'},description:{value:'Aumenta em ataques à distância'}};
+    return fields[/\\[data-bar-field="([^"]+)"\\]/.exec(selector)?.[1]]||null;
+   }
+  }]}}
+ });
+ ctx.dispatch('click','','warehouse-save',{kind:'modal'});
+ const saved=ctx.db.site.warehouse.posts.find(x=>x.title==='Cadência'&&x.content.includes('[sequencia:2/3]'));
+ assert.equal(saved?.bars[0]?.visual,'sequencia');
+ assert.equal(saved?.bars[0]?.initial,0);
+ assert.equal(JSON.stringify(ctx.db.sheets),before);
+});
