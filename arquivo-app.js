@@ -1757,7 +1757,11 @@ function downloadText(filename,body){const url=URL.createObjectURL(new Blob([bod
 function publishData(){if(!requireMaster())return;downloadText('dados.js','window.ARQUIVO_PUBLICADO = '+JSON.stringify(db,null,2)+';\n');toast('Arquivo pronto','Envie dados.js junto do index.html para o Netlify.')}
 async function migrateLegacyKeys(){if(Array.isArray(db.keys))return;const old=db.keys||{},items=[];for(const [kind,name] of [['master','Mestre antigo'],['player','Jogador antigo']]){if(typeof old[kind]!=='string')continue;const salt=randomCode().replaceAll('-','');items.push({id:'legacy-'+kind,kind,name,hash:await hashKey(salt,old[kind]),salt,active:true,sheetId:kind==='player'?(db.sheets[0]?.id||''):null,demo:!db.keysChanged})}db.keys=items.length?items:clone(DEFAULT.keys);save()}
 
-function rollColorsForSkill(skill,abilityIndex){const s=db.sheets.find(x=>x.id===currentSheet);if(!s)return [];const p=sheetPalette(s.id);if(Number.isInteger(abilityIndex)){const ab=s.abilities?.[abilityIndex];if(ab)return Object.values(abilityDicePalette(s,ab))}return [p.diceGroup,p.diceSkill]}
+function rollColorsForSkill(){
+ const s=db.sheets.find(x=>x.id===currentSheet);
+ if(!s)return [];
+ const p=sheetPalette(s.id);return [p.diceGroup,p.diceSkill];
+}
 
 function fichaLocalTest(s,dice){
  // Teste local neutro: nenhum bônus, condição ou estado legado é aplicado.
