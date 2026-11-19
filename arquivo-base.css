@@ -166,14 +166,14 @@ body.editing-text [data-edit-text]:hover{outline:3px solid var(--theme-accent)}
 .group-die-label{display:flex;align-items:center;gap:9px;min-height:32px}
 @media(max-width:600px){.sheet-personal{padding:10px}.sheet-palette-controls{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
-/* Dados personalizados nas habilidades e no resultado de testes */
-.ability-dice{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:12px 0;margin-top:8px;border-top:1px solid var(--theme-raised)}
-.ability-dice .eyebrow{margin-right:8px}
-.ability-dice .die-figure{width:31px;height:31px}.ability-dice .die-figure svg{width:31px;height:31px}
+
+
+
+
 .roll-stage .die[style*="--roll-die"]{border-color:var(--roll-die);color:var(--roll-die)}
 .roll-stage .die[style*="--roll-die"] b{color:var(--roll-die)}
-.ability-color-editor{border-left:2px solid var(--theme-cold);padding:10px 14px;margin:12px 0}
-.ability-color-editor .form-grid{margin-top:10px}
+
+
 /* Ajuste dos controles deslizantes: 100% preenche toda a trilha. */
 input[type="range"]{appearance:none;-webkit-appearance:none;width:100%;height:30px;padding:0;border:0;background:transparent;cursor:pointer;--range-pct:100%}
 input[type="range"]::-webkit-slider-runnable-track{height:9px;border-radius:999px;background:linear-gradient(to right,var(--theme-cold) 0%,var(--theme-cold) var(--range-pct),var(--theme-raised) var(--range-pct),var(--theme-raised) 100%)}
