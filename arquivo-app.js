@@ -2196,7 +2196,7 @@ function bindEvents(){document.addEventListener('keydown',event=>{
 function background(){
  const canvas=el('energy');if(!canvas)return;
  const ctx=canvas.getContext('2d');if(!ctx)return;
- let w=0,h=0,t=0,items=[],lastDraw=0,wasVisible=false,frameId=0;
+ let w=0,h=0,t=0,items=[],lastDraw=0,wasVisible=false,frameId=0,lastPaletteRead=0,cold='#4CC9F0',warm='#FF7A1A';
  function resize(){
   const d=Math.min(devicePixelRatio||1,1.5);
   w=innerWidth;h=innerHeight;canvas.width=Math.floor(w*d);canvas.height=Math.floor(h*d);
@@ -2218,12 +2218,15 @@ function background(){
   frameId=0;
   if(!active()){refresh();return}
   frameId=requestAnimationFrame(frame);
-  if(now-lastDraw<1000/30)return;
+  if(now-lastDraw<1000/(page==='sheets'?12:24))return;
   lastDraw=now;wasVisible=true;t++;
   ctx.clearRect(0,0,w,h);
-  const style=getComputedStyle(document.documentElement);
-  const cold=style.getPropertyValue('--theme-cold').trim()||'#4CC9F0';
-  const warm=style.getPropertyValue('--theme-accent').trim()||'#FF7A1A';
+  if(now-lastPaletteRead>750){
+   const style=getComputedStyle(document.documentElement);
+   cold=style.getPropertyValue('--theme-cold').trim()||'#4CC9F0';
+   warm=style.getPropertyValue('--theme-accent').trim()||'#FF7A1A';
+   lastPaletteRead=now;
+  }
   for(const p of items){
    p.y-=p.v;if(p.y<-8){p.y=h+8;p.x=Math.random()*w}
    ctx.beginPath();ctx.fillStyle=p.orange?warm:cold;ctx.globalAlpha=p.orange?.72:.22;
