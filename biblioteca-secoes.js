@@ -331,7 +331,9 @@
   const get=id=>text(document.getElementById(id)?.value).trim();
   const title=get('warehouseTitleInput'),content=get('warehouseContentInput'),category=get('warehouseCategoryInput');
   const previous=w.posts.find(p=>p.id===id),defaultPost=warehouse().posts.find(p=>p.id===id);
-  const image=window.ARQUIVO_EDITOR_ARMAZEM?.imageValue?.()??get('warehouseImageInput');
+  const selectedImage=window.ARQUIVO_EDITOR_ARMAZEM?.imageValue?.();
+  const image=selectedImage===undefined?(get('warehouseImageInput')||text(previous?.image??defaultPost?.image??'')):selectedImage;
+  if(image===null){api.toast('Imagem em processamento','Conclua a seleção da miniatura antes de salvar.',true);return}
   if(!title||title.length>100){api.toast('Título obrigatório','Informe até 100 caracteres.',true);return}
   if(!content){api.toast('Conteúdo obrigatório','Escreva o conteúdo da publicação.',true);return}
   if(!w.categories.includes(category)){api.toast('Categoria inválida','Selecione uma categoria ativa.',true);return}
