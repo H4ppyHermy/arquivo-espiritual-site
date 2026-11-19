@@ -26,7 +26,7 @@
     'O dado correspondente ao grau de Vínculo de cada aliado tem −1 passo e seu resultado'],
    ['Os aliados recebem um dado adicional na próxima defesa contra ataque inimigo.',
     'Os aliados recebem um dado adicional correspondente ao seu grau de Vínculo com o Porta-voz na próxima defesa contra ataque inimigo.'],
-   ['\\n\\n> O valor do dado por grau de Afinidade depende das regras de criação de personagem ainda em desenvolvimento.','']
+   ['\n\n> O valor do dado por grau de Afinidade depende das regras de criação de personagem ainda em desenvolvimento.','']
   ];
   for(const [from,to] of changes)content=content.replace(from,to);
   const staleLabel=post.damage?.label==='Dado de Afinidade (valor não definido)';
