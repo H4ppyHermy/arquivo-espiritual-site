@@ -85,7 +85,7 @@ window.ARQUIVO_CLASSES_CBB = [
       "kind": "bonus",
       "count": 1,
       "faces": 0,
-      "label": "Dado de Afinidade (valor não definido)"
+      "label": "Dado de Vínculo (grau I: d6; II: d8; III: d12)"
     },
     "bars": [
       {
@@ -98,7 +98,7 @@ window.ARQUIVO_CLASSES_CBB = [
         "visual": "marca"
       }
     ],
-    "content": "## Identidade\nClasse especializada em fortalecer aliados, inspirar confiança e coordenar ações através da liderança.\n\n## Manobrista\nPossui [marca:1] de **Manobra** por cena. Ao utilizar Auxílio, escolha dois aliados com quem tenha pelo menos Afinidade e declare uma manobra coordenada. Auxilie o primeiro normalmente; se tiver sucesso, ele poderá auxiliar o segundo numa ação relacionada à manobra, sem gastar sua ação principal.\n\n[marca:1] **Ofensivo —** Aliados coordenados recebem um dado adicional ao dano-base de seu próximo ataque bem-sucedido, conforme o grau de relação com o Porta-voz. Esse dado não altera o teste de acerto.\n\n[marca:1] **Equilibrado —** Aliados recebem um dado adicional para dano-base ou testes defensivos, válido para a ação atual e a próxima ação elegível de cada aliado. O dado tem −1 passo e seu resultado é reduzido à metade, arredondado para cima, com mínimo 1.\n\n[marca:1] **Defensivo —** Os aliados recebem um dado adicional na próxima defesa contra ataque inimigo. O resultado é somado ao teste defensivo, conforme RT ou RA aplicável à defesa.\n\nCorpo — −1 passo em Instinto por ponto.\nMente — +1 passo em Lábia e em uma perícia de Mente à escolha por ponto.\nEspírito — −1 passo em Integridade por ponto.\n\n> O valor do dado por grau de Afinidade depende das regras de criação de personagem ainda em desenvolvimento.",
+    "content": "## Identidade\nClasse especializada em fortalecer aliados, inspirar confiança e coordenar ações através da liderança.\n\n## Manobrista\nPossui [marca:1] de **Manobra** por cena. Ao utilizar Auxílio, escolha dois aliados com os quais possua um Vínculo de grau I ou superior e declare uma manobra coordenada. Auxilie o primeiro normalmente; se tiver sucesso, ele poderá auxiliar o segundo numa ação relacionada à manobra, sem gastar sua ação principal.\n\n[marca:1] **Ofensivo —** Aliados coordenados recebem um dado adicional ao dano-base de seu próximo ataque bem-sucedido, conforme o grau de Vínculo de cada aliado com o Porta-voz (I: 1d6; II: 1d8; III: 1d12). Esse dado não altera o teste de acerto.\n\n[marca:1] **Equilibrado —** Aliados recebem um dado adicional para dano-base ou testes defensivos, válido para a ação atual e a próxima ação elegível de cada aliado. O dado correspondente ao grau de Vínculo de cada aliado tem −1 passo e seu resultado é reduzido à metade, arredondado para cima, com mínimo 1.\n\n[marca:1] **Defensivo —** Os aliados recebem um dado adicional correspondente ao seu grau de Vínculo com o Porta-voz na próxima defesa contra ataque inimigo. O resultado é somado ao teste defensivo, conforme RT ou RA aplicável à defesa.\n\nCorpo — −1 passo em Instinto por ponto.\nMente — +1 passo em Lábia e em uma perícia de Mente à escolha por ponto.\nEspírito — −1 passo em Integridade por ponto.",
     "published": true
   }
 ];
