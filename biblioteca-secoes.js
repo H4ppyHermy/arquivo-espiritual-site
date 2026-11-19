@@ -165,7 +165,7 @@
     '<div class="book-text ae-library-reading" id="aeWarehouseEditorPreview" aria-live="polite">'+api.formatBook(p.content||'')+'</div></div></div>'+
     '<p class="ae-warehouse-editor-status" id="warehouseEditorStats" role="status">'+String(p.content||'').length+' caracteres · '+String(p.content||'').trim().split(/\s+/).filter(Boolean).length+' palavras</p>'+
     '</section>'+
-   '<label class="ae-warehouse-publish"><input type="checkbox" id="warehousePublishedInput"'+(p.published===false?'':' checked')+'> Publicar para jogadores</label>'+(window.ARQUIVO_CATALOGO?.editorFields(p)||'')+'</div>',
+   '<label class="ae-warehouse-publish"><input type="checkbox" id="warehousePublishedInput"'+(p.published===false?'':' checked')+'> Publicar para jogadores</label>'+'</div>',
    [['SALVAR','warehouse-save','main'],...(found?[['EXCLUIR','warehouse-delete','danger']]:[]),['CANCELAR','closeModal','small']]);
   document.getElementById('dialogRoot').dataset.warehouseId=id;
   /* Os botões do modal são criados pelo aplicativo; redirecionamento no capturador abaixo. */
@@ -174,18 +174,19 @@
   if(!api.master())return;
   const id=document.getElementById('dialogRoot').dataset.warehouseId||'',w=writable();
   const get=id=>text(document.getElementById(id)?.value).trim();
-  const title=get('warehouseTitleInput'),content=get('warehouseContentInput'),image=get('warehouseImageInput'),category=get('warehouseCategoryInput');
+  const title=get('warehouseTitleInput'),content=get('warehouseContentInput'),category=get('warehouseCategoryInput');
+  const previous=w.posts.find(p=>p.id===id),defaultPost=warehouse().posts.find(p=>p.id===id);
+  const image=warehouseAllowsImage(category)?get('warehouseImageInput'):text(previous?.image??defaultPost?.image??'');
   if(!title||title.length>100){api.toast('Título obrigatório','Informe até 100 caracteres.',true);return}
   if(!content){api.toast('Conteúdo obrigatório','Escreva o conteúdo da publicação.',true);return}
   if(!w.categories.includes(category)){api.toast('Categoria inválida','Selecione uma categoria ativa.',true);return}
   if(image&&!safeImage(image)){api.toast('Imagem inválida','Informe um endereço HTTPS direto.',true);return}
   if(!id&&w.posts.length>=300){api.toast('Limite do Armazém','Máximo de 300 publicações.',true);return}
-  const previous=w.posts.find(p=>p.id===id),defaultPost=warehouse().posts.find(p=>p.id===id);if(id&&!previous&&!defaultPost)return;
-  let catalogExtra={};try{catalogExtra=window.ARQUIVO_CATALOGO?.readEditorExtra()||{}}catch(error){api.toast('Configuração inválida',error.message,true);return}
-  const entry={id:previous?.id||defaultPost?.id||api.uid(),title,category,
+  if(id&&!previous&&!defaultPost)return;
+  const entry={...(defaultPost||{}),...(previous||{}),id:previous?.id||defaultPost?.id||api.uid(),title,category,
    summary:get('warehouseSummaryInput').slice(0,280),image,cost:get('warehouseCostInput').slice(0,45),
    tags:get('warehouseTagsInput').slice(0,120),content:content.slice(0,20000),
-   published:!!document.getElementById('warehousePublishedInput')?.checked,...catalogExtra};
+   published:!!document.getElementById('warehousePublishedInput')?.checked};
   if(previous)Object.assign(previous,entry);else w.posts.unshift(entry);
   w.hiddenPosts=w.hiddenPosts.filter(key=>key!==entry.id);
   openedPost=entry.id;selectedCategory='Todas';search='';
@@ -273,6 +274,10 @@
  document.addEventListener('change',event=>{
   if(event.target.id==='warehouseCategorySelect'){
    selectedCategory=event.target.value;openedPost=null;refresh();
+  }
+  if(event.target.id==='warehouseCategoryInput'){
+   const field=document.getElementById('warehouseImageField');
+   if(field)field.hidden=!warehouseAllowsImage(event.target.value);
   }
  });
  window.ARQUIVO_SECOES={get active(){return active},set active(value){if(['book1','book2','warehouse'].includes(value))active=value},shelf,warehousePage,select,warehouse,getPost:id=>posts().find(p=>p.id===id),refresh};
