@@ -6,7 +6,7 @@
  const api=window.ARQUIVO_INTERNAL;
  if(!api)return;
  const BASE_CATEGORIES=['Classes','Habilidades','Técnicas','Itens','Outros'];
- let active='book1',selectedCategory='Todas',search='',openedPost=null;
+ let active='book1',selectedCategory='Todas',selectedTag='',search='',openedPost=null;
  const text=x=>String(x??'');
  const esc=x=>api.esc(x);
  const action=(label,key,style='small')=>'<button type="button" class="btn '+style+'" data-warehouse-action="'+key+'">'+label+'</button>';
@@ -41,10 +41,74 @@
   v=text(v).trim();
   return v.length<=1200&&/^https:\/\/[^\s"'<>]+$/i.test(v)?v:'';
  }
+
+ const fold=x=>text(x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR').trim();
+ function parseTags(raw){
+  const seen=new Set(),items=Array.isArray(raw)?raw:text(raw).split(/[,;\n]/);
+  return items.map(t=>text(t).trim().replace(/\s+/g,' ').slice(0,28)).filter(t=>{
+   const key=fold(t);if(!key||seen.has(key))return false;seen.add(key);return true;
+  }).slice(0,8);
+ }
+ function popularTags(){
+  const map=new Map();
+  for(const p of posts().filter(isPublished))for(const tag of parseTags(p.tags)){
+   const key=fold(tag),value=map.get(key)||{tag,count:0};value.count++;map.set(key,value);
+  }
+  return [...map.values()].sort((a,b)=>b.count-a.count||a.tag.localeCompare(b.tag,'pt-BR')).slice(0,12);
+ }
+ function tagFilters(){
+  const tags=popularTags(),hasFilter=!!search.trim()||!!selectedTag||selectedCategory!=='Todas';
+  return '<div class="ae-wh-tag-filter"><div class="ae-wh-tag-filter-heading"><span>TAGS EM DESTAQUE</span>'+
+   (hasFilter?'<button type="button" class="ae-wh-clear" data-warehouse-action="clear-filters">LIMPAR FILTROS</button>':'')+'</div>'+
+   (tags.length?'<div class="ae-wh-tag-options" aria-label="Filtrar por tags">'+tags.map(({tag,count})=>
+   '<button type="button" class="ae-wh-tag-option'+(fold(selectedTag)===fold(tag)?' is-active':'')+
+   '" aria-pressed="'+(fold(selectedTag)===fold(tag))+'" data-warehouse-action="tag:'+encodeURIComponent(tag)+'">#'+esc(tag)+
+   '<small>'+count+'</small></button>').join('')+'</div>':'<p class="ae-wh-tags-help">As tags das publicações aparecerão aqui.</p>')+'</div>';
+ }
+ function resourceBars(post){
+  const list=Array.isArray(post.bars)?post.bars.slice(0,8):[];
+  return list.filter(b=>b&&typeof b==='object').map(b=>{
+   const max=Number(b.max),raw=Number(b.initial);
+   if(!Number.isInteger(max)||max<1||max>20)return '';
+   const current=Number.isInteger(raw)?Math.max(0,Math.min(max,raw)):0;
+   const label=text(b.label||'Recurso').slice(0,65);
+   return '<div class="ae-wh-resource"><div class="ae-wh-resource-top"><strong>'+esc(label)+'</strong><span>'+current+' / '+max+'</span></div>'+
+    '<div class="ae-wh-resource-slots" role="meter" aria-label="'+esc(label)+' · valor inicial" aria-valuemin="0" aria-valuemax="'+max+'" aria-valuenow="'+current+'">'+
+    Array.from({length:max},(_,i)=>'<i aria-hidden="true"'+(i<current?' class="filled"':'')+'></i>').join('')+'</div>'+
+    (b.description?'<p>'+esc(text(b.description).slice(0,450))+'</p>':'')+
+    '<small>Valor inicial'+(b.reset==='scene'?' · por cena':' · ajuste manual')+'</small></div>';
+  }).join('');
+ }
+ function diceReference(post){
+  const d=post.damage;if(!d||typeof d!=='object'||d.kind==='none')return '';
+  const count=Number(d.count),faces=Number(d.faces);
+  const n=Number.isInteger(count)&&count>=1&&count<=6?count:1;
+  const notation=Number.isInteger(faces)&&faces>=2&&faces<=1000?n+'d'+faces:'A definir';
+  const name=({damage:'DANO',reduction:'REDUÇÃO',bonus:'BÔNUS',healing:'RECUPERAÇÃO'})[d.kind]||'DADO';
+  return '<div class="ae-wh-meta-line"><span>'+name+'</span><strong>'+esc(notation)+'</strong></div>'+
+   (d.label?'<p class="ae-wh-meta-hint">'+esc(text(d.label).slice(0,65))+'</p>':'');
+ }
+ function postDetail(post){
+  const title=text(post.title||'Registro'),bars=resourceBars(post),cost=text(post.cost).trim(),tags=parseTags(post.tags);
+  return '<div class="ae-wh-detail-layout"><div class="ae-wh-detail-text">'+
+   '<div class="ae-wh-detail-eyebrow">DESCRIÇÃO & FUNCIONAMENTO</div>'+
+   '<div class="book-text ae-library-reading ae-warehouse-reading">'+api.formatBook(post.content||'',title)+'</div></div>'+
+   '<aside class="ae-wh-detail-hud" aria-label="Referências da publicação">'+
+   '<div class="ae-wh-hud-heading"><span>REGISTRO TÉCNICO</span><strong>HUD DE REFERÊNCIA</strong></div>'+
+   '<div class="ae-wh-meta-line"><span>CATEGORIA</span><strong>'+esc(post.category||'Outros')+'</strong></div>'+
+   (cost?'<div class="ae-wh-meta-line"><span>CUSTO / USO</span><strong>'+esc(cost)+'</strong></div>':'')+
+   diceReference(post)+
+   (bars?'<div class="ae-wh-hud-section"><span class="ae-wh-hud-label">BARRAS DE RECURSO</span>'+bars+'</div>':'')+
+   (tags.length?'<div class="ae-wh-hud-section"><span class="ae-wh-hud-label">MARCADORES</span><div class="ae-wh-meta-tags">'+
+   tags.map(t=>'<span>#'+esc(t)+'</span>').join('')+'</div></div>':'')+
+   '<p class="ae-wh-hud-footnote">Referência visual. Nenhum recurso é alterado automaticamente.</p></aside></div>';
+ }
+
  function visible(){
-  const term=search.toLocaleLowerCase('pt-BR').trim();
+  const terms=fold(search).split(/\s+/).filter(Boolean);
   return posts().filter(p=>isPublished(p)&&(selectedCategory==='Todas'||p.category===selectedCategory)&&
-   (!term||[p.title,p.summary,p.content,p.category,p.tags].join(' ').toLocaleLowerCase('pt-BR').includes(term)));
+   (!selectedTag||parseTags(p.tags).some(t=>fold(t)===fold(selectedTag)))&&
+   (!terms.length||terms.every(term=>fold([p.title,p.summary,p.content,p.category,...parseTags(p.tags)].join(' ')).includes(term))));
  }
  function shelf(){
   const volumes=[
@@ -64,7 +128,7 @@
  }
  function select(section){
   if(!['book1','book2','warehouse'].includes(section)||active===section)return;
-  active=section;search='';selectedCategory='Todas';openedPost=null;
+  active=section;search='';selectedCategory='Todas';selectedTag='';openedPost=null;
   api.resetLibraryState();
   api.render();
  }
@@ -79,27 +143,40 @@
  function cards(){
   const found=visible();
   if(!found.length){
-   const empty=!search.trim()&&selectedCategory==='Todas';
+   const empty=!search.trim()&&selectedCategory==='Todas'&&!selectedTag;
    return '<div class="ae-warehouse-empty" role="status"><strong>'+
     (empty?'O Armazém ainda não possui publicações.':'Nenhuma publicação encontrada.')+'</strong><p>'+
-    (empty&&api.master()?'Crie uma publicação e organize-a por categoria.':'Experimente outra pesquisa ou categoria.')+'</p>'+
-    (empty&&api.master()?action('+ NOVA PUBLICAÇÃO','edit:new','main'):'')+'</div>';
+    (empty&&api.master()?'Crie a primeira publicação e organize o acervo.':'Experimente outra tag, categoria ou pesquisa.')+'</p>'+
+    (empty&&api.master()?action('+ NOVA PUBLICAÇÃO','edit:new','main'):'')+
+    (!empty?action('LIMPAR FILTROS','clear-filters','small'):'')+'</div>';
   }
-  return found.map(p=>{
-   const id=text(p.id),opened=openedPost===id,photo=warehouseAllowsImage(p.category)?safeImage(p.image):'',summary=text(p.summary).trim(),cost=text(p.cost).trim();
-   const tags=text(p.tags).split(',').map(x=>x.trim()).filter(Boolean).slice(0,5);
+  return found.map((p,index)=>{
+   const id=text(p.id||''),opened=openedPost===id,photo=warehouseAllowsImage(p.category)?safeImage(p.image):'';
+   const summary=text(p.summary).trim(),cost=text(p.cost).trim(),tags=parseTags(p.tags);
+   const category=text(p.category||'Outros'),abbr=({Classes:'CL',Habilidades:'HB',Técnicas:'TC',Itens:'IT'})[category]||'AR';
    return '<article class="ae-warehouse-post'+(opened?' is-open':'')+'" id="warehousePost-'+esc(id)+'">'+
-    '<div class="ae-warehouse-post-head"><div><span class="ae-library-kicker">'+esc(p.category||'Outros')+'</span>'+
-    '<h3>'+esc(p.title||'Sem título')+'</h3></div>'+(cost?'<span class="ae-warehouse-cost">'+esc(cost)+'</span>':'')+'</div>'+
-    (photo?'<figure class="ae-warehouse-image"><img loading="lazy" decoding="async" referrerpolicy="no-referrer" src="'+esc(photo)+'" alt="'+esc(p.title||'Imagem da publicação')+'"></figure>':'')+
-    (summary?'<p class="ae-warehouse-summary">'+esc(summary)+'</p>':'')+
-    (tags.length?'<div class="ae-warehouse-tags">'+tags.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div>':'')+
-    (p.published===false&&api.master()?'<p class="ae-warehouse-draft">RASCUNHO · OCULTO NA INTERFACE DO JOGADOR</p>':'')+
-    '<div class="ae-warehouse-actions">'+action(opened?'RECOLHER':'LER PUBLICAÇÃO','open:'+encodeURIComponent(id))+
-    (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+action('↑','move:'+encodeURIComponent(id)+':-1')+
-     action('↓','move:'+encodeURIComponent(id)+':1'):'')+'</div>'+
-    '<div class="ae-warehouse-reading book-text ae-library-reading" id="warehouseBody-'+esc(id)+'" role="region" aria-label="Conteúdo de '+esc(p.title)+'"'+(opened?'':' hidden')+'>'+
-    (opened?api.formatBook(p.content||'',p.title||''):'')+'</div></article>';
+    '<div class="ae-wh-post-accent" aria-hidden="true"></div>'+
+    '<div class="ae-wh-post-heading"><div class="ae-wh-post-id"><span class="ae-wh-number">'+String(index+1).padStart(2,'0')+'</span>'+
+    '<span class="ae-wh-kind">'+esc(category)+'</span></div>'+
+    (cost?'<span class="ae-warehouse-cost">'+esc(cost)+'</span>':'')+'</div>'+
+    '<div class="ae-wh-post-showcase">'+
+    (photo?'<figure class="ae-warehouse-image"><img loading="lazy" decoding="async" referrerpolicy="no-referrer" src="'+esc(photo)+'" alt="'+esc(p.title||'Imagem da publicação')+'"></figure>':
+    '<div class="ae-wh-emblem" aria-hidden="true"><span>'+abbr+'</span><small>魂</small></div>')+
+    '<div class="ae-wh-post-copy"><span class="ae-wh-file-label">ARQUIVO ESPIRITUAL / '+esc(category.toLocaleUpperCase('pt-BR'))+'</span>'+
+    '<h3>'+esc(p.title||'Sem título')+'</h3>'+
+    (summary?'<p class="ae-warehouse-summary">'+esc(summary)+'</p>':'<p class="ae-warehouse-summary ae-wh-summary-muted">Abra para consultar a descrição completa.</p>')+
+    '</div></div>'+
+    (tags.length?'<div class="ae-warehouse-tags" aria-label="Tags">'+tags.map(tag=>
+    '<button type="button" data-warehouse-action="tag:'+encodeURIComponent(tag)+'" title="Filtrar por '+esc(tag)+'">#'+esc(tag)+'</button>').join('')+'</div>':'')+
+    (p.published===false&&api.master()?'<p class="ae-warehouse-draft">RASCUNHO · OCULTO PARA JOGADORES</p>':'')+
+    '<div class="ae-warehouse-actions"><button type="button" class="btn small ae-wh-read-btn" data-warehouse-action="open:'+encodeURIComponent(id)+
+    '" aria-expanded="'+opened+'" aria-controls="warehouseBody-'+esc(id)+'">'+(opened?'RECOLHER REGISTRO':'CONSULTAR REGISTRO')+
+    '<span aria-hidden="true">'+(opened?'−':'+')+'</span></button>'+
+    (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+
+     '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':-1" aria-label="Mover '+esc(p.title)+' para cima" title="Mover para cima">↑</button>'+
+     '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':1" aria-label="Mover '+esc(p.title)+' para baixo" title="Mover para baixo">↓</button>':'')+'</div>'+
+    '<section id="warehouseBody-'+esc(id)+'" class="ae-wh-expanded" aria-label="Detalhes de '+esc(p.title||'Publicação')+'"'+(opened?'':' hidden')+'>'+
+    (opened?postDetail(p):'')+'</section></article>';
   }).join('');
  }
  function warehousePage(){
@@ -120,53 +197,113 @@
    '<div class="ae-warehouse-mobile-categories"><label for="warehouseCategorySelect">Categoria</label>'+
    '<select id="warehouseCategorySelect"><option value="Todas">Todas</option>'+w.categories.map(name=>'<option value="'+esc(name)+'"'+(selectedCategory===name?' selected':'')+'>'+esc(name)+'</option>').join('')+'</select></div>'+
    (api.master()?'<div class="ae-warehouse-mobile-manage">'+action('EDITAR CATEGORIAS','categories')+'</div>':'')+'</div>'+
-   '<div class="ae-warehouse-posts" id="warehousePosts">'+cards()+'</div></section>'+shelf()+'</div>';
+   '<div id="warehouseTagFilters">'+tagFilters()+'</div><div class="ae-warehouse-posts" id="warehousePosts">'+cards()+'</div></section>'+shelf()+'</div>';
  }
  function refresh(){
   const root=document.getElementById('warehousePosts');if(root)root.innerHTML=cards();
   const nav=document.getElementById('warehouseCategoryList');if(nav)nav.innerHTML=categoryMarkup();
   const count=document.getElementById('warehouseMatches');if(count){const n=visible().length;count.textContent=n+' '+(n===1?'publicação encontrada':'publicações encontradas')}
   const select=document.getElementById('warehouseCategorySelect');if(select)select.value=selectedCategory;
+  const tags=document.getElementById('warehouseTagFilters');if(tags)tags.innerHTML=tagFilters();
  }
+
+ function barEditorRow(raw={},index=0){
+  const max=Math.max(1,Math.min(20,Number(raw.max)||3)),initial=Math.max(0,Math.min(max,Number(raw.initial)||0));
+  return '<div class="ae-wh-bar-row" data-warehouse-bar data-bar-id="'+esc(raw.id||'')+'">'+
+   '<div class="ae-wh-bar-row-heading"><strong>RECURSO '+(index+1)+'</strong>'+
+   '<button type="button" class="btn small danger" data-warehouse-editor="remove-bar">REMOVER</button></div>'+
+   '<div class="ae-wh-bar-fields"><label>Nome do recurso<input data-bar-field="label" maxlength="65" placeholder="Ex.: Têmpera" value="'+esc(raw.label||'')+'"></label>'+
+   '<label>Máximo<input data-bar-field="max" type="number" inputmode="numeric" min="1" max="20" value="'+max+'"></label>'+
+   '<label>Valor inicial<input data-bar-field="initial" type="number" inputmode="numeric" min="0" max="20" value="'+initial+'"></label></div>'+
+   '<label>Como funciona? (opcional)<textarea data-bar-field="description" rows="2" maxlength="450" placeholder="Quando ganha ou gasta marcas, e para quê.">'+esc(raw.description||'')+'</textarea></label>'+
+   '<label class="ae-wh-bar-mode">Referência de uso<select data-bar-field="reset"><option value="manual"'+(raw.reset==='scene'?'':' selected')+'>Ajuste manual</option>'+
+   '<option value="scene"'+(raw.reset==='scene'?' selected':'')+'>Reinicia por cena (referência)</option></select></label></div>';
+ }
+ function readEditorBars(fallback){
+  const area=document.getElementById('warehouseBarRows');
+  if(!area)return Array.isArray(fallback)?fallback:[];
+  const nodes=[...area.querySelectorAll('[data-warehouse-bar]')];
+  if(nodes.length>8)throw Error('O limite é de 8 barras por publicação.');
+  const seen=new Set();
+  return nodes.map((node,index)=>{
+   const field=name=>node.querySelector('[data-bar-field="'+name+'"]');
+   const label=text(field('label')?.value).trim(),max=Number(field('max')?.value),initial=Number(field('initial')?.value);
+   if(!label||label.length>65)throw Error('Informe o nome da barra '+(index+1)+'.');
+   if(!Number.isInteger(max)||max<1||max>20||!Number.isInteger(initial)||initial<0||initial>max)
+    throw Error('Na barra "'+label+'", use máximo de 1 a 20 e valor inicial entre 0 e o máximo.');
+   const id=text(node.dataset.barId||'').trim()||api.uid();
+   if(seen.has(id))throw Error('Barras com identificadores duplicados.');seen.add(id);
+   return {id,label,max,initial,reset:field('reset')?.value==='scene'?'scene':'manual',
+    description:text(field('description')?.value).trim().slice(0,450)};
+  });
+ }
+ function editorTagSuggestions(current){
+  const used=new Set(parseTags(current).map(fold));
+  const suggestions=popularTags().filter(({tag})=>!used.has(fold(tag))).slice(0,8);
+  return '<div class="ae-wh-editor-suggest"><span>ADICIONAR RAPIDAMENTE</span><div>'+
+   (suggestions.length?suggestions.map(({tag})=>
+    '<button type="button" data-warehouse-editor="add-tag:'+encodeURIComponent(tag)+'">+ '+esc(tag)+'</button>').join(''):
+    '<small>Digite as tags separadas por vírgulas.</small>')+'</div></div>';
+ }
+
  function edit(raw){
   if(!api.master())return;
   let id='';try{id=raw==='new'?'':decodeURIComponent(raw)}catch{return}
   const w=warehouse(),found=w.posts.find(p=>p.id===id);
   if(id&&!found)return;
   const p=found||{title:'',category:w.categories[0],summary:'',content:'',image:'',cost:'',tags:'',published:true};
-  api.modal(id?'EDITAR PUBLICAÇÃO':'NOVA PUBLICAÇÃO','<div class="ae-warehouse-editor">'+
-   '<p class="subtitle">Registros publicados ou rascunhos ocultos na interface dos jogadores. Rascunhos ainda fazem parte dos dados sincronizados.</p>'+
-   '<label>Título<input id="warehouseTitleInput" maxlength="100" required value="'+esc(p.title)+'" placeholder="Ex.: Shunpō"></label>'+
-   '<div class="ae-warehouse-editor-row"><label>Categoria<select id="warehouseCategoryInput">'+w.categories.map(c=>'<option value="'+esc(c)+'"'+(p.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'+
-   '<label>Custo (opcional)<input id="warehouseCostInput" maxlength="45" value="'+esc(p.cost)+'" placeholder="Ex.: 2 ALMA"></label></div>'+
-   '<label>Resumo<input id="warehouseSummaryInput" maxlength="280" value="'+esc(p.summary)+'" placeholder="Uma frase sobre a publicação"></label>'+
-   '<div class="ae-warehouse-image-field" id="warehouseImageField"'+(warehouseAllowsImage(p.category)?'':' hidden')+'><label>Imagem (URL HTTPS)<input id="warehouseImageInput" type="url" maxlength="1200" value="'+esc(p.image||'')+'" placeholder="https://..."></label></div>'+
-   '<label>Marcadores separados por vírgula<input id="warehouseTagsInput" maxlength="120" value="'+esc(p.tags)+'" placeholder="Mobilidade, Shinigami"></label>'+
-   '<section class="ae-warehouse-compose" aria-label="Editor da publicação"><div class="ae-warehouse-compose-heading">'+
-    '<strong>CONTEÚDO DA PUBLICAÇÃO</strong><small>Formatação e prévia ao vivo</small></div>'+
-    '<div class="ae-warehouse-editor-toolbar" role="toolbar" aria-label="Formatar publicação">'+
-    '<button type="button" data-warehouse-editor="format:bold" title="Negrito (Ctrl+B)"><b>B</b></button>'+
-    '<button type="button" data-warehouse-editor="format:italic" title="Itálico (Ctrl+I)"><em>I</em></button>'+
-    '<button type="button" data-warehouse-editor="format:heading">TÍTULO</button>'+
-    '<button type="button" data-warehouse-editor="format:list">LISTA</button>'+
-    '<button type="button" data-warehouse-editor="format:quote">CITAÇÃO</button>'+
-    '<label>COR <input id="warehouseEditorColor" type="color" value="#39D6F4" aria-label="Cor do trecho selecionado"></label>'+
-    '<button type="button" data-warehouse-editor="format:color">COLORIR</button></div>'+
-    '<div class="ae-warehouse-compose-templates"><label>ESTRUTURA PRONTA<select id="warehouseEditorTemplate">'+
-    '<option value="ability">Habilidade / técnica</option><option value="class">Classe</option>'+
-    '<option value="item">Item</option><option value="rule">Regra / mecânica</option></select></label>'+
-    '<button type="button" class="btn small" data-warehouse-editor="insert-template">INSERIR BLOCO</button>'+
-    '<label>DADO<select id="warehouseEditorDie">'+[4,6,8,10,12,14,16,18,20].map(n=>'<option value="'+n+'">d'+n+'</option>').join('')+'</select></label>'+
-    '<button type="button" class="btn small" data-warehouse-editor="insert-die">INSERIR DADO</button></div>'+
-    '<div class="ae-warehouse-compose-grid"><div class="ae-warehouse-compose-source">'+
-    '<label for="warehouseContentInput">Escrever conteúdo<textarea id="warehouseContentInput" rows="16" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="## Descrição\n\nExplique a classe, habilidade ou técnica.">'+esc(p.content)+'</textarea></label>'+
-    '<p id="warehouseEditorHint" class="ae-cat-help">Selecione palavras e use os botões acima. Ctrl+B e Ctrl+I também funcionam.</p></div>'+
-    '<div class="ae-warehouse-compose-preview"><strong>PRÉ-VISUALIZAÇÃO</strong>'+
-    '<div class="book-text ae-library-reading" id="aeWarehouseEditorPreview" aria-live="polite">'+api.formatBook(p.content||'')+'</div></div></div>'+
-    '<p class="ae-warehouse-editor-status" id="warehouseEditorStats" role="status">'+String(p.content||'').length+' caracteres · '+String(p.content||'').trim().split(/\s+/).filter(Boolean).length+' palavras</p>'+
-    '</section>'+
-   '<label class="ae-warehouse-publish"><input type="checkbox" id="warehousePublishedInput"'+(p.published===false?'':' checked')+'> Publicar para jogadores</label>'+'</div>',
-   [['SALVAR','warehouse-save','main'],...(found?[['EXCLUIR','warehouse-delete','danger']]:[]),['CANCELAR','closeModal','small']]);
+  const count=(Array.isArray(p.bars)?p.bars:[]).length;
+  api.modal(id?'EDITAR PUBLICAÇÃO':'NOVA PUBLICAÇÃO',
+   '<div class="ae-warehouse-editor ae-wh-simple-editor">'+
+    '<div class="ae-wh-editor-intro"><span>EDIÇÃO DO ACERVO</span><strong>'+ (id?'Atualize os detalhes do registro':'Crie um novo registro')+'</strong>'+
+    '<p>Preencha o essencial primeiro. Informações técnicas e recursos são opcionais.</p></div>'+
+    '<section class="ae-wh-editor-section" aria-label="Informações principais"><div class="ae-wh-editor-section-title"><span>01</span><strong>IDENTIDADE</strong></div>'+
+    '<label>Nome da publicação<input id="warehouseTitleInput" maxlength="100" required autofocus value="'+esc(p.title||'')+'" placeholder="Ex.: Especialista em Hohō"></label>'+
+    '<div class="ae-warehouse-editor-row"><label>Categoria<select id="warehouseCategoryInput">'+w.categories.map(c=>
+     '<option value="'+esc(c)+'"'+(p.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'+
+    '<label>Visibilidade<select id="warehouseVisibilityInput"><option value="published"'+(p.published===false?'':' selected')+'>Publicado para jogadores</option>'+
+    '<option value="draft"'+(p.published===false?' selected':'')+'>Rascunho do mestre</option></select></label></div>'+
+    '<label>Resumo para o cartão<input id="warehouseSummaryInput" maxlength="280" value="'+esc(p.summary||'')+'" placeholder="O que esta classe, técnica ou item faz?"></label>'+
+    '<div class="ae-wh-editor-tags"><label>Tags <span class="ae-wh-field-helper">Separe por vírgulas · máximo de 8</span>'+
+     '<input id="warehouseTagsInput" maxlength="220" value="'+esc(p.tags||'')+'" placeholder="Ex.: Mobilidade, Defesa, Hohō"></label>'+
+    '<div id="warehouseTagPreview" class="ae-wh-editor-tag-preview">'+parseTags(p.tags).map(t=>'<span>#'+esc(t)+'</span>').join('')+'</div>'+
+    editorTagSuggestions(p.tags)+'</div></section>'+
+    '<section class="ae-wh-editor-section" aria-label="Descrição"><div class="ae-wh-editor-section-title"><span>02</span><strong>DESCRIÇÃO</strong></div>'+
+    '<div class="ae-warehouse-compose" aria-label="Editor da publicação">'+
+     '<div class="ae-warehouse-compose-heading"><strong>CONTEÚDO DA PUBLICAÇÃO</strong><small>Escrita e pré-visualização</small></div>'+
+     '<div class="ae-warehouse-editor-toolbar" role="toolbar" aria-label="Formatar publicação">'+
+     '<button type="button" data-warehouse-editor="format:bold" title="Negrito (Ctrl+B)"><b>B</b></button>'+
+     '<button type="button" data-warehouse-editor="format:italic" title="Itálico (Ctrl+I)"><em>I</em></button>'+
+     '<button type="button" data-warehouse-editor="format:heading">TÍTULO</button>'+
+     '<button type="button" data-warehouse-editor="format:list">LISTA</button>'+
+     '<button type="button" data-warehouse-editor="format:quote">CITAÇÃO</button>'+
+     '<label>COR <input id="warehouseEditorColor" type="color" value="#39D6F4" aria-label="Cor do trecho selecionado"></label>'+
+     '<button type="button" data-warehouse-editor="format:color">COLORIR</button></div>'+
+     '<div class="ae-warehouse-compose-templates"><label>MODELO<select id="warehouseEditorTemplate">'+
+      '<option value="ability">Habilidade / técnica</option><option value="class">Classe</option>'+
+      '<option value="item">Item</option><option value="rule">Regra / mecânica</option></select></label>'+
+     '<button type="button" class="btn small" data-warehouse-editor="insert-template">INSERIR MODELO</button>'+
+     '<label>DADO<select id="warehouseEditorDie">'+[4,6,8,10,12,14,16,18,20].map(n=>
+       '<option value="'+n+'">d'+n+'</option>').join('')+'</select></label>'+
+     '<button type="button" class="btn small" data-warehouse-editor="insert-die">INSERIR DADO</button></div>'+
+     '<div class="ae-warehouse-compose-grid"><div class="ae-warehouse-compose-source">'+
+     '<label for="warehouseContentInput">Texto completo<textarea id="warehouseContentInput" rows="14" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="## Descrição\n\nExplique a classe, habilidade ou técnica.">'+esc(p.content||'')+'</textarea></label>'+
+     '<p id="warehouseEditorHint" class="ae-cat-help">Selecione o texto para aplicar formatação. Ctrl+B e Ctrl+I também funcionam.</p></div>'+
+     '<div class="ae-warehouse-compose-preview"><strong>COMO SERÁ EXIBIDO</strong>'+
+     '<div class="book-text ae-library-reading" id="aeWarehouseEditorPreview" aria-live="polite">'+api.formatBook(p.content||'')+'</div></div></div>'+
+     '<p class="ae-warehouse-editor-status" id="warehouseEditorStats" role="status">'+text(p.content||'').length+' caracteres · '+
+      text(p.content||'').trim().split(/\s+/).filter(Boolean).length+' palavras</p></div></section>'+
+    '<details class="ae-wh-editor-advanced"'+(count?' open':'')+'><summary><span class="ae-wh-adv-number">03</span>'+
+     '<span><strong>DETALHES & HUD DE RECURSOS</strong><small>Opcional · custo, imagem permitida e barras informativas</small></span>'+
+     '<span class="ae-wh-advanced-chevron" aria-hidden="true">⌄</span></summary>'+
+     '<div class="ae-wh-editor-advanced-body"><label>Custo ou referência (opcional)<input id="warehouseCostInput" maxlength="45" value="'+esc(p.cost||'')+'" placeholder="Ex.: 2 Alma ou Sem custo"></label>'+
+     '<div class="ae-warehouse-image-field" id="warehouseImageField"'+(warehouseAllowsImage(p.category)?'':' hidden')+'>'+
+      '<label>Imagem ilustrativa (URL HTTPS)<input id="warehouseImageInput" type="url" maxlength="1200" value="'+esc(p.image||'')+'" placeholder="https://..."></label></div>'+
+     '<div class="ae-wh-bar-editor-heading"><strong>BARRAS DE RECURSO</strong><p>O jogador verá o valor inicial e as regras de cada recurso na leitura expandida. Não é uma automação de ficha.</p></div>'+
+     '<div id="warehouseBarRows" class="ae-wh-bar-rows">'+(Array.isArray(p.bars)?p.bars.slice(0,8):[]).map(barEditorRow).join('')+'</div>'+
+     '<button type="button" class="btn small ae-wh-add-bar" data-warehouse-editor="add-bar">+ ADICIONAR BARRA</button>'+
+     '</div></details></div>',
+   [['SALVAR PUBLICAÇÃO','warehouse-save','main'],...(found?[['EXCLUIR','warehouse-delete','danger']]:[]),['CANCELAR','closeModal','small']]);
   document.getElementById('dialogRoot').dataset.warehouseId=id;
   /* Os botões do modal são criados pelo aplicativo; redirecionamento no capturador abaixo. */
  }
@@ -183,13 +320,19 @@
   if(image&&!safeImage(image)){api.toast('Imagem inválida','Informe um endereço HTTPS direto.',true);return}
   if(!id&&w.posts.length>=300){api.toast('Limite do Armazém','Máximo de 300 publicações.',true);return}
   if(id&&!previous&&!defaultPost)return;
+  let bars=[];try{bars=readEditorBars(previous?.bars??defaultPost?.bars??[])}
+  catch(error){api.toast('Revise as barras',error.message,true);return}
+  const tags=parseTags(get('warehouseTagsInput'));
+  const joinedTags=tags.join(', ');
+  if(joinedTags.length>200){api.toast('Tags extensas','Reduza os nomes ou o número de tags.',true);return}
+  const selectedVisibility=document.getElementById('warehouseVisibilityInput')?.value;
+  const published=selectedVisibility?selectedVisibility==='published':!!document.getElementById('warehousePublishedInput')?.checked;
   const entry={...(defaultPost||{}),...(previous||{}),id:previous?.id||defaultPost?.id||api.uid(),title,category,
    summary:get('warehouseSummaryInput').slice(0,280),image,cost:get('warehouseCostInput').slice(0,45),
-   tags:get('warehouseTagsInput').slice(0,120),content:content.slice(0,20000),
-   published:!!document.getElementById('warehousePublishedInput')?.checked};
+   tags:joinedTags,content:content.slice(0,20000),bars,published};
   if(previous)Object.assign(previous,entry);else w.posts.unshift(entry);
   w.hiddenPosts=w.hiddenPosts.filter(key=>key!==entry.id);
-  openedPost=entry.id;selectedCategory='Todas';search='';
+  openedPost=entry.id;selectedCategory='Todas';selectedTag='';search='';
   api.save();api.closeModal();api.render();api.toast('Publicação salva',title);
  }
  function removePost(){
@@ -241,6 +384,13 @@
   if(type==='move')move(parts[0],Number(parts[1]));
   if(type==='categories')categories();
   if(type==='save-categories')saveCategories();
+  if(type==='clear-filters'){
+   selectedCategory='Todas';selectedTag='';search='';openedPost=null;api.render();return;
+  }
+  if(type==='tag'){
+   let value='';try{value=decodeURIComponent(parts.join(':'))}catch{return}
+   selectedTag=fold(selectedTag)===fold(value)?'':value;openedPost=null;refresh();return;
+  }
   if(type==='category'){
    let value='';try{value=decodeURIComponent(parts.join(':'))}catch{return}
    if(value!=='Todas'&&!warehouse().categories.includes(value))return;
@@ -280,5 +430,5 @@
    if(field)field.hidden=!warehouseAllowsImage(event.target.value);
   }
  });
- window.ARQUIVO_SECOES={get active(){return active},set active(value){if(['book1','book2','warehouse'].includes(value))active=value},shelf,warehousePage,select,warehouse,getPost:id=>posts().find(p=>p.id===id),refresh};
+ window.ARQUIVO_SECOES={get active(){return active},set active(value){if(['book1','book2','warehouse'].includes(value))active=value},shelf,warehousePage,select,warehouse,getPost:id=>posts().find(p=>p.id===id),refresh,barEditorRow,parseTags};
 })();

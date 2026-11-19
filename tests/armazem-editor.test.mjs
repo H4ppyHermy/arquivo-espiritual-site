@@ -134,3 +134,85 @@ test('interface de fichas não apresenta a aba Acervo nem executa o módulo ante
  assert.match(app,/if\(tab==='catalog'\)tab='summary'/);
  assert.doesNotMatch(html,/<script[^>]+src="habilidades-3\.0\.js/);
 });
+
+
+test('um registro expandido apresenta HUD informativo, dados e descrição sem alterar fichas',()=>{
+ const ctx=setup();
+ const before=JSON.stringify(ctx.db.sheets);
+ ctx.elements.warehousePosts={innerHTML:''};
+ ctx.dispatch('click','','open:classe-coracao-de-aco',{kind:'warehouse'});
+ const html=ctx.elements.warehousePosts.innerHTML;
+ assert.match(html,/HUD DE REFERÊNCIA/);
+ assert.match(html,/Têmpera/);
+ assert.match(html,/BARRAS DE RECURSO/);
+ assert.match(html,/role="meter"/);
+ assert.match(html,/aria-valuemax="3"/);
+ assert.match(html,/REDUÇÃO/);
+ assert.match(html,/1d4/);
+ assert.match(html,/Referência visual/);
+ assert.doesNotMatch(html,/GASTAR|GANHAR|ENVIAR À FICHA/);
+ assert.equal(JSON.stringify(ctx.db.sheets),before);
+});
+
+test('tags dos registros são clicáveis, pesquisáveis e não diferenciam acentos ou caixa',()=>{
+ const ctx=setup(),{window}=ctx;
+ const list=window.ARQUIVO_SECOES.parseTags('Defesa, defesa, Hohō, HOHO, Corpo');
+ assert.deepEqual(Array.from(list),['Defesa','Hohō','Corpo']);
+ ctx.elements.warehousePosts={innerHTML:''};
+ ctx.elements.warehouseMatches={textContent:''};
+ ctx.elements.warehouseTagFilters={innerHTML:''};
+ ctx.dispatch('click','','tag:Defesa',{kind:'warehouse'});
+ assert.match(ctx.elements.warehousePosts.innerHTML,/Coração de Aço/);
+ assert.doesNotMatch(ctx.elements.warehousePosts.innerHTML,/Porta-voz/);
+ assert.match(ctx.elements.warehouseTagFilters.innerHTML,/aria-pressed="true"/);
+ assert.match(ctx.elements.warehouseMatches.textContent,/1 publicação encontrada/);
+ ctx.dispatch('click','','tag:Defesa',{kind:'warehouse'});
+ assert.match(ctx.elements.warehousePosts.innerHTML,/Porta-voz/);
+ ctx.dispatch('input','warehouseSearch','',{value:'hoho'});
+ assert.match(ctx.elements.warehousePosts.innerHTML,/Especialista em Hohō/);
+ assert.doesNotMatch(ctx.elements.warehousePosts.innerHTML,/Coração de Aço/);
+});
+
+test('editor mostra identidade, descrição, detalhes opcionais e barras de leitura',()=>{
+ const ctx=setup();
+ ctx.dispatch('click','','edit:classe-cacador',{kind:'warehouse'});
+ const html=ctx.modal();
+ assert.match(html,/IDENTIDADE/);
+ assert.match(html,/DESCRIÇÃO/);
+ assert.match(html,/DETALHES & HUD DE RECURSOS/);
+ assert.match(html,/warehouseVisibilityInput/);
+ assert.match(html,/warehouseTagPreview/);
+ assert.match(html,/add-tag:/);
+ assert.match(html,/id="warehouseBarRows"/);
+ assert.match(html,/data-bar-field="max"/);
+ assert.match(html,/Contadores de armadilha/);
+ assert.match(html,/ADICIONAR BARRA/);
+ assert.doesNotMatch(html,/ENVIAR À FICHA/);
+});
+
+test('o mestre pode salvar tags deduplicadas e barras informativas sem afetar ficha',()=>{
+ const ctx=setup(),before=JSON.stringify(ctx.db.sheets);
+ ctx.elements.dialogRoot.dataset.warehouseId='';
+ Object.assign(ctx.elements,{
+  warehouseTitleInput:{value:'Passo Sereno'},warehouseContentInput:{value:'Descrição do recurso'},
+  warehouseCategoryInput:{value:'Habilidades'},warehouseVisibilityInput:{value:'draft'},
+  warehouseSummaryInput:{value:'Mobilidade defensiva'},warehouseTagsInput:{value:'Defesa, defesa, Hohō'},
+  warehouseImageInput:{value:''},warehouseCostInput:{value:'1 ALMA'},
+  warehouseBarRows:{querySelectorAll(selector){
+   assert.equal(selector,'[data-warehouse-bar]');
+   const fields={label:{value:'Energia'},max:{value:'5'},initial:{value:'2'},reset:{value:'manual'},description:{value:'Gastável narrativamente'}};
+   return [{dataset:{barId:''},querySelector(key){
+    const m=/\[data-bar-field="([^"]+)"\]/.exec(key);return fields[m?.[1]]||null;
+   }}];
+  }}
+ });
+ ctx.dispatch('click','','warehouse-save',{kind:'modal'});
+ const post=ctx.db.site.warehouse.posts[0];
+ assert.equal(post.title,'Passo Sereno');
+ assert.equal(post.tags,'Defesa, Hohō');
+ assert.equal(post.published,false);
+ assert.equal(post.bars.length,1);
+ assert.equal(post.bars[0].initial,2);
+ assert.equal(post.bars[0].max,5);
+ assert.equal(JSON.stringify(ctx.db.sheets),before);
+});
