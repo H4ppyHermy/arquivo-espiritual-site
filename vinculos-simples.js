@@ -9,7 +9,7 @@
   const items=Array.isArray(s.bonds)?s.bonds:[],can=api.canEditSheet(s.id),m=api.master();
   return '<section class="panel ae-bonds-simple"><div class="sectionhead"><h2>VÍNCULOS NARRATIVOS</h2>'+
    (can?'<button class="btn small main" type="button" data-bond-action="edit:new">+ ADICIONAR</button>':'')+'</div>'+
-   '<p class="subtitle">Relações de personagem preservadas como registros narrativos. Bônus de Afinidade ainda não são aplicados automaticamente.</p>'+
+   '<p class="subtitle">Relações de personagem preservadas como registros narrativos. Benefícios dos Vínculos não são aplicados automaticamente.</p>'+
    '<div class="ae-bonds-grid">'+(items.length?items.map(b=>
     '<article class="ae-bond-simple"><div><strong>'+esc(b.name||'Relação sem nome')+'</strong>'+
      '<span class="tag">'+esc(degree(b.grade))+'</span></div>'+
