@@ -1534,6 +1534,7 @@ function sheetPage(){if(tab==='catalog')tab='summary';const s=db.sheets.find(x=>
   const editable=canEditSheet(s.id),isMaster=master();
   const paletteStyle=sheetPaletteStyle(s.id)+'--sheet-ink:'+
    (contrast('#000000',sheetPalette(s.id).accent)>=contrast('#FFFFFF',sheetPalette(s.id).accent)?'#000000':'#FFFFFF')+';';
+  if(!window.ARQUIVO_FICHA_VISUAL?.render)return headline('FICHA INDISPONÍVEL','ATUALIZE A PÁGINA','O módulo visual ainda não foi carregado.');
   return window.ARQUIVO_FICHA_VISUAL.render(s,{
    tab,groups:GROUPS,canEdit:editable,master:isMaster,
    links:player()&&!s.redacted?linkedIds(s).length:0,
