@@ -272,7 +272,10 @@
     '<label>Resumo para o cartão<input id="warehouseSummaryInput" maxlength="280" value="'+esc(p.summary||'')+'" placeholder="O que esta classe, técnica ou item faz?"></label>'+
     '<div class="ae-wh-editor-tags"><label>Tags <span class="ae-wh-field-helper">Separe por vírgulas · máximo de 8</span>'+
      '<input id="warehouseTagsInput" maxlength="220" value="'+esc(p.tags||'')+'" placeholder="Ex.: Mobilidade, Defesa, Hohō"></label>'+
-    '<div id="warehouseTagPreview" class="ae-wh-editor-tag-preview">'+parseTags(p.tags).map(t=>'<span>#'+esc(t)+'</span>').join('')+'</div>'+
+    '<div id="warehouseTagPreview" class="ae-wh-editor-tag-preview">'+parseTags(p.tags).map(t=>
+     '<button type="button" data-warehouse-editor="toggle-tag:'+encodeURIComponent(t)+'">#'+esc(t)+
+     ' <small>'+(tagIsHidden(p,t)?'OCULTA':'VISÍVEL')+'</small></button>').join('')+'</div>'+
+    '<p class="ae-wh-tag-visibility-help">Clique em uma tag para alternar entre visível e oculta aos jogadores.</p>'+
     editorTagSuggestions(p.tags)+'</div></section>'+
     '<section class="ae-wh-editor-section" aria-label="Descrição"><div class="ae-wh-editor-section-title"><span>02</span><strong>DESCRIÇÃO</strong></div>'+
     '<div class="ae-warehouse-compose" aria-label="Editor da publicação">'+
@@ -300,17 +303,26 @@
      '<p class="ae-warehouse-editor-status" id="warehouseEditorStats" role="status">'+text(p.content||'').length+' caracteres · '+
       text(p.content||'').trim().split(/\s+/).filter(Boolean).length+' palavras</p></div></section>'+
     '<details class="ae-wh-editor-advanced"'+(count?' open':'')+'><summary><span class="ae-wh-adv-number">03</span>'+
-     '<span><strong>DETALHES & HUD DE RECURSOS</strong><small>Opcional · custo, imagem permitida e barras informativas</small></span>'+
+     '<span><strong>DETALHES & HUD DE RECURSOS</strong><small>Opcional · custo, foto/GIF e barras informativas</small></span>'+
      '<span class="ae-wh-advanced-chevron" aria-hidden="true">⌄</span></summary>'+
      '<div class="ae-wh-editor-advanced-body"><label>Custo ou referência (opcional)<input id="warehouseCostInput" maxlength="45" value="'+esc(p.cost||'')+'" placeholder="Ex.: 2 Alma ou Sem custo"></label>'+
-     '<div class="ae-warehouse-image-field" id="warehouseImageField"'+(warehouseAllowsImage(p.category)?'':' hidden')+'>'+
-      '<label>Imagem ilustrativa (URL HTTPS)<input id="warehouseImageInput" type="url" maxlength="1200" value="'+esc(p.image||'')+'" placeholder="https://..."></label></div>'+
+     '<div class="ae-warehouse-image-field" id="warehouseImageField">'+
+      '<div class="ae-wh-image-editor"><div class="ae-wh-image-thumbnail" id="warehouseImagePreview" aria-live="polite">'+
+       (safeImage(p.image)?'<img src="'+esc(safeImage(p.image))+'" alt="Miniatura atual" loading="lazy">':'<span>CL</span>')+
+       '</div><div class="ae-wh-image-fields"><label>Foto ou GIF para o quadrado pequeno'+
+       '<input id="warehouseImageFile" type="file" accept="image/gif,image/png,image/jpeg,image/webp"></label>'+
+       '<p>GIF animado até 200 KB; fotos serão reduzidas para a miniatura.</p>'+
+       '<label>Ou cole uma URL HTTPS<input id="warehouseImageInput" type="url" maxlength="1200" value="'+esc(/^https:\/\//.test(p.image||'')?p.image:'')+
+       '" placeholder="https://.../imagem.gif"></label>'+
+       '<button type="button" class="btn small" data-warehouse-editor="remove-image">REMOVER ILUSTRAÇÃO</button>'+
+       '</div></div></div>'+
      '<div class="ae-wh-bar-editor-heading"><strong>BARRAS DE RECURSO</strong><p>O jogador verá o valor inicial e as regras de cada recurso na leitura expandida. Não é uma automação de ficha.</p></div>'+
      '<div id="warehouseBarRows" class="ae-wh-bar-rows">'+(Array.isArray(p.bars)?p.bars.slice(0,8):[]).map(barEditorRow).join('')+'</div>'+
      '<button type="button" class="btn small ae-wh-add-bar" data-warehouse-editor="add-bar">+ ADICIONAR BARRA</button>'+
      '</div></details></div>',
    [['SALVAR PUBLICAÇÃO','warehouse-save','main'],...(found?[['EXCLUIR','warehouse-delete','danger']]:[]),['CANCELAR','closeModal','small']]);
   document.getElementById('dialogRoot').dataset.warehouseId=id;
+  window.ARQUIVO_EDITOR_ARMAZEM?.beginEdit?.(p);
   /* Os botões do modal são criados pelo aplicativo; redirecionamento no capturador abaixo. */
  }
  function savePost(){
