@@ -199,7 +199,7 @@ test('um registro expandido apresenta HUD informativo, dados e descrição sem a
  ctx.elements.warehousePosts={innerHTML:''};
  ctx.dispatch('click','','open:classe-coracao-de-aco',{kind:'warehouse'});
  const html=ctx.elements.warehousePosts.innerHTML;
- assert.match(html,/HUD DE REFERÊNCIA/);
+ assert.match(html,/REGISTRO TÉCNICO/);
  assert.match(html,/Têmpera/);
  assert.match(html,/RECURSOS VISUAIS/);
  assert.match(html,/role="meter"/);
