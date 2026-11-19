@@ -1,0 +1,245 @@
+/* Ficha 2.0 — apresentação editorial inspirada em mangá Bleach.
+   Somente visualização e edição explícita; nenhuma automação de mecânicas. */
+(function(){
+ 'use strict';
+ const api=window.ARQUIVO_INTERNAL;
+ if(!api)return;
+ const esc=api.esc,labels={summary:'Resumo',skills:'Perícias',abilities:'Habilidades',bonds:'Vínculos',conditions:'Condições',inventory:'Inventário',notes:'Notas',guide:'Guia rápido'};
+ const symbols={summary:'◇',skills:'▦',abilities:'✦',bonds:'∞',conditions:'◈',inventory:'▣',notes:'≡',guide:'▤'};
+ const TYPES={active:'ATIVA',passive:'PASSIVA',mechanic:'MECÂNICA',release:'LIBERAÇÃO',transformation:'TRANSFORMAÇÃO',ultimate:'SUPREMA',item:'ITEM'};
+ let editorStep='';
+ const clamp=(x,min,max)=>Math.min(max,Math.max(min,Number(x)||0));
+ const resourceDefs=[['vida','VIDA'],['estabilidade','ESTABILIDADE'],['alma','ALMA']];
+ const text=(x)=>String(x??'');
+ function portrait(value){
+  if(!value||!api.dataUrlOk(value))return '';
+  const url=api.mediaSrc(value);
+  return url?'<img class="ae-ficha-art-image" alt="Retrato do personagem" src="'+esc(url)+'" loading="eager" decoding="async">':'';
+ }
+ function tabs(active){
+  return '<nav class="ae-ficha-navigation" aria-label="Navegação da ficha">'+
+   '<div class="ae-ficha-nav-head"><span>ARQUIVO</span><span class="ae-ficha-nav-rule" aria-hidden="true"></span></div>'+
+   Object.entries(labels).map(([id,name])=>'<button type="button" data-tab="'+id+'" class="ae-ficha-nav-button'+(id===active?' is-active':'')+
+   '" aria-current="'+(id===active?'page':'false')+'" aria-label="'+esc(name)+'" title="'+esc(name)+'">'+
+   '<span class="ae-ficha-nav-symbol" aria-hidden="true">'+symbols[id]+'</span>'+
+   '<span class="ae-ficha-nav-label">'+esc(name)+'</span></button>').join('')+
+   '</nav>';
+ }
+ function header(s){
+  const name=esc(s.name||'Personagem'),race=esc(s.race||'Raça não definida'),level=esc(s.level||1);
+  return '<header class="ae-ficha-hero">'+
+   '<div class="ae-ficha-hero-top"><span>ARQUIVO ESPIRITUAL</span><span>REGISTRO DE PERSONAGEM // CBB</span></div>'+
+   '<div class="ae-ficha-hero-copy"><span class="ae-ficha-overline">REGISTRO ESPIRITUAL · '+level.padStart?.(2,'0')+'</span>'+
+    '<h1>'+name+'</h1>'+
+    (s.subtitle?'<p class="ae-ficha-subtitle">'+esc(s.subtitle)+'</p>':'')+
+    '<div class="ae-ficha-hero-tags"><span>'+race+'</span><span>NÍVEL '+level+'</span></div>'+
+   '</div><div class="ae-ficha-hero-art" aria-label="Retrato">'+
+    (portrait(s.image)||'<span class="ae-ficha-art-glyph" aria-hidden="true">魂</span>')+
+    '<span class="ae-ficha-art-stamp" aria-hidden="true">SOUL ARCHIVE</span></div>'+
+   '<div class="ae-ficha-hero-rule" aria-hidden="true"></div></header>';
+ }
+ function numberDie(value){
+  const n=Number(value)||4;
+  return '<span class="ae-ficha-die">'+api.sheetRich('d'+n)+'</span>';
+ }
+ function attributes(s,ctx){
+  const g=ctx.groups||{};
+  return '<section class="ae-ficha-attributes" aria-labelledby="aeFichaAttrTitle">'+
+   '<div class="ae-ficha-section-title"><span>01</span><h2 id="aeFichaAttrTitle">Grupos espirituais</h2></div>'+
+   '<div class="ae-ficha-attribute-grid">'+Object.keys(g).map(key=>
+     '<div class="ae-ficha-attribute"><span>'+esc(key)+'</span>'+numberDie(s.groups?.[key])+'</div>'
+   ).join('')+'</div></section>';
+ }
+ function resources(s,ctx){
+  return '<section class="ae-ficha-resources" aria-labelledby="aeFichaResourceTitle">'+
+   '<div class="ae-ficha-section-title"><span>02</span><h2 id="aeFichaResourceTitle">Recursos</h2></div>'+
+   '<div class="ae-ficha-resource-grid">'+resourceDefs.map(([key,label])=>{
+    const data=s.resources?.[key]||{},current=Math.max(0,Number(data.current)||0),max=Math.max(0,Number(data.max)||0);
+    const pct=max>0?Math.min(100,current/max*100):0,extra=Math.max(0,current-max);
+    return '<article class="ae-ficha-resource-card ae-ficha-resource-'+key+'">'+
+      '<div class="ae-ficha-resource-head"><span>'+label+'</span><strong>'+
+      (ctx.canEdit?'<button type="button" data-action="editResource:'+key+'" title="Editar '+label.toLowerCase()+' manualmente">'+esc(current)+'</button>':esc(current))+
+      ' <small>/ '+esc(max)+'</small></strong></div>'+
+      '<div class="ae-ficha-resource-track" role="meter" aria-valuemin="0" aria-valuemax="'+Math.max(max,current)+'" aria-valuenow="'+current+'" aria-label="'+label+'">'+
+      '<span style="width:'+pct.toFixed(2)+'%"></span></div>'+
+      (extra?'<span class="ae-ficha-resource-extra">+'+esc(extra)+' DE RESERVA</span>':'')+
+     '</article>';
+   }).join('')+'</div></section>';
+ }
+ function snapshot(s){
+  const ab=(s.abilities||[]).length,cond=(s.conditions||[]).length;
+  const inventory=(s.inventory?.items||[]).length;
+  return '<section class="ae-ficha-summary-notes"><div class="ae-ficha-section-title"><span>03</span><h2>Arquivo pessoal</h2></div>'+
+   '<div class="ae-ficha-record-grid">'+
+   '<button type="button" data-tab="abilities"><strong>'+ab+'</strong><span>HABILIDADES</span></button>'+
+   '<button type="button" data-tab="conditions"><strong>'+cond+'</strong><span>CONDIÇÕES</span></button>'+
+   '<button type="button" data-tab="inventory"><strong>'+inventory+'</strong><span>ITENS</span></button>'+
+   '</div>'+
+   (s.notes?'<div class="ae-ficha-note-preview"><span>ANOTAÇÃO RECENTE</span><p>'+esc(text(s.notes).slice(0,220))+
+    (text(s.notes).length>220?'…':'')+'</p><button type="button" data-tab="notes">VER NOTAS</button></div>':'')+
+   '</section>';
+ }
+ function summary(s,ctx){
+  return '<div class="ae-ficha-summary">'+
+    '<div class="ae-ficha-summary-columns">'+attributes(s,ctx)+resources(s,ctx)+'</div>'+
+    snapshot(s)+
+    (ctx.history?'<section class="ae-ficha-history">'+ctx.history+'</section>':'')+
+   '</div>';
+ }
+ function skills(s,ctx){
+  const groups=ctx.groups||{},all=[];
+  for(const [group,names] of Object.entries(groups)){
+   for(const name of names)all.push({group,name});
+  }
+  const mid=Math.ceil(all.length/2),columns=[all.slice(0,mid),all.slice(mid)];
+  const row=({group,name})=>
+   '<div class="ae-ficha-skill-row"><span class="ae-ficha-skill-name">'+esc(name)+'</span>'+
+   '<span class="ae-ficha-skill-dice">'+numberDie(s.skills?.[name])+'<span aria-hidden="true" class="ae-ficha-skill-plus">+</span>'+numberDie(s.groups?.[group])+
+   '<small>'+esc(group)+'</small></span></div>';
+  return '<section class="ae-ficha-skills" aria-labelledby="aeFichaSkillsTitle">'+
+   '<div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><span>01</span><h2 id="aeFichaSkillsTitle">Grupos & perícias</h2></div>'+
+   (ctx.canEdit?api.btn('EDITAR DADOS','editSheetSection:skills','small'):'')+'</div>'+
+   '<p class="ae-ficha-intro">Cada perícia exibe seu dado e o dado do grupo correspondente. Os testes são realizados manualmente.</p>'+
+   '<div class="ae-ficha-skills-grid">'+columns.map((list,index)=>
+    '<div class="ae-ficha-skills-col" aria-label="Coluna de perícias '+(index+1)+'">'+list.map(row).join('')+'</div>'
+   ).join('')+'</div></section>';
+ }
+ function abilityCategory(ab){
+  if(ab?.passive===true||ab?.category==='passive')return 'passive';
+  return TYPES[ab?.category]?ab.category:'active';
+ }
+ function plain(value){
+  return text(value).replace(/\[\/?cor(?:=#[0-9a-f]{6})?\]/gi,'')
+   .replace(/\[(?:barra|marca|contador):[^\]]+\]/gi,'[recurso]')
+   .replace(/[*_#>]/g,'').replace(/\s+/g,' ').trim();
+ }
+ function abilityCard(ab,index,ctx){
+  const name=esc(ab.name||'Habilidade sem nome'),type=abilityCategory(ab),description=text(ab.description||'Sem descrição.');
+  const teaser=plain(description),expand=teaser.length>175||description.includes('\n')||!!ab.image;
+  const image=ab.image&&api.dataUrlOk(ab.image)?api.mediaSrc(ab.image):'';
+  return '<article class="ae-ficha-ability-card" id="ability-'+index+'">'+
+    '<div class="ae-ficha-ability-tag">'+name+'</div>'+
+    '<div class="ae-ficha-ability-meta"><span>'+esc(TYPES[type])+'</span>'+
+     (Number(ab.cost)>0?'<span>CUSTO INDICADO · '+esc(ab.cost)+' ALMA</span>':'')+'</div>'+
+    (expand?'<p class="ae-ficha-ability-teaser">'+esc(teaser.slice(0,215))+(teaser.length>215?'…':'')+'</p>':
+     '<div class="ae-ficha-ability-short sheet-rich">'+api.sheetRich(description)+'</div>')+
+    (expand?'<details class="ae-ficha-ability-details"><summary>LER DESCRIÇÃO COMPLETA <span aria-hidden="true">+</span></summary>'+
+      '<div class="ae-ficha-ability-full sheet-rich">'+
+      (image?'<img alt="Ilustração da habilidade '+name+'" src="'+esc(image)+'" loading="lazy">':'')+
+      api.sheetRich(description)+'</div></details>':'')+
+    (ctx.canEdit?'<div class="ae-ficha-ability-tools">'+api.btn('EDITAR','editAbilityDirect:'+index,'small')+'</div>':'')+
+   '</article>';
+ }
+ function abilities(s,ctx){
+  const list=s.abilities||[],sections=[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']];
+  return '<div class="ae-ficha-abilities"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><span>01</span><h2>Habilidades</h2></div>'+
+   (ctx.canEdit?api.btn('+ HABILIDADE','newAbilityDirect','main'):'')+'</div>'+
+   '<p class="ae-ficha-intro">Registros descritivos. Efeitos e custos são aplicados manualmente.</p>'+
+   sections.map(([section,label])=>{
+    const entries=list.map((x,i)=>({ab:x,index:i})).filter(({ab})=>{
+      const t=abilityCategory(ab);return section==='other'?!['active','passive'].includes(t):t===section;
+    });
+    if(!entries.length)return '';
+    return '<section class="ae-ficha-ability-group"><div class="ae-ficha-ability-group-head"><h3>'+label+'</h3><span>'+entries.length+'</span></div>'+
+      '<div class="ae-ficha-ability-grid">'+entries.map(({ab,index})=>abilityCard(ab,index,ctx)).join('')+'</div></section>';
+   }).join('')+
+   (!list.length?'<div class="ae-ficha-empty">Nenhuma habilidade registrada nesta ficha.'+
+      (ctx.canEdit?'<p>Use + Habilidade para adicionar um registro.</p>':'')+'</div>':'')+
+   '</div>';
+ }
+ function guide(){
+  const chapters=(api.db?.rules||[]).filter(x=>x&&x.id).slice(0,40);
+  return '<section class="ae-ficha-guide"><div class="ae-ficha-section-title"><span>01</span><h2>Guia rápido</h2></div>'+
+   '<p class="ae-ficha-intro">Consulta às regras consolidadas da Biblioteca do Bleach CBB. Este painel não executa automações.</p>'+
+   '<div class="ae-ficha-guide-grid">'+chapters.map((chapter,i)=>{
+    const body=text(chapter.text||''),preview=body.split('\n').map(x=>x.trim()).filter(Boolean).slice(1,3).join(' ').slice(0,155);
+    return '<button type="button" data-ficha-guide="'+esc(chapter.id)+'" class="ae-ficha-guide-item">'+
+     '<span>'+String(i+1).padStart(2,'0')+'</span><strong>'+esc(chapter.title||'Capítulo')+'</strong>'+
+     '<small>'+esc(preview)+(preview.length>=155?'…':'')+'</small><i aria-hidden="true">↗</i></button>';
+   }).join('')+'</div>'+
+   '<button type="button" class="ae-ficha-guide-library" data-ficha-library>ABRIR BIBLIOTECA COMPLETA</button></section>';
+ }
+ function render(s,ctx={}){
+  const selected=Object.hasOwn(labels,ctx.tab)?ctx.tab:'summary';
+  const extras=['bonds','conditions','inventory','notes'].includes(selected);
+  const body=selected==='summary'?summary(s,ctx):selected==='skills'?skills(s,ctx):
+    selected==='abilities'?abilities(s,ctx):selected==='guide'?guide():
+    '<section class="ae-ficha-extras"><div class="ae-ficha-section-title"><span>01</span><h2>'+labels[selected]+'</h2></div>'+
+     (ctx.body||'')+'</section>';
+  const actions=api.btn('VOLTAR','backSheets','quiet')+
+    (ctx.canEdit?api.btn('EDITAR FICHA','editSheetForm','main'):'')+
+    (ctx.master?api.btn('IMAGEM','sheetImage','small')+api.btn('EDITAR JSON','editSheet','small'):'')+
+    api.btn('EXPORTAR','exportSheet','small');
+  return '<div class="sheet-personal ae-ficha-v2" style="'+esc(ctx.style||'')+'">'+
+    '<div class="ae-ficha-actions">'+actions+'</div>'+
+    (ctx.links?'<div class="ae-ficha-links">'+api.btn('JOGADORES VINCULADOS · '+ctx.links,'sheetLinks','small quiet')+'</div>':'')+
+    (ctx.paletteControls?'<div class="sheet-toolbar ae-ficha-palette">'+ctx.paletteControls+'</div>':'')+
+    header(s)+
+    '<div class="ae-ficha-workspace"><div class="ae-ficha-body" id="sheetBody" aria-label="'+labels[selected]+'">'+
+     '<div class="ae-ficha-content-overline"><span>'+esc(s.name||'Personagem')+'</span><span>// '+esc(labels[selected]).toUpperCase()+'</span></div>'+
+     body+'</div>'+tabs(selected)+'</div>'+
+    '<div class="ae-ficha-footer"><span>BLEACH CBB // ARQUIVO ESPIRITUAL</span><span>REGISTRO DE PERSONAGEM</span></div>'+
+   '</div>';
+ }
+ function upgradeEditor(){
+  const root=document.querySelector('#dialogRoot .sheet-form');
+  if(!root||root.classList.contains('ae-ficha-editor-v2'))return;
+  const scroll=root.querySelector('.sheet-edit-scroll');if(!scroll)return;
+  const nodes=Array.from(scroll.children);
+  if(!nodes.some(n=>n.tagName==='H3'))return;
+  root.classList.add('ae-ficha-editor-v2');
+  const tabs=document.createElement('nav');
+  tabs.className='ae-ficha-editor-steps';tabs.setAttribute('aria-label','Etapas da edição');
+  const fragment=document.createDocumentFragment();
+  let section=null,step=0,visibleSteps=[];
+  for(const node of nodes){
+   if(node.id==='sheetFormError'){fragment.appendChild(node);continue}
+   if(node.tagName==='H3'){
+    step++;
+    section=document.createElement('section');
+    section.className='ae-ficha-editor-step';section.dataset.fichaEditorStep=String(step);
+    section.dataset.title=node.textContent.trim();
+    if(!node.classList.contains('hidden')){
+     visibleSteps.push({id:String(step),name:node.textContent.trim()});
+    }else section.hidden=true;
+    section.appendChild(node);fragment.appendChild(section);
+   }else if(section){section.appendChild(node)}
+   else fragment.appendChild(node);
+  }
+  scroll.appendChild(fragment);
+  if(visibleSteps.length<2)return;
+  for(const {id,name} of visibleSteps){
+   const button=document.createElement('button');button.type='button';
+   button.dataset.fichaStep=id;button.textContent=name;
+   tabs.appendChild(button);
+  }
+  root.insertBefore(tabs,scroll);
+  const available=visibleSteps.find(x=>x.name===editorStep)||visibleSteps[0];
+  selectStep(available.id,root,false);
+ }
+ function selectStep(id,root=document.querySelector('#dialogRoot .sheet-form'),focus=true){
+  if(!root)return;
+  const panels=Array.from(root.querySelectorAll('.ae-ficha-editor-step'));
+  const choice=panels.find(p=>p.dataset.fichaEditorStep===String(id)&&!p.querySelector('h3.hidden'));
+  if(!choice)return;
+  editorStep=choice.dataset.title;
+  for(const panel of panels)panel.hidden=panel!==choice;
+  for(const button of root.querySelectorAll('[data-ficha-step]')){
+   const active=button.dataset.fichaStep===String(id);
+   button.classList.toggle('is-active',active);button.setAttribute('aria-current',active?'step':'false');
+  }
+  if(focus)choice.querySelector('input,select,textarea')?.focus({preventScroll:true});
+ }
+ document.addEventListener('click',event=>{
+  const step=event.target.closest?.('[data-ficha-step]');
+  if(step){event.preventDefault();selectStep(step.dataset.fichaStep);return}
+  const library=event.target.closest?.('[data-ficha-library]');
+  if(library){event.preventDefault();api.setPage('library');return}
+  const guideBtn=event.target.closest?.('[data-ficha-guide]');
+  if(!guideBtn)return;
+  event.preventDefault();
+  const item=(api.db?.rules||[]).find(x=>x.id===guideBtn.dataset.fichaGuide);
+  if(item)api.modal(item.title||'Guia rápido','<div class="ae-ficha-guide-modal">'+api.formatBook(item.text||'',item.title||'')+'</div>');
+ });
+ window.ARQUIVO_FICHA_VISUAL=Object.freeze({render,upgradeEditor});
+})();
