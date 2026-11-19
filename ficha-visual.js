@@ -8,7 +8,6 @@
  const symbols={summary:'◇',skills:'▦',abilities:'✦',bonds:'∞',conditions:'◈',inventory:'▣',notes:'≡',guide:'▤'};
  const TYPES={active:'ATIVA',passive:'PASSIVA',mechanic:'MECÂNICA',release:'LIBERAÇÃO',transformation:'TRANSFORMAÇÃO',ultimate:'SUPREMA',item:'ITEM'};
  let editorStep='';
- const clamp=(x,min,max)=>Math.min(max,Math.max(min,Number(x)||0));
  const resourceDefs=[['vida','VIDA'],['estabilidade','ESTABILIDADE'],['alma','ALMA']];
  const text=(x)=>String(x??'');
  function portrait(value){
@@ -26,13 +25,13 @@
    '</nav>';
  }
  function header(s){
-  const name=esc(s.name||'Personagem'),race=esc(s.race||'Raça não definida'),level=esc(s.level||1);
+  const name=esc(s.name||'Personagem'),race=String(s.race||'').trim(),level=esc(s.level||1);
   return '<header class="ae-ficha-hero">'+
    '<div class="ae-ficha-hero-top"><span>ARQUIVO ESPIRITUAL</span><span>REGISTRO DE PERSONAGEM // CBB</span></div>'+
-   '<div class="ae-ficha-hero-copy"><span class="ae-ficha-overline">REGISTRO ESPIRITUAL · '+level.padStart?.(2,'0')+'</span>'+
+   '<div class="ae-ficha-hero-copy"><span class="ae-ficha-overline">REGISTRO ESPIRITUAL</span>'+
     '<h1>'+name+'</h1>'+
     (s.subtitle?'<p class="ae-ficha-subtitle">'+esc(s.subtitle)+'</p>':'')+
-    '<div class="ae-ficha-hero-tags"><span>'+race+'</span><span>NÍVEL '+level+'</span></div>'+
+    '<div class="ae-ficha-hero-tags">'+(race?'<span>'+esc(race)+'</span>':'')+'<span>NÍVEL '+level+'</span></div>'+
    '</div><div class="ae-ficha-hero-art" aria-label="Retrato">'+
     (portrait(s.image)||'<span class="ae-ficha-art-glyph" aria-hidden="true">魂</span>')+
     '<span class="ae-ficha-art-stamp" aria-hidden="true">SOUL ARCHIVE</span></div>'+
@@ -45,14 +44,14 @@
  function attributes(s,ctx){
   const g=ctx.groups||{};
   return '<section class="ae-ficha-attributes" aria-labelledby="aeFichaAttrTitle">'+
-   '<div class="ae-ficha-section-title"><span>01</span><h2 id="aeFichaAttrTitle">Grupos espirituais</h2></div>'+
+   '<div class="ae-ficha-section-title"><h2 id="aeFichaAttrTitle">Grupos</h2></div>'+
    '<div class="ae-ficha-attribute-grid">'+Object.keys(g).map(key=>
      '<div class="ae-ficha-attribute"><span>'+esc(key)+'</span>'+numberDie(s.groups?.[key])+'</div>'
    ).join('')+'</div></section>';
  }
  function resources(s,ctx){
   return '<section class="ae-ficha-resources" aria-labelledby="aeFichaResourceTitle">'+
-   '<div class="ae-ficha-section-title"><span>02</span><h2 id="aeFichaResourceTitle">Recursos</h2></div>'+
+   '<div class="ae-ficha-section-title"><h2 id="aeFichaResourceTitle">Vida, Estabilidade & Alma</h2></div>'+
    '<div class="ae-ficha-resource-grid">'+resourceDefs.map(([key,label])=>{
     const data=s.resources?.[key]||{},current=Math.max(0,Number(data.current)||0),max=Math.max(0,Number(data.max)||0);
     const pct=max>0?Math.min(100,current/max*100):0,extra=Math.max(0,current-max);
@@ -64,12 +63,12 @@
       '<span style="width:'+pct.toFixed(2)+'%"></span></div>'+
       (extra?'<span class="ae-ficha-resource-extra">+'+esc(extra)+' DE RESERVA</span>':'')+
      '</article>';
-   }).join('')+'</div></section>';
+   }).join('')+'</div><p class="ae-ficha-resource-note">Valores atualizados manualmente. Ao chegar a zero: Vida inicia Morte; Estabilidade provoca Acorrentado; Alma provoca Esgotamento Espiritual.</p></section>';
  }
  function snapshot(s){
   const ab=(s.abilities||[]).length,cond=(s.conditions||[]).length;
   const inventory=(s.inventory?.items||[]).length;
-  return '<section class="ae-ficha-summary-notes"><div class="ae-ficha-section-title"><span>03</span><h2>Arquivo pessoal</h2></div>'+
+  return '<section class="ae-ficha-summary-notes"><div class="ae-ficha-section-title"><h2>Arquivo pessoal</h2></div>'+
    '<div class="ae-ficha-record-grid">'+
    '<button type="button" data-tab="abilities"><strong>'+ab+'</strong><span>HABILIDADES</span></button>'+
    '<button type="button" data-tab="conditions"><strong>'+cond+'</strong><span>CONDIÇÕES</span></button>'+
@@ -97,9 +96,9 @@
    '<span class="ae-ficha-skill-dice">'+numberDie(s.skills?.[name])+'<span aria-hidden="true" class="ae-ficha-skill-plus">+</span>'+numberDie(s.groups?.[group])+
    '<small>'+esc(group)+'</small></span></div>';
   return '<section class="ae-ficha-skills" aria-labelledby="aeFichaSkillsTitle">'+
-   '<div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><span>01</span><h2 id="aeFichaSkillsTitle">Grupos & perícias</h2></div>'+
+   '<div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2 id="aeFichaSkillsTitle">Grupos & perícias</h2></div>'+
    (ctx.canEdit?api.btn('EDITAR DADOS','editSheetSection:skills','small'):'')+'</div>'+
-   '<p class="ae-ficha-intro">Cada perícia exibe seu dado e o dado do grupo correspondente. Os testes são realizados manualmente.</p>'+
+   '<p class="ae-ficha-intro">Teste padrão: dado do Grupo + dado da Perícia. RT é a soma dos resultados, RA o maior e RB o menor. Sem rolagem automática.</p>'+
    '<div class="ae-ficha-skills-grid">'+columns.map((list,index)=>
     '<div class="ae-ficha-skills-col" aria-label="Coluna de perícias '+(index+1)+'">'+list.map(row).join('')+'</div>'
    ).join('')+'</div></section>';
@@ -132,7 +131,7 @@
  }
  function abilities(s,ctx){
   const list=s.abilities||[],sections=[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']];
-  return '<div class="ae-ficha-abilities"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><span>01</span><h2>Habilidades</h2></div>'+
+  return '<div class="ae-ficha-abilities"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Habilidades</h2></div>'+
    (ctx.canEdit?api.btn('+ HABILIDADE','newAbilityDirect','main'):'')+'</div>'+
    '<p class="ae-ficha-intro">Registros descritivos. Efeitos e custos são aplicados manualmente.</p>'+
    sections.map(([section,label])=>{
@@ -149,7 +148,7 @@
  }
  function guide(){
   const chapters=(api.db?.rules||[]).filter(x=>x&&x.id).slice(0,40);
-  return '<section class="ae-ficha-guide"><div class="ae-ficha-section-title"><span>01</span><h2>Guia rápido</h2></div>'+
+  return '<section class="ae-ficha-guide"><div class="ae-ficha-section-title"><h2>Guia rápido</h2></div>'+
    '<p class="ae-ficha-intro">Consulta às regras consolidadas da Biblioteca do Bleach CBB. Este painel não executa automações.</p>'+
    '<div class="ae-ficha-guide-grid">'+chapters.map((chapter,i)=>{
     const body=text(chapter.text||''),preview=body.split('\n').map(x=>x.trim()).filter(Boolean).slice(1,3).join(' ').slice(0,155);
@@ -161,10 +160,9 @@
  }
  function render(s,ctx={}){
   const selected=Object.hasOwn(labels,ctx.tab)?ctx.tab:'summary';
-  const extras=['bonds','conditions','inventory','notes'].includes(selected);
   const body=selected==='summary'?summary(s,ctx):selected==='skills'?skills(s,ctx):
     selected==='abilities'?abilities(s,ctx):selected==='guide'?guide():
-    '<section class="ae-ficha-extras"><div class="ae-ficha-section-title"><span>01</span><h2>'+labels[selected]+'</h2></div>'+
+    '<section class="ae-ficha-extras"><div class="ae-ficha-section-title"><h2>'+labels[selected]+'</h2></div>'+
      (ctx.body||'')+'</section>';
   const actions=api.btn('VOLTAR','backSheets','quiet')+
     (ctx.canEdit?api.btn('EDITAR FICHA','editSheetForm','main'):'')+
