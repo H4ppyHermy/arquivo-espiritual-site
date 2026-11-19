@@ -111,7 +111,6 @@ async function saveAppearance(sheetId,appearance){if(!state.enabled)throw Error(
 async function playerDirectory(){return rpc('ae_player_directory')}
 async function sheetLink(sheetId,action,targetKey=null){return rpc('ae_sheet_link',{p_sheet_id:sheetId,p_action:action,p_target_key:targetKey||null})}
 async function saveOwnedSheet(sheet){if(!state.enabled||state.identity?.kind!=='player')throw Error('Entre com uma chave de jogador.');return rpc('ae_player_save_sheet',{p_sheet:sheet})}
-async function useAbility(sheetId,abilityIndex){if(!state.enabled)throw Error('Conexão online indisponível.');return rpc('ae_use_ability',{p_sheet_id:sheetId,p_ability_index:abilityIndex}).then(result=>{if(result?.roll?.id)notifyDiscordRoll(result.roll);return result})}
 async function notifyDiscordRoll(result){
  // Desabilitado até o mestre concluir a configuração do bot.
  if(config.discordNotifications!==true||!state.enabled||!result?.id||result.hidden)return;
@@ -130,9 +129,6 @@ async function notifyDiscordRoll(result){
 function withDiscordRoll(promise){
  return promise.then(result=>{notifyDiscordRoll(result);return result});
 }
-async function rollSkill(sheetId,skill,abilityIndex=null){return withDiscordRoll(rpc('ae_roll_skill_colored',{p_sheet_id:sheetId,p_skill:skill,p_ability_index:Number.isInteger(abilityIndex)?abilityIndex:null}))}
-async function rerollSkill(previousId){if(!Number.isSafeInteger(previousId)||previousId<1)throw Error('Rolagem original inválida.');return withDiscordRoll(rpc('ae_reroll_skill',{p_previous_id:previousId}))}
-async function configureSkillRoll(previousId,groupSteps,skillSteps){if(!Number.isSafeInteger(previousId)||previousId<1)throw Error('Rolagem original inválida.');if(!Number.isInteger(groupSteps)||!Number.isInteger(skillSteps)||Math.abs(groupSteps)>2||Math.abs(skillSteps)>2||(!groupSteps&&!skillSteps))throw Error('Escolha de -2 a +2 passos, alterando pelo menos um dado.');return withDiscordRoll(rpc('ae_configure_skill_roll',{p_previous_id:previousId,p_group_steps:groupSteps,p_skill_steps:skillSteps}))}
 async function rollFree(count,faces,hidden=false,colors=[]){
  if(!hidden&&Number.isInteger(faces)&&faces>=2&&faces<=1000&&Number.isInteger(count)&&count>=1&&count<=30)
   return withDiscordRoll(rpc('ae_roll_custom',{p_count:count,p_faces:faces,p_colors:Array.isArray(colors)?colors:[]}));
@@ -199,5 +195,5 @@ async function mediaSignedUrl(ref){
  return data.signedUrl;
 }
 
-window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,useAbility,rollSkill,rerollSkill,configureSkillRoll,rollFree,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
+window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,rollFree,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
 })();

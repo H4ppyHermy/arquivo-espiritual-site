@@ -235,7 +235,6 @@ html.reduce-motion #page .ae-shelf-option,html.performance-mode #page .ae-shelf-
 #page .ae-wh-meta-line{display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:11px}
 #page .ae-wh-meta-line>span{font-size:10px;line-height:1.5;opacity:.74;font-weight:750}
 #page .ae-wh-meta-line>strong{text-align:right;line-height:1.45;overflow-wrap:anywhere}
-#page .ae-wh-meta-hint{margin:-5px 0 0;color:var(--theme-text);opacity:.75;font-size:10px}
 #page .ae-wh-hud-section{display:grid;gap:11px;padding-top:12px;border-top:1px solid var(--theme-structure)}
 #page .ae-wh-resource{display:grid;gap:6px;min-width:0}
 #page .ae-wh-resource-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:12px;font-weight:850}

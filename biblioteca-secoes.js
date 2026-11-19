@@ -86,15 +86,6 @@
     '<small>Referência inicial'+(b.reset==='scene'?' · por cena':' · ajuste manual')+'</small></div>';
   }).join('');
  }
- function diceReference(post){
-  const d=post.damage;if(!d||typeof d!=='object'||d.kind==='none')return '';
-  const count=Number(d.count),faces=Number(d.faces);
-  const n=Number.isInteger(count)&&count>=1&&count<=6?count:1;
-  const notation=Number.isInteger(faces)&&faces>=2&&faces<=1000?n+'d'+faces:'A definir';
-  const name=({damage:'DANO',reduction:'REDUÇÃO',bonus:'BÔNUS',healing:'RECUPERAÇÃO'})[d.kind]||'DADO';
-  return '<div class="ae-wh-meta-line"><span>'+name+'</span><strong>'+esc(notation)+'</strong></div>'+
-   (d.label?'<p class="ae-wh-meta-hint">'+esc(text(d.label).slice(0,65))+'</p>':'');
- }
  function postDetail(post){
   const title=text(post.title||'Registro'),bars=resourceBars(post),cost=text(post.cost).trim(),tags=visibleTags(post);
   const primary=(Array.isArray(post.bars)?post.bars:[]).find(b=>b&&text(b.label).trim());
@@ -108,7 +99,7 @@
    (tags.length?'<div class="ae-wh-meta-tagline"><span class="ae-wh-hud-label">MARCADORES</span>'+
     '<div class="ae-wh-meta-tags">'+tags.map(t=>'<span class="'+(tagIsHidden(post,t)?'is-hidden-tag':'')+'">#'+esc(t)+(tagIsHidden(post,t)?' · SÓ MESTRE':'')+'</span>').join('')+'</div></div>':'')+
    (cost?'<div class="ae-wh-meta-line"><span>CUSTO / USO</span><strong>'+esc(cost)+'</strong></div>':'')+
-   diceReference(post)+'</div>'+
+   '</div>'+
    (bars?'<div class="ae-wh-hud-section ae-wh-hud-resources"><span class="ae-wh-hud-label">RECURSOS VISUAIS</span>'+bars+'</div>':'')+
    '<p class="ae-wh-hud-footnote">Referência visual: não altera recursos da ficha.</p></aside></div>';
  }

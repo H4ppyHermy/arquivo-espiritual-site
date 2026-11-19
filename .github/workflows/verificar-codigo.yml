@@ -23,8 +23,6 @@ jobs:
           node --check online.js
           node --check dados.js
           node --check leitor-acessivel.js
-          node --check mecanicas-ficha.js
-          node --check habilidades-3.0.js
           for f in discord-bot/*.mjs; do node --check "$f"; done
       - name: Testar dados e segurança do bot
         run: node --test discord-bot/test.mjs
