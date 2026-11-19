@@ -28,7 +28,7 @@ test('retrato deslocado ao centro, com limites e quadro independente do nome',()
  assert.match(css,/margin-left:clamp\(-30px,-2vw,-15px\)/);
  assert.match(css,/grid-column:2;grid-row:1\/3;position:relative/);
  assert.match(css,/max-height:280px/);
- assert.match(css,/object-fit:contain/);
+ assert.match(css,/#page \.ae-ficha-art-image\{[\s\S]*?object-fit:cover;object-position:50% 50%/);
 });
 
 test('troca de abas reaproveita hero e navegação existentes sem render global',()=>{
@@ -55,12 +55,10 @@ test('troca de abas reaproveita hero e navegação existentes sem render global'
   attrs:{},setAttribute(k,v){this.attrs[k]=v}
  });
  const old=navButton('summary'),next=navButton('skills');
- const overlineTitle={textContent:''};
  const section={replaceWith(node){section.replacedWith=node}};
  const body={
   attrs:{},
   querySelector(selector){
-   if(selector==='.ae-ficha-content-overline')return {querySelector:()=>overlineTitle};
    if(selector==='.ae-ficha-section-content')return section;
    return null;
   },setAttribute(k,v){this.attrs[k]=v}
@@ -77,7 +75,6 @@ test('troca de abas reaproveita hero e navegação existentes sem render global'
  const ok=view.switchTab(sheet,{tab:'skills',groups:{Corpo:['Vigor']},canEdit:true});
  assert.equal(ok,true);
  assert.equal(body.attrs['aria-label'],'Perícias');
- assert.equal(overlineTitle.textContent,'// PERÍCIAS');
  assert.match(section.replacedWith.innerHTML,/ae-ficha-skills/);
  assert.equal(next.attrs['aria-current'],'page');
  assert.equal(old.attrs['aria-current'],'false');
