@@ -142,3 +142,9 @@
  .ae-wh-image-thumbnail{width:82px;height:82px}
  .ae-wh-image-thumbnail>span{font-size:28px}
 }
+
+/* Inserção de barras inline no editor do Armazém. */
+.ae-warehouse-compose-templates label:has(#warehouseEditorBarFilled),
+.ae-warehouse-compose-templates label:has(#warehouseEditorBarTotal){flex:0 1 80px;min-width:70px}
+.ae-warehouse-compose-templates :is(#warehouseEditorBarFilled,#warehouseEditorBarTotal){min-height:37px;padding:7px 8px;text-align:center}
+.ae-warehouse-compose-templates [data-warehouse-editor="insert-bar"]{border-color:var(--theme-cold);font-weight:900}
