@@ -17,7 +17,6 @@
  }
  function tabs(active){
   return '<nav class="ae-ficha-navigation" aria-label="Navegação da ficha">'+
-   '<div class="ae-ficha-nav-head"><span>ARQUIVO</span><span class="ae-ficha-nav-rule" aria-hidden="true"></span></div>'+
    Object.entries(labels).map(([id,name])=>'<button type="button" data-tab="'+id+'" class="ae-ficha-nav-button'+(id===active?' is-active':'')+
    '" aria-current="'+(id===active?'page':'false')+'" aria-label="'+esc(name)+'" title="'+esc(name)+'">'+
    '<span class="ae-ficha-nav-symbol" aria-hidden="true">'+symbols[id]+'</span>'+
@@ -27,14 +26,14 @@
  function header(s){
   const name=esc(s.name||'Personagem'),race=String(s.race||'').trim(),level=esc(s.level||1);
   return '<header class="ae-ficha-hero">'+
-   '<div class="ae-ficha-hero-top"><span>ARQUIVO ESPIRITUAL</span><span>REGISTRO DE PERSONAGEM // CBB</span></div>'+
-   '<div class="ae-ficha-hero-copy"><span class="ae-ficha-overline">REGISTRO ESPIRITUAL</span>'+
+   '<div class="ae-ficha-hero-top"><span>ARQUIVO ESPIRITUAL</span></div>'+
+   '<div class="ae-ficha-hero-copy">'+
     '<h1>'+name+'</h1>'+
     (s.subtitle?'<p class="ae-ficha-subtitle">'+esc(s.subtitle)+'</p>':'')+
     '<div class="ae-ficha-hero-tags">'+(race?'<span class="ae-ficha-race">'+esc(race)+'</span>':'')+'<span class="ae-ficha-level">NÍVEL '+level+'</span></div>'+
    '</div><div class="ae-ficha-hero-art" aria-label="Retrato">'+
     (portrait(s.image)||'<span class="ae-ficha-art-glyph" aria-hidden="true">魂</span>')+
-    '<span class="ae-ficha-art-stamp" aria-hidden="true">SOUL ARCHIVE</span></div>'+
+    '</div>'+
    '<div class="ae-ficha-hero-rule" aria-hidden="true"></div></header>';
  }
  function numberDie(value,type='skill'){
@@ -63,7 +62,7 @@
       '<span style="width:'+pct.toFixed(2)+'%"></span></div>'+
       (extra?'<span class="ae-ficha-resource-extra">+'+esc(extra)+' DE RESERVA</span>':'')+
      '</article>';
-   }).join('')+'</div><p class="ae-ficha-resource-note">Valores atualizados manualmente. Ao chegar a zero: Vida inicia Morte; Estabilidade provoca Acorrentado; Alma provoca Esgotamento Espiritual.</p></section>';
+   }).join('')+'</div></section>';
  }
  function snapshot(s){
   const ab=(s.abilities||[]).length,cond=(s.conditions||[]).length;
@@ -74,7 +73,7 @@
    '<button type="button" data-tab="conditions"><strong>'+cond+'</strong><span>CONDIÇÕES</span></button>'+
    '<button type="button" data-tab="inventory"><strong>'+inventory+'</strong><span>ITENS</span></button>'+
    '</div>'+
-   (s.notes?'<div class="ae-ficha-note-preview"><span>ANOTAÇÃO RECENTE</span><p>'+esc(text(s.notes).slice(0,220))+
+   (s.notes?'<div class="ae-ficha-note-preview"><p>'+esc(text(s.notes).slice(0,220))+
     (text(s.notes).length>220?'…':'')+'</p><button type="button" data-tab="notes">VER NOTAS</button></div>':'')+
    '</section>';
  }
@@ -98,7 +97,6 @@
   return '<section class="ae-ficha-skills" aria-labelledby="aeFichaSkillsTitle">'+
    '<div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2 id="aeFichaSkillsTitle">Grupos & perícias</h2></div>'+
    (ctx.canEdit?api.btn('EDITAR DADOS','editSheetSection:skills','small'):'')+'</div>'+
-   '<p class="ae-ficha-intro">Teste padrão: dado do Grupo + dado da Perícia. RT é a soma dos resultados, RA o maior e RB o menor. Sem rolagem automática.</p>'+
    '<div class="ae-ficha-skills-grid">'+columns.map((list,index)=>
     '<div class="ae-ficha-skills-col" aria-label="Coluna de perícias '+(index+1)+'">'+list.map(row).join('')+'</div>'
    ).join('')+'</div></section>';
@@ -133,7 +131,6 @@
   const list=s.abilities||[],sections=[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']];
   return '<div class="ae-ficha-abilities"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Habilidades</h2></div>'+
    (ctx.canEdit?api.btn('+ HABILIDADE','newAbilityDirect','main'):'')+'</div>'+
-   '<p class="ae-ficha-intro">Registros descritivos. Efeitos e custos são aplicados manualmente.</p>'+
    sections.map(([section,label])=>{
     const entries=list.map((x,i)=>({ab:x,index:i})).filter(({ab})=>{
       const t=abilityCategory(ab);return section==='other'?!['active','passive'].includes(t):t===section;
@@ -149,7 +146,6 @@
  function guide(){
   const chapters=(api.db?.rules||[]).filter(x=>x&&x.id).slice(0,40);
   return '<section class="ae-ficha-guide"><div class="ae-ficha-section-title"><h2>Guia rápido</h2></div>'+
-   '<p class="ae-ficha-intro">Consulta às regras consolidadas da Biblioteca do Bleach CBB. Este painel não executa automações.</p>'+
    '<div class="ae-ficha-guide-grid">'+chapters.map((chapter,i)=>{
     const body=text(chapter.text||''),preview=body.split('\n').map(x=>x.trim()).filter(Boolean).slice(1,3).join(' ').slice(0,155);
     return '<button type="button" data-ficha-guide="'+esc(chapter.id)+'" class="ae-ficha-guide-item">'+
@@ -169,11 +165,8 @@
   const panel=document.querySelector('#page .ae-ficha-v2');
   const body=panel?.querySelector('#sheetBody');
   if(!body)return false;
-  const overline=body.querySelector('.ae-ficha-content-overline');
-  if(!overline)return false;
   const previous=panel.querySelector('[data-tab].is-active');
   if(previous?.dataset.tab===selected)return true;
-  overline.querySelector('span:last-child').textContent='// '+labels[selected].toUpperCase();
   for(const button of panel.querySelectorAll('.ae-ficha-navigation [data-tab]')){
    const active=button.dataset.tab===selected;
    button.classList.toggle('is-active',active);
@@ -200,9 +193,7 @@
     (ctx.paletteControls?'<div class="sheet-toolbar ae-ficha-palette">'+ctx.paletteControls+'</div>':'')+
     header(s)+
     '<div class="ae-ficha-workspace"><div class="ae-ficha-body" id="sheetBody" aria-label="'+labels[selected]+'">'+
-     '<div class="ae-ficha-content-overline"><span>'+esc(s.name||'Personagem')+'</span><span>// '+esc(labels[selected]).toUpperCase()+'</span></div>'+
      '<div class="ae-ficha-section-content">'+body+'</div></div>'+tabs(selected)+'</div>'+
-    '<div class="ae-ficha-footer"><span>BLEACH CBB // ARQUIVO ESPIRITUAL</span><span>REGISTRO DE PERSONAGEM</span></div>'+
    '</div>';
  }
  function upgradeEditor(){
