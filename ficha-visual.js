@@ -196,7 +196,7 @@
     api.btn('EXPORTAR','exportSheet','small');
   return '<div class="sheet-personal ae-ficha-v2" style="'+esc(ctx.style||'')+'">'+
     '<div class="ae-ficha-actions">'+actions+'</div>'+
-    (ctx.links?'<div class="ae-ficha-links">'+api.btn('JOGADORES VINCULADOS · '+ctx.links,'sheetLinks','small quiet')+'</div>':'')+
+    ((ctx.links||ctx.canEdit)?'<div class="ae-ficha-links">'+api.btn('JOGADORES VINCULADOS · '+(ctx.links||0),'sheetLinks','small quiet')+'</div>':'')+
     (ctx.paletteControls?'<div class="sheet-toolbar ae-ficha-palette">'+ctx.paletteControls+'</div>':'')+
     header(s)+
     '<div class="ae-ficha-workspace"><div class="ae-ficha-body" id="sheetBody" aria-label="'+labels[selected]+'">'+
@@ -237,6 +237,11 @@
    button.dataset.fichaStep=id;button.textContent=name;
    tabs.appendChild(button);
   }
+  const progress=document.createElement('span');
+  progress.className='ae-ficha-editor-progress';
+  progress.setAttribute('role','status');
+  progress.setAttribute('aria-live','polite');
+  tabs.appendChild(progress);
   root.insertBefore(tabs,scroll);
   const available=visibleSteps.find(x=>x.name===editorStep)||visibleSteps[0];
   selectStep(available.id,root,false);
@@ -252,6 +257,10 @@
    const active=button.dataset.fichaStep===String(id);
    button.classList.toggle('is-active',active);button.setAttribute('aria-current',active?'step':'false');
   }
+  const steps=[...root.querySelectorAll('[data-ficha-step]')];
+  const index=steps.findIndex(b=>b.dataset.fichaStep===String(id));
+  const progress=root.querySelector('.ae-ficha-editor-progress');
+  if(progress)progress.textContent='ETAPA '+(index+1)+' / '+steps.length;
   if(focus)choice.querySelector('input,select,textarea')?.focus({preventScroll:true});
  }
  document.addEventListener('click',event=>{
