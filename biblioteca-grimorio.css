@@ -435,3 +435,12 @@ html.performance-mode #page .ae-grimorio-portal-button,
 html.performance-mode #page .ae-grimorio-entry{
  transition:none!important;filter:none!important;box-shadow:none!important
 }
+
+/* Controles de quantidade das barras inseridas no texto. */
+.ae-library-editor-bar .ae-library-editor-insert-controls input{
+ width:58px;min-width:45px;min-height:42px;padding:8px 6px;
+ border:1px solid var(--theme-structure);background:var(--theme-panel);
+ color:var(--theme-text);font:700 12px/1.3 Manrope,system-ui,sans-serif;text-align:center
+}
+.ae-library-editor-bar .ae-library-editor-insert-controls>span{align-self:center;color:var(--theme-cold);font-weight:900}
+.ae-library-editor-bar .ae-library-editor-insert-controls input:focus-visible{outline:2px solid var(--theme-accent);outline-offset:2px}

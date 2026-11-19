@@ -294,7 +294,10 @@
      '<button type="button" class="btn small" data-warehouse-editor="insert-template">INSERIR MODELO</button>'+
      '<label>DADO<select id="warehouseEditorDie">'+[4,6,8,10,12,14,16,18,20].map(n=>
        '<option value="'+n+'">d'+n+'</option>').join('')+'</select></label>'+
-     '<button type="button" class="btn small" data-warehouse-editor="insert-die">INSERIR DADO</button></div>'+
+     '<button type="button" class="btn small" data-warehouse-editor="insert-die">INSERIR DADO</button>'+
+     '<label>MARCAS<input id="warehouseEditorBarFilled" type="number" min="0" max="20" step="1" value="1" aria-label="Marcas preenchidas"></label>'+
+     '<label>DE<input id="warehouseEditorBarTotal" type="number" min="1" max="20" step="1" value="3" aria-label="Total de marcas"></label>'+
+     '<button type="button" class="btn small" data-warehouse-editor="insert-bar" title="Insere uma barra visual, como [barra:1/3]">INSERIR BARRA</button></div>'+
      '<div class="ae-warehouse-compose-grid"><div class="ae-warehouse-compose-source">'+
      '<label for="warehouseContentInput">Texto completo<textarea id="warehouseContentInput" rows="14" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="## Descrição\n\nExplique a classe, habilidade ou técnica.">'+esc(p.content||'')+'</textarea></label>'+
      '<p id="warehouseEditorHint" class="ae-cat-help">Selecione o texto para aplicar formatação. Ctrl+B e Ctrl+I também funcionam.</p></div>'+

@@ -134,6 +134,15 @@
   const before=area.value.slice(0,area.selectionStart),prefix=before&&!before.endsWith('\n\n')?(before.endsWith('\n')?'\n':'\n\n'):'';
   editorInsert(prefix+blocks[kind]+'\n\n','Descreva');
  }
+ function insertEditorBar(){
+  const filled=Number(document.getElementById('warehouseEditorBarFilled')?.value);
+  const total=Number(document.getElementById('warehouseEditorBarTotal')?.value);
+  if(!window.ARQUIVO_BARRAS_INLINE?.valid(filled,total)){
+   api.toast('Barra inválida','Preenchidas: 0 a 20; total: 1 a 20; preenchidas não podem superar o total.',true);
+   return;
+  }
+  editorInsert('[barra:'+filled+'/'+total+']');
+ }
  function insertEditorDie(){
   const faces=Number(document.getElementById('warehouseEditorDie')?.value||6);
   if(![4,6,8,10,12,14,16,18,20].includes(faces))return;
@@ -184,6 +193,7 @@
   if(action?.startsWith('format:'))editorFormat(action.slice(7));
   else if(action==='insert-template')insertTemplate();
   else if(action==='insert-die')insertEditorDie();
+  else if(action==='insert-bar')insertEditorBar();
   else if(action==='add-bar')addResourceBar();
   else if(action==='remove-bar')button.closest('[data-warehouse-bar]')?.remove();
   else if(action?.startsWith('add-tag:'))addSuggestedTag(action.slice(8));

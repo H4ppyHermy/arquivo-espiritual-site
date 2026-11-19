@@ -64,5 +64,5 @@ test('integração mantém os capítulos originais e carrega recursos em ordem',
  assert.match(app,/r\.book!=='book2'/);
  assert.match(app,/book:libraryVolume\(\)==='book2'\?'book2':'book1'/);
  assert.match(html,/biblioteca-secoes\.css\?v=4/);
- assert.ok(html.indexOf('arquivo-app.js?v=7')<html.indexOf('biblioteca-secoes.js?v=6'));
+ assert.ok(html.indexOf('arquivo-app.js?v=8')<html.indexOf('biblioteca-secoes.js?v=7'));
 });
