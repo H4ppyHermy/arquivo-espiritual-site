@@ -328,4 +328,16 @@ test('Porta-voz em cache ou documento online recebe termos atuais sem perder edi
  ctx.dispatch('click','','edit:classe-porta-voz',{kind:'warehouse'});
  assert.match(ctx.modal(),/I: 1d6; II: 1d8; III: 1d12/);
  assert.doesNotMatch(ctx.modal(),/ainda em desenvolvimento/);
+ ctx.elements.dialogRoot.dataset.warehouseId='classe-porta-voz';
+ Object.assign(ctx.elements,{
+  warehouseTitleInput:{value:'Porta-voz'},warehouseContentInput:{value:post.content},
+  warehouseCategoryInput:{value:'Classes'},warehouseVisibilityInput:{value:'published'},
+  warehouseSummaryInput:{value:post.summary},warehouseTagsInput:{value:post.tags},
+  warehouseImageInput:{value:''},warehouseCostInput:{value:'1 uso por cena'}
+ });
+ ctx.dispatch('click','','warehouse-save',{kind:'modal'});
+ assert.match(old.content,/Vínculo de grau I ou superior/);
+ assert.match(old.damage.label,/Dado de Vínculo/);
+ assert.doesNotMatch(old.content,/ainda em desenvolvimento|pelo menos Afinidade/);
+ assert.equal(old.summary,'Versão personalizada pelo mestre');
 });
