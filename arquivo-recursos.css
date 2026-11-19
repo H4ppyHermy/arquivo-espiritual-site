@@ -883,7 +883,7 @@ html.performance-mode :is(
 ){background-image:none!important}
 html.performance-mode *::before,
 html.performance-mode *::after{background-image:none!important}
-html.performance-mode :is(.grain,#energy,.ae-home-glyph,.roll-impact,.ae32-halo,.ae32-spark,.ae3-shinji-fx){
+html.performance-mode :is(.grain,#energy,.ae-home-glyph,.roll-impact,){
  display:none!important
 }
 html.performance-mode body::before{content:none!important;display:none!important}
