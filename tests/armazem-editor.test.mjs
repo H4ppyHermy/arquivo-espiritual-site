@@ -204,7 +204,7 @@ test('um registro expandido apresenta HUD informativo, dados e descrição sem a
  assert.match(html,/RECURSOS VISUAIS/);
  assert.match(html,/role="meter"/);
  assert.match(html,/aria-valuemax="3"/);
- assert.match(html,/REDUÇÃO/);
+ assert.doesNotMatch(html,/<span>REDUÇÃO<\/span>/);
  assert.match(html,/1d4/);
  assert.match(html,/Referência visual/);
  assert.doesNotMatch(html,/GASTAR|GANHAR|ENVIAR À FICHA/);
