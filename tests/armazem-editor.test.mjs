@@ -73,7 +73,7 @@ test('foto e GIF ficam no mesmo quadrado de todas as categorias',()=>{
  assert.match(ctx.modal(),/Foto ou GIF para o quadrado pequeno/);
 });
 
-test('salvar item preserva imagem e metadados anteriores sem executar automações',()=>{
+test('salvar item mantém atributos válidos e descarta metadados do HUD antigo',()=>{
  const ctx=setup();
  const old={id:'item',title:'Espada',category:'Itens',image:'https://example.com/item.png',content:'Antigo',
   published:true,bars:[{id:'original',max:5,initial:1}],damage:{kind:'damage',count:1,faces:6}};
@@ -91,7 +91,7 @@ test('salvar item preserva imagem e metadados anteriores sem executar automaçõ
  assert.equal(next.title,'Espada revisada');
  assert.equal(next.content,'Novo texto');
  assert.equal(next.image,old.image);
- assert.equal(next.bars[0].max,5);
+ assert.equal(Object.hasOwn(next,'bars'),false);
  assert.equal(next.damage.faces,6);
  assert.equal(ctx.saves(),1);
  assert.equal(ctx.db.sheets[0].catalogEntries.length,1);
@@ -193,21 +193,17 @@ test('interface de fichas não apresenta a aba Acervo nem executa o módulo ante
 });
 
 
-test('um registro expandido apresenta HUD informativo, dados e descrição sem alterar fichas',()=>{
+test('publicação expandida exibe somente a descrição, sem o painel técnico',()=>{
  const ctx=setup();
  const before=JSON.stringify(ctx.db.sheets);
  ctx.elements.warehousePosts={innerHTML:''};
  ctx.dispatch('click','','open:classe-coracao-de-aco',{kind:'warehouse'});
  const html=ctx.elements.warehousePosts.innerHTML;
- assert.match(html,/REGISTRO TÉCNICO/);
+ assert.match(html,/DESCRIÇÃO & FUNCIONAMENTO/);
  assert.match(html,/Têmpera/);
- assert.match(html,/RECURSOS VISUAIS/);
- assert.match(html,/role="meter"/);
- assert.match(html,/aria-valuemax="3"/);
- assert.doesNotMatch(html,/<span>REDUÇÃO<\/span>/);
  assert.match(html,/1d4/);
- assert.match(html,/Referência visual/);
- assert.doesNotMatch(html,/GASTAR|GANHAR|ENVIAR À FICHA/);
+ assert.match(html,/class="ae-wh-detail-text"/);
+ assert.doesNotMatch(html,/REGISTRO TÉCNICO|RECURSOS VISUAIS|Referência visual|ae-wh-detail-hud|ae-wh-resource-slots|role="meter"/);
  assert.equal(JSON.stringify(ctx.db.sheets),before);
 });
 
@@ -230,118 +226,73 @@ test('tags dos registros são clicáveis, pesquisáveis e não diferenciam acent
  assert.doesNotMatch(ctx.elements.warehousePosts.innerHTML,/Coração de Aço/);
 });
 
-test('editor mostra identidade, descrição, detalhes opcionais e barras de leitura',()=>{
+test('editor exibe identidade, descrição e detalhes úteis sem recursos do HUD',()=>{
  const ctx=setup();
  ctx.dispatch('click','','edit:classe-cacador',{kind:'warehouse'});
  const html=ctx.modal();
- assert.match(html,/IDENTIDADE/);
- assert.match(html,/DESCRIÇÃO/);
- assert.match(html,/DETALHES & HUD DE RECURSOS/);
- assert.match(html,/warehouseVisibilityInput/);
- assert.match(html,/warehouseTagPreview/);
- assert.match(html,/add-tag:/);
- assert.match(html,/id="warehouseBarRows"/);
- assert.match(html,/data-bar-field="max"/);
- assert.match(html,/Contadores de armadilha/);
- assert.match(html,/ADICIONAR BARRA/);
- assert.doesNotMatch(html,/ENVIAR À FICHA/);
+ assert.match(html,/IDENTIDADE|DESCRIÇÃO/);
+ assert.match(html,/DETALHES ADICIONAIS/);
+ assert.match(html,/warehouseVisibilityInput|warehouseTagPreview/);
+ assert.match(html,/warehouseEditorResourceKind/);
+ assert.match(html,/data-warehouse-editor="insert-bar"/);
+ assert.doesNotMatch(html,/HUD DE RECURSOS|BARRAS DE RECURSO|warehouseBarRows|ADICIONAR BARRA|data-bar-field/);
 });
 
-test('o mestre pode salvar tags deduplicadas e barras informativas sem afetar ficha',()=>{
+test('o mestre pode salvar tags deduplicadas sem recriar metadados do HUD',()=>{
  const ctx=setup(),before=JSON.stringify(ctx.db.sheets);
  ctx.elements.dialogRoot.dataset.warehouseId='';
  Object.assign(ctx.elements,{
-  warehouseTitleInput:{value:'Passo Sereno'},warehouseContentInput:{value:'Descrição do recurso'},
+  warehouseTitleInput:{value:'Passo Sereno'},warehouseContentInput:{value:'[marca:1] Descrição do recurso'},
   warehouseCategoryInput:{value:'Habilidades'},warehouseVisibilityInput:{value:'draft'},
   warehouseSummaryInput:{value:'Mobilidade defensiva'},warehouseTagsInput:{value:'Defesa, defesa, Hohō'},
-  warehouseImageInput:{value:''},warehouseCostInput:{value:'1 ALMA'},
-  warehouseBarRows:{querySelectorAll(selector){
-   assert.equal(selector,'[data-warehouse-bar]');
-   const fields={label:{value:'Energia'},max:{value:'5'},initial:{value:'2'},reset:{value:'manual'},description:{value:'Gastável narrativamente'}};
-   return [{dataset:{barId:''},querySelector(key){
-    const m=/\[data-bar-field="([^"]+)"\]/.exec(key);return fields[m?.[1]]||null;
-   }}];
-  }}
+  warehouseImageInput:{value:''},warehouseCostInput:{value:'1 ALMA'}
  });
  ctx.dispatch('click','','warehouse-save',{kind:'modal'});
  const post=ctx.db.site.warehouse.posts[0];
  assert.equal(post.title,'Passo Sereno');
  assert.equal(post.tags,'Defesa, Hohō');
  assert.equal(post.published,false);
- assert.equal(post.bars.length,1);
- assert.equal(post.bars[0].initial,2);
- assert.equal(post.bars[0].max,5);
+ assert.equal(post.content,'[marca:1] Descrição do recurso');
+ assert.equal(Object.hasOwn(post,'bars'),false);
  assert.equal(JSON.stringify(ctx.db.sheets),before);
 });
 
-test('HUD de classes respeita apenas o formato genérico configurado no recurso',()=>{
+test('classes com metadados legados não exibem recursos técnicos duplicados',()=>{
  const ctx=setup(true);
  ctx.elements.warehousePosts={innerHTML:''};
- ctx.dispatch('click','','open:classe-cacador',{kind:'warehouse'});
- let markup=ctx.elements.warehousePosts.innerHTML;
- assert.match(markup,/ae-wh-resource-slots--contador/);
- assert.match(markup,/aria-valuemax="5"/);
- ctx.dispatch('click','','open:classe-especialista-hoho',{kind:'warehouse'});
- markup=ctx.elements.warehousePosts.innerHTML;
- assert.match(markup,/ae-wh-resource-slots--marca/);
- assert.match(markup,/Rastro ativo/);
- assert.doesNotMatch(markup,/ENVIAR À FICHA/);
-});
-test('editor do Armazém salva tipo visual genérico sem automação',()=>{
- const ctx=setup(true);
- ctx.elements.dialogRoot.dataset.warehouseId='';
- Object.assign(ctx.elements,{
-  warehouseTitleInput:{value:'Talento'},warehouseContentInput:{value:'Uma capacidade'},
-  warehouseCategoryInput:{value:'Habilidades'},warehouseVisibilityInput:{value:'published'},
-  warehouseSummaryInput:{value:'Referência'},warehouseTagsInput:{value:''},
-  warehouseImageInput:{value:''},warehouseCostInput:{value:''},
-  warehouseBarRows:{querySelectorAll(){return [{
-   dataset:{barId:''},querySelector(selector){
-    const fields={label:{value:'Acúmulo'},visual:{value:'contador'},max:{value:'5'},
-     initial:{value:'1'},reset:{value:'scene'},description:{value:'Descrição livre'}};
-    return fields[/\[data-bar-field="([^"]+)"\]/.exec(selector)?.[1]]||null;
-   }
-  }]}}
- });
- ctx.dispatch('click','','warehouse-save',{kind:'modal'});
- assert.equal(ctx.db.site.warehouse.posts[0].bars[0].visual,'contador');
- assert.equal(ctx.db.sheets[0].catalogEntries.length,1);
+ for(const id of ['classe-cacador','classe-especialista-hoho']){
+  ctx.dispatch('click','','open:'+id,{kind:'warehouse'});
+  const markup=ctx.elements.warehousePosts.innerHTML;
+  assert.match(markup,/DESCRIÇÃO & FUNCIONAMENTO/);
+  assert.doesNotMatch(markup,/ae-wh-detail-hud|ae-wh-resource-slots|role="meter"|RECURSOS VISUAIS/);
+ }
 });
 
-test('Sequência é configurável, persistida e exibida no HUD do Armazém',()=>{
+test('metadados legados de Sequência são ignorados e descartados ao editar',()=>{
  const ctx=setup(true);
  ctx.db.site.warehouse.posts.push({
-  id:'sequencia-teste',title:'Cadência',category:'Classes',published:true,content:'Recurso cumulativo.',
+  id:'sequencia-teste',title:'Cadência',category:'Classes',published:true,
+  content:'[sequencia:2/3] Recurso cumulativo.',
   bars:[{id:'cadencia',label:'Cadência',visual:'sequencia',max:3,initial:2,reset:'manual'}]
  });
  ctx.elements.warehousePosts={innerHTML:''};
  ctx.dispatch('click','','open:sequencia-teste',{kind:'warehouse'});
  const html=ctx.elements.warehousePosts.innerHTML;
- assert.match(html,/ae-wh-resource-slots--sequencia/);
- assert.match(html,/aria-valuemax="3"/);
- assert.match(html,/aria-valuenow="2"/);
- assert.equal((html.match(/class="filled"/g)||[]).length,2);
+ assert.match(html,/\[sequencia:2\/3\]/);
+ assert.doesNotMatch(html,/ae-wh-detail-hud|ae-wh-resource-slots|RECURSOS VISUAIS/);
  ctx.dispatch('click','','edit:sequencia-teste',{kind:'warehouse'});
- assert.match(ctx.modal(),/option value="sequencia" selected>Sequência/);
- assert.match(ctx.modal(),/option value="sequencia">Sequência/);
+ assert.doesNotMatch(ctx.modal(),/warehouseBarRows|ADICIONAR BARRA/);
  const before=JSON.stringify(ctx.db.sheets);
- ctx.elements.dialogRoot.dataset.warehouseId='';
+ ctx.elements.dialogRoot.dataset.warehouseId='sequencia-teste';
  Object.assign(ctx.elements,{
-  warehouseTitleInput:{value:'Cadência'},warehouseContentInput:{value:'[sequencia:2/3] Cadência'},
+  warehouseTitleInput:{value:'Cadência'},warehouseContentInput:{value:'[sequencia:3/3] Cadência plena'},
   warehouseCategoryInput:{value:'Classes'},warehouseVisibilityInput:{value:'published'},
   warehouseSummaryInput:{value:'Níveis cumulativos'},warehouseTagsInput:{value:'Artilharia'},
-  warehouseImageInput:{value:''},warehouseCostInput:{value:''},
-  warehouseBarRows:{querySelectorAll(){return [{
-   dataset:{barId:'cadencia'},querySelector(selector){
-    const fields={label:{value:'Cadência'},visual:{value:'sequencia'},max:{value:'3'},
-     initial:{value:'0'},reset:{value:'manual'},description:{value:'Aumenta em ataques à distância'}};
-    return fields[/\[data-bar-field="([^"]+)"\]/.exec(selector)?.[1]]||null;
-   }
-  }]}}
+  warehouseImageInput:{value:''},warehouseCostInput:{value:''}
  });
  ctx.dispatch('click','','warehouse-save',{kind:'modal'});
- const saved=ctx.db.site.warehouse.posts.find(x=>x.title==='Cadência'&&x.content.includes('[sequencia:2/3]'));
- assert.equal(saved?.bars[0]?.visual,'sequencia');
- assert.equal(saved?.bars[0]?.initial,0);
+ const saved=ctx.db.site.warehouse.posts.find(x=>x.id==='sequencia-teste');
+ assert.equal(saved?.content,'[sequencia:3/3] Cadência plena');
+ assert.equal(Object.hasOwn(saved,'bars'),false);
  assert.equal(JSON.stringify(ctx.db.sheets),before);
 });
