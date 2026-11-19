@@ -71,7 +71,7 @@ async function refresh(force=false){if(!state.enabled)return;
  const data=await rpc('ae_read_document');
  if(!data)return;
  if(state.error){state.error='';window.dispatchEvent(new Event('arquivo-online-state'))}
- if(!force && state.revision===data.revision)return;
+ if(!force&&Number(data.revision)<=Number(state.revision))return;
  state.revision=data.revision;
  if(Object.keys(data.data||{}).length===0){window.dispatchEvent(new CustomEvent('arquivo-online-empty'));return}
  window.dispatchEvent(new CustomEvent('arquivo-online-snapshot',{detail:{data:data.data,identity:state.identity,keys:state.keys,revision:state.revision}}));
@@ -109,7 +109,18 @@ async function saveAppearance(sheetId,appearance){if(!state.enabled)throw Error(
  return state.pending;
 }
 async function playerDirectory(){return rpc('ae_player_directory')}
-async function sheetLink(sheetId,action,targetKey=null){return rpc('ae_sheet_link',{p_sheet_id:sheetId,p_action:action,p_target_key:targetKey||null})}
+async function sheetLink(sheetId,action,targetKey=null){
+ if(!state.enabled)throw Error('Conexão online indisponível.');
+ // Não concorrer com gravações pendentes do mesmo documento.
+ await state.pending.catch(()=>{});
+ const result=await rpc('ae_sheet_link',{p_sheet_id:sheetId,p_action:action,p_target_key:targetKey||null});
+ if(!result?.sheet||result.sheet.id!==sheetId)throw Error('O servidor não confirmou a alteração do vínculo.');
+ // A operação retorna a ficha e a revisão já confirmadas: dispensa uma segunda leitura.
+ const revision=Number(result.revision);
+ if(Number.isFinite(revision))state.revision=Math.max(Number(state.revision)||0,revision);
+ state.busyUntil=Date.now()+400;
+ return result;
+}
 async function saveOwnedSheet(sheet){if(!state.enabled||state.identity?.kind!=='player')throw Error('Entre com uma chave de jogador.');return rpc('ae_player_save_sheet',{p_sheet:sheet})}
 async function notifyDiscordRoll(result){
  // Desabilitado até o mestre concluir a configuração do bot.
