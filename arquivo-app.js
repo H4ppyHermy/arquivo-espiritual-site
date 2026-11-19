@@ -1421,48 +1421,102 @@ if(tab==='abilities')return '<div class="ae-manual-abilities"><div class="panel"
  '</div>'+historyHtml()+'</div>';
  if(tab==='conditions')return `<div class="panel"><div class="sectionhead"><h2>ESTADOS & CONDIÇÕES</h2>${canEditSheet(s.id)?btn('+ ADICIONAR','conditionAdd','main'):''}</div><div class="actions">${(s.conditions||[]).length?s.conditions.map((c,i)=>`<span class="tag warn condition-pill">${esc(c)} ${CONDITIONS_CATALOG.some(x=>x.toLowerCase()===String(c).toLowerCase())?`<button class="rule-lookup" data-action="conditionInfo:${i}" aria-label="Ver regra de ${esc(c)}">?</button>`:''} ${canEditSheet(s.id)?`<button class="btn small quiet" data-action="conditionRemove:${i}" title="Remover condição">${icon('close','pill-icon')}</button>`:''}</span>`).join(''):'<span class="subtitle">Nenhuma condição aplicada.</span>'}</div></div>`;
 return `<div class="panel"><div class="sectionhead"><h2>NOTAS</h2>${canEditSheet(s.id)?btn('EDITAR NOTAS','editNotes','small'):''}</div><div class="rule"><div class="prose sheet-rich">${sheetRich(s.notes||'Sem anotações.')}</div></div>${s.noteImages?.length?`<div class="note-gallery">${s.noteImages.map((image,i)=>`<figure><img src="${esc(mediaSrc(image)||CLEAR_IMAGE)}" alt="Anexo ${i+1} das notas" loading="lazy">${canEditSheet(s.id)?btn('REMOVER ANEXO','removeNoteImage:'+i,'small danger'):''}</figure>`).join('')}</div>`:''}${canEditSheet(s.id)?`<div class="field"><label>ANEXAR IMAGENS OU GIFS (até 4 · 15 MB cada)<input id="noteImagesInput" type="file" accept="image/gif,image/png,image/jpeg,image/webp" multiple></label>${btn('ADICIONAR POR LINK','noteImageUrlDialog','small')}</div>`:''}</div>`}
-async function sheetLinks(){
+const sheetLinkDirectoryCache={account:'',entries:[],updated:0,pending:null};
+let sheetLinkBusy=false;
+function sheetLinks(){
  const sh=db.sheets.find(x=>x.id===currentSheet);
  if(!sh||!player())return;
- let directory=[];
- try{
-  if(window.ARQUIVO_SYNC?.state.enabled)directory=await window.ARQUIVO_SYNC.playerDirectory();
-  else directory=(db.keys||[]).filter(k=>k.kind==='player').map(k=>({id:k.id,name:k.name}));
- }catch(e){toast('Vínculos indisponíveis',e.message,true);return}
+ const session=String(keyOwnerId||'')+':'+(master()?'master':'player');
+ if(sheetLinkDirectoryCache.account!==session){
+  sheetLinkDirectoryCache.account=session;
+  sheetLinkDirectoryCache.entries=[];
+  sheetLinkDirectoryCache.updated=0;
+  sheetLinkDirectoryCache.pending=null;
+ }
+ const local=(db.keys||[]).filter(k=>k?.kind==='player');
+ const fromSync=(window.ARQUIVO_SYNC?.state.keys||[]).filter(k=>k?.kind==='player');
+ const directory=[...local,...fromSync,...sheetLinkDirectoryCache.entries]
+  .filter((k,i,all)=>k?.id&&all.findIndex(x=>x?.id===k.id)===i);
  const ids=linkedIds(sh),own=isLinked(sh);
  const canManage=master()||(own&&sh.ownerKeyId===keyOwnerId);
  const claimable=!sh.locked&&!ids.length&&role==='player';
- const names=id=>directory.find(k=>k.id===id)?.name||(id===keyOwnerId?'Você':'Jogador vinculado');
- const members=ids.length?ids.map(id=>`<span class="tag">${esc(names(id))}${id===keyOwnerId?' · VOCÊ':''}</span>`).join(''):'<span class="subtitle">Nenhum jogador vinculado.</span>';
- const options=directory.filter(k=>!ids.includes(k.id)).map(k=>`<option value="${esc(k.id)}">${esc(k.name)}</option>`).join('');
- modal('JOGADORES VINCULADOS',`<p class="subtitle">Apenas jogadores vinculados podem editar e interagir com a ficha. O mestre mantém acesso administrativo.</p><div class="sheet-link-members">${members}</div>${claimable?btn('VINCULAR À MINHA CHAVE','claimSheet','small main'):''}${own?btn('DESVINCULAR MINHA CHAVE','leaveSheet','small quiet'):''}${canManage&&options?`<div class="field"><label>Adicionar outro jogador<select id="linkPlayerTarget">${options}</select></label>${btn('VINCULAR JOGADOR','addSheetLink','small')}</div>`:''}${canManage&&ids.length>1?`<div class="field"><label>Desvincular jogador<select id="unlinkPlayerTarget">${ids.filter(id=>id!==keyOwnerId||master()).map(id=>`<option value="${esc(id)}">${esc(names(id))}</option>`).join('')}</select></label>${btn('REMOVER VÍNCULO','removeSheetLink','small quiet')}</div>`:''}${ids.length&&!own&&!master()?'<p class="color-hint">Solicite acesso a um jogador já vinculado.</p>':''}`, [['FECHAR','closeModal']]);
+ const nameFor=id=>directory.find(k=>k.id===id)?.name||(id===keyOwnerId?'Você':'Jogador vinculado');
+ const members=ids.length?ids.map(id=>'<span class="tag">'+esc(nameFor(id))+(id===keyOwnerId?' · VOCÊ':'')+'</span>').join(''):
+  '<span class="subtitle">Nenhum jogador vinculado.</span>';
+ const options=directory.filter(k=>!ids.includes(k.id)).map(k=>
+  '<option value="'+esc(k.id)+'">'+esc(k.name)+'</option>').join('');
+ const removable=ids.filter(id=>master()||id!==keyOwnerId);
+ const removeOptions=removable.map(id=>'<option value="'+esc(id)+'">'+esc(nameFor(id))+'</option>').join('');
+ const body='<div class="ae-sheet-links-dialog" data-sheet-links-panel="'+esc(sh.id)+'">'+
+  '<p class="subtitle">Somente jogadores vinculados podem editar esta ficha. O mestre mantém acesso administrativo.</p>'+
+  '<div class="sheet-link-members">'+members+'</div>'+
+  (claimable?btn('VINCULAR À MINHA CHAVE','claimSheet','small main'):'')+
+  (own?btn('DESVINCULAR MINHA CHAVE','leaveSheet','small quiet'):'')+
+  (canManage&&options?'<div class="field"><label>Adicionar jogador<select id="linkPlayerTarget">'+options+
+     '</select></label>'+btn('VINCULAR JOGADOR','addSheetLink','small')+'</div>':'')+
+  (canManage&&removeOptions?'<div class="field"><label>Remover jogador<select id="unlinkPlayerTarget">'+removeOptions+
+     '</select></label>'+btn('REMOVER VÍNCULO','removeSheetLink','small quiet')+'</div>':'')+
+  (ids.length&&!own&&!master()?'<p class="color-hint">Solicite acesso a um jogador vinculado.</p>':'')+
+  '</div>';
+ modal('JOGADORES VINCULADOS',body,[['FECHAR','closeModal']]);
+ const sync=window.ARQUIVO_SYNC;
+ if(sync?.state.enabled&&!sheetLinkDirectoryCache.pending&&Date.now()-sheetLinkDirectoryCache.updated>60000){
+  sheetLinkDirectoryCache.pending=sync.playerDirectory().then(list=>{
+   sheetLinkDirectoryCache.entries=Array.isArray(list)?list.filter(k=>k?.id):[];
+   sheetLinkDirectoryCache.updated=Date.now();
+   const dialog=el('dialogRoot')?.querySelector('[data-sheet-links-panel]');
+   if(dialog?.dataset.sheetLinksPanel===sh.id&&!sheetLinkBusy&&!dialog.querySelector('select:focus,input:focus')){
+    sheetLinks();
+   }
+  }).catch(error=>{
+   sheetLinkDirectoryCache.updated=Date.now();
+   if(!directory.length)toast('Lista de jogadores indisponível',error.message,true);
+  }).finally(()=>{sheetLinkDirectoryCache.pending=null});
+ }
 }
 async function changeSheetLink(action){
  const id=currentSheet,sh=db.sheets.find(x=>x.id===id);
- if(!sh||!player())return;
+ if(!sh||!player()||sheetLinkBusy)return;
  const target=action==='add'?el('linkPlayerTarget')?.value:action==='remove'?el('unlinkPlayerTarget')?.value:null;
  if(['add','remove'].includes(action)&&!target){toast('Selecione um jogador','Nenhuma chave escolhida.',true);return}
  if(action==='leave'&&!confirm('Desvincular esta ficha da sua chave? Se for a última chave, a ficha ficará pública e disponível para novo vínculo.'))return;
+ sheetLinkBusy=true;
+ const controls=[...(el('dialogRoot')?.querySelectorAll('.ae-sheet-links-dialog button')||[])];
+ const labels=controls.map(b=>b.textContent);
+ const actionName=({claim:'claimSheet',leave:'leaveSheet',add:'addSheetLink',remove:'removeSheetLink'})[action];
+ const active=controls.find(b=>b.dataset.action===actionName);
+ controls.forEach(b=>{b.disabled=true;b.setAttribute('aria-busy','true')});
+ if(active)active.textContent='SALVANDO...';
  try{
-  if(window.ARQUIVO_SYNC?.state.enabled){
-   await window.ARQUIVO_SYNC.sheetLink(id,action,target);
-   await window.ARQUIVO_SYNC.refresh(true);
+  const sync=window.ARQUIVO_SYNC;
+  if(sync?.state.enabled){
+   const result=await sync.sheetLink(id,action,target);
+   const changed=result?.sheet;
+   if(!changed||changed.id!==id)throw Error('O servidor não confirmou o novo vínculo.');
+   const index=db.sheets.findIndex(x=>x.id===id);
+   if(index<0)throw Error('A ficha alterada não está mais disponível.');
+   db.sheets[index]=changed;
   }else{
    let ids=linkedIds(sh);
    if(action==='claim'&&ids.length===0&&!sh.locked){ids=[keyOwnerId];sh.ownerKeyId=keyOwnerId}
    else if(action==='leave'&&ids.includes(keyOwnerId)){ids=ids.filter(x=>x!==keyOwnerId)}
    else if(action==='add'&&canEditSheet(id)&&target&&!ids.includes(target))ids.push(target);
-   else if(action==='remove'&&canEditSheet(id))ids=ids.filter(x=>x!==target);
+   else if(action==='remove'&&canEditSheet(id)&&ids.includes(target))ids=ids.filter(x=>x!==target);
    else throw Error('Vínculo não autorizado.');
    sh.linkedKeyIds=ids;
    if(!ids.length){sh.locked=false;sh.ownerKeyId=''}
    else if(!ids.includes(sh.ownerKeyId))sh.ownerKeyId=ids[0];
-   DATASTORE.save(db);
   }
+  DATASTORE.save(db);
   closeModal();
-  if(!master()&&!isLinked(db.sheets.find(x=>x.id===id))&&db.sheets.find(x=>x.id===id)?.locked)currentSheet=null;
+  const updated=db.sheets.find(x=>x.id===id);
+  if(!master()&&!isLinked(updated)&&updated?.locked)currentSheet=null;
   render();toast('VÍNCULOS ATUALIZADOS');
- }catch(e){toast('Vínculo não alterado',e.message,true)}
+ }catch(error){toast('Vínculo não alterado',error.message,true)}
+ finally{
+  sheetLinkBusy=false;
+  controls.forEach((b,i)=>{if(b.isConnected){b.disabled=false;b.removeAttribute('aria-busy');b.textContent=labels[i]}});
+ }
 }
 function sheetPage(){if(tab==='catalog')tab='summary';const s=db.sheets.find(x=>x.id===currentSheet);if(s?.masterOnly&&!master())return headline('ACESSO RESTRITO','SOMENTE MESTRES','');if(!s){currentSheet=null;return sheets()}if(s.locked&&(!canEditSheet(s.id)||s.redacted))return headline('ACESSO RESTRITO','FICHA DESCONHECIDA','Você não tem permissão para visualizar esta ficha.',btn('VOLTAR','backSheets'));const art=imgStyle(s.image);
  if(window.ARQUIVO_FICHA_VISUAL?.render){
