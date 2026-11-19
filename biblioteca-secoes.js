@@ -32,6 +32,10 @@
   if(!Array.isArray(w.hiddenPosts))w.hiddenPosts=[];
   return w;
  }
+ function warehouseAllowsImage(category){
+  return !['habilidades','habilidade','itens','item','técnicas','técnica','tecnicas','tecnica']
+    .includes(text(category).trim().toLocaleLowerCase('pt-BR'));
+ }
  function isPublished(p){return p.published!==false||api.master()}
  function safeImage(v){
   v=text(v).trim();
@@ -82,16 +86,16 @@
     (empty&&api.master()?action('+ NOVA PUBLICAÇÃO','edit:new','main'):'')+'</div>';
   }
   return found.map(p=>{
-   const id=text(p.id),opened=openedPost===id,photo=safeImage(p.image),summary=text(p.summary).trim(),cost=text(p.cost).trim();
+   const id=text(p.id),opened=openedPost===id,photo=warehouseAllowsImage(p.category)?safeImage(p.image):'',summary=text(p.summary).trim(),cost=text(p.cost).trim();
    const tags=text(p.tags).split(',').map(x=>x.trim()).filter(Boolean).slice(0,5);
    return '<article class="ae-warehouse-post'+(opened?' is-open':'')+'" id="warehousePost-'+esc(id)+'">'+
     '<div class="ae-warehouse-post-head"><div><span class="ae-library-kicker">'+esc(p.category||'Outros')+'</span>'+
     '<h3>'+esc(p.title||'Sem título')+'</h3></div>'+(cost?'<span class="ae-warehouse-cost">'+esc(cost)+'</span>':'')+'</div>'+
     (photo?'<figure class="ae-warehouse-image"><img loading="lazy" decoding="async" referrerpolicy="no-referrer" src="'+esc(photo)+'" alt="'+esc(p.title||'Imagem da publicação')+'"></figure>':'')+
     (summary?'<p class="ae-warehouse-summary">'+esc(summary)+'</p>':'')+
-    (tags.length?'<div class="ae-warehouse-tags">'+tags.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div>':'')+(window.ARQUIVO_CATALOGO?.extraMarkup(p)||'')+
+    (tags.length?'<div class="ae-warehouse-tags">'+tags.map(t=>'<span>'+esc(t)+'</span>').join('')+'</div>':'')+
     (p.published===false&&api.master()?'<p class="ae-warehouse-draft">RASCUNHO · OCULTO NA INTERFACE DO JOGADOR</p>':'')+
-    '<div class="ae-warehouse-actions">'+action(opened?'RECOLHER':'LER PUBLICAÇÃO','open:'+encodeURIComponent(id))+(window.ARQUIVO_CATALOGO?.actionMarkup(p)||'')+
+    '<div class="ae-warehouse-actions">'+action(opened?'RECOLHER':'LER PUBLICAÇÃO','open:'+encodeURIComponent(id))+
     (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+action('↑','move:'+encodeURIComponent(id)+':-1')+
      action('↓','move:'+encodeURIComponent(id)+':1'):'')+'</div>'+
     '<div class="ae-warehouse-reading book-text ae-library-reading" id="warehouseBody-'+esc(id)+'" role="region" aria-label="Conteúdo de '+esc(p.title)+'"'+(opened?'':' hidden')+'>'+
@@ -136,24 +140,24 @@
    '<div class="ae-warehouse-editor-row"><label>Categoria<select id="warehouseCategoryInput">'+w.categories.map(c=>'<option value="'+esc(c)+'"'+(p.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'+
    '<label>Custo (opcional)<input id="warehouseCostInput" maxlength="45" value="'+esc(p.cost)+'" placeholder="Ex.: 2 ALMA"></label></div>'+
    '<label>Resumo<input id="warehouseSummaryInput" maxlength="280" value="'+esc(p.summary)+'" placeholder="Uma frase sobre a publicação"></label>'+
-   '<label>Imagem (URL HTTPS)<input id="warehouseImageInput" type="url" maxlength="1200" value="'+esc(p.image)+'" placeholder="https://..."></label>'+
+   '<div class="ae-warehouse-image-field" id="warehouseImageField"'+(warehouseAllowsImage(p.category)?'':' hidden')+'><label>Imagem (URL HTTPS)<input id="warehouseImageInput" type="url" maxlength="1200" value="'+esc(p.image||'')+'" placeholder="https://..."></label></div>'+
    '<label>Marcadores separados por vírgula<input id="warehouseTagsInput" maxlength="120" value="'+esc(p.tags)+'" placeholder="Mobilidade, Shinigami"></label>'+
    '<section class="ae-warehouse-compose" aria-label="Editor da publicação"><div class="ae-warehouse-compose-heading">'+
     '<strong>CONTEÚDO DA PUBLICAÇÃO</strong><small>Formatação e prévia ao vivo</small></div>'+
     '<div class="ae-warehouse-editor-toolbar" role="toolbar" aria-label="Formatar publicação">'+
-    '<button type="button" data-cat-action="format:bold" title="Negrito (Ctrl+B)"><b>B</b></button>'+
-    '<button type="button" data-cat-action="format:italic" title="Itálico (Ctrl+I)"><em>I</em></button>'+
-    '<button type="button" data-cat-action="format:heading">TÍTULO</button>'+
-    '<button type="button" data-cat-action="format:list">LISTA</button>'+
-    '<button type="button" data-cat-action="format:quote">CITAÇÃO</button>'+
+    '<button type="button" data-warehouse-editor="format:bold" title="Negrito (Ctrl+B)"><b>B</b></button>'+
+    '<button type="button" data-warehouse-editor="format:italic" title="Itálico (Ctrl+I)"><em>I</em></button>'+
+    '<button type="button" data-warehouse-editor="format:heading">TÍTULO</button>'+
+    '<button type="button" data-warehouse-editor="format:list">LISTA</button>'+
+    '<button type="button" data-warehouse-editor="format:quote">CITAÇÃO</button>'+
     '<label>COR <input id="warehouseEditorColor" type="color" value="#39D6F4" aria-label="Cor do trecho selecionado"></label>'+
-    '<button type="button" data-cat-action="format:color">COLORIR</button></div>'+
+    '<button type="button" data-warehouse-editor="format:color">COLORIR</button></div>'+
     '<div class="ae-warehouse-compose-templates"><label>ESTRUTURA PRONTA<select id="warehouseEditorTemplate">'+
     '<option value="ability">Habilidade / técnica</option><option value="class">Classe</option>'+
     '<option value="item">Item</option><option value="rule">Regra / mecânica</option></select></label>'+
-    '<button type="button" class="btn small" data-cat-action="insert-template">INSERIR BLOCO</button>'+
+    '<button type="button" class="btn small" data-warehouse-editor="insert-template">INSERIR BLOCO</button>'+
     '<label>DADO<select id="warehouseEditorDie">'+[4,6,8,10,12,14,16,18,20].map(n=>'<option value="'+n+'">d'+n+'</option>').join('')+'</select></label>'+
-    '<button type="button" class="btn small" data-cat-action="insert-die">INSERIR DADO</button></div>'+
+    '<button type="button" class="btn small" data-warehouse-editor="insert-die">INSERIR DADO</button></div>'+
     '<div class="ae-warehouse-compose-grid"><div class="ae-warehouse-compose-source">'+
     '<label for="warehouseContentInput">Escrever conteúdo<textarea id="warehouseContentInput" rows="16" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="## Descrição\n\nExplique a classe, habilidade ou técnica.">'+esc(p.content)+'</textarea></label>'+
     '<p id="warehouseEditorHint" class="ae-cat-help">Selecione palavras e use os botões acima. Ctrl+B e Ctrl+I também funcionam.</p></div>'+
