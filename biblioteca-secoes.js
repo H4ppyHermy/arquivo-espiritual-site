@@ -307,9 +307,10 @@
   if(joinedTags.length>200){api.toast('Tags extensas','Reduza os nomes ou o número de tags.',true);return}
   const selectedVisibility=document.getElementById('warehouseVisibilityInput')?.value;
   const published=selectedVisibility?selectedVisibility==='published':!!document.getElementById('warehousePublishedInput')?.checked;
-  const entry={...(defaultPost||{}),...(previous||{}),id:previous?.id||defaultPost?.id||api.uid(),title,category,
+  let entry={...(defaultPost||{}),...(previous||{}),id:previous?.id||defaultPost?.id||api.uid(),title,category,
    summary:get('warehouseSummaryInput').slice(0,280),image,cost:get('warehouseCostInput').slice(0,45),
    tags:joinedTags,hiddenTags,content:content.slice(0,20000),published};
+  entry=alignLegacyPortaVoz(entry);
   // Não levar o esquema aposentado do HUD para publicações editadas.
   delete entry.bars;
   if(previous){Object.assign(previous,entry);delete previous.bars}
