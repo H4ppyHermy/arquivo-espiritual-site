@@ -3,6 +3,89 @@
  'use strict';
  const api=window.ARQUIVO_INTERNAL;
  if(!api)return;
+
+ let editActive=false,hiddenDraft=new Set(),imageDraft='',imageBusy=false;
+ const fold=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLocaleLowerCase('pt-BR');
+ function beginEdit(post={}){
+  editActive=true;
+  hiddenDraft=new Set((Array.isArray(post.hiddenTags)?post.hiddenTags:[]).map(fold));
+  imageDraft=String(post.image||'');
+  imageBusy=false;
+  updateTagPreview();updateImagePreview();
+ }
+ function readHiddenTags(tags){
+  return (Array.isArray(tags)?tags:[]).filter(tag=>hiddenDraft.has(fold(tag)));
+ }
+ function imageValue(){
+  if(!editActive)return undefined;
+  if(imageBusy)return null;
+  const url=String(document.getElementById('warehouseImageInput')?.value||'').trim();
+  return url||imageDraft;
+ }
+ function updateImagePreview(){
+  const target=document.getElementById('warehouseImagePreview');if(!target)return;
+  const src=imageValue()||'';
+  const valid=/^https:\/\/[^\s"'<>]+$/i.test(src)||
+    /^data:image\/(?:gif|png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i.test(src);
+  target.innerHTML=valid?'<img alt="Miniatura selecionada" src="'+api.esc(src)+'">':'<span>CL</span>';
+ }
+ function toggleTag(raw){
+  let name='';try{name=decodeURIComponent(raw)}catch{return}
+  const tags=window.ARQUIVO_SECOES?.parseTags(document.getElementById('warehouseTagsInput')?.value)||[];
+  const tag=tags.find(t=>fold(t)===fold(name));if(!tag)return;
+  const key=fold(tag);
+  if(hiddenDraft.has(key))hiddenDraft.delete(key);
+  else hiddenDraft.add(key);
+  updateTagPreview();
+ }
+ async function readImageFile(file){
+  if(!file)return;
+  if(!['image/png','image/jpeg','image/webp','image/gif'].includes(file.type))throw Error('Use JPG, PNG, WebP ou GIF.');
+  if(!file.size||file.size>8*1024*1024)throw Error('O arquivo precisa ter até 8 MB.');
+  if(file.type==='image/gif'&&file.size>200000)throw Error('Para preservar a animação, escolha um GIF de até 200 KB.');
+  const raw=await new Promise((resolve,reject)=>{
+   const reader=new FileReader();
+   reader.onload=()=>resolve(String(reader.result||''));
+   reader.onerror=()=>reject(Error('Falha ao ler a imagem.'));
+   reader.readAsDataURL(file);
+  });
+  if(file.type==='image/gif')return raw;
+  const img=new Image();
+  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('Imagem inválida.'));img.src=raw});
+  if(!img.naturalWidth||!img.naturalHeight)throw Error('A imagem não possui dimensões válidas.');
+  const scale=Math.min(1,320/Math.max(img.naturalWidth,img.naturalHeight));
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
+  canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+  const ctx=canvas.getContext('2d');if(!ctx)throw Error('Processamento de imagem indisponível.');
+  ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  let result=canvas.toDataURL('image/webp',.74);
+  if(!result.startsWith('data:image/webp'))result=canvas.toDataURL('image/jpeg',.72);
+  return result;
+ }
+ async function setPhotoFile(file){
+  if(!file)return;
+  if(imageBusy)return;
+  imageBusy=true;
+  const previous=imageDraft;
+  try{
+   const data=await readImageFile(file);
+   if(data.length>340000)throw Error('A miniatura excede o limite. Escolha uma imagem menor.');
+   imageDraft=data;
+   const input=document.getElementById('warehouseImageInput');if(input)input.value='';
+   api.toast('Miniatura selecionada','Foto ou GIF será incluído ao salvar a publicação.');
+  }catch(error){
+   imageDraft=previous;
+   api.toast('Falha na miniatura',error.message,true);
+  }finally{imageBusy=false;updateImagePreview()}
+ }
+ function removeImage(){
+  imageDraft='';
+  const input=document.getElementById('warehouseImageInput');if(input)input.value='';
+  const file=document.getElementById('warehouseImageFile');if(file)file.value='';
+  updateImagePreview();
+ }
+
  function editorUpdatePreview(){
   const area=document.getElementById('warehouseContentInput');if(!area)return;
   const preview=document.getElementById('aeWarehouseEditorPreview');
@@ -61,7 +144,13 @@
   const field=document.getElementById('warehouseTagsInput'),target=document.getElementById('warehouseTagPreview');
   if(!field||!target)return;
   const tags=window.ARQUIVO_SECOES?.parseTags(field.value)||[];
-  target.innerHTML=tags.map(tag=>'<span>#'+api.esc(tag)+'</span>').join('');
+  target.innerHTML=tags.map(tag=>{
+   const hidden=hiddenDraft.has(fold(tag));
+   return '<button type="button" class="'+(hidden?'is-hidden-tag':'')+
+    '" data-warehouse-editor="toggle-tag:'+encodeURIComponent(tag)+'" aria-pressed="'+hidden+
+    '" title="'+(hidden?'Mostrar aos jogadores':'Ocultar dos jogadores')+'">#'+api.esc(tag)+
+    '<small>'+ (hidden?'OCULTA':'VISÍVEL')+'</small></button>';
+  }).join('');
  }
  function addSuggestedTag(raw){
   let tag='';try{tag=decodeURIComponent(raw)}catch{return}
@@ -97,6 +186,8 @@
   else if(action==='add-bar')addResourceBar();
   else if(action==='remove-bar')button.closest('[data-warehouse-bar]')?.remove();
   else if(action?.startsWith('add-tag:'))addSuggestedTag(action.slice(8));
+  else if(action?.startsWith('toggle-tag:'))toggleTag(action.slice(11));
+  else if(action==='remove-image')removeImage();
  },true);
  document.addEventListener('keydown',event=>{
   if(event.target?.id==='warehouseContentInput'&&(event.ctrlKey||event.metaKey)&&['b','i'].includes(event.key.toLowerCase())){
@@ -107,6 +198,10 @@
  document.addEventListener('input',event=>{
   if(event.target?.id==='warehouseContentInput')editorUpdatePreview();
   if(event.target?.id==='warehouseTagsInput')updateTagPreview();
+  if(event.target?.id==='warehouseImageInput')updateImagePreview();
  });
- window.ARQUIVO_EDITOR_ARMAZEM={refresh:editorUpdatePreview};
+ document.addEventListener('change',event=>{
+  if(event.target?.id==='warehouseImageFile')setPhotoFile(event.target.files?.[0]);
+ });
+ window.ARQUIVO_EDITOR_ARMAZEM={refresh:editorUpdatePreview,beginEdit,readHiddenTags,imageValue};
 })();
