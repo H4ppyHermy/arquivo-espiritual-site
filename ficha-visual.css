@@ -502,6 +502,7 @@ html.performance-mode #page .ae-ficha-v2 *{animation:none!important;transition:n
 #page .ae-ficha-v2 .ae-ficha-guide-item,
 #page .ae-ficha-v2 .ae-ficha-note-preview,
 #page .ae-ficha-v2 .ae-ficha-navigation{
+ background-color:var(--theme-panel);
  background-image:var(--sheet-gradient,none);
 }
 #page .ae-ficha-v2 .ae-ficha-attribute .ae-ficha-die--group .die-figure.ae-inline-die,
