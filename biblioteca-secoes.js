@@ -32,14 +32,12 @@
   if(!Array.isArray(w.hiddenPosts))w.hiddenPosts=[];
   return w;
  }
- function warehouseAllowsImage(category){
-  return !['habilidades','habilidade','itens','item','técnicas','técnica','tecnicas','tecnica']
-    .includes(text(category).trim().toLocaleLowerCase('pt-BR'));
- }
+ function warehouseAllowsImage(){return true;}
  function isPublished(p){return p.published!==false||api.master()}
  function safeImage(v){
   v=text(v).trim();
-  return v.length<=1200&&/^https:\/\/[^\s"'<>]+$/i.test(v)?v:'';
+  return ((v.length<=1200&&/^https:\/\/[^\s"'<>]+$/i.test(v))||
+   (v.length<=340000&&/^data:image\/(?:gif|png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i.test(v)))?v:'';
  }
 
  const fold=x=>text(x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR').trim();
@@ -49,9 +47,17 @@
    const key=fold(t);if(!key||seen.has(key))return false;seen.add(key);return true;
   }).slice(0,8);
  }
+ function hiddenTagSet(post){return new Set((Array.isArray(post?.hiddenTags)?post.hiddenTags:[]).map(fold))}
+ function visibleTags(post){
+  const tags=parseTags(post?.tags);
+  if(api.master())return tags;
+  const hidden=hiddenTagSet(post);
+  return tags.filter(tag=>!hidden.has(fold(tag)));
+ }
+ function tagIsHidden(post,tag){return hiddenTagSet(post).has(fold(tag))}
  function popularTags(){
   const map=new Map();
-  for(const p of posts().filter(isPublished))for(const tag of parseTags(p.tags)){
+  for(const p of posts().filter(isPublished))for(const tag of visibleTags(p)){
    const key=fold(tag),value=map.get(key)||{tag,count:0};value.count++;map.set(key,value);
   }
   return [...map.values()].sort((a,b)=>b.count-a.count||a.tag.localeCompare(b.tag,'pt-BR')).slice(0,12);
@@ -89,7 +95,7 @@
    (d.label?'<p class="ae-wh-meta-hint">'+esc(text(d.label).slice(0,65))+'</p>':'');
  }
  function postDetail(post){
-  const title=text(post.title||'Registro'),bars=resourceBars(post),cost=text(post.cost).trim(),tags=parseTags(post.tags);
+  const title=text(post.title||'Registro'),bars=resourceBars(post),cost=text(post.cost).trim(),tags=visibleTags(post);
   return '<div class="ae-wh-detail-layout"><div class="ae-wh-detail-text">'+
    '<div class="ae-wh-detail-eyebrow">DESCRIÇÃO & FUNCIONAMENTO</div>'+
    '<div class="book-text ae-library-reading ae-warehouse-reading">'+api.formatBook(post.content||'',title)+'</div></div>'+
@@ -100,15 +106,15 @@
    diceReference(post)+
    (bars?'<div class="ae-wh-hud-section"><span class="ae-wh-hud-label">BARRAS DE RECURSO</span>'+bars+'</div>':'')+
    (tags.length?'<div class="ae-wh-hud-section"><span class="ae-wh-hud-label">MARCADORES</span><div class="ae-wh-meta-tags">'+
-   tags.map(t=>'<span>#'+esc(t)+'</span>').join('')+'</div></div>':'')+
+   tags.map(t=>'<span class="'+(tagIsHidden(post,t)?'is-hidden-tag':'')+'">#'+esc(t)+(tagIsHidden(post,t)?' · SÓ MESTRE':'')+'</span>').join('')+'</div></div>':'')+
    '<p class="ae-wh-hud-footnote">Referência visual. Nenhum recurso é alterado automaticamente.</p></aside></div>';
  }
 
  function visible(){
   const terms=fold(search).split(/\s+/).filter(Boolean);
   return posts().filter(p=>isPublished(p)&&(selectedCategory==='Todas'||p.category===selectedCategory)&&
-   (!selectedTag||parseTags(p.tags).some(t=>fold(t)===fold(selectedTag)))&&
-   (!terms.length||terms.every(term=>fold([p.title,p.summary,p.content,p.category,...parseTags(p.tags)].join(' ')).includes(term))));
+   (!selectedTag||visibleTags(p).some(t=>fold(t)===fold(selectedTag)))&&
+   (!terms.length||terms.every(term=>fold([p.title,p.summary,p.content,p.category,...visibleTags(p)].join(' ')).includes(term))));
  }
  function shelf(){
   const volumes=[
@@ -151,8 +157,8 @@
     (!empty?action('LIMPAR FILTROS','clear-filters','small'):'')+'</div>';
   }
   return found.map((p,index)=>{
-   const id=text(p.id||''),opened=openedPost===id,photo=warehouseAllowsImage(p.category)?safeImage(p.image):'';
-   const summary=text(p.summary).trim(),cost=text(p.cost).trim(),tags=parseTags(p.tags);
+   const id=text(p.id||''),opened=openedPost===id,photo=safeImage(p.image);
+   const summary=text(p.summary).trim(),cost=text(p.cost).trim(),tags=visibleTags(p);
    const category=text(p.category||'Outros'),abbr=({Classes:'CL',Habilidades:'HB',Técnicas:'TC',Itens:'IT'})[category]||'AR';
    return '<article class="ae-warehouse-post'+(opened?' is-open':'')+'" id="warehousePost-'+esc(id)+'">'+
     '<div class="ae-wh-post-accent" aria-hidden="true"></div>'+
@@ -167,7 +173,7 @@
     (summary?'<p class="ae-warehouse-summary">'+esc(summary)+'</p>':'<p class="ae-warehouse-summary ae-wh-summary-muted">Abra para consultar a descrição completa.</p>')+
     '</div></div>'+
     (tags.length?'<div class="ae-warehouse-tags" aria-label="Tags">'+tags.map(tag=>
-    '<button type="button" data-warehouse-action="tag:'+encodeURIComponent(tag)+'" title="Filtrar por '+esc(tag)+'">#'+esc(tag)+'</button>').join('')+'</div>':'')+
+    '<button type="button" class="'+(tagIsHidden(p,tag)?'is-hidden-tag':'')+'" data-warehouse-action="tag:'+encodeURIComponent(tag)+'" title="'+(tagIsHidden(p,tag)?'Tag oculta para jogadores: ':'Filtrar por ')+esc(tag)+'">#'+esc(tag)+(tagIsHidden(p,tag)?'<small> · SÓ MESTRE</small>':'')+'</button>').join('')+'</div>':'')+
     (p.published===false&&api.master()?'<p class="ae-warehouse-draft">RASCUNHO · OCULTO PARA JOGADORES</p>':'')+
     '<div class="ae-warehouse-actions"><button type="button" class="btn small ae-wh-read-btn" data-warehouse-action="open:'+encodeURIComponent(id)+
     '" aria-expanded="'+opened+'" aria-controls="warehouseBody-'+esc(id)+'">'+(opened?'RECOLHER REGISTRO':'CONSULTAR REGISTRO')+
@@ -313,23 +319,25 @@
   const get=id=>text(document.getElementById(id)?.value).trim();
   const title=get('warehouseTitleInput'),content=get('warehouseContentInput'),category=get('warehouseCategoryInput');
   const previous=w.posts.find(p=>p.id===id),defaultPost=warehouse().posts.find(p=>p.id===id);
-  const image=warehouseAllowsImage(category)?get('warehouseImageInput'):text(previous?.image??defaultPost?.image??'');
+  const image=window.ARQUIVO_EDITOR_ARMAZEM?.imageValue?.()??get('warehouseImageInput');
   if(!title||title.length>100){api.toast('Título obrigatório','Informe até 100 caracteres.',true);return}
   if(!content){api.toast('Conteúdo obrigatório','Escreva o conteúdo da publicação.',true);return}
   if(!w.categories.includes(category)){api.toast('Categoria inválida','Selecione uma categoria ativa.',true);return}
-  if(image&&!safeImage(image)){api.toast('Imagem inválida','Informe um endereço HTTPS direto.',true);return}
+  if(image&&!safeImage(image)){api.toast('Imagem inválida','Use uma URL HTTPS ou uma foto/GIF de tamanho reduzido.',true);return}
   if(!id&&w.posts.length>=300){api.toast('Limite do Armazém','Máximo de 300 publicações.',true);return}
   if(id&&!previous&&!defaultPost)return;
   let bars=[];try{bars=readEditorBars(previous?.bars??defaultPost?.bars??[])}
   catch(error){api.toast('Revise as barras',error.message,true);return}
   const tags=parseTags(get('warehouseTagsInput'));
   const joinedTags=tags.join(', ');
+  const hiddenTags=window.ARQUIVO_EDITOR_ARMAZEM?.readHiddenTags?.(tags)||
+   (Array.isArray(previous?.hiddenTags)?previous.hiddenTags:[]).filter(x=>tags.some(t=>fold(t)===fold(x)));
   if(joinedTags.length>200){api.toast('Tags extensas','Reduza os nomes ou o número de tags.',true);return}
   const selectedVisibility=document.getElementById('warehouseVisibilityInput')?.value;
   const published=selectedVisibility?selectedVisibility==='published':!!document.getElementById('warehousePublishedInput')?.checked;
   const entry={...(defaultPost||{}),...(previous||{}),id:previous?.id||defaultPost?.id||api.uid(),title,category,
    summary:get('warehouseSummaryInput').slice(0,280),image,cost:get('warehouseCostInput').slice(0,45),
-   tags:joinedTags,content:content.slice(0,20000),bars,published};
+   tags:joinedTags,hiddenTags,content:content.slice(0,20000),bars,published};
   if(previous)Object.assign(previous,entry);else w.posts.unshift(entry);
   w.hiddenPosts=w.hiddenPosts.filter(key=>key!==entry.id);
   openedPost=entry.id;selectedCategory='Todas';selectedTag='';search='';
