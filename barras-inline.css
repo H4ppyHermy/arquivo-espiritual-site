@@ -18,3 +18,32 @@
 }
 @media(prefers-reduced-motion:reduce){.ae-inline-resource-bar,.ae-inline-resource-segment{animation:none;transition:none}}
 html.reduce-motion .ae-inline-resource-segment,html.performance-mode .ae-inline-resource-segment{box-shadow:none!important}
+
+
+/* Marca: losango de estado. Contador: ficha circular de quantidade.
+   Ambos são tipos reutilizáveis, nunca nomes específicos de habilidades. */
+.ae-inline-resource--marca .ae-inline-resource-segment{
+ width:.8em;height:.8em;margin:.04em .14em;
+ transform:rotate(45deg) scale(.82);border-radius:2px;
+ border-color:var(--theme-cold);
+ background:color-mix(in srgb,var(--theme-cold) 11%,var(--theme-panel))
+}
+.ae-inline-resource--marca .ae-inline-resource-segment::before{
+ content:"";display:block;width:24%;height:24%;border-radius:50%;
+ margin:38% auto;background:var(--theme-cold)
+}
+.ae-inline-resource--marca .ae-inline-resource-segment.is-filled{
+ background:var(--theme-cold);box-shadow:0 0 .3em color-mix(in srgb,var(--theme-cold) 28%,transparent)
+}
+.ae-inline-resource--marca .ae-inline-resource-segment.is-filled::before{background:var(--theme-panel)}
+.ae-inline-resource--contador{gap:.18em}
+.ae-inline-resource--contador .ae-inline-resource-segment{
+ width:.9em;height:.9em;border-radius:50%;transform:none;
+ border:2px solid var(--theme-cold);
+ background:color-mix(in srgb,var(--theme-cold) 10%,var(--theme-panel));
+ box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--theme-cold) 28%,transparent)
+}
+.ae-inline-resource--contador .ae-inline-resource-segment.is-filled{
+ background:var(--theme-cold);border-color:var(--theme-cold);
+ box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--theme-panel) 35%,transparent)
+}
