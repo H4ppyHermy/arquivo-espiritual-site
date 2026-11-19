@@ -214,10 +214,12 @@
  });
  document.addEventListener('change',event=>{
   if(event.target?.id==='warehouseImageFile')setPhotoFile(event.target.files?.[0]);
-  if(event.target?.id==='warehouseEditorResourceKind'&&event.target.value==='marca'){
+  if(event.target?.id==='warehouseEditorResourceKind'&&['marca','sequencia'].includes(event.target.value)){
    const total=document.getElementById('warehouseEditorBarTotal');
    const filled=document.getElementById('warehouseEditorBarFilled');
-   if(total)total.value='1';if(filled&&Number(filled.value)>1)filled.value='1';
+   const max=event.target.value==='marca'?1:3;
+   if(total)total.value=String(max);
+   if(filled&&Number(filled.value)>max)filled.value=String(max);
   }
  });
  window.ARQUIVO_EDITOR_ARMAZEM={refresh:editorUpdatePreview,beginEdit,readHiddenTags,imageValue};
