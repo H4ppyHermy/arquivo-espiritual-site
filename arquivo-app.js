@@ -1112,7 +1112,8 @@ function formatBook(source,chapterTitle=''){
  }
  function inline(text){
   const markers=[];
-  let raw=insertGlossaryReferences(text,markers);
+  let raw=window.ARQUIVO_BARRAS_INLINE?.mark(text,markers)??String(text||'');
+  raw=insertGlossaryReferences(raw,markers);
   raw=markInlineDice(raw,markers,'@@AEGLOSS');
   let t=esc(raw)
     .replace(/\[cor=(#[0-9a-f]{6})\]([\s\S]*?)\[\/cor\]/gi,(_,color,content)=>'<span class="ae-manual-color" style="color:'+color+'">'+content+'</span>')
@@ -1123,9 +1124,10 @@ function formatBook(source,chapterTitle=''){
     .replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>')
     .replace(/`([^`]+)`/g,'<code>$1</code>');
   if(search)t=t.split(/(<[^>]*>)/g).map(segment=>segment.startsWith('<')?segment:segment.replace(search,match=>'<mark>'+match+'</mark>')).join('');
-  return t.replace(/@@AEGLOSS(\d+)@@/g,(_,index)=>{
+  return t.replace(/@@(?:AEGLOSS|AEBAR)(\d+)@@/g,(_,index)=>{
    const marker=markers[Number(index)];
    if(!marker)return '';
+   if(marker.inlineBar)return window.ARQUIVO_BARRAS_INLINE?.render(marker)||'';
    if(marker.sides)return dieShape(marker.sides,'ae-inline-die',marker.count);
    return '<span class="ae-glossary-link" role="link" tabindex="0" data-action="explainRule:'+encodeURIComponent(marker.name)+'" aria-label="Consultar '+esc(marker.name)+' no glossário">'+esc(marker.display)+'</span>';
   });
@@ -1362,7 +1364,7 @@ function dieShape(n,kind='',count=1){
 }
 function sheetRich(text){
  const markers=[];
- const raw=markInlineDice(String(text||''),markers,'@@AEDIE');
+ const raw=markInlineDice(window.ARQUIVO_BARRAS_INLINE?.mark(String(text||''),markers)??String(text||''),markers,'@@AEDIE');
  const escaped=esc(raw);
  const fragments=escaped.split(/(\[cor=#[0-9a-fA-F]{6}\]|\[\/cor\])/gi);
  let open=false,out='';
@@ -1374,9 +1376,10 @@ function sheetRich(text){
    if(open)out+='</span>';open=false;
   }else out+=p.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
  }
- return (out+(open?'</span>':'')).replace(/@@AEDIE(\d+)@@/g,(_,index)=>{
-  const dice=markers[Number(index)];
-  return dice?dieShape(dice.sides,'ae-inline-die',dice.count):'';
+ return (out+(open?'</span>':'')).replace(/@@(?:AEDIE|AEBAR)(\d+)@@/g,(_,index)=>{
+  const marker=markers[Number(index)];
+  if(marker?.inlineBar)return window.ARQUIVO_BARRAS_INLINE?.render(marker)||'';
+  return marker?.sides?dieShape(marker.sides,'ae-inline-die',marker.count):'';
  });
 }
 function wrapColoredSelection(textareaId,colorId){const t=el(textareaId),c=el(colorId);if(!t||!c)return;const start=t.selectionStart,end=t.selectionEnd,value=t.value;const before=value.slice(0,start),mid=value.slice(start,end)||'texto colorido',after=value.slice(end);t.value=before+'[cor='+c.value+']'+mid+'[/cor]'+after;t.focus();t.setSelectionRange(start+5+c.value.length,start+5+c.value.length+mid.length);t.dispatchEvent(new Event('input',{bubbles:true}))}
