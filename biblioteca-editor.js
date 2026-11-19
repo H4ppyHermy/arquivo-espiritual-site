@@ -103,7 +103,7 @@
   const area=document.getElementById('warehouseContentInput');
   if(area)area.placeholder=single?
    'Descreva a ativação, os custos, o teste e o efeito desta única '+(technique?'técnica':'habilidade')+'.':
-   '## Descrição\\n\\nExplique o funcionamento da publicação.';
+   '## Descrição\n\nExplique o funcionamento da publicação.';
  }
 
  function editorUpdatePreview(){
