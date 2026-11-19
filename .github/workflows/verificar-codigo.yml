@@ -14,6 +14,7 @@ jobs:
       - name: Verificar sintaxe JavaScript
         run: |
           node --check arquivo-app.js
+          node --check biblioteca-secoes.js
           node --check easter-egg-larp.js
           node --check online.js
           node --check dados.js
