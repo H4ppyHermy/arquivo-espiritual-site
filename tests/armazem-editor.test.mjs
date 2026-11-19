@@ -296,3 +296,36 @@ test('metadados legados de Sequência são ignorados e descartados ao editar',()
  assert.equal(Object.hasOwn(saved,'bars'),false);
  assert.equal(JSON.stringify(ctx.db.sheets),before);
 });
+
+test('Porta-voz em cache ou documento online recebe termos atuais sem perder edições',()=>{
+ const ctx=setup(true);
+ const old={
+  id:'classe-porta-voz',title:'Porta-voz',category:'Classes',published:true,
+  tags:'Suporte, Campanha',summary:'Versão personalizada pelo mestre',
+  content:'## Manobrista\\nAo utilizar Auxílio, escolha dois aliados com quem tenha pelo menos Afinidade. '+
+    'O dado é usado conforme o grau de relação com o Porta-voz. '+
+    'O dado tem −1 passo e seu resultado é reduzido à metade. '+
+    'Os aliados recebem um dado adicional na próxima defesa contra ataque inimigo.\\n\\n'+
+    '> O valor do dado por grau de Afinidade depende das regras de criação de personagem ainda em desenvolvimento.\\n\\n'+
+    'Parágrafo exclusivo do mestre.',
+  damage:{kind:'bonus',count:1,faces:0,label:'Dado de Afinidade (valor não definido)'}
+ };
+ ctx.db.site.warehouse.posts.push(old);
+ const stored=JSON.stringify(old);
+ const post=ctx.window.ARQUIVO_SECOES.warehouse().posts.find(p=>p.id==='classe-porta-voz');
+ assert.match(post.content,/Vínculo de grau I ou superior/);
+ assert.match(post.content,/I: 1d6; II: 1d8; III: 1d12/);
+ assert.match(post.content,/Parágrafo exclusivo do mestre/);
+ assert.doesNotMatch(post.content,/ainda em desenvolvimento|pelo menos Afinidade|grau de relação com o Porta-voz/);
+ assert.match(post.damage.label,/Dado de Vínculo/);
+ assert.equal(post.summary,'Versão personalizada pelo mestre');
+ assert.equal(JSON.stringify(old),stored,'a leitura não pode sobrescrever o registro salvo');
+ ctx.elements.warehousePosts={innerHTML:''};
+ ctx.dispatch('click','','open:classe-porta-voz',{kind:'warehouse'});
+ const markup=ctx.elements.warehousePosts.innerHTML;
+ assert.match(markup,/Vínculo de grau I ou superior/);
+ assert.doesNotMatch(markup,/ainda em desenvolvimento/);
+ ctx.dispatch('click','','edit:classe-porta-voz',{kind:'warehouse'});
+ assert.match(ctx.modal(),/I: 1d6; II: 1d8; III: 1d12/);
+ assert.doesNotMatch(ctx.modal(),/ainda em desenvolvimento/);
+});
