@@ -83,21 +83,25 @@
     '</section>'+
     '<section class="ae-cbb-panel"><h3>Fases e ações</h3>'+
      '<div class="ae-cbb-pills">'+pill('CENA',c.scene||1)+pill('RODADA',c.round||1)+pill('FASE',phaseName[phase]||phase)+'</div>'+
-     '<div class="ae-cbb-pills">'+pill('PRINCIPAL',c.mainUsed?'usada':'livre')+pill('REAÇÃO',c.reactionUsed?'usada':'livre')+'</div>'+
+     '<div class="ae-cbb-pills">'+pill('PRINCIPAL',c.mainUsed?(c.cbb?.extraMain?'extra':'usada'):'livre')+pill('REAÇÃO',c.reactionUsed?(c.cbb?.extraReaction?'extra':'usada'):'livre')+'</div>'+
+     (c.cbb?.movementBlocked?'<p class="ae-cbb-hint">Exposição Rítmica: movimentação indisponível nesta rodada.</p>':'')+
      '<div class="ae-cbb-buttons">'+
-       '<button class="btn small" type="button" data-cbb-command="main"'+(disabled||c.mainUsed?' disabled':'')+'>USAR PRINCIPAL</button>'+
-       '<button class="btn small" type="button" data-cbb-command="reaction"'+(disabled||c.reactionUsed?' disabled':'')+'>USAR REAÇÃO</button>'+
+       '<button class="btn small" type="button" data-cbb-command="main"'+(disabled||(c.mainUsed&&!c.cbb?.extraMain)?' disabled':'')+'>USAR PRINCIPAL</button>'+
+       '<button class="btn small" type="button" data-cbb-command="reaction"'+(disabled||(c.reactionUsed&&!c.cbb?.extraReaction)?' disabled':'')+'>USAR REAÇÃO</button>'+
        '<button class="btn small" type="button" data-cbb-command="'+(phase==='desfecho'?'round':'phase')+'"'+lock+'>'+(phase==='desfecho'?'PRÓXIMA RODADA':'PRÓXIMA FASE')+'</button>'+
        (ctx.master?'<button class="btn small quiet" type="button" data-cbb-command="scene"'+lock+'>NOVA CENA</button>':'')+
      '</div>'+
-     '<h4>Exposições</h4><div class="ae-cbb-pills">'+
+     '<h4>Pressão e exposições</h4><div class="ae-cbb-pills">'+
+      pill('PRESSIONADO',c.cbb?.pressured?'sim':'não')+pill('ACERTOS',c.pressureHits||0)+'</div>'+
+     '<div class="ae-cbb-buttons"><button class="btn small" data-cbb-command="hit" type="button"'+lock+'>REGISTRAR ACERTO SOFRIDO</button></div>'+
+     '<div class="ae-cbb-pills">'+
       ['defensiva','ofensiva','ritmica'].map(n=>pill(n.toUpperCase(),String(ex[n]||0)+'/3')).join('')+'</div>'+
      '<div class="ae-cbb-pair"><label>Tipo<select data-cbb-field="exposure">'+opts([['defensiva','Defensiva'],['ofensiva','Ofensiva'],['ritmica','Rítmica']],'ofensiva')+'</select></label>'+
       '<label>Comprometer<select data-cbb-field="commitResource">'+opts([['main','Ação principal extra'],['reaction','Reação extra']],'main')+'</select></label></div>'+
      '<div class="ae-cbb-buttons"><button type="button" class="btn small" data-cbb-command="commit"'+lock+'>COMPROMETER</button>'+
       '<button type="button" class="btn small" data-cbb-command="expose" data-cbb-delta="1"'+lock+'>+ EXPOSIÇÃO</button>'+
       '<button type="button" class="btn small" data-cbb-command="contain"'+lock+'>CONTENÇÃO</button></div>'+
-     '<p class="ae-cbb-note">Contenção é realizada no Desfecho de uma rodada sem comprometimento. Não reduz Exposição Defensiva enquanto Pressionado.</p>'+
+     '<p class="ae-cbb-note">Acertos consecutivos geram Pressão; o agravamento defensivo é aplicado ao fim da fase, no máximo uma vez por rodada. Contenção é permitida no Desfecho sem comprometimento; a pressão bloqueia a recuperação defensiva.</p>'+
     '</section>'+
     '<section class="ae-cbb-panel"><h3>Recursos da ficha</h3>'+
      '<div class="ae-cbb-pills">'+resourceChoices.map(([k,t])=>pill(t,String(res[k]?.current??0)+' / '+String(res[k]?.max??0))).join('')+'</div>'+
@@ -184,6 +188,8 @@
   if(args.p_kind==='resistencia')resistanceByPhase.set(s.id+':'+currentPhase(s)+':'+args.p_resource,result);
   responseField(s,result,args.p_kind,dt,clash);
   statusBySheet.set(s.id,'Rolagem verificada e registrada no histórico.');
+  const notice=document.querySelector('.ae-cbb-mesa .ae-cbb-status');
+  if(notice)notice.textContent=stateText(s);
  }
  async function executeAction(root,button,cmd){
   const s=sheet(),sync=global.ARQUIVO_SYNC;if(!s||!api.canEditSheet(s.id)||!sync?.cbbAction)throw Error('Chave sem permissão de edição.');
@@ -236,8 +242,17 @@
   finally{busy=false;lockResult(b,false)}
  }
  function onChange(event){
-  const target=event.target;if(target?.dataset?.cbbField!=='source')return;
+  const target=event.target;
+  if(!['source','poolMode'].includes(target?.dataset?.cbbField))return;
   const root=target.closest('.ae-cbb-mesa'),s=sheet();
+  if(target.dataset.cbbField==='poolMode'){
+   if(root&&target.value==='resistencia'){
+    field(root,'poolCount').value='0';
+    field(root,'source').value='';
+    field(root,'flat').value='0';
+   }
+   return;
+  }
   const index=Number(target.value);
   if(!root||!s||target.value===''||!s.abilities?.[index])return;
   const pool=engine.abilityPool(s.abilities[index]);if(!pool)return;
