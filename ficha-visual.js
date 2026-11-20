@@ -126,11 +126,44 @@
     (text(s.notes).length>220?'…':'')+'</p><button type="button" data-tab="notes">VER NOTAS</button></div>':'')+
    '</section>';
  }
+ const abilityPinKey=ab=>(ab?.libraryType==='tecnica'?'tecnica':'habilidade')+':'+String(ab?.name||'').trim();
+ function pinButton(ab,index,ctx,pinned){
+  if(!ctx?.canEdit)return '';
+  const name=esc(ab.name||'Habilidade');
+  const label=(pinned?'Desafixar ':'Fixar ')+name+(pinned?' do resumo':' no resumo');
+  return '<button type="button" class="ae-ability-pin'+(pinned?' is-pinned':'')+'" data-cbb-command="pin" data-cbb-index="'+index+
+   '" aria-pressed="'+(pinned?'true':'false')+'" aria-label="'+esc(label)+'" title="'+esc(label)+'">'+
+   '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+
+   '<path d="M16 3l5 5-2.5 1.5-2 5L14 17l-7-7 2.5-2 5-2L16 3Z"/><path d="M7 17l-4 4M10 13l-3 4"/></svg></button>';
+ }
+ function quickAccess(s,ctx){
+  const abilities=Array.isArray(s.abilities)?s.abilities:[];
+  const pins=Array.isArray(s.pinnedAbilities)?s.pinnedAbilities:[];
+  const byKey=new Map();
+  for(let index=0;index<abilities.length;index++){
+   const ab=abilities[index];
+   if(ab&&!ab.origin?.auto)byKey.set(abilityPinKey(ab),{ab,index});
+  }
+  const selected=[...new Set(pins)].map(pin=>byKey.get(pin)).filter(Boolean);
+  if(!selected.length&&!ctx.canEdit)return '';
+  return '<section class="ae-ficha-quick-access" aria-label="Acesso rápido">'+
+   '<div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Acesso rápido</h2></div>'+
+   '<button type="button" class="ae-ficha-quick-browse" data-tab="abilities">HABILIDADES</button></div>'+
+   (selected.length?'<div class="ae-ficha-quick-grid">'+selected.map(({ab,index})=>
+    '<article class="ae-ficha-quick-card"><div class="ae-ficha-quick-header">'+
+     '<div class="ae-ficha-quick-name"><span>'+esc(ab.libraryType==='tecnica'?'TÉCNICA':'HABILIDADE')+
+      (Number(ab.cost)>0?' · '+esc(ab.cost)+' ALMA':'')+'</span><strong>'+esc(ab.name||'Habilidade')+'</strong></div>'+
+     pinButton(ab,index,ctx,true)+'</div>'+
+     '<details class="ae-ficha-quick-description"><summary>DESCRIÇÃO</summary><div class="sheet-rich">'+api.sheetRich(text(ab.description||''))+'</div></details>'+
+     (window.ARQUIVO_CBB_UI?.abilityActions?.(ab,index,ctx)||'')+'</article>').join('')+'</div>':
+    '<p class="ae-ficha-quick-empty">Use o pin ao lado de uma habilidade para deixá-la aqui.</p>')+
+   '</section>';
+ }
  function summary(s,ctx){
   return '<div class="ae-ficha-summary">'+
     '<div class="ae-ficha-summary-columns">'+attributes(s,ctx)+resources(s,ctx)+'</div>'+
     '<button type="button" class="btn small ae-cbb-open" data-tab="mesa">ABRIR MESA DE COMBATE</button>'+
-    originMeters(s,ctx)+snapshot(s)+
+    quickAccess(s,ctx)+originMeters(s,ctx)+snapshot(s)+
     (ctx.history?'<section class="ae-ficha-history">'+ctx.history+'</section>':'')+
    '</div>';
  }
@@ -151,13 +184,13 @@
     '<div class="ae-ficha-skills-col" aria-label="Coluna de perícias '+(index+1)+'">'+list.map(row).join('')+'</div>'
    ).join('')+'</div></section>';
  }
- function abilityCard(ab,index,ctx){
+ function abilityCard(ab,index,ctx,pinned=false){
   const name=esc(ab.name||'Habilidade sem nome');
   const description=text(ab.description||'Sem descrição.');
   const image=ab.image&&api.dataUrlOk(ab.image)?api.mediaSrc(ab.image):'';
   const kind=ab.libraryType==='tecnica'?'Técnica':'Habilidade';
   return '<article class="ae-ficha-ability-card" data-ability-kind="'+(kind==='Técnica'?'Técnicas':'Habilidades')+'" id="ability-'+index+'">'+
-    '<div class="ae-ficha-ability-tag">'+name+'</div>'+
+    '<div class="ae-ficha-ability-tag"><span class="ae-ficha-ability-title">'+name+'</span>'+pinButton(ab,index,ctx,pinned)+'</div>'+
     '<div class="ae-ficha-ability-meta"><span>'+esc(kind.toUpperCase())+'</span>'+
      (Number(ab.cost)>0?'<span>'+esc(ab.cost)+' ALMA</span>':'')+
      (ab.usage?'<span>'+esc(ab.usage)+'</span>':'')+'</div>'+
@@ -209,7 +242,7 @@
      '<div class="ae-ficha-ability-group-head"><h3>'+esc(section.name)+'</h3><span>'+entries.length+'</span></div>'+
      (entries.length?'<div class="ae-ficha-ability-grid">'+entries.map(({ab,index})=>
       '<div class="ae-ficha-ability-entry"'+(matches(ab)?'':' hidden')+'>'+
-      abilityCard(ab,index,ctx)+'</div>').join('')+'</div>':
+      abilityCard(ab,index,ctx,(s.pinnedAbilities||[]).includes(abilityPinKey(ab)))+'</div>').join('')+'</div>':
       '<p class="ae-ficha-ability-group-empty">Nenhuma habilidade vinculada. Escolha esta categoria ao editar uma habilidade.</p>')+
      '</section>';
    }).join('')+
