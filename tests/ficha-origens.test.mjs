@@ -128,7 +128,7 @@ test('recursos da ficha usam estado sincronizável existente sem novos campos SQ
  assert.match(online,/abilityRuntime:s\.abilityRuntime\|\|\{\}/);
  assert.match(visual,/Recursos de raça e classe/);
  assert.match(visual,/ae-ficha-origin-resource-card/);
- assert.match(visual,/data-tab="\+id/); 
+ assert.match(visual,/identification:'Identificação'/);
  assert.match(visual,/selected==='identification'\?identification/);
  assert.match(html,/racas-armazem\.js\?v=1/);
  assert.match(html,/ficha-origens\.js\?v=3/);
