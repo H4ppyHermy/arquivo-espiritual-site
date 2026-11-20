@@ -497,13 +497,18 @@ function makePeer(meta){
   ignoreOffer:false,remoteAnswerPending:false,queue:[],
   senders:[],audioStream:null,cameraStream:null,screenStream:null};
  state.peers.set(meta.peerId,peer);
- const tracks=[['audio',state.microphone],['video',state.camera],['video',state.screen]];
- for(let index=0;index<tracks.length;index++){
-  const [kind,stream]=tracks[index];
-  const trans=pc.addTransceiver(kind,{direction:'sendrecv'});
-  peer.senders[index]=trans.sender;
-  const t=stream?.getTracks?.().find(track=>track.kind===kind)||null;
-  if(t)trans.sender.replaceTrack(t).catch(()=>{});
+ // Só quem inicia cria as três m-lines. No navegador que responde,
+ // setRemoteDescription(offer) cria os transceivers receptores;
+ // criar outros antes da oferta gerava seis m-lines e vídeo preto no retorno.
+ if(peer.initiator){
+  const tracks=[['audio',state.microphone],['video',state.camera],['video',state.screen]];
+  for(let index=0;index<tracks.length;index++){
+   const [kind,stream]=tracks[index];
+   const trans=pc.addTransceiver(kind,{direction:'sendrecv'});
+   peer.senders[index]=trans.sender;
+   const t=stream?.getTracks?.().find(track=>track.kind===kind)||null;
+   if(t)trans.sender.replaceTrack(t).catch(()=>{});
+  }
  }
  pc.onicecandidate=({candidate})=>{if(candidate)sendSignal(peer.id,'candidate',candidate.toJSON()).catch(()=>{})};
  pc.ontrack=e=>{
@@ -583,6 +588,16 @@ async function signal(payload){
    peer.remoteAnswerPending=false;
    for(const candidate of peer.queue.splice(0))try{await pc.addIceCandidate(candidate)}catch(e){}
    if(d.type==='offer'){
+    // Associa as trilhas de saída às m-lines oferecidas, nunca a novos
+    // transceivers sem MID; sincroniza antes de criar a resposta SDP.
+    const slots=pc.getTransceivers();
+    if(slots.length<3)throw Error('Oferta de mídia incompleta.');
+    for(let i=0;i<3;i++){
+     const trans=slots[i];
+     peer.senders[i]=trans.sender;
+     if(trans.direction!=='sendrecv')trans.direction='sendrecv';
+    }
+    await syncTracks(peer);
     await pc.setLocalDescription();
     await sendSignal(peer.id,'description',pc.localDescription.toJSON());
    }
