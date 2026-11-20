@@ -131,5 +131,22 @@ test('recursos da ficha usam estado sincronizável existente sem novos campos SQ
  assert.match(visual,/identification:'Identificação'/);
  assert.match(visual,/selected==='identification'\?identification/);
  assert.match(html,/racas-armazem\.js\?v=1/);
- assert.match(html,/ficha-origens\.js\?v=3/);
+ assert.match(html,/ficha-origens\.js\?v=4/);
+});
+
+test('classes antigas sem metadados reconhecem valores iniciais narrados por cena',()=>{
+ const {logic,catalog}=setup();
+ for(const name of ['Caçador','Porta-voz','Especialista em Hohō']){
+  const post=catalog.find(p=>p.category==='Classes'&&p.title===name);
+  delete post.bars;
+ }
+ const hunter=logic.meters(sheet('','Caçador'))[0];
+ const speaker=logic.meters(sheet('','Porta-voz'))[0];
+ const hoho=logic.meters(sheet('','Especialista em Hohō'))[0];
+ assert.equal(hunter.initial,1);
+ assert.equal(hunter.max,5);
+ assert.equal(speaker.initial,1);
+ assert.equal(speaker.max,1);
+ assert.equal(hoho.initial,0);
+ assert.equal(hoho.max,1);
 });
