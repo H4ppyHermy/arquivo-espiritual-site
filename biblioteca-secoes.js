@@ -136,9 +136,22 @@
   const w=warehouse();
   return ['Todas',...w.categories].map(name=>{
    const n=w.posts.filter(p=>isPublished(p)&&(name==='Todas'||p.category===name)).length;
-   return '<button type="button" class="ae-warehouse-category'+(selectedCategory===name?' is-active':'')+'" data-warehouse-action="category:'+encodeURIComponent(name)+'"'+
+   return '<button type="button" class="ae-warehouse-category'+(selectedCategory===name?' is-active':'')+'"'+
+    (name==='Todas'?'':' data-drop-warehouse-category="'+esc(name)+'"')+
+    ' data-warehouse-action="category:'+encodeURIComponent(name)+'"'+
     (selectedCategory===name?' aria-current="true"':'')+'><span>'+esc(name)+'</span><small>'+n+'</small></button>';
   }).join('');
+ }
+ function dragPostButton(post){
+  if(!api.master()||!api.db.site?.warehouse?.posts?.some(p=>p.id===post.id))return '';
+  return '<button type="button" class="btn small ae-wh-drag-handle" data-drag-handle="warehouse"'+
+   ' title="Segure e arraste para mudar categoria ou posição"'+
+   ' aria-label="Arrastar publicação '+esc(post.title||'sem título')+'">⠿</button>';
+ }
+ function dragPostAttrs(post){
+  if(!api.master()||!api.db.site?.warehouse?.posts?.some(p=>p.id===post.id))return '';
+  return ' data-drag-warehouse-id="'+esc(post.id)+'" data-drop-warehouse-id="'+esc(post.id)+
+   '" data-drop-warehouse-category="'+esc(post.category||'Outros')+'"';
  }
  function isAbilityPost(post){return post.category==='Habilidades'||post.category==='Técnicas'}
  function abilityPlain(raw){
@@ -158,7 +171,7 @@
   const teaser=preview.slice(0,230)+(preview.length>230?'…':'');
   const type=category==='Técnicas'?'TÉCNICA':'HABILIDADE';
   const readLabel=category==='Técnicas'?'LER TÉCNICA COMPLETA':'LER EFEITO COMPLETO';
-  return '<article class="ae-warehouse-post ae-wh-ability-post'+(opened?' is-open':'')+'" id="warehousePost-'+esc(id)+'">'+
+  return '<article class="ae-warehouse-post ae-wh-ability-post'+(opened?' is-open':'')+'" id="warehousePost-'+esc(id)+'"'+dragPostAttrs(post)+'>'+
    '<div class="ae-wh-ability-main">'+
    '<h3 class="ae-wh-ability-title">'+esc(title)+'</h3>'+
    '<div class="ae-wh-ability-meta"><span>'+type+'</span>'+
@@ -176,7 +189,7 @@
    (long?'<button type="button" class="ae-wh-ability-read" data-warehouse-action="open:'+encodeURIComponent(id)+
     '" aria-expanded="'+opened+'" aria-controls="warehouseBody-'+esc(id)+'">'+
     (opened?'RECOLHER DESCRIÇÃO':readLabel)+' <span aria-hidden="true">'+(opened?'−':'+')+'</span></button>':'')+
-   (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+
+   (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+dragPostButton(post)+
     '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':-1" aria-label="Mover '+esc(title)+' para cima" title="Mover para cima">↑</button>'+
     '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':1" aria-label="Mover '+esc(title)+' para baixo" title="Mover para baixo">↓</button>':'')+
    (long||api.master()?'</div>':'')+'</article>';
@@ -197,7 +210,7 @@
    const category=text(p.category||'Outros');
    if(isAbilityPost(p))return abilityCard(p,opened);
    const abbr=({Classes:'CL',Itens:'IT'})[category]||'AR';
-   return '<article class="ae-warehouse-post'+(opened?' is-open':'')+'" id="warehousePost-'+esc(id)+'">'+
+   return '<article class="ae-warehouse-post'+(opened?' is-open':'')+'" id="warehousePost-'+esc(id)+'"'+dragPostAttrs(p)+'>'+
     '<div class="ae-wh-post-accent" aria-hidden="true"></div>'+
     '<div class="ae-wh-post-heading"><div class="ae-wh-post-id"><span class="ae-wh-number">'+String(index+1).padStart(2,'0')+'</span>'+
     '<span class="ae-wh-kind">'+esc(category)+'</span></div>'+
@@ -215,7 +228,7 @@
     '<div class="ae-warehouse-actions"><button type="button" class="btn small ae-wh-read-btn" data-warehouse-action="open:'+encodeURIComponent(id)+
     '" aria-expanded="'+opened+'" aria-controls="warehouseBody-'+esc(id)+'">'+(opened?'RECOLHER REGISTRO':'CONSULTAR REGISTRO')+
     '<span aria-hidden="true">'+(opened?'−':'+')+'</span></button>'+
-    (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+
+    (api.master()?action('EDITAR','edit:'+encodeURIComponent(id))+dragPostButton(p)+
      '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':-1" aria-label="Mover '+esc(p.title)+' para cima" title="Mover para cima">↑</button>'+
      '<button type="button" class="btn small ae-wh-move" data-warehouse-action="move:'+encodeURIComponent(id)+':1" aria-label="Mover '+esc(p.title)+' para baixo" title="Mover para baixo">↓</button>':'')+'</div>'+
     '<section id="warehouseBody-'+esc(id)+'" class="ae-wh-expanded" aria-label="Detalhes de '+esc(p.title||'Publicação')+'"'+(opened?'':' hidden')+'>'+
