@@ -414,6 +414,6 @@ test('fonte das descrições acompanha o ajuste percentual em vez de permanecer 
  const css=read('ficha-visual.css'),app=read('arquivo-app.js');
  assert.match(app,/root\.style\.fontSize=prefs\.fontSize\+'%'/);
  assert.match(css,/ae-ficha-ability-full \.ae-unified-rich[\s\S]*?font-size:clamp\(12px,\.875rem,28px\)!important/);
- assert.match(css,/ae-ficha-quick-description>\\.sheet-rich/);
+ assert.match(css,/ae-ficha-quick-description>\.sheet-rich/);
  assert.match(css,/font-size:inherit!important/);
 });
