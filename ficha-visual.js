@@ -4,8 +4,8 @@
  'use strict';
  const api=window.ARQUIVO_INTERNAL;
  if(!api)return;
- const esc=api.esc,labels={summary:'Resumo',skills:'Perícias',abilities:'Habilidades',bonds:'Vínculos',conditions:'Condições',inventory:'Inventário',notes:'Notas',guide:'Guia rápido'};
- const symbols={summary:'◇',skills:'▦',abilities:'✦',bonds:'∞',conditions:'◈',inventory:'▣',notes:'≡',guide:'▤'};
+ const esc=api.esc,labels={summary:'Resumo',skills:'Perícias',identification:'Identificação',abilities:'Habilidades',bonds:'Vínculos',conditions:'Condições',inventory:'Inventário',notes:'Notas',guide:'Guia rápido'};
+ const symbols={summary:'◇',skills:'▦',identification:'◈',abilities:'✦',bonds:'∞',conditions:'◈',inventory:'▣',notes:'≡',guide:'▤'};
  const TYPES={active:'ATIVA',passive:'PASSIVA',mechanic:'MECÂNICA',release:'LIBERAÇÃO',transformation:'TRANSFORMAÇÃO',ultimate:'SUPREMA',item:'ITEM'};
  let editorStep='',abilityKind='Todas',lastAbilitySheet='';
  const resourceDefs=[['vida','VIDA'],['estabilidade','ESTABILIDADE'],['alma','ALMA']];
@@ -66,8 +66,56 @@
      '</article>';
    }).join('')+'</div></section>';
  }
+ function originMeters(s,ctx){
+  const meters=window.ARQUIVO_ORIGENS?.meters(s)||[];
+  if(!meters.length)return '';
+  return '<section class="ae-ficha-origin-resources" aria-labelledby="aeOriginResourceTitle">'+
+   '<div class="ae-ficha-section-title"><h2 id="aeOriginResourceTitle">Recursos de raça e classe</h2></div>'+
+   '<div class="ae-ficha-origin-resource-grid">'+meters.map(meter=>{
+    const percent=Math.min(100,100*meter.current/meter.max).toFixed(2),key=encodeURIComponent(meter.key);
+    return '<article class="ae-ficha-resource-card ae-ficha-origin-resource-card" data-origin-meter="'+esc(meter.key)+'">'+
+      '<div class="ae-ficha-resource-head"><span>'+esc(meter.label)+'</span>'+
+       '<strong>'+meter.current+' <small>/ '+meter.max+'</small></strong></div>'+
+      '<div class="ae-ficha-origin-meter-source">'+esc(meter.kind==='race'?'RAÇA':'CLASSE')+' · '+esc(meter.source)+'</div>'+
+      '<div class="ae-ficha-resource-track" role="meter" aria-valuemin="0" aria-valuemax="'+meter.max+
+       '" aria-valuenow="'+meter.current+'" aria-label="'+esc(meter.label)+'">'+
+       '<span style="width:'+percent+'%"></span></div>'+
+      '<div class="ae-ficha-origin-meter-levels" aria-hidden="true" data-visual="'+esc(meter.visual)+'">'+
+       Array.from({length:meter.max},(_,i)=>'<span class="'+(i<meter.current?'is-active':'')+'"></span>').join('')+
+      '</div>'+
+      (ctx.canEdit?'<div class="ae-ficha-origin-meter-actions">'+
+       '<button type="button" data-action="originMeter:'+key+':-1" aria-label="Diminuir '+esc(meter.label)+
+         '"'+(meter.current===0?' disabled':'')+'>−</button>'+
+       '<button type="button" data-action="originMeter:'+key+':1" aria-label="Aumentar '+esc(meter.label)+
+         '"'+(meter.current===meter.max?' disabled':'')+'>+</button></div>':'')+
+     '</article>';
+   }).join('')+'</div></section>';
+ }
+ function identification(s,ctx){
+  const data=window.ARQUIVO_ORIGENS?.identity(s)||{};
+  const sections=[['race','RAÇA'],['class','CLASSE']];
+  const nodes=sections.map(([key,label])=>{
+   const part=data[key];if(!part)return '';
+   const linked=(part.traits||[]).map(trait=>
+    '<section class="ae-ficha-origin-trait"><div class="ae-ficha-origin-trait-head"><h4>'+esc(trait.title)+'</h4>'+
+     (trait.cost?'<span>'+esc(trait.cost)+'</span>':'')+'</div>'+
+     '<div class="ae-ficha-origin-prose sheet-rich">'+api.formatBook(trait.content||'',trait.title||'')+'</div></section>').join('');
+   return '<article class="ae-ficha-origin-chapter ae-ficha-origin-chapter--'+key+'">'+
+    '<div class="ae-ficha-origin-heading"><span>'+label+'</span><h3>'+esc(part.title)+'</h3></div>'+
+    (part.content?'<div class="ae-ficha-origin-prose sheet-rich">'+api.formatBook(part.content,part.title)+'</div>':
+     '<p class="ae-ficha-origin-empty">Descrição ainda não cadastrada no Armazém.</p>')+
+    (linked?'<div class="ae-ficha-origin-traits"><h3>Habilidades da '+(key==='race'?'raça':'classe')+
+     '</h3>'+linked+'</div>':'')+
+    '</article>';
+  }).filter(Boolean).join('');
+  return '<section class="ae-ficha-identification">'+
+   '<div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Identificação</h2></div>'+
+    (ctx.canEdit?api.btn('EDITAR RAÇA E CLASSE','editSheetSection:identity','small'):'')+'</div>'+
+   (nodes||'<div class="ae-ficha-empty">Selecione uma raça e uma classe em Editar ficha.</div>')+
+   '</section>';
+ }
  function snapshot(s){
-  const ab=(s.abilities||[]).length,cond=(s.conditions||[]).length;
+  const ab=(s.abilities||[]).filter(x=>!x?.origin?.auto).length,cond=(s.conditions||[]).length;
   const inventory=(s.inventory?.items||[]).length;
   return '<section class="ae-ficha-summary-notes"><div class="ae-ficha-section-title"><h2>Arquivo pessoal</h2></div>'+
    '<div class="ae-ficha-record-grid">'+
@@ -82,7 +130,7 @@
  function summary(s,ctx){
   return '<div class="ae-ficha-summary">'+
     '<div class="ae-ficha-summary-columns">'+attributes(s,ctx)+resources(s,ctx)+'</div>'+
-    snapshot(s)+
+    originMeters(s,ctx)+snapshot(s)+
     (ctx.history?'<section class="ae-ficha-history">'+ctx.history+'</section>':'')+
    '</div>';
  }
@@ -111,16 +159,12 @@
   const name=esc(ab.name||'Habilidade sem nome'),type=abilityCategory(ab);
   const description=text(ab.description||'Sem descrição.');
   const image=ab.image&&api.dataUrlOk(ab.image)?api.mediaSrc(ab.image):'';
-  const origin=ab.origin?.auto?ab.origin:null;
   const kind=ab.libraryType==='tecnica'?'Técnica':'Habilidade';
-  return '<article class="ae-ficha-ability-card'+
-   (origin?' ae-ficha-ability-inherited ae-ficha-ability-inherited--'+(origin.kind==='race'?'race':'class'):'')+
-   '" data-ability-kind="'+(kind==='Técnica'?'Técnicas':'Habilidades')+'" id="ability-'+index+'">'+
+  return '<article class="ae-ficha-ability-card" data-ability-kind="'+(kind==='Técnica'?'Técnicas':'Habilidades')+'" id="ability-'+index+'">'+
     '<div class="ae-ficha-ability-tag">'+name+'</div>'+
     '<div class="ae-ficha-ability-meta"><span>'+esc(kind.toUpperCase())+' · '+esc(TYPES[type])+'</span>'+
      (Number(ab.cost)>0?'<span>CUSTO INDICADO · '+esc(ab.cost)+' ALMA</span>':'')+'</div>'+
-    (origin?'<div class="ae-ficha-ability-origin"><strong>'+esc(origin.kind==='race'?'HABILIDADE RACIAL':'HABILIDADE DE CLASSE')+
-     '</strong><span>'+esc(origin.name||'')+'</span></div>':'')+
+
     '<details class="ae-ficha-ability-details">'+
      '<summary aria-label="Mostrar ou ocultar a descrição de '+name+'" title="Abrir ou fechar descrição">'+
       '<span class="ae-ficha-ability-expand" aria-hidden="true">'+
@@ -130,12 +174,12 @@
        (image?'<img alt="Ilustração da habilidade '+name+'" src="'+esc(image)+'" loading="lazy">':'')+
        api.sheetRich(description)+'</div>'+
     '</details>'+
-    (ctx.canEdit&&!origin?'<div class="ae-ficha-ability-tools">'+api.btn('EDITAR','editAbilityDirect:'+index,'small')+'</div>':'')+
+    (ctx.canEdit?'<div class="ae-ficha-ability-tools">'+api.btn('EDITAR','editAbilityDirect:'+index,'small')+'</div>':'')+
    '</article>';
  }
  function abilities(s,ctx){
   if(lastAbilitySheet!==s.id){abilityKind='Todas';lastAbilitySheet=s.id}
-  const list=s.abilities||[],sections=[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']];
+  const list=(s.abilities||[]).filter(x=>!x?.origin?.auto),sections=[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']];
   return '<div class="ae-ficha-abilities" data-ability-view="'+abilityKind+'"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Habilidades & Técnicas</h2></div>'+
    (ctx.canEdit?'<div class="ae-ficha-ability-create-actions">'+
     api.btn('+ HABILIDADE','newAbilityDirect','main')+
@@ -172,6 +216,7 @@
  }
  function content(s,selected,ctx){
   return selected==='summary'?summary(s,ctx):selected==='skills'?skills(s,ctx):
+   selected==='identification'?identification(s,ctx):
    selected==='abilities'?abilities(s,ctx):selected==='guide'?guide():
    '<section class="ae-ficha-extras"><div class="ae-ficha-section-title"><h2>'+labels[selected]+'</h2></div>'+
     (ctx.body||'')+'</section>';
