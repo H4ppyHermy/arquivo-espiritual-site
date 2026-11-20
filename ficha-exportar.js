@@ -8,10 +8,17 @@
  let destination='',catalog=[],selected=new Set(),search='',kind='Todas',busy=false;
  const sheet=()=>api.db.sheets.find(s=>s.id===destination);
  const existingNames=()=>new Set(((window.ARQUIVO_ORIGENS?.project(sheet())||sheet())?.abilities||[]).map(a=>fold(a.name)));
- const eligible=post=>post&&typeof post.id==='string'&&post.id&&
-  (post.category==='Habilidades'||post.category==='Técnicas')&&post.title&&
-  typeof post.content==='string'&&post.content.trim()&&
-  (post.published!==false||api.master());
+ const eligible=post=>{
+  if(!post||typeof post.id!=='string'||!post.id||
+   !['Habilidades','Técnicas'].includes(post.category)||!post.title||
+   typeof post.content!=='string'||!post.content.trim()||
+   (post.published===false&&!api.master()))return false;
+  // Itens concedidos por raça/classe ficam somente em Identificação.
+  const requirements=window.ARQUIVO_ORIGENS?.requirements?.(post);
+  const race=requirements?.race||post.grants?.race||[];
+  const kind=requirements?.class||post.grants?.class||[];
+  return !race.length&&!kind.length;
+ };
  function allPosts(){
   const entries=window.ARQUIVO_SECOES?.warehouse?.().posts||[];
   return entries.filter(eligible);
