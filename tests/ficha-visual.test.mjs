@@ -133,7 +133,7 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  assert.match(app,/function updateDraft\(target\)/);
  assert.match(html,/ficha-visual\.js\?v=15/);
  assert.match(html,/ficha-visual\.css\?v=12/);
- assert.ok(html.indexOf('arquivo-app.js?v=23')<html.indexOf('ficha-visual.js?v=15'));
+ assert.ok(html.indexOf('arquivo-app.js?v=23')<html.indexOf('ficha-visual.js?v=16'));
 });
 
 test('cabeçalho não inventa raça e os títulos não recebem numeração',()=>{
@@ -302,4 +302,37 @@ test('uso e custo são curtos, sem tipos antigos, e categorias antigas não muda
  assert.match(html,/GERAIS/);
  assert.doesNotMatch(html,/ATIVA|PASSIVA|MECÂNICA|LIBERAÇÃO|TRANSFORMAÇÃO|ULTIMATE|CUSTO INDICADO/);
  assert.equal((html.match(/class="ae-ficha-ability-card"/g)||[]).length,3);
+});
+
+
+test('pin ao lado do nome marca uma habilidade e mostra uso rápido no Resumo',()=>{
+ const {view}=setup(),s=example();
+ s.abilities[0].libraryType='tecnica';
+ s.pinnedAbilities=['tecnica:Corte Crescente'];
+ const summary=view.render(s,settings());
+ assert.match(summary,/Acesso rápido/);
+ assert.match(summary,/Corte Crescente/);
+ assert.match(summary,/ae-ficha-quick-grid/);
+ assert.match(summary,/data-cbb-command="pin" data-cbb-index="0"/);
+ assert.match(summary,/aria-pressed="true"/);
+ assert.match(summary,/data-tab="abilities"/);
+ const abilities=view.render(s,settings('abilities'));
+ assert.match(abilities,/class="ae-ficha-ability-title"/);
+ assert.match(abilities,/Fixar Instinto Espiritual no resumo/);
+ assert.match(abilities,/Desafixar Corte Crescente do resumo/);
+ const readOnly=view.render(s,settings('abilities',false));
+ assert.doesNotMatch(readOnly,/data-cbb-command="pin"/);
+});
+
+test('acesso rápido ignora pins obsoletos e itens automáticos sem duplicar controles',()=>{
+ const {view}=setup(),s=example();
+ s.pinnedAbilities=['habilidade:Removida','habilidade:Corte Crescente','habilidade:Corte Crescente'];
+ const out=view.render(s,settings());
+ assert.equal((out.match(/ae-ficha-quick-card"/g)||[]).length,1);
+ assert.doesNotMatch(out,/Removida/);
+ s.pinnedAbilities=[];
+ const empty=view.render(s,settings());
+ assert.match(empty,/Use o pin ao lado de uma habilidade/);
+ const guest=view.render(s,settings('summary',false));
+ assert.doesNotMatch(guest,/ae-ficha-quick-access/);
 });

@@ -16,7 +16,7 @@ function fixture(){
   querySelector(selector){if(selector.includes('ae-cbb-result'))return result;return null}
  };
  const sync={state:{enabled:true,identity:{id:'my-account'}},
-  async cbbRoll(payload){calls.roll.push(payload);return {id:101,rt:12,ra:8,rb:4,dice:[{sides:6,value:4},{sides:8,value:8}],special:'',attack_ra:0}},
+  async cbbRoll(payload){calls.roll.push(payload);return {id:101,rt:12,ra:8,rb:4,dice:[{sides:6,value:4},{sides:8,value:8}],special:'',attack_ra:0,colors:['#7c61ef','#5ad8da']}},
   async cbbAction(payload){calls.action.push(payload);return {ok:true,revision:3,
    resources:{...s.resources,alma:{current:13,max:24}},combat:{...s.combat,mainUsed:true},exposures:s.exposures,abilityRuntime:s.abilityRuntime,
    info:{chargedCost:3}}}
@@ -101,7 +101,7 @@ test('teste de perícia envia um pedido ao servidor e mostra RT RA RB',async()=>
 
 test('scripts e duas RPCs universais estão ligados sem reativar código por personagem',()=>{
  const html=read('index.html'),online=read('online.js'),visual=read('ficha-visual.js');
- for(const file of ['cbb-engine.js?v=1','cbb-interativo.js?v=5','cbb-interativo.css?v=2'])
+ for(const file of ['cbb-engine.js?v=1','cbb-interativo.js?v=6','cbb-interativo.css?v=3'])
   assert.ok(html.includes(file),file);
  assert.ok(visual.includes("mesa:'Mesa'"));
  assert.match(visual,/ARQUIVO_CBB_UI\?\.render/);
@@ -153,4 +153,44 @@ test('proteção adicional usa rolagem verificada separada e preserva resistênc
  await click();
  assert.equal(x.calls.roll.length,2,'Retirar a proteção não deve rolar novamente');
  assert.match(x.result.innerHTML,/RT[\s\S]*4/);
+});
+
+
+test('fixar habilidade executa um único toggle remoto e atualiza a ficha',async()=>{
+ const x=fixture();
+ x.window.ARQUIVO_SYNC.cbbAction=async payload=>{
+  x.calls.action.push(payload);
+  return {ok:true,revision:11,pinnedAbilities:['tecnica:Golpe Genérico'],
+   resources:x.s.resources,combat:x.s.combat,exposures:x.s.exposures,abilityRuntime:x.s.abilityRuntime,
+   info:{pin:'tecnica:Golpe Genérico',active:true}};
+ };
+ const b={dataset:{cbbCommand:'pin',cbbIndex:'0'},disabled:false,closest(){return null},setAttribute(){}};
+ await x.listeners.click({target:{closest(){return b}},preventDefault(){},stopPropagation(){}});
+ assert.equal(x.calls.action.length,1);
+ assert.equal(x.calls.action[0].p_action,'pin');
+ assert.equal(x.calls.action[0].p_ability_index,0);
+ assert.deepEqual(x.s.pinnedAbilities,['tecnica:Golpe Genérico']);
+ assert.equal(x.calls.roll.length,0);
+ assert.equal(x.state.rendered,1);
+});
+
+test('resultado apresenta RT grande, dados coloridos e bloqueia CSS de cores inválidas',async()=>{
+ const x=fixture();
+ const values={skill:'Vigor',context:'ataque',groupSteps:'0',skillSteps:'0',
+  bonusCount:'0',bonusFaces:'0',fear:'',hollow:'',dt:'10',opponentRa:''};
+ const fields=Object.fromEntries(Object.entries(values).map(([key,value])=>[key,{value,checked:false}]));
+ const root={querySelector(q){const m=q.match(/data-cbb-field="([^"]+)"/);return fields[m?.[1]]||null}};
+ const b={dataset:{cbbCommand:'skill'},disabled:false,closest(){return root},setAttribute(){}};
+ await x.listeners.click({target:{closest(){return b}},preventDefault(){},stopPropagation(){}});
+ assert.match(x.result.innerHTML,/ae-cbb-roll-layout/);
+ assert.match(x.result.innerHTML,/ae-cbb-total/);
+ assert.match(x.result.innerHTML,/--cbb-die-color:#7c61ef/);
+ assert.match(x.result.innerHTML,/--cbb-die-color:#5ad8da/);
+ x.window.ARQUIVO_SYNC.cbbRoll=async()=>{
+  return {id:102,rt:8,ra:5,rb:3,dice:[{sides:6,value:3},{sides:8,value:5}],
+   special:'',colors:['red;--evil:1','#5ad8da']};
+ };
+ await x.listeners.click({target:{closest(){return b}},preventDefault(){},stopPropagation(){}});
+ assert.doesNotMatch(x.result.innerHTML,/--evil/);
+ assert.match(x.result.innerHTML,/--cbb-die-color:var\(--sheet-dice-group/);
 });
