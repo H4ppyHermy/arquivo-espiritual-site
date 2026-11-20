@@ -92,6 +92,8 @@
   const single=category==='Habilidades'||category==='Técnicas',technique=category==='Técnicas';
   const field=document.getElementById('warehouseImageField');
   if(field)field.hidden=single;
+  const grants=document.getElementById('warehouseGrantFields');
+  if(grants)grants.hidden=!single;
   const change=(id,value)=>{const element=document.getElementById(id);if(element)element.textContent=value};
   change('warehouseSummaryLabel',single?'Prévia curta (opcional)':'Resumo para o cartão');
   change('warehouseContentHeading',single?(technique?'DESCRIÇÃO DA TÉCNICA':'DESCRIÇÃO DA HABILIDADE'):'CONTEÚDO DA PUBLICAÇÃO');
