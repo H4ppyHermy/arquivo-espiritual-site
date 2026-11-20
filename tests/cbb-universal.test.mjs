@@ -65,7 +65,7 @@ test('painel inclui Pressão, Desfecho, comprometimentos, dados e recursos',()=>
  assert.match(controls,/data-cbb-command="ability"/);
  assert.match(controls,/data-cbb-command="abilityPool"/);
  assert.equal(ui.abilityActions(x.s.abilities[0],0,{canEdit:false}), '');
- assert.deepEqual(Object.keys(x.listeners),['click','change']);
+ assert.deepEqual(Object.keys(x.listeners),['click','change','input']);
 });
 
 test('ativação genérica cobra ALMA uma vez sem enviar instantâneo completo do banco',async()=>{
@@ -101,7 +101,7 @@ test('teste de perícia envia um pedido ao servidor e mostra RT RA RB',async()=>
 
 test('scripts e duas RPCs universais estão ligados sem reativar código por personagem',()=>{
  const html=read('index.html'),online=read('online.js'),visual=read('ficha-visual.js');
- for(const file of ['cbb-engine.js?v=1','cbb-interativo.js?v=7','cbb-interativo.css?v=3'])
+ for(const file of ['cbb-engine.js?v=2','cbb-interativo.js?v=8','cbb-interativo.css?v=4'])
   assert.ok(html.includes(file),file);
  assert.ok(visual.includes("mesa:'Mesa'"));
  assert.match(visual,/ARQUIVO_CBB_UI\?\.render/);
@@ -255,4 +255,102 @@ test('reinício exige confirmação e conserva a automação escolhida',async()=
  assert.equal(x.s.combat.phase,'preparacao');
  assert.equal(x.s.combat.round,1);
  assert.equal(x.state.rendered,1);
+});
+
+
+test('passos manuais e penalidades automáticas mudam os dados previstos sem alterar a ficha',()=>{
+ const x=fixture(),e=x.window.ARQUIVO_CBB_ENGINE;
+ x.s.groups.Mente=8;x.s.skills.Raciocínio=8;
+ x.s.conditions=['Confuso','Atordoado'];
+ const first=e.previewSkill(x.s,'Raciocínio','geral',0,0);
+ assert.equal(first.groupDie,8);
+ assert.equal(first.skillDie,4);
+ assert.equal(first.automaticSkill,-2);
+ assert.equal(first.reasons.length,2);
+ assert.equal(e.previewSkill(x.s,'Raciocínio','geral',0,2).skillDie,8);
+ assert.equal(e.previewSkill(x.s,'Raciocínio','geral',1,0).groupDie,10);
+ assert.equal(x.s.skills.Raciocínio,8,'A prévia não deve modificar o dado base');
+});
+
+test('Exposição Ofensiva reduz grupo quando perícia é d4, e reação protege a Exposição Defensiva I',()=>{
+ const x=fixture(),e=x.window.ARQUIVO_CBB_ENGINE;
+ x.s.exposures={ofensiva:2,defensiva:1};
+ const attack=e.previewSkill(x.s,'Destreza','ataque');
+ assert.equal(attack.automaticGroup,-2);
+ assert.equal(attack.automaticSkill,0);
+ assert.equal(attack.groupDie,4);
+ assert.equal(attack.skillDie,4);
+ const defense=e.previewSkill(x.s,'Destreza','defesa',0,0,{reaction:true});
+ assert.equal(defense.automaticGroup,0);
+ assert.equal(e.previewSkill(x.s,'Destreza','defesa',0,0,{reaction:false}).automaticGroup,-1);
+});
+
+test('Cego, Ofuscado, Insensível e Provocado somente penalizam quando o contexto realmente se aplica',()=>{
+ const x=fixture(),e=x.window.ARQUIVO_CBB_ENGINE;
+ x.s.groups.Corpo=12;x.s.skills.Destreza=12;
+ x.s.conditions=['Cego','Ofuscado','Insensível','Provocado'];
+ assert.equal(e.previewSkill(x.s,'Destreza','ataque').skillDie,12);
+ const seen=e.previewSkill(x.s,'Destreza','ataque',0,0,{vision:true,sense:true,otherTarget:true});
+ assert.equal(seen.conditionalSkill,-5);
+ assert.equal(seen.skillDie,4);
+ assert.ok(seen.reasons.some(r=>r.name.startsWith('Cego')));
+ assert.equal(e.previewSkill(x.s,'Destreza','defesa',0,0,{otherTarget:true}).conditionalSkill,0);
+});
+
+test('Atordoado bloqueia reação, Desorientado é contextual e Amedrontado avisa do Pavor',()=>{
+ const x=fixture(),e=x.window.ARQUIVO_CBB_ENGINE;
+ x.s.conditions=['Atordoado','Desorientado','Amedrontado'];
+ assert.equal(e.previewSkill(x.s,'Destreza','defesa').reactionBlocked,true);
+ assert.equal(e.previewSkill(x.s,'Destreza','geral').automaticSkill,-1);
+ assert.equal(e.previewSkill(x.s,'Destreza','ataque').automaticSkill,-2);
+ assert.equal(e.previewSkill(x.s,'Destreza','geral').hasFear,true);
+ const html=x.window.ARQUIVO_CBB_UI.render(x.s,{canEdit:true,master:true});
+ assert.match(html,/Dado de Pavor/);
+ assert.match(html,/data-cbb-step="groupSteps"/);
+ assert.match(html,/data-cbb-step="skillSteps"/);
+ assert.match(html,/data-cbb-preview/);
+ assert.match(html,/Atordoado/);
+});
+
+test('botões mais e menos atualizam passos sem rolar e limites de -5 a +5 são respeitados',async()=>{
+ const x=fixture(),fields={groupSteps:{value:'0',disabled:false},
+ skillSteps:{value:'0',disabled:false},skill:{value:'Destreza'},
+ context:{value:'geral'},reaction:{type:'checkbox',checked:false}};
+ const root={querySelector(q){
+  const f=q.match(/data-cbb-field="([^"]+)"/);
+  return f?fields[f[1]]||null:null;
+ }};
+ const button={dataset:{cbbStep:'groupSteps',cbbDelta:'1'},disabled:false,
+  closest(sel){return sel==='.ae-cbb-mesa'?root:null}};
+ const click=()=>x.listeners.click({target:{closest(sel){return sel==='[data-cbb-step]'?button:null}},
+  preventDefault(){},stopPropagation(){}});
+ await click();assert.equal(fields.groupSteps.value,'1');
+ assert.equal(x.calls.roll.length,0);
+ for(let i=0;i<9;i++)await click();
+ assert.equal(fields.groupSteps.value,'5');
+ button.dataset.cbbDelta='-1';
+ for(let i=0;i<15;i++)await click();
+ assert.equal(fields.groupSteps.value,'-5');
+});
+
+test('rolagem de teste inclui aplicação contextual sem duplicar penalidades automáticas',async()=>{
+ const x=fixture();x.s.conditions=['Confuso','Cego'];x.s.skills.Raciocínio=8;
+ const config={skill:'Raciocínio',context:'geral',groupSteps:'1',skillSteps:'2',
+ bonusCount:'0',bonusFaces:'0',fear:'',hollow:'',dt:'',opponentRa:''};
+ const fields=Object.fromEntries(Object.entries(config).map(([key,value])=>[key,{value,checked:false}]));
+ fields.vision={type:'checkbox',checked:true};
+ fields.reaction={type:'checkbox',checked:false};
+ const root={querySelector(q){const m=q.match(/data-cbb-field="([^"]+)"/);return fields[m?.[1]]||null}};
+ const button={dataset:{cbbCommand:'skill'},disabled:false,closest(){return root},setAttribute(){}};
+ await x.listeners.click({target:{closest(){return button}},preventDefault(){},stopPropagation(){}});
+ assert.equal(x.calls.roll.length,1);
+ assert.equal(x.calls.roll[0].p_group_steps,1);
+ assert.equal(x.calls.roll[0].p_skill_steps,0,'Manual +2 e Cego -2, sem reenviar Confuso -1 ao servidor');
+});
+
+test('SQL aplica Fragilizado à proteção e não cobra redução duas vezes',()=>{
+ const sql=read('sql/ae_cbb_universal_roll.sql');
+ assert.match(sql,/IF 'fragilizado'=ANY\(conditions\) AND jsonb_array_length\(p_pool\)=0 THEN/);
+ assert.match(sql,/IF p_kind IN \('resistencia','protecao'\) AND 'fragilizado'=ANY\(conditions\)/);
+ assert.match(sql,/faces=scale\[greatest\(1,array_position\(scale,faces\)-1\)\]/);
 });
