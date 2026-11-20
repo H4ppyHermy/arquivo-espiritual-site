@@ -114,13 +114,13 @@ BEGIN
    colors=colors||to_jsonb(skill_color);
   END LOOP;
  END LOOP;
- IF jsonb_array_length(result_dice)=0 THEN RAISE EXCEPTION 'Informe os dados de rolagem.';END IF;
+ IF jsonb_array_length(result_dice)=0 AND NOT (p_kind IN ('dano','recuperacao') AND (p_flat<>0 OR p_manual_ra>0 OR p_attack_id IS NOT NULL)) THEN RAISE EXCEPTION 'Informe os dados de rolagem.';END IF;
  IF p_kind='teste' THEN
   fear_size=coalesce(p_fear,coalesce((sh->'combat'->>'fearDie')::integer,0));
   IF fear_size=0 AND p_fear IS NULL AND 'amedrontado'=ANY(conditions) THEN fear_size=6;END IF;
   IF fear_size NOT IN (0,4,6,8,10,12,14,16,18,20) THEN RAISE EXCEPTION 'Pavor inválido.';END IF;
   hollow_on=coalesce(p_hollow,coalesce((sh->'combat'->>'hollowActive')::boolean,false));
-  IF p_reaction AND ('atordoado'=ANY(conditions) OR coalesce((sh->'combat'->>'reactionUsed')::boolean,false)) THEN RAISE EXCEPTION 'Reação indisponível.';END IF;
+  IF p_reaction AND ('atordoado'=ANY(conditions) OR (coalesce((sh->'combat'->>'reactionUsed')::boolean,false) AND coalesce((sh#>>'{combat,cbb,extraReaction}')::integer,0)<1)) THEN RAISE EXCEPTION 'Reação indisponível.';END IF;
   IF fear_size>0 THEN fear_value=public.ae_cbb_random(fear_size);END IF;
   IF hollow_on THEN hollow_value=public.ae_cbb_random(6);END IF;
   barrier=greatest(fear_value,hollow_value);
@@ -165,8 +165,13 @@ BEGIN
  IF p_reaction THEN
   SELECT data INTO doc FROM public.ae_document WHERE id=1 FOR UPDATE;
   SELECT x.value INTO before_sheet FROM jsonb_array_elements(doc->'sheets') x(value) WHERE x.value->>'id'=p_sheet_id LIMIT 1;
-  IF before_sheet IS NULL OR coalesce((before_sheet->'combat'->>'reactionUsed')::boolean,false) THEN RAISE EXCEPTION 'Reação já utilizada.';END IF;
-  updated_sheet=jsonb_set(before_sheet,'{combat,reactionUsed}','true'::jsonb,true);
+  IF before_sheet IS NULL THEN RAISE EXCEPTION 'Ficha inexistente.';END IF;
+  IF coalesce((before_sheet->'combat'->>'reactionUsed')::boolean,false) THEN
+   IF coalesce((before_sheet#>>'{combat,cbb,extraReaction}')::integer,0)<1 THEN RAISE EXCEPTION 'Reação já utilizada.';END IF;
+   updated_sheet=jsonb_set(before_sheet,'{combat,cbb,extraReaction}','0'::jsonb,true);
+  ELSE
+   updated_sheet=jsonb_set(before_sheet,'{combat,reactionUsed}','true'::jsonb,true);
+  END IF;
   SELECT jsonb_agg(CASE WHEN x.value->>'id'=p_sheet_id THEN updated_sheet ELSE x.value END ORDER BY x.ord)
     INTO all_sheets FROM jsonb_array_elements(doc->'sheets') WITH ORDINALITY x(value,ord);
   UPDATE public.ae_document SET data=jsonb_set(doc,'{sheets}',all_sheets),revision=revision+1,changed_at=now() WHERE id=1;
