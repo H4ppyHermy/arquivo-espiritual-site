@@ -188,4 +188,11 @@ test('dois navegadores descobrem seus peers, trocam offer/answer e enxergam a c�
  assert.ok(track,'câmera local capturada');
  bp.pc.ontrack({track,transceiver:bp.pc.getTransceivers()[1]});
  assert.equal(bp.cameraStream.getTracks()[0].id,track.id,'slot de vídeo remoto recebe fluxo');
+ const before=hub.events.filter(x=>x.event==='rtc-signal'&&x.payload.type==='description'&&x.payload.data.type==='offer').length;
+ await b.click('camera');
+ for(let i=0;i<30;i++)await flush();
+ assert.ok(hub.events.some(x=>x.from===BOB&&x.event==='rtc-signal'&&x.payload.type==='renegotiate'),
+  'respondedor solicita renegociação ao transmitir câmera');
+ const after=hub.events.filter(x=>x.event==='rtc-signal'&&x.payload.type==='description'&&x.payload.data.type==='offer').length;
+ assert.ok(after>before,'iniciador cria nova oferta quando outro participante liga câmera');
 });
