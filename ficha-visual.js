@@ -173,28 +173,44 @@
  }
  function abilities(s,ctx){
   if(lastAbilitySheet!==s.id){abilityKind='Todas';lastAbilitySheet=s.id}
-  const list=(s.abilities||[]).filter(x=>!x?.origin?.auto),sections=[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']];
+  const list=(s.abilities||[]).map((ab,index)=>({ab,index})).filter(x=>!x.ab?.origin?.auto);
+  const groups=(Array.isArray(s.abilityGroups)?s.abilityGroups:[]).filter(g=>g&&g.id&&g.name);
+  const groupIds=new Set(groups.map(g=>g.id));
+  const ungrouped=list.filter(({ab})=>!groupIds.has(ab.sectionId));
+  const sections=[
+   ...groups.map(group=>({name:group.name,items:list.filter(({ab})=>ab.sectionId===group.id),custom:true})),
+   ...[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']].map(([key,name])=>({
+    name,custom:false,items:ungrouped.filter(({ab})=>{
+     const type=abilityCategory(ab);
+     return key==='other'?!['active','passive'].includes(type):type===key;
+    })
+   }))
+  ];
+  const matches=ab=>abilityKind==='Todas'||(ab.libraryType==='tecnica'?'Técnicas':'Habilidades')===abilityKind;
   return '<div class="ae-ficha-abilities" data-ability-view="'+abilityKind+'"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Habilidades & Técnicas</h2></div>'+
    (ctx.canEdit?'<div class="ae-ficha-ability-create-actions">'+
-    api.btn('+ HABILIDADE','newAbilityDirect','main')+
-    api.btn('EXPORTAR','exportAbilities','small')+'</div>':'')+'</div>'+
+    (ctx.master?api.btn('+ HABILIDADE','newAbilityDirect','main'):'')+
+    api.btn('EXPORTAR','exportAbilities','small')+
+    (ctx.master?api.btn('+ CATEGORIA','abilityGroups','small'):'')+
+    '</div>':'')+'</div>'+
    '<div class="ae-ficha-ability-filters" role="group" aria-label="Filtrar registros por tipo">'+
    [['Todas','TODAS'],['Técnicas','TÉCNICAS'],['Habilidades','HABILIDADES']].map(([type,label])=>
     '<button type="button" data-ability-filter="'+type+'" aria-pressed="'+(abilityKind===type)+'" class="'+
     (abilityKind===type?'is-active':'')+'">'+label+'</button>').join('')+'</div>'+
-   sections.map(([section,label])=>{
-    const entries=list.map((x,i)=>({ab:x,index:i})).filter(({ab})=>{
-      const t=abilityCategory(ab);return section==='other'?!['active','passive'].includes(t):t===section;
-    });
-    if(!entries.length)return '';
-    const available=entries.some(({ab})=>abilityKind==='Todas'||(ab.libraryType==='tecnica'?'Técnicas':'Habilidades')===abilityKind);
-    return '<section class="ae-ficha-ability-group"'+(available?'':' hidden')+'><div class="ae-ficha-ability-group-head"><h3>'+label+'</h3><span>'+entries.length+'</span></div>'+
-      '<div class="ae-ficha-ability-grid">'+entries.map(({ab,index})=>
-       '<div class="ae-ficha-ability-entry"'+(abilityKind==='Todas'||(ab.libraryType==='tecnica'?'Técnicas':'Habilidades')===abilityKind?'':' hidden')+'>'+
-       abilityCard(ab,index,ctx)+'</div>').join('')+'</div></section>';
+   sections.map(section=>{
+    const entries=section.items,available=entries.some(({ab})=>matches(ab));
+    if(!entries.length&&(!section.custom||!ctx.master))return '';
+    return '<section class="ae-ficha-ability-group'+(section.custom?' ae-ficha-ability-group--custom':'')+'"'+
+     (available||(!entries.length&&ctx.master)?'':' hidden')+'>'+
+     '<div class="ae-ficha-ability-group-head"><h3>'+esc(section.name)+'</h3><span>'+entries.length+'</span></div>'+
+     (entries.length?'<div class="ae-ficha-ability-grid">'+entries.map(({ab,index})=>
+      '<div class="ae-ficha-ability-entry"'+(matches(ab)?'':' hidden')+'>'+
+      abilityCard(ab,index,ctx)+'</div>').join('')+'</div>':
+      '<p class="ae-ficha-ability-group-empty">Nenhuma habilidade vinculada. Escolha esta categoria ao editar uma habilidade.</p>')+
+     '</section>';
    }).join('')+
-   (!list.length?'<div class="ae-ficha-empty">Nenhuma habilidade registrada nesta ficha.'+
-      (ctx.canEdit?'<p>Use + Habilidade para adicionar um registro.</p>':'')+'</div>':'')+
+   (!list.length&&!groups.length?'<div class="ae-ficha-empty">Nenhuma habilidade registrada nesta ficha.'+
+    (ctx.master?'<p>Use + Habilidade para adicionar um registro.</p>':'')+'</div>':'')+
    '</div>';
  }
  function guide(){
