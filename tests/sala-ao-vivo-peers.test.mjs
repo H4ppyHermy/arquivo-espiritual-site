@@ -116,7 +116,7 @@ function createHub(){
    async setLocalDescription(desc){
     if(desc?.type==='rollback'){this.signalingState='stable';return}
     const type=this.signalingState==='have-remote-offer'?'answer':'offer';
-    this.localDescription={type,sdp:'v=0\r\ns=MockRTC-'+account+'\r\n'};
+    this.localDescription={type,sdp:'v=0\r\ns=MockRTC-'+account+'\r\n',toJSON(){return {type,sdp:this.sdp}}};
     this.signalingState=type==='offer'?'have-local-offer':'stable';
     if(type==='answer'){this.connectionState='connected';this.onconnectionstatechange?.()}
    }
