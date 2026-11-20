@@ -96,16 +96,10 @@
   const sections=[['race','RAÇA'],['class','CLASSE']];
   const nodes=sections.map(([key,label])=>{
    const part=data[key];if(!part)return '';
-   const linked=(part.traits||[]).map(trait=>
-    '<section class="ae-ficha-origin-trait"><div class="ae-ficha-origin-trait-head"><h4>'+esc(trait.title)+'</h4>'+
-     (trait.cost?'<span>'+esc(trait.cost)+'</span>':'')+'</div>'+
-     '<div class="ae-ficha-origin-prose sheet-rich">'+api.formatBook(trait.content||'',trait.title||'')+'</div></section>').join('');
    return '<article class="ae-ficha-origin-chapter ae-ficha-origin-chapter--'+key+'">'+
     '<div class="ae-ficha-origin-heading"><span>'+label+'</span><h3>'+esc(part.title)+'</h3></div>'+
     (part.content?'<div class="ae-ficha-origin-prose sheet-rich">'+api.formatBook(part.content,part.title)+'</div>':
      '<p class="ae-ficha-origin-empty">Descrição ainda não cadastrada no Armazém.</p>')+
-    (linked?'<div class="ae-ficha-origin-traits"><h3>Habilidades da '+(key==='race'?'raça':'classe')+
-     '</h3>'+linked+'</div>':'')+
     '</article>';
   }).filter(Boolean).join('');
   return '<section class="ae-ficha-identification">'+
