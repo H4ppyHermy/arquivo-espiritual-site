@@ -280,7 +280,7 @@ test('editor do jogador preserva a descrição, enquanto o Mestre gerencia categ
    'data-ability-group-rename', "if(!master()||!sheetPermission())return",
    'function abilityGroupOptions(s,ab,i)', 'data-ability=', "':groupId",
    'function abilityDescriptionField(ab,i)', 'textarea readonly aria-readonly="true"',
-   "if(key==='description'&&!master())return",
+   "if((key==='description'||key==='usage')&&!master())return",
    "raw.abilityGroups=clone(old.abilityGroups||[])",
    "ab.description=originals[i].description||''"]){
   assert.ok(app.includes(literal),literal);
