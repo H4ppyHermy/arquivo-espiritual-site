@@ -106,8 +106,8 @@
      const intro=feature.description.slice(0,250);
      // Inicializações explícitas ("começa cada cena com [contador:1/5]")
      // ou um único uso "por cena" prevalecem sobre o padrão neutro 0.
-     const sceneStart=intro.match(/(?:começa|inicia)[^.!?\\n]{0,100}?com\\s+\\[(sequencia|barra|marca|contador):\\s*(\\d+)(?:\\s*\\/\\s*\\d+)?\\]/i);
-     const perScene=intro.match(/\\[(marca|contador|barra):\\s*(\\d+)(?:\\s*\\/\\s*\\d+)?\\][^.!?\\n]{0,80}?por\\s+cena/i);
+     const sceneStart=intro.match(/(?:começa|inicia)[^.!?\n]{0,100}?com\s+\[(sequencia|barra|marca|contador):\s*(\d+)(?:\s*\/\s*\d+)?\]/i);
+     const perScene=intro.match(/\[(marca|contador|barra):\s*(\d+)(?:\s*\/\s*\d+)?\][^.!?\n]{0,80}?por\s+cena/i);
      const initial=sceneStart&&sceneStart[1].toLowerCase()===type?Number(sceneStart[2]):
       perScene&&perScene[1].toLowerCase()===type?Number(perScene[2]):0;
      definitions.push({id:fold(feature.title).replace(/[^a-z0-9]+/g,'-'),label:feature.title,
