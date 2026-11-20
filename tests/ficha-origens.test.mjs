@@ -5,134 +5,131 @@ import vm from 'node:vm';
 const read=name=>fs.readFileSync(new URL('../'+name,import.meta.url),'utf8');
 
 function setup(){
- const window={};
- const ctx={window};
- for(const file of ['classes-armazem.js','habilidades-armazem.js']){
+ const window={},ctx={window};
+ for(const file of ['racas-armazem.js','classes-armazem.js','habilidades-armazem.js'])
   vm.runInNewContext(read(file),ctx);
- }
- const catalog=[...window.ARQUIVO_CLASSES_CBB,...window.ARQUIVO_HABILIDADES_CBB];
+ const catalog=[...window.ARQUIVO_RACAS_CBB,...window.ARQUIVO_CLASSES_CBB,...window.ARQUIVO_HABILIDADES_CBB];
  window.ARQUIVO_SECOES={warehouse:()=>({posts:catalog})};
  vm.runInNewContext(read('ficha-origens.js'),ctx);
  return {logic:window.ARQUIVO_ORIGENS,catalog};
 }
-const sheet=(race='',className='')=>({id:'f1',name:'Exemplo',race,className,abilities:[]});
-
-test('Arrancar recebe Instinto Primário e as habilidades raciais, com custos e origem',()=>{
- const {logic}=setup(),s=sheet('Arrancar');
- assert.equal(logic.reconcile(s),true);
- assert.deepEqual(Array.from(s.abilities,a=>a.name),['Instinto Primário','Hierro','Sonído','Cero']);
- assert.deepEqual(Array.from(s.abilities,a=>a.cost),[2,2,2,3]);
- assert.ok(s.abilities.every(a=>a.origin.auto&&a.origin.kind==='race'));
- assert.ok(s.abilities.every(a=>a.libraryType==='habilidade'));
- assert.equal(logic.reconcile(s),false,'reconciliação idempotente');
- assert.equal(s.abilities.length,4);
- assert.match(s.abilities[0].description,/Falha Crítica em um teste de Instinto/);
-});
-test('cada classe concede sua mecânica sem exigir código específico',()=>{
- const {logic}=setup();
- const expected=[['Coração de Aço','Têmpera'],['Especialista em Hohō','Rastro'],['Caçador','Emboscada'],['Porta-voz','Manobrista']];
- for(const [className,trait] of expected){
-  const s=sheet('',className);
-  assert.equal(logic.reconcile(s),true);
-  assert.deepEqual(Array.from(s.abilities,a=>a.name),[trait]);
-  assert.equal(s.abilities[0].origin.kind,'class');
-  assert.equal(s.abilities[0].origin.name,className);
-  assert.ok(s.abilities[0].description.length>15);
- }
-});
-test('troca de raça e classe remove apenas concessões automáticas, preservando manuais',()=>{
+const sheet=(race='',className='')=>({id:'f1',name:'Teste',race,className,abilities:[]});
+test('Identificação contém texto integral de Arrancar e habilidades raciais, sem adicionar à aba Habilidades',()=>{
  const {logic}=setup(),s=sheet('Arrancar','Coração de Aço');
- s.abilities.push({name:'Técnica Inventada',description:'Original',cost:5,category:'active',libraryType:'tecnica'});
- logic.reconcile(s);
- assert.equal(s.abilities.length,6);
- s.race='Quincy';s.className='Caçador';
- logic.reconcile(s);
- assert.deepEqual(Array.from(s.abilities,a=>a.name),['Técnica Inventada','Emboscada']);
- assert.equal(s.abilities[0].description,'Original');
- s.className='';logic.reconcile(s);
- assert.deepEqual(Array.from(s.abilities,a=>a.name),['Técnica Inventada']);
-});
-test('habilidades existentes com mesmo nome não são sobrescritas nem duplicadas',()=>{
- const {logic}=setup(),s=sheet('Arrancar');
- s.abilities=[{name:'Hierro',description:'Edição personalizada',category:'passive',cost:0}];
- logic.reconcile(s);
- assert.equal(s.abilities.filter(a=>a.name==='Hierro').length,1);
- assert.equal(s.abilities.find(a=>a.name==='Hierro').description,'Edição personalizada');
- assert.equal(s.abilities.length,4);
-});
-test('nova raça e classe publicadas são reconhecidas sem alteração no programa',()=>{
- const {logic,catalog}=setup();
- catalog.push({id:'raca-quincy-habilidade',title:'Heilig Pfeil',category:'Habilidades',published:true,
-  content:'Flecha espiritual',cost:'2 ALMA',grants:{race:['Quincy'],class:[]}});
- catalog.push({id:'classe-nova',title:'Atirador',category:'Classes',published:true,
-  content:'## Identidade\nAtirador.\n\n## Cadência\nPossui [sequencia:3/3] de ritmo.\n\n## Disparo Duplo\nPode atacar dois alvos.'});
- catalog.push({id:'habilidade-aranha',title:'Rede',category:'Habilidades',published:true,
-  content:'Tece uma rede',cost:'1 ALMA',grants:{race:[],class:['Atirador']}});
- assert.ok(logic.classes().includes('Atirador'));
- const s=sheet('Quincy','Atirador');
- logic.reconcile(s);
- assert.deepEqual(Array.from(s.abilities,a=>a.name),['Heilig Pfeil','Cadência','Disparo Duplo','Rede']);
- assert.deepEqual(Array.from(s.abilities,a=>a.origin.kind),['race','class','class','class']);
- assert.equal(s.abilities[0].cost,2);
- assert.equal(s.abilities[3].cost,1);
-});
-test('habilidades despublicadas não são concedidas; grants vazio revoga tags raciais',()=>{
- const {logic,catalog}=setup();
- const hierro=catalog.find(x=>x.title==='Hierro');
- hierro.published=false;
- const s=sheet('Arrancar');
- logic.reconcile(s);
- assert.deepEqual(Array.from(s.abilities,a=>a.name),['Instinto Primário','Sonído','Cero']);
- const sonido=catalog.find(x=>x.title==='Sonído');
- sonido.grants={race:[],class:[]};
- logic.reconcile(s);
- assert.deepEqual(Array.from(s.abilities,a=>a.name),['Instinto Primário','Cero']);
-});
-test('projeção não modifica dados persistidos até salvar uma ficha',()=>{
- const {logic}=setup(),s=sheet('Arrancar','Porta-voz');
- const original=JSON.stringify(s),projected=logic.project(s);
- assert.equal(JSON.stringify(s),original);
- assert.equal(projected.abilities.length,5);
+ const id=logic.identity(s);
+ assert.equal(id.race.title,'Arrancar');
+ assert.match(id.race.content,/Hollows que removeram suas máscaras/);
+ assert.deepEqual(Array.from(id.race.traits,p=>p.title),['Instinto Primário','Hierro','Sonído','Cero']);
+ assert.match(id.race.traits[0].content,/Falha Crítica em um teste de Instinto/);
+ assert.match(id.race.traits.at(-1).content,/1d8 ao dano-base/);
+ assert.equal(id.class.title,'Coração de Aço');
+ assert.match(id.class.content,/## Identidade/);
+ assert.match(id.class.content,/## Têmpera/);
+ assert.match(id.class.content,/\[barra:3\/3\]/);
  assert.equal(s.abilities.length,0);
-});
-test('interface, edição e registro contêm as integrações dinâmicas',()=>{
- const app=read('arquivo-app.js'),visual=read('ficha-visual.js'),warehouse=read('biblioteca-secoes.js'),html=read('index.html');
- for(const token of ['data-edit="className"','ARQUIVO_ORIGENS?.reconcile(editorDraft)','ARQUIVO_ORIGENS?.project(s)','data-ability="\${i}:libraryType"']){
-  assert.ok(app.includes(token),token);
- }
- assert.match(app,/function validateSheet\(/);
- assert.match(visual,/HABILIDADE RACIAL|HABILIDADE DE CLASSE/);
- assert.match(visual,/data-ability-filter/);
- assert.match(warehouse,/warehouseGrantRaces|warehouseGrantClasses/);
- assert.match(html,/ficha-origens\.js\?v=2/);
- assert.ok(html.indexOf('biblioteca-secoes.js')<html.indexOf('ficha-origens.js'));
- assert.ok(html.indexOf('ficha-origens.js')<html.indexOf('ficha-exportar.js'));
-});
-
-test('selecionar Artilheiro e depois Arrancar combina Cadência com as habilidades raciais',()=>{
- const {logic,catalog}=setup();
- catalog.push({
-  id:'classe-artilheiro',title:'Artilheiro',category:'Classes',published:true,
-  content:'## Identidade\nClasse de disparos.\n\n## Cadência\nPossui três níveis de ritmo.'
- });
- const s=sheet('','Artilheiro');
- logic.reconcile(s);
- assert.deepEqual(Array.from(s.abilities,x=>x.name),['Cadência']);
- s.race='Arrancar';
- assert.equal(logic.reconcile(s),true);
- assert.deepEqual(Array.from(s.abilities,x=>x.name),['Instinto Primário','Hierro','Sonído','Cero','Cadência']);
  assert.equal(logic.reconcile(s),false);
 });
-test('registro antigo sem grants preserva concessão publicada de Arrancar',()=>{
+test('habilidades automáticas persistidas pelo sistema anterior são removidas sem tocar nas manuais',()=>{
+ const {logic}=setup(),s=sheet('Arrancar','Caçador');
+ s.abilities=[
+  {name:'Hierro',origin:{auto:true,kind:'race'},description:'Legado'},
+  {name:'Emboscada',origin:{auto:true,kind:'class'},description:'Legado'},
+  {name:'Fogo de Cobertura',category:'active',cost:3,description:'Texto personalizado'}
+ ];
+ assert.equal(logic.reconcile(s),true);
+ assert.deepEqual(Array.from(s.abilities,p=>p.name),['Fogo de Cobertura']);
+ assert.equal(s.abilities[0].description,'Texto personalizado');
+ assert.equal(logic.reconcile(s),false);
+ const projected=logic.project({...s,abilities:[...s.abilities,{name:'Cero',origin:{auto:true}}]});
+ assert.deepEqual(Array.from(projected.abilities,p=>p.name),['Fogo de Cobertura']);
+ assert.equal(s.abilities.length,1);
+});
+test('Têmpera, Rastro, Emboscada e Manobrista recebem limites e estados iniciais declarados',()=>{
+ const {logic}=setup();
+ const expected=[
+  ['Coração de Aço','Têmpera',0,3,'barra'],
+  ['Especialista em Hohō','Rastro ativo',0,1,'marca'],
+  ['Caçador','Contadores de armadilha',1,5,'contador'],
+  ['Porta-voz','Manobra coordenada disponível',1,1,'marca']
+ ];
+ for(const [name,label,initial,max,visual] of expected){
+  const arr=logic.meters(sheet('',name));
+  assert.equal(arr.length,1,name);
+  const meter=arr[0];
+  assert.equal(meter.label,label);
+  assert.equal(meter.max,max);
+  assert.equal(meter.current,initial);
+  assert.equal(meter.initial,initial);
+  assert.equal(meter.visual,visual);
+  assert.match(meter.key,/^class:classe-/);
+ }
+});
+test('o progresso de um medidor é separado da vida e recuperado do estado salvo',()=>{
+ const {logic}=setup(),s=sheet('','Caçador');
+ const meter=logic.meters(s)[0];
+ const originalResources=JSON.stringify(s.resources||null);
+ s.abilityRuntime={originMeters:{[meter.key]:4}};
+ assert.equal(logic.meters(s)[0].current,4);
+ assert.equal(JSON.stringify(s.resources||null),originalResources);
+ s.abilityRuntime.originMeters[meter.key]=999;
+ assert.equal(logic.meters(s)[0].current,5);
+ s.abilityRuntime.originMeters[meter.key]=-2;
+ assert.equal(logic.meters(s)[0].current,0);
+});
+test('novas classes com marcador sequencia criam recursos sem programação específica',()=>{
  const {logic,catalog}=setup();
- const index=catalog.findIndex(p=>p.id==='habilidade-hierro');
- catalog[index]={id:'habilidade-hierro',category:'Habilidades',title:'Hierro',published:true,
-  tags:'Defesa',content:'Versão personalizada sem metadados de origem',cost:'2 ALMA'};
- const s=sheet('Arrancar');
- logic.reconcile(s);
- assert.ok(s.abilities.some(a=>a.name==='Hierro'&&a.description.includes('personalizada')));
- assert.ok(s.abilities.some(a=>a.name==='Instinto Primário'));
+ catalog.push({id:'classe-artilheiro',category:'Classes',published:true,title:'Artilheiro',
+  content:'## Identidade\nClasse de disparos.\n\n## Cadência\nPossui [sequencia:0/3] de Cadência.\n\n[sequencia:1/3] Efeito 1.'});
+ const s=sheet('Arrancar','Artilheiro');
+ const id=logic.identity(s);
+ assert.match(id.class.content,/## Cadência/);
+ assert.equal(id.race.traits.length,4);
+ const meters=logic.meters(s);
+ assert.equal(meters.length,1);
+ assert.equal(meters[0].label,'Cadência');
+ assert.equal(meters[0].current,0);
+ assert.equal(meters[0].max,3);
+ assert.equal(meters[0].visual,'sequencia');
+ s.abilityRuntime={originMeters:{[meters[0].key]:2}};
+ assert.equal(logic.meters(s)[0].current,2);
+ assert.equal(s.abilities.length,0);
+});
+test('raças e classes futuras usam conteúdo e habilidades vinculadas do Armazém',()=>{
+ const {logic,catalog}=setup();
+ catalog.push({id:'raca-bespoke',title:'Nova Raça',category:'Raças',published:true,
+  content:'## Identidade\nTexto completo da nova raça.'});
+ catalog.push({id:'classe-bespoke',title:'Vanguarda',category:'Classes',published:true,
+  content:'## Identidade\nTexto completo da nova classe.'});
+ catalog.push({id:'habilidade-bespoke',title:'Aura',category:'Habilidades',published:true,
+  content:'Efeito integral.',cost:'2 ALMA',grants:{race:['Nova Raça'],class:[]}});
+ catalog.push({id:'habilidade-bespoke2',title:'Disciplina',category:'Habilidades',published:true,
+  content:'Outra regra.',grants:{race:[],class:['Vanguarda']}});
+ assert.ok(logic.races().includes('Nova Raça'));
+ assert.ok(logic.classes().includes('Vanguarda'));
+ const id=logic.identity(sheet('Nova Raça','Vanguarda'));
+ assert.match(id.race.content,/Texto completo da nova raça/);
+ assert.deepEqual(Array.from(id.race.traits,p=>p.title),['Aura']);
+ assert.deepEqual(Array.from(id.class.traits,p=>p.title),['Disciplina']);
+});
+test('registro personalizado antigo herda somente concessões padrão ausentes',()=>{
+ const {logic,catalog}=setup(),index=catalog.findIndex(p=>p.id==='habilidade-hierro');
+ catalog[index]={id:'habilidade-hierro',category:'Habilidades',title:'Hierro',
+  content:'Efeito personalizado',published:true,tags:''};
+ let id=logic.identity(sheet('Arrancar'));
+ assert.ok(id.race.traits.some(x=>x.content==='Efeito personalizado'));
  catalog[index].grants={race:[],class:[]};
- logic.reconcile(s);
- assert.equal(s.abilities.some(a=>a.name==='Hierro'),false,'concessão explicitamente desativada é respeitada');
+ id=logic.identity(sheet('Arrancar'));
+ assert.equal(id.race.traits.some(x=>x.title==='Hierro'),false);
+});
+test('recursos da ficha usam estado sincronizável existente sem novos campos SQL',()=>{
+ const app=read('arquivo-app.js'),online=read('online.js'),visual=read('ficha-visual.js'),html=read('index.html');
+ assert.match(app,/case'originMeter':adjustOriginMeter/);
+ assert.match(app,/abilityRuntime\.originMeters\[key\]=next/);
+ assert.match(online,/abilityRuntime:s\.abilityRuntime\|\|\{\}/);
+ assert.match(visual,/Recursos de raça e classe/);
+ assert.match(visual,/ae-ficha-origin-resource-card/);
+ assert.match(visual,/data-tab="\+id/); 
+ assert.match(visual,/selected==='identification'\?identification/);
+ assert.match(html,/racas-armazem\.js\?v=1/);
+ assert.match(html,/ficha-origens\.js\?v=3/);
 });
