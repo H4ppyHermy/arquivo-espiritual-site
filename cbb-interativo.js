@@ -259,7 +259,7 @@
  }
  async function onClick(event){
   const mode=event.target?.closest?.('[data-cbb-mode]');
-  if(mode){
+  if(mode?.dataset?.cbbMode){
    event.preventDefault();event.stopPropagation();
    const sh=sheet();if(sh)switchMode(sh,mode.dataset.cbbMode,mode.closest('.ae-cbb-mesa'));
    return;
