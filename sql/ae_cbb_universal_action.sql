@@ -11,10 +11,10 @@ DECLARE ac_id uuid; key_id uuid;key_kind text;key_sheet text;doc jsonb;sh jsonb;
  need_main boolean:=false;need_reaction boolean:=false;is_locked boolean:=false;
  state_key text;v_mode text;v_limit text;desc_text text;
  extra_main integer;extra_reaction integer;uses_in_scene integer;
- v_result jsonb;rows jsonb;v_rev bigint;change_target text;
+ v_result jsonb;rows jsonb;v_rev bigint;change_target text;rhythm_level integer;hit_count integer;raised_round integer;pending_rhythm boolean;
 BEGIN
  IF p_sheet_id IS NULL OR length(p_sheet_id)>150 OR p_action NOT IN
-  ('ability','deactivate','main','reaction','phase','round','scene','adjust','expose','contain','commit')
+  ('ability','deactivate','main','reaction','phase','round','scene','adjust','expose','contain','commit','hit')
  THEN RAISE EXCEPTION 'Ação inválida.';END IF;
  SELECT a.id,k.id,k.kind,k.sheet_id INTO ac_id,key_id,key_kind,key_sheet
  FROM public.ae_sessions se JOIN public.ae_accounts a ON a.id=se.account_id AND a.key_id=se.key_id
@@ -22,7 +22,12 @@ BEGIN
  IF ac_id IS NULL OR key_kind NOT IN ('master','player') THEN RAISE EXCEPTION 'Entre para usar a ficha.';END IF;
  IF p_action='deactivate' THEN
   IF p_ability_index IS NULL OR p_ability_index NOT BETWEEN 0 AND 99 THEN RAISE EXCEPTION 'Habilidade inválida.';END IF;
-  RETURN public.ae_ability_deactivate(p_sheet_id,p_ability_index);
+  v_result=public.ae_ability_deactivate(p_sheet_id,p_ability_index);
+  SELECT d.revision,x.value INTO v_rev,sh FROM public.ae_document d
+   CROSS JOIN LATERAL jsonb_array_elements(d.data->'sheets') x(value)
+   WHERE d.id=1 AND x.value->>'id'=p_sheet_id LIMIT 1;
+  RETURN jsonb_build_object('ok',true,'revision',v_rev,'resources',sh->'resources',
+   'combat',sh->'combat','exposures',sh->'exposures','abilityRuntime',sh->'abilityRuntime','info',v_result);
  END IF;
  SELECT data INTO doc FROM public.ae_document WHERE id=1 FOR UPDATE;
  SELECT x.value INTO sh FROM jsonb_array_elements(coalesce(doc->'sheets','[]'::jsonb)) x(value)
@@ -99,10 +104,25 @@ BEGIN
    WHEN 'duelo' THEN 'desfecho' ELSE NULL END;
   IF phase IS NULL THEN RAISE EXCEPTION 'Use avançar rodada após o Desfecho.';END IF;
   combat=jsonb_set(combat,'{phase}',to_jsonb(phase),true);
+  IF coalesce((combat#>>'{cbb,pendingDefensive}')::boolean,false) THEN
+   exposure_level=greatest(0,least(3,coalesce((exposures->>'defensiva')::integer,0)));
+   exposures=jsonb_set(exposures,'{defensiva}',to_jsonb(least(3,exposure_level+1)),true);
+   combat=jsonb_set(combat,'{cbb,pendingDefensive}','false'::jsonb,true);
+   combat=jsonb_set(combat,'{cbb,defensiveRaisedRound}',to_jsonb(round_num),true);
+  END IF;
  ELSIF p_action='round' THEN
   IF phase<>'desfecho' THEN RAISE EXCEPTION 'Finalize o Desfecho antes da próxima rodada.';END IF;
+  rhythm_level=greatest(0,least(3,coalesce((exposures->>'ritmica')::integer,0)));
+  pending_rhythm=coalesce((combat#>>'{cbb,rhythmPending}')::boolean,false);
+  IF coalesce((combat->>'pressureHits')::integer,0)=0 THEN
+   combat=jsonb_set(combat,'{cbb,pressured}','false'::jsonb,true);
+  END IF;
   combat=combat||jsonb_build_object('round',round_num+1,'phase','preparacao',
-   'mainUsed',false,'reactionUsed',false,'committedUsed',false,'pressureHits',0);
+   'mainUsed',pending_rhythm AND rhythm_level>=3,
+   'reactionUsed',pending_rhythm AND rhythm_level>=2,
+   'committedUsed',false,'pressureHits',0);
+  combat=jsonb_set(combat,'{cbb,movementBlocked}',to_jsonb(pending_rhythm AND rhythm_level>=1),true);
+  combat=jsonb_set(combat,'{cbb,rhythmPending}','false'::jsonb,true);
   combat=jsonb_set(combat,'{cbb,extraMain}','0'::jsonb,true);
   combat=jsonb_set(combat,'{cbb,extraReaction}','0'::jsonb,true);
  ELSIF p_action='scene' THEN
@@ -111,6 +131,10 @@ BEGIN
    'mainUsed',false,'reactionUsed',false,'committedUsed',false,'pressureHits',0);
   combat=jsonb_set(combat,'{cbb,extraMain}','0'::jsonb,true);
   combat=jsonb_set(combat,'{cbb,extraReaction}','0'::jsonb,true);
+  combat=jsonb_set(combat,'{cbb,movementBlocked}','false'::jsonb,true);
+  combat=jsonb_set(combat,'{cbb,rhythmPending}','false'::jsonb,true);
+  combat=jsonb_set(combat,'{cbb,pressured}','false'::jsonb,true);
+  combat=jsonb_set(combat,'{cbb,pendingDefensive}','false'::jsonb,true);
  ELSIF p_action='adjust' THEN
   IF p_resource NOT IN ('vida','estabilidade','alma') OR p_value IS NULL OR p_value NOT BETWEEN -100000 AND 100000
    THEN RAISE EXCEPTION 'Ajuste de recurso inválido.';END IF;
@@ -119,6 +143,14 @@ BEGIN
   current_resource=greatest(0,least(max_resource,current_resource+p_value));
   sh=jsonb_set(sh,ARRAY['resources',p_resource,'current'],to_jsonb(current_resource),true);
   v_result=jsonb_build_object('resource',p_resource,'newCurrent',current_resource);
+ ELSIF p_action='hit' THEN
+  hit_count=greatest(0,coalesce((combat->>'pressureHits')::integer,0));
+  combat=jsonb_set(combat,'{pressureHits}',to_jsonb(least(100,hit_count+1)),true);
+  combat=jsonb_set(combat,'{cbb,pressured}','true'::jsonb,true);
+  raised_round=coalesce((combat#>>'{cbb,defensiveRaisedRound}')::integer,0);
+  IF hit_count>=1 AND raised_round<>round_num THEN
+   combat=jsonb_set(combat,'{cbb,pendingDefensive}','true'::jsonb,true);
+  END IF;
  ELSIF p_action IN ('expose','contain','commit') THEN
   IF p_exposure NOT IN ('defensiva','ofensiva','ritmica') THEN RAISE EXCEPTION 'Exposição inválida.';END IF;
   exposure_level=greatest(0,least(3,coalesce((exposures->>p_exposure)::integer,0)));
@@ -131,12 +163,18 @@ BEGIN
   ELSIF p_action='expose' THEN
    IF p_value IS NULL OR p_value NOT IN (1,-1) THEN RAISE EXCEPTION 'Ajuste de Exposição inválido.';END IF;
    exposure_level=greatest(0,least(3,exposure_level+p_value));
+   IF p_exposure='ritmica' AND p_value>0 THEN
+    combat=jsonb_set(combat,'{cbb,rhythmPending}','true'::jsonb,true);
+   END IF;
   ELSE
    IF coalesce((combat->>'committedUsed')::boolean,false) THEN RAISE EXCEPTION 'Somente um comprometimento por rodada.';END IF;
    IF exposure_level>=3 THEN RAISE EXCEPTION 'Exposição no nível III: escolha outra categoria.';END IF;
    IF p_resource NOT IN ('main','reaction') THEN RAISE EXCEPTION 'Escolha ação principal ou reação adicional.';END IF;
    exposure_level=exposure_level+1;
    combat=jsonb_set(combat,'{committedUsed}','true'::jsonb,true);
+   IF p_exposure='ritmica' THEN
+    combat=jsonb_set(combat,'{cbb,rhythmPending}','true'::jsonb,true);
+   END IF;
    IF p_resource='main' THEN combat=jsonb_set(combat,'{cbb,extraMain}','1'::jsonb,true);
    ELSE combat=jsonb_set(combat,'{cbb,extraReaction}','1'::jsonb,true);END IF;
   END IF;
