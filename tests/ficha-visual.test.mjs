@@ -84,14 +84,15 @@ test('perícias permanecem em duas colunas com dados de perícia e grupo',()=>{
  assert.match(html,/data-action="editSheetSection:skills"/);
  assert.match(html,/d8/);
 });
-test('habilidades são separadas por categoria e só contêm ações manuais',()=>{
+test('habilidades usam apenas categorias personalizadas ou Gerais, sem tipos antigos',()=>{
  const {view}=setup(),html=view.render(example(),settings('abilities'));
- for(const name of ['ATIVAS','PASSIVAS','OUTRAS HABILIDADES','Corte Crescente','Instinto Espiritual','Bankai'])
+ for(const name of ['GERAIS','Corte Crescente','Instinto Espiritual','Bankai'])
   assert.ok(html.includes(name),name);
  assert.equal((html.match(/class="ae-ficha-ability-card"/g)||[]).length,3);
  assert.match(html,/data-action="editAbilityDirect:0"/);
  assert.match(html,/data-action="exportAbilities"/);
- assert.match(html,/CUSTO INDICADO/);
+ assert.match(html,/2 ALMA/);
+ assert.doesNotMatch(html,/CUSTO INDICADO|ATIVAS|PASSIVAS|OUTRAS HABILIDADES/);
  assert.doesNotMatch(html,/data-action="(?:abilityRoll|useAbility|rollSkill)/);
 });
 test('as outras seções mantêm o conteúdo e a permissão dos painéis atuais',()=>{
@@ -176,7 +177,8 @@ test('ficha mantém dados e ações sem textos auxiliares redundantes',()=>{
  const skills=view.render(sheet,settings('skills'));
  assert.match(skills,/Grupos &amp; perícias|Grupos & perícias/);
  const abilities=view.render(sheet,settings('abilities'));
- assert.match(abilities,/CUSTO INDICADO/);
+ assert.match(abilities,/2 ALMA/);
+ assert.doesNotMatch(abilities,/CUSTO INDICADO/);
  assert.match(abilities,/Descrição com custo de Alma/);
  const guide=view.render(sheet,settings('guide'));
  assert.match(guide,/data-ficha-library/);
@@ -287,4 +289,17 @@ test('editor do jogador preserva a descrição, enquanto o Mestre gerencia categ
  assert.match(app,/abilityGroups:\[\]/);
  assert.match(app,/function saveSheetForm\(/);
  assert.doesNotMatch(app,/sectionId/);
+});
+
+test('uso e custo são curtos, sem tipos antigos, e categorias antigas não mudam a ficha',()=>{
+ const {view}=setup(),sheet=example();
+ sheet.abilities[0].usage='Uma vez por fase';
+ sheet.abilities[0].category='passive';
+ sheet.abilities[0].passive=true;
+ const html=view.render(sheet,settings('abilities'));
+ assert.match(html,/>2 ALMA<\/span>/);
+ assert.match(html,/Uma vez por fase/);
+ assert.match(html,/GERAIS/);
+ assert.doesNotMatch(html,/ATIVA|PASSIVA|MECÂNICA|LIBERAÇÃO|TRANSFORMAÇÃO|ULTIMATE|CUSTO INDICADO/);
+ assert.equal((html.match(/class="ae-ficha-ability-card"/g)||[]).length,3);
 });
