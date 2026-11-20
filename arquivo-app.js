@@ -1362,7 +1362,7 @@ function dieShape(n,kind='',count=1){
 function sheetRich(text,inlineOnly=false){
  const html=formatBook(text,'',{highlight:false});
  if(inlineOnly){
-  const match=/^<p class="book-paragraph">([\\s\\S]*)<\\/p>$/.exec(html);
+  const match=/^<p class="book-paragraph">([\s\S]*)<\/p>$/.exec(html);
   return match?match[1]:html;
  }
  return '<div class="book-text ae-unified-rich">'+html+'</div>';
