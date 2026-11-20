@@ -1,4 +1,4 @@
--- Vincula o HUD somente à ficha autorizada pelo esquema atual de chaves.
+-- Validação da ficha e proibição de reentrada após expulsão.
 CREATE OR REPLACE FUNCTION public.ae_live_join(p_character_id text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -39,7 +39,11 @@ begin
  else
   p_character_id=null;
  end if;
-  insert into public.ae_live_participants(session_id,account_id,user_id,account_name,character_name,sheet_id,is_master)
+  -- Remoção de mestre permanece válida até começar uma nova sala.
+ if exists(select 1 from public.ae_live_participants
+   where session_id=v_id and account_id=v_a and removed_at is not null)
+ then raise exception 'Você foi removido desta sessão pelo mestre.';end if;
+ insert into public.ae_live_participants(session_id,account_id,user_id,account_name,character_name,sheet_id,is_master)
  values(v_id,v_a,v_u,v_name,v_character,p_character_id,v_key_kind='master')
  on conflict(session_id,account_id) do update set
  user_id=excluded.user_id,account_name=excluded.account_name,character_name=excluded.character_name,sheet_id=excluded.sheet_id,
