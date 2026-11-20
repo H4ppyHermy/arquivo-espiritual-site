@@ -193,6 +193,8 @@ function tileFor(p){
  const self=p.peerId===state.selfId,online=state.peers.get(p.peerId);
  const connection=online?.pc?.connectionState||'new';
  const ready=self||connection==='connected';
+ const cameraTrack=online?.cameraStream?.getVideoTracks?.()[0];
+ const awaitingVideo=!self&&p.camera&&ready&&(!cameraTrack||cameraTrack.muted);
  const waitText=connection==='failed'?'CONEXÃO BLOQUEADA · TURN':
   connection==='disconnected'?'RECONEXÃO':
   connection==='connecting'?'ESTABELECENDO LINK':'CONECTANDO';
@@ -202,7 +204,8 @@ function tileFor(p){
    '<video id="'+esc(thumbId)+'" muted autoplay playsinline class="ae-live-camera-video"'+(p.camera?'':' hidden')+'></video>'+
    (!p.camera?avatarFor(p.sheetId,p.name,p):'')+
    (p.screen?'<span class="ae-live-sharing-badge">TELA ATIVA</span>':'')+
-   (!self&&!ready?'<span class="ae-live-connect-badge">'+waitText+'</span>':'')+
+   (!self&&!ready?'<span class="ae-live-connect-badge">'+waitText+'</span>':
+    awaitingVideo?'<span class="ae-live-connect-badge">SINCRONIZANDO VÍDEO</span>':'')+
    overlayFor(p.sheetId,p)+
   '</div><footer class="ae-live-tile-footer"><div class="ae-live-tile-identity"><strong>'+esc(p.name)+(self?' · VOCÊ':'')+
    '</strong><small>'+esc(p.master?'MESTRE':'JOGADOR')+'</small></div>'+
@@ -283,7 +286,8 @@ function renderPeople(){
  if(panel){
   const peers=getPresenceList();
   const signature=JSON.stringify(peers.map(p=>[p.peerId,p.accountId,p.sheetId,p.hideNumbers,p.camera,p.microphone,p.screen,
-   p.master,p.name,p.peerId===state.selfId?'self':state.peers.get(p.peerId)?.pc?.connectionState||'new']));
+   p.master,p.name,p.peerId===state.selfId?'self':state.peers.get(p.peerId)?.pc?.connectionState||'new',
+   p.peerId===state.selfId?'self':state.peers.get(p.peerId)?.cameraStream?.getVideoTracks?.()[0]?.muted]));
   if(panel.dataset.liveSignature!==signature){
    panel.innerHTML=peers.map(tileFor).join('');
    panel.dataset.liveSignature=signature;
@@ -482,16 +486,32 @@ async function offerPeer(peer,retry=false,renegotiate=false){
 }
 function rtcHealth(){
  if(!state.joined)return;
+ const now=Date.now();
  for(const peer of state.peers.values()){
-  if(peer.pc.connectionState==='connected')continue;
-  if(peer.pc.connectionState==='failed'){
-   try{peer.pc.restartIce()}catch(e){}
+  const pc=peer.pc,meta=state.presence.get(peer.id);
+  if(pc.connectionState==='connected'){
+   const camera=peer.cameraStream?.getVideoTracks?.()[0];
+   const screen=peer.screenStream?.getVideoTracks?.()[0];
+   const missing=(meta?.camera&&(!camera||camera.muted))||
+    (meta?.screen&&(!screen||screen.muted));
+   if(!missing){peer.mediaWaitSince=0;continue}
+   if(!peer.mediaWaitSince)peer.mediaWaitSince=now;
+   if(now-peer.mediaWaitSince>=12000&&now-peer.lastMediaRetryAt>=12000){
+    peer.lastMediaRetryAt=now;
+    if(peer.initiator)offerPeer(peer,false,true).catch(()=>{});
+    else sendSignal(peer.id,'renegotiate',{}).catch(()=>{});
+   }
+   continue;
   }
-  if(!peer.ready&&Date.now()-peer.lastHelloAt>=9500){
-   peer.lastHelloAt=Date.now();sendHello(peer.id).catch(()=>{});
+  peer.mediaWaitSince=0;
+  if(pc.connectionState==='failed'){
+   try{pc.restartIce()}catch(e){}
+   if(!peer.initiator)sendSignal(peer.id,'renegotiate',{}).catch(()=>{});
+  }
+  if(!peer.ready&&now-peer.lastHelloAt>=9500){
+   peer.lastHelloAt=now;sendHello(peer.id).catch(()=>{});
   }else if(peer.ready&&peer.initiator)offerPeer(peer,true).catch(()=>{});
  }
- // O servidor pode validar novos participantes antes da chegada do Presence.
  if(state.pendingSignals.size)refreshState().catch(()=>{});
 }
 function makePeer(meta){
@@ -501,7 +521,7 @@ function makePeer(meta){
   initiator:state.selfId<meta.peerId,ready:false,lastOfferAt:0,makingOffer:false,
   ignoreOffer:false,remoteAnswerPending:false,queue:[],
   senders:[],audioStream:null,cameraStream:null,screenStream:null,
-  iceBatch:[],iceFlush:null,lastHelloAt:0};
+  iceBatch:[],iceFlush:null,lastHelloAt:0,mediaWaitSince:0,lastMediaRetryAt:0};
  state.peers.set(meta.peerId,peer);
  // Só quem inicia cria as três m-lines. No navegador que responde,
  // setRemoteDescription(offer) cria os transceivers receptores;
