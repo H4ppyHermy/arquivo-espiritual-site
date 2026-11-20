@@ -83,7 +83,7 @@ test('troca de abas reaproveita hero e navegação existentes sem render global'
 test('o app atualiza só a aba, sem recarregar estilos, música, menus e retrato',()=>{
  const app=read('arquivo-app.js');
  const handler=app.slice(app.indexOf("const tb=e.target.closest('[data-tab]')"),app.indexOf("const b=e.target.closest('[data-action]')"));
- assert.match(handler,/view\?\.switchTab\?\.\(sh/);
+ assert.match(handler,/view\?\.switchTab\?\.\(window\.ARQUIVO_ORIGENS\?\.project\(sh\)\|\|sh/);
  assert.match(handler,/if\(fast\)\{/);
  assert.match(handler,/render\(\);return/);
  assert.match(app,/if\(page!=='sheets'&&!motionOff\(\)\)/);
@@ -96,7 +96,7 @@ test('o app atualiza só a aba, sem recarregar estilos, música, menus e retrato
 
 test('modificar tipo de habilidade e copiar dado não recria o formulário',()=>{
  const app=read('arquivo-app.js');
- const typeBlock=app.slice(app.indexOf("if(key==='category')"),app.indexOf("if(['name','cost','description','image'].includes(key))"));
+ const typeBlock=app.slice(app.indexOf("if(key==='category')"),app.indexOf("if(['name','cost','description','image','libraryType'].includes(key))"));
  assert.match(typeBlock,/input\.disabled=ab\.passive/);
  assert.doesNotMatch(typeBlock,/drawSheetForm\(\)/);
  const applyBlock=app.slice(app.indexOf('function applyGroup(g)'),app.indexOf('function addAbility()',app.indexOf('function applyGroup(g)')));
