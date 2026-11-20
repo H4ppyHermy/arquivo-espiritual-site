@@ -1,0 +1,26 @@
+/* Arrastar e soltar universal (mestre): realce leve, sem carregar bibliotecas. */
+.ae-dragging{user-select:none!important;-webkit-user-select:none!important}
+.ae-drag-ghost{
+ position:fixed;left:0;top:0;z-index:150;pointer-events:none;
+ max-width:min(230px,55vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ padding:10px 13px;border:1px solid var(--theme-accent);
+ border-radius:7px;background:var(--theme-panel);
+ box-shadow:0 9px 30px rgba(0,0,0,.3);
+ color:var(--theme-text);font:800 13px/1.25 system-ui,sans-serif
+}
+.ae-warehouse-post[data-drag-warehouse-id].ae-drag-source{opacity:.48}
+[data-drop-warehouse-category].ae-drag-target:not(.ae-warehouse-post){
+ outline:2px dashed var(--theme-accent);outline-offset:3px;
+ background:color-mix(in srgb,var(--theme-accent) 13%,var(--theme-panel))
+}
+.ae-warehouse-post.ae-drag-target{
+ outline:2px dashed var(--theme-cold);outline-offset:3px;
+}
+.ae-wh-drag-handle{
+ min-width:35px;cursor:grab;touch-action:none;user-select:none;
+ font-size:17px!important;letter-spacing:0!important
+}
+.ae-wh-drag-handle:active{cursor:grabbing}
+@media(prefers-reduced-motion:reduce){
+ .ae-drag-ghost,.ae-drag-target{transition:none!important}
+}
