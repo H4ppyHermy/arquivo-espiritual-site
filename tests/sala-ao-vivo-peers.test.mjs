@@ -173,7 +173,9 @@ test('dois navegadores descobrem seus peers, trocam offer/answer e enxergam a c�
  assert.equal(b.window.ARQUIVO_LIVE.getPresenceList().length,2);
  assert.ok(hub.events.some(x=>x.event==='peer-hello'),'handshake presente');
  assert.ok(hub.events.some(x=>x.event==='rtc-signal'&&x.payload.type==='description'&&x.payload.data.type==='offer'),
-  'oferta SDR transmitida');
+  'oferta SDR transmitida · eventos '+JSON.stringify(hub.events.map(x=>[x.from,x.event,x.payload?.type,x.payload?.to]))+
+  ' · a '+JSON.stringify({ready:ap.ready,initiator:ap.initiator,signal:ap.pc.signalingState,offer:ap.lastOfferAt})+
+  ' · b '+JSON.stringify({ready:bp.ready,initiator:bp.initiator,signal:bp.pc.signalingState,offer:bp.lastOfferAt}));
  assert.ok(hub.events.some(x=>x.event==='rtc-signal'&&x.payload.type==='description'&&x.payload.data.type==='answer'),
   'resposta SDR transmitida');
  assert.equal(ap.pc.connectionState,'connected');
