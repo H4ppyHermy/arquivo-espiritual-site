@@ -23,6 +23,7 @@ function setup(master=true){
  const window={ARQUIVO_INTERNAL:api};
  const sandbox={window,document,console,requestAnimationFrame:callback=>callback(),
   Event:class{constructor(type){this.type=type;}}};
+ vm.runInNewContext(file('racas-armazem.js'),sandbox);
  vm.runInNewContext(file('classes-armazem.js'),sandbox);
  vm.runInNewContext(file('habilidades-armazem.js'),sandbox);
  vm.runInNewContext(file('biblioteca-secoes.js'),sandbox);
@@ -46,11 +47,11 @@ function setup(master=true){
  return {window,document,db,api,handlers,elements,dispatch,sandbox,modal:()=>modalMarkup,saves:()=>saved};
 }
 
-test('livros e quatro classes permanecem disponíveis, mas sem conexão com a ficha',()=>{
+test('raça, classes e habilidades continuam acessíveis no Armazém sem HUD de ficha',()=>{
  const {window,db}=setup();
- assert.equal(window.ARQUIVO_SECOES.warehouse().posts.length,11);
+ assert.equal(window.ARQUIVO_SECOES.warehouse().posts.length,12);
  const html=window.ARQUIVO_SECOES.warehousePage();
- for(const name of ['Coração de Aço','Especialista em Hohō','Caçador','Porta-voz'])
+ for(const name of ['Arrancar','Coração de Aço','Especialista em Hohō','Caçador','Porta-voz'])
   assert.ok(html.includes(name),name);
  assert.doesNotMatch(html,/ENVIAR À FICHA|data-cat-action|ae-catalog-bar|ae-catalog-dice-reference/i);
  assert.equal(db.sheets[0].catalogEntries[0].title,'Antigo');
