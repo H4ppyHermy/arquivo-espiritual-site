@@ -12,12 +12,12 @@ const state={
  session:null,participants:[],joined:false,joining:false,connecting:false,
  hudChoices:[],hudChoicesReady:false,hideAllNumbers:false,
  hudChoices:[],hudChoicesReady:false,hideAllNumbers:false,
- channel:null,peers:new Map(),presence:new Map(),hud:new Map(),
+ channel:null,peers:new Map(),presence:new Map(),hud:new Map(),pendingSignals:new Map(),
  selfId:null,accountId:null,local:null,
  camera:null,microphone:null,screen:null,screenAudio:null,
  quality:'balanced',sound:true,spotlight:null,status:'',error:'',
  busy:false,lastPresence:0,lobbyBusy:false,
- lobbyTimer:null,roomTimer:null,hudTimer:null,lastHudAt:0
+ lobbyTimer:null,roomTimer:null,hudTimer:null,rtcTimer:null,lastHudAt:0
 };
 const quality={
  economy:{width:640,height:360,fps:20,camBitrate:400000,screenBitrate:1150000},
@@ -50,7 +50,7 @@ async function trackPresence(){
 }
 function setTimer(name,handler,ms){if(state[name])clearInterval(state[name]);state[name]=setInterval(handler,ms)}
 function clearTimers(){
- for(const name of ['lobbyTimer','roomTimer','hudTimer'])if(state[name]){clearInterval(state[name]);state[name]=null}
+ for(const name of ['lobbyTimer','roomTimer','hudTimer','rtcTimer'])if(state[name]){clearInterval(state[name]);state[name]=null}
 }
 async function refreshState(){
  if(state.lobbyBusy)return;
@@ -390,7 +390,16 @@ function presenceSync(){
   const shared=Array.from(next.values()).find(p=>p.screen);
   if(shared)state.spotlight={peerId:shared.peerId,kind:'screen'};
  }
- for(const [id,p] of next)if(!state.peers.has(id))makePeer(p);
+ for(const [id,p] of next)if(!state.peers.has(id)){
+  makePeer(p);sendHello(id).catch(()=>{});
+ }
+ for(const [id,p] of next){
+  const queued=state.pendingSignals.get(id);
+  if(queued?.length){
+   state.pendingSignals.delete(id);
+   for(const packet of queued)queueMicrotask(()=>signal(packet).catch(()=>{}));
+  }
+ }
  for(const id of Array.from(state.peers.keys()))if(!next.has(id))removePeer(id);
  if(state.spotlight&&!next.has(state.spotlight.peerId)&&state.spotlight.peerId!==state.selfId)state.spotlight=null;
  renderPeople();audioRack();updateDock();applyQualityAll();
@@ -399,6 +408,7 @@ function mediaStream(track){return track?new MediaStream([track]):null}
 function bindRemoteTrack(peer,index,track){
  const key=index===0?'audioStream':index===1?'cameraStream':'screenStream';
  peer[key]=mediaStream(track);
+ track.addEventListener('unmute',()=>{renderPeople();updateDock()});
  audioRack();
  track.addEventListener('ended',()=>{if(peer[key]?.getTracks().includes(track)){
   peer[key]=null;renderPeople();updateDock()
@@ -410,10 +420,60 @@ function rtcConfig(){
  if(Array.isArray(external)&&external.length)return {iceServers:external,iceCandidatePoolSize:2};
  return {iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']}],iceCandidatePoolSize:2};
 }
+async function sendHello(to=null,ack=false){
+ if(!state.channel||!state.joined||!state.selfId)return;
+ await state.channel.send({type:'broadcast',event:'peer-hello',
+  payload:{from:state.selfId,accountId:state.accountId,to,ack}});
+}
+async function acceptHello(payload){
+ if(!state.joined||!payload||!validId.test(String(payload.from||''))||
+  payload.from===state.selfId||payload.to&&payload.to!==state.selfId)return;
+ let meta=state.presence.get(payload.from);
+ if(!meta){
+  await refreshState();
+  meta=state.presence.get(payload.from);
+ }
+ if(!meta||meta.accountId!==payload.accountId)return;
+ if(!state.peers.has(meta.peerId))makePeer(meta);
+ const peer=state.peers.get(meta.peerId);if(!peer)return;
+ peer.ready=true;
+ if(!payload.ack)sendHello(meta.peerId,true).catch(()=>{});
+ if(peer.initiator)offerPeer(peer).catch(e=>status(e.message,true));
+}
+async function offerPeer(peer,retry=false,renegotiate=false){
+ const pc=peer.pc;
+ if(!state.joined||!peer.initiator||!peer.ready||peer.makingOffer||pc.connectionState==='closed')return;
+ if(pc.connectionState==='connected'&&!renegotiate)return;
+ if(pc.signalingState!=='stable'){
+  if(retry&&pc.signalingState==='have-local-offer'&&Date.now()-peer.lastOfferAt>8000){
+   try{await pc.setLocalDescription({type:'rollback'})}catch(e){return}
+  }else return;
+ }
+ try{
+  peer.makingOffer=true;
+  await pc.setLocalDescription();
+  peer.lastOfferAt=Date.now();
+  await sendSignal(peer.id,'description',pc.localDescription.toJSON());
+ }finally{peer.makingOffer=false}
+}
+function rtcHealth(){
+ if(!state.joined)return;
+ for(const peer of state.peers.values()){
+  if(peer.pc.connectionState==='connected')continue;
+  if(peer.pc.connectionState==='failed'){
+   try{peer.pc.restartIce()}catch(e){}
+  }
+  if(!peer.ready)sendHello(peer.id).catch(()=>{});
+  else if(peer.initiator)offerPeer(peer,true).catch(()=>{});
+ }
+ // O servidor pode validar novos participantes antes da chegada do Presence.
+ if(state.pendingSignals.size)refreshState().catch(()=>{});
+}
 function makePeer(meta){
  if(!state.joined||state.peers.has(meta.peerId)||typeof global.RTCPeerConnection!=='function')return;
  const pc=new RTCPeerConnection(rtcConfig());
- const peer={pc,id:meta.peerId,polite:state.selfId>meta.peerId,makingOffer:false,
+ const peer={pc,id:meta.peerId,polite:state.selfId>meta.peerId,
+  initiator:state.selfId<meta.peerId,ready:false,lastOfferAt:0,makingOffer:false,
   ignoreOffer:false,remoteAnswerPending:false,queue:[],
   senders:[],audioStream:null,cameraStream:null,screenStream:null};
  state.peers.set(meta.peerId,peer);
@@ -434,13 +494,8 @@ function makePeer(meta){
   if(pc.connectionState==='failed')try{pc.restartIce()}catch(e){}
   renderPeople();
  };
- pc.onnegotiationneeded=async()=>{
-  try{
-   peer.makingOffer=true;
-   await pc.setLocalDescription();
-   await sendSignal(peer.id,'description',pc.localDescription.toJSON());
-  }catch(e){if(state.joined)status('Falha na negociação WebRTC: '+e.message,true)}
-  finally{peer.makingOffer=false}
+ pc.onnegotiationneeded=()=>{
+  if(peer.initiator)offerPeer(peer).catch(e=>status('Negociação: '+e.message,true));
  };
  syncTracks(peer).catch(()=>{});
 }
@@ -475,8 +530,15 @@ async function sendSignal(to,type,data){
 }
 async function signal(payload){
  if(!state.joined||!payload||payload.to!==state.selfId||payload.from===state.selfId)return;
- if(!state.presence.has(payload.from))return;
+ if(!validId.test(String(payload.from||'')))return;
  if(!['description','candidate'].includes(payload.type))return;
+ if(!state.presence.has(payload.from)){
+  const list=state.pendingSignals.get(payload.from)||[];
+  if(list.length<20)list.push(payload);
+  state.pendingSignals.set(payload.from,list);
+  refreshState().catch(()=>{});
+  return;
+ }
  if(!state.peers.has(payload.from))makePeer(state.presence.get(payload.from));
  const peer=state.peers.get(payload.from);if(!peer)return;
  const pc=peer.pc;
@@ -526,7 +588,8 @@ async function openRoom(){
    private:true,broadcast:{self:false,ack:true},presence:{key:state.selfId}}});
   state.channel=channel;
   channel.on('presence',{event:'sync'},presenceSync);
-  channel.on('broadcast',{event:'rtc-signal'},({payload})=>{signal(payload)});
+  channel.on('broadcast',{event:'rtc-signal'},({payload})=>{signal(payload).catch(()=>{})});
+  channel.on('broadcast',{event:'peer-hello'},({payload})=>{acceptHello(payload).catch(()=>{})});
   channel.on('broadcast',{event:'session-end'},()=>leave(false));
   channel.on('broadcast',{event:'hud-updated'},()=>{refreshState().then(()=>refreshHud()).catch(()=>{})});
   channel.on('broadcast',{event:'participant-kicked'},({payload})=>{
@@ -549,6 +612,8 @@ async function openRoom(){
   setTimer('roomTimer',()=>{pollRoom().catch(()=>{})},14000);
   setTimer('hudTimer',()=>{refreshHud().catch(()=>{})},9000);
   await refreshState();
+  await sendHello().catch(()=>{});
+  setTimer('rtcTimer',rtcHealth,4500);
   if(state.local?.is_master)await loadHudChoices().catch(e=>status(e.message,true));
   await refreshHud();
   state.status='Conexão pronta. Ative câmera ou microfone quando quiser.';
@@ -636,7 +701,7 @@ async function leave(notify=true){
  const ch=state.channel;state.channel=null;
  if(ch){try{await ch.untrack()}catch(e){}try{await sync()?.state.client?.removeChannel(ch)}catch(e){}}
  const hadJoined=state.joined;
- state.joined=false;state.presence.clear();state.hud.clear();state.hudChoices=[];state.hudChoicesReady=false;
+ state.joined=false;state.presence.clear();state.pendingSignals.clear();state.hud.clear();state.hudChoices=[];state.hudChoicesReady=false;
  document.getElementById('ae-live-audio-rack')?.remove();
  stopStream(state.camera);stopStream(state.microphone);stopStream(state.screen);
  state.camera=null;state.microphone=null;state.screen=null;state.spotlight=null;
