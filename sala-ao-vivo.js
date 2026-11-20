@@ -67,7 +67,7 @@ async function refreshState(){
  finally{state.lobbyBusy=false}
 }
 async function refreshHud(){
- if(!state.joined||state.busy)return;
+ if(!state.joined)return;
  try{
   const data=await rpc('ae_live_hud');
   if(!Array.isArray(data))return;
@@ -138,10 +138,38 @@ function renderOverlays(){
   const hud=el.querySelector('.ae-live-hud');
   if(hud)hud.outerHTML=overlayFor(p.sheetId);
  }
+ const dockHud=document.querySelector('#ae-live-dock .ae-live-hud');
+ if(dockHud){
+  const focus=dockFocus();
+  dockHud.outerHTML=overlayFor(focus?.sheetId);
+ }
  const spot=document.querySelector('.ae-live-spotlight .ae-live-hud');
  if(spot&&state.spotlight){
   const p=state.spotlight.peerId===state.selfId?localPresence():state.presence.get(state.spotlight.peerId);
   if(p)spot.outerHTML=overlayFor(p.sheetId);
+ }
+}
+function dockFocus(){
+ const list=getPresenceList();
+ const focus=list.find(p=>p.peerId!==state.selfId&&p.screen)||
+  list.find(p=>p.peerId!==state.selfId&&p.camera)||list.find(p=>p.peerId===state.selfId);
+ return focus||null;
+}
+function audioRack(){
+ let rack=document.getElementById('ae-live-audio-rack');
+ if(!rack){rack=document.createElement('div');rack.id='ae-live-audio-rack';rack.hidden=true;document.body.appendChild(rack)}
+ const ids=new Set(state.peers.keys());
+ for(const node of Array.from(rack.querySelectorAll('audio[data-peer-id]'))){
+  if(!ids.has(node.dataset.peerId))node.remove();
+ }
+ for(const id of ids){
+  let audio=document.getElementById('ae-live-audio-'+id);
+  if(!audio){
+   audio=document.createElement('audio');audio.id='ae-live-audio-'+id;
+   audio.dataset.peerId=id;audio.autoplay=true;audio.playsInline=true;
+   rack.appendChild(audio);
+  }
+  setVideo(audio,state.peers.get(id)?.audioStream,!state.sound);
  }
 }
 function setVideo(node,stream,muted=true){
@@ -152,14 +180,11 @@ function setVideo(node,stream,muted=true){
 }
 function bindStreams(){
  if(!state.joined)return;
+ audioRack();
  for(const p of getPresenceList()){
   const video=document.getElementById('ae-live-video-'+p.peerId);
   const remote=state.peers.get(p.peerId);
   setVideo(video,p.peerId===state.selfId?state.camera:remote?.cameraStream,true);
-  if(remote){
-   const audio=document.getElementById('ae-live-audio-'+p.peerId);
-   setVideo(audio,remote.audioStream,!state.sound);
-  }
  }
  const spot=state.spotlight;
  if(spot){
@@ -177,8 +202,7 @@ function renderPeople(){
   const signature=JSON.stringify(peers.map(p=>[p.peerId,p.accountId,p.sheetId,p.camera,p.microphone,p.screen,
    p.master,p.name,p.peerId===state.selfId?'self':state.peers.get(p.peerId)?.pc?.connectionState||'new']));
   if(panel.dataset.liveSignature!==signature){
-   panel.innerHTML=peers.map(tileFor).join('')+
-    peers.filter(p=>p.peerId!==state.selfId).map(p=>'<audio id="ae-live-audio-'+esc(p.peerId)+'" autoplay playsinline></audio>').join('');
+   panel.innerHTML=peers.map(tileFor).join('');
    panel.dataset.liveSignature=signature;
   }
  }
@@ -210,8 +234,22 @@ function updateDock(){
  if(!state.joined){dock?.remove();return}
  if(!dock){dock=document.createElement('aside');dock.id='ae-live-dock';dock.className='ae-live-dock';document.body.appendChild(dock)}
  dock.hidden=api()?.page==='live';
- dock.innerHTML='<span class="ae-live-dock-dot"></span><strong>SESSÃO AO VIVO</strong><span>'+getPresenceList().length+' pessoas</span>'+
-  button('ABRIR','open')+button('SAIR','leave','class="ae-live-dock-leave"');
+ const focus=dockFocus(),remote=state.peers.get(focus?.peerId);
+ const kind=focus?.screen?'screen':'camera';
+ const stream=focus?.peerId===state.selfId?(kind==='screen'?state.screen:state.camera):
+  kind==='screen'?remote?.screenStream:remote?.cameraStream;
+ const signature=[focus?.peerId||'',kind,focus?.camera,focus?.screen,getPresenceList().length].join(':');
+ if(dock.dataset.liveSignature!==signature){
+  dock.innerHTML='<div class="ae-live-dock-preview">'+
+   (focus?.camera||focus?.screen?'<video id="ae-live-dock-video" autoplay playsinline muted></video>':avatarFor(focus?.sheetId,focus?.name))+
+   overlayFor(focus?.sheetId)+'</div>'+
+   '<div class="ae-live-dock-controls"><div class="ae-live-dock-title"><span class="ae-live-dock-dot"></span>'+
+   '<strong>SESSÃO AO VIVO</strong><small>'+getPresenceList().length+' pessoas</small></div>'+
+   '<div class="ae-live-dock-buttons">'+button('ABRIR','open')+
+   button('SAIR','leave','class="ae-live-dock-leave"')+'</div></div>';
+  dock.dataset.liveSignature=signature;
+ }
+ setVideo(document.getElementById('ae-live-dock-video'),stream,true);
 }
 function render(){
  const node=root();if(!node)return;
@@ -290,12 +328,13 @@ function presenceSync(){
  for(const [id,p] of next)if(!state.peers.has(id))makePeer(p);
  for(const id of Array.from(state.peers.keys()))if(!next.has(id))removePeer(id);
  if(state.spotlight&&!next.has(state.spotlight.peerId)&&state.spotlight.peerId!==state.selfId)state.spotlight=null;
- renderPeople();applyQualityAll();
+ renderPeople();audioRack();updateDock();applyQualityAll();
 }
 function mediaStream(track){return track?new MediaStream([track]):null}
 function bindRemoteTrack(peer,index,track){
  const key=index===0?'audioStream':index===1?'cameraStream':'screenStream';
  peer[key]=mediaStream(track);
+ audioRack();
  track.addEventListener('ended',()=>{if(peer[key]?.getTracks().includes(track)){peer[key]=null;renderPeople()}},{once:true});
  renderPeople();
 }
@@ -403,6 +442,7 @@ function removePeer(id){
  peer.pc.ontrack=null;peer.pc.onnegotiationneeded=null;peer.pc.onicecandidate=null;
  try{peer.pc.close()}catch(e){}
  state.peers.delete(id);
+ audioRack();
 }
 async function openRoom(){
  const st=sync()?.state;
@@ -521,6 +561,7 @@ async function leave(notify=true){
  if(ch){try{await ch.untrack()}catch(e){}try{await sync()?.state.client?.removeChannel(ch)}catch(e){}}
  const hadJoined=state.joined;
  state.joined=false;state.presence.clear();state.hud.clear();
+ document.getElementById('ae-live-audio-rack')?.remove();
  stopStream(state.camera);stopStream(state.microphone);stopStream(state.screen);
  state.camera=null;state.microphone=null;state.screen=null;state.spotlight=null;
  state.selfId=null;state.accountId=null;state.local=null;state.joining=false;
