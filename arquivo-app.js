@@ -2056,7 +2056,7 @@ function returnSheetEditor(){
  const pending=pendingSheetDeletion;
  pendingSheetDeletion=null;
  if(pending&&master()&&editorDraft?.id===pending.id&&
-  db.sheets.some(x=>x.id===pending.id)){drawSheetForm();return}
+  db.sheets.some(x=>x.id===pending.id)){drawSheetForm();modalDirty=true;return}
  closeModal();
 }
 async function confirmSheetDeletion(){
