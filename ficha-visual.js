@@ -345,7 +345,9 @@
     entry.hidden=!!card&&type!=='Todas'&&card.dataset.abilityKind!==type;
    }
    for(const group of root.querySelectorAll('.ae-ficha-ability-group')){
-    group.hidden=![...group.querySelectorAll('.ae-ficha-ability-entry')].some(node=>!node.hidden);
+    const entries=[...group.querySelectorAll('.ae-ficha-ability-entry')];
+    group.hidden=entries.length?!entries.some(node=>!node.hidden):
+     !group.classList.contains('ae-ficha-ability-group--custom');
    }
    return;
   }
