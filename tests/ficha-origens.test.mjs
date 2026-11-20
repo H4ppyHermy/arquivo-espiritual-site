@@ -108,3 +108,31 @@ test('interface, edição e registro contêm as integrações dinâmicas',()=>{
  assert.ok(html.indexOf('biblioteca-secoes.js')<html.indexOf('ficha-origens.js'));
  assert.ok(html.indexOf('ficha-origens.js')<html.indexOf('ficha-exportar.js'));
 });
+
+test('selecionar Artilheiro e depois Arrancar combina Cadência com as habilidades raciais',()=>{
+ const {logic,catalog}=setup();
+ catalog.push({
+  id:'classe-artilheiro',title:'Artilheiro',category:'Classes',published:true,
+  content:'## Identidade\nClasse de disparos.\n\n## Cadência\nPossui três níveis de ritmo.'
+ });
+ const s=sheet('','Artilheiro');
+ logic.reconcile(s);
+ assert.deepEqual(Array.from(s.abilities,x=>x.name),['Cadência']);
+ s.race='Arrancar';
+ assert.equal(logic.reconcile(s),true);
+ assert.deepEqual(Array.from(s.abilities,x=>x.name),['Instinto Primário','Hierro','Sonído','Cero','Cadência']);
+ assert.equal(logic.reconcile(s),false);
+});
+test('registro antigo sem grants preserva concessão publicada de Arrancar',()=>{
+ const {logic,catalog}=setup();
+ const index=catalog.findIndex(p=>p.id==='habilidade-hierro');
+ catalog[index]={id:'habilidade-hierro',category:'Habilidades',title:'Hierro',published:true,
+  tags:'Defesa',content:'Versão personalizada sem metadados de origem',cost:'2 ALMA'};
+ const s=sheet('Arrancar');
+ logic.reconcile(s);
+ assert.ok(s.abilities.some(a=>a.name==='Hierro'&&a.description.includes('personalizada')));
+ assert.ok(s.abilities.some(a=>a.name==='Instinto Primário'));
+ catalog[index].grants={race:[],class:[]};
+ logic.reconcile(s);
+ assert.equal(s.abilities.some(a=>a.name==='Hierro'),false,'concessão explicitamente desativada é respeitada');
+});
