@@ -174,3 +174,23 @@ test('ficha mantém dados e ações sem textos auxiliares redundantes',()=>{
  const guide=view.render(sheet,settings('guide'));
  assert.match(guide,/data-ficha-library/);
 });
+
+test('habilidades raciais e de classe são destacadas; técnicas podem ser filtradas',()=>{
+ const {view}=setup(),sheet=example();
+ sheet.className='Coração de Aço';
+ sheet.abilities.push(
+  {name:'Hierro',category:'active',libraryType:'habilidade',cost:2,description:'Proteção racial',
+   origin:{auto:true,kind:'race',name:'Arrancar',sourceId:'habilidade-hierro'}},
+  {name:'Têmpera',category:'active',libraryType:'habilidade',cost:0,description:'Recurso de classe',
+   origin:{auto:true,kind:'class',name:'Coração de Aço',sourceId:'classe-coracao-de-aco'}},
+  {name:'Mira Estável',category:'active',libraryType:'tecnica',cost:2,description:'Disparo preparado'}
+ );
+ const html=view.render(sheet,settings('abilities'));
+ for(const text of ['ae-ficha-ability-inherited--race','ae-ficha-ability-inherited--class',
+  'HABILIDADE RACIAL','HABILIDADE DE CLASSE','data-ability-kind="Técnicas"',
+  'data-ability-filter="Técnicas"','data-ability-filter="Habilidades"','Coração de Aço'])
+  assert.ok(html.includes(text),text);
+ assert.doesNotMatch(html,/data-action="editAbilityDirect:3"|data-action="editAbilityDirect:4"/);
+ assert.match(html,/data-action="editAbilityDirect:5"/);
+ assert.doesNotMatch(html,/class="ae-ficha-abilities" data-ability-filter/);
+});
