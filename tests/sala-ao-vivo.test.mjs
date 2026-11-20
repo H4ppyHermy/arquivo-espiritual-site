@@ -87,8 +87,8 @@ function harness(){
 
 test('a aba Sessão ao Vivo está ligada a menu e ao código de sessão isolado',()=>{
  const html=read('index.html'),app=read('arquivo-app.js'),src=read('sala-ao-vivo.js');
- assert.ok(html.includes('sala-ao-vivo.js?v=1'));
- assert.ok(html.includes('sala-ao-vivo.css?v=1'));
+ assert.ok(html.includes('sala-ao-vivo.js?v=2'));
+ assert.ok(html.includes('sala-ao-vivo.css?v=2'));
  assert.match(app,/\['live','Sessão ao vivo','video'\]/);
  assert.match(app,/ARQUIVO_LIVE\?\.pageChanged\(page\)/);
  assert.match(src,/private:true/);
