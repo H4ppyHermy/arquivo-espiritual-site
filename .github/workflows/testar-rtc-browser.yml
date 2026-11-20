@@ -1,0 +1,24 @@
+name: Teste WebRTC com navegadores reais
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sala-ao-vivo.js'
+      - 'e2e/**'
+      - '.github/workflows/testar-rtc-browser.yml'
+  workflow_dispatch:
+jobs:
+  rtc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar Puppeteer Core
+        run: npm install --no-save --no-audit --no-fund puppeteer-core@24.26.0
+      - name: Testar mídia real entre navegadores
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: node --test e2e/rtc-browser.test.mjs

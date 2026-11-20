@@ -1,0 +1,97 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Teste RTC</title></head><body>
+<div class="ae-live-root"></div><script>
+(function(){
+ const params=new URLSearchParams(location.search);
+ const account=params.get('account')||'11111111-1111-4111-8111-111111111111';
+ const master=params.get('master')==='1';
+ const room='65e14c9a-d03f-421d-af34-6af4d2381263';
+ const name=master?'Teste Mestre':'Teste Jogador';
+ const participants=[
+  {session_id:room,account_id:'11111111-1111-4111-8111-111111111111',user_id:'11111111-1111-4111-8111-111111111111',account_name:'Teste Mestre',sheet_id:null,hud_sheet_id:null,hud_hide_numbers:false,is_master:true},
+  {session_id:room,account_id:'22222222-2222-4222-8222-222222222222',user_id:'22222222-2222-4222-8222-222222222222',account_name:'Teste Jogador',sheet_id:'sheet-test',hud_sheet_id:null,hud_hide_numbers:false,is_master:false}
+ ];
+ const local=participants.find(x=>x.account_id===account);
+ const session={id:room,title:'Teste RTC real',status:'open'};
+ const api={page:'live',db:{sheets:[]},setPage(){},toast(){},mediaSrc(){return ''},confirmSite(a,b,fn){fn()}};
+ window.ARQUIVO_INTERNAL=api;
+ const client={
+  async rpc(name,args={}){
+   if(name==='ae_live_state')return {data:{session,participants},error:null};
+   if(name==='ae_live_join')return {data:local,error:null};
+   if(name==='ae_live_heartbeat')return {data:local,error:null};
+   if(name==='ae_live_hud')return {data:[],error:null};
+   if(name==='ae_live_hud_choices')return {data:[],error:null};
+   if(name==='ae_live_leave')return {data:true,error:null};
+   return {data:null,error:{message:'RPC desconhecido: '+name}};
+  },
+  channel(topic,config){
+   const handlers=[],bus=new BroadcastChannel(topic);
+   let own=null;
+   function fire(kind,ev,payload){for(const h of handlers)if(h.kind===kind&&h.filter.event===ev)h.callback(payload)}
+   bus.onmessage=e=>{
+    const data=e.data;if(data.type==='presence-sync'){fire('presence','sync',{})}
+    else if(data.type==='broadcast')fire('broadcast',data.event,{payload:data.payload});
+   };
+   const prefix='ae-rtc-test-'+topic+'-';
+   return {
+    on(kind,filter,callback){handlers.push({kind,filter,callback});return this},
+    subscribe(callback){queueMicrotask(()=>{callback('SUBSCRIBED');fire('presence','sync',{})});return this},
+    presenceState(){
+     const out={};
+     for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(!key?.startsWith(prefix))continue;
+      try{const item=JSON.parse(localStorage.getItem(key));out[item.peerId]=[item]}catch(e){}
+     }
+     return out;
+    },
+    async track(data){
+     own=prefix+data.peerId;localStorage.setItem(own,JSON.stringify(data));
+     bus.postMessage({type:'presence-sync'});
+     fire('presence','sync',{});return 'ok';
+    },
+    async untrack(){if(own)localStorage.removeItem(own);bus.postMessage({type:'presence-sync'});return 'ok'},
+    async send(data){bus.postMessage({...data});return 'ok'}
+   };
+  },
+  removeChannel(ch){return Promise.resolve()}
+ };
+ window.ARQUIVO_SYNC={state:{enabled:true,identity:{id:account,kind:master?'master':'player',
+  accountName:name,sheetId:master?null:'sheet-test'},client}};
+ // Fonte de tela de teste: quadros reais gerados por canvas, não evento ontrack falso.
+ const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
+ const ctx=canvas.getContext('2d');let ticks=0;
+ setInterval(()=>{
+  ticks++;ctx.fillStyle=ticks%2?'#2244ff':'#dd4422';ctx.fillRect(0,0,640,360);
+  ctx.fillStyle='white';ctx.font='36px sans-serif';ctx.fillText('TELA '+ticks,50,170);
+ },100);
+ const md=navigator.mediaDevices;
+ md.getDisplayMedia=async()=>canvas.captureStream(15);
+ window.__rtcProbe={account,canvas,participants,session};
+})();
+</script><script src="/sala-ao-vivo.js"></script><script>
+window.ARQUIVO_LIVE.pageChanged('live');
+window.__rtcProbe.snapshot=async()=>{
+ const st=window.ARQUIVO_LIVE.state;
+ const list=[];
+ for(const [id,p] of st.peers){
+  const stats=await p.pc.getStats();
+  let frames=0,bytes=0,packets=0,sent=0,outFrames=0;
+  stats.forEach(v=>{
+   if(v.type==='inbound-rtp'&&v.kind==='video'){frames+=v.framesDecoded||0;bytes+=v.bytesReceived||0;packets+=v.packetsReceived||0}
+   if(v.type==='outbound-rtp'&&v.kind==='video'){sent+=v.bytesSent||0;outFrames+=v.framesEncoded||0}
+  });
+  list.push({id,connection:p.pc.connectionState,ice:p.pc.iceConnectionState,
+   signal:p.pc.signalingState,ready:p.ready,hasCamera:!!p.cameraStream,
+   camMuted:p.cameraStream?.getVideoTracks()[0]?.muted??null,
+   hasScreen:!!p.screenStream,
+   screenMuted:p.screenStream?.getVideoTracks()[0]?.muted??null,
+   frames,bytes,packets,sent,outFrames});
+ }
+ const spot=document.getElementById('ae-live-spotlight-video');
+ return {joined:st.joined,camera:!!st.camera,screen:!!st.screen,peers:list,
+  presence:window.ARQUIVO_LIVE.getPresenceList().map(p=>({name:p.name,camera:p.camera,screen:p.screen})),
+  spotlight:{kind:st.spotlight?.kind||null,readyState:spot?.readyState||0,width:spot?.videoWidth||0},
+  msg:st.status,err:st.error};
+};
+</script></body></html>
