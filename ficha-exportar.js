@@ -7,7 +7,7 @@
  const esc=api.esc,fold=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR').trim();
  let destination='',catalog=[],selected=new Set(),search='',kind='Todas',busy=false;
  const sheet=()=>api.db.sheets.find(s=>s.id===destination);
- const existingNames=()=>new Set((sheet()?.abilities||[]).map(a=>fold(a.name)));
+ const existingNames=()=>new Set(((window.ARQUIVO_ORIGENS?.project(sheet())||sheet())?.abilities||[]).map(a=>fold(a.name)));
  const eligible=post=>post&&typeof post.id==='string'&&post.id&&
   (post.category==='Habilidades'||post.category==='Técnicas')&&post.title&&
   typeof post.content==='string'&&post.content.trim()&&
