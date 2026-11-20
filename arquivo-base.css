@@ -367,3 +367,5 @@ html.custom-font body *:not(svg):not(svg *){
 .ae-unified-rich .book-table-wrap{max-width:100%;overflow-x:auto}
 .ae-unified-rich > :first-child{margin-top:0}
 .ae-unified-rich > :last-child{margin-bottom:0}
+
+.history-critical-metrics{margin-top:7px;font-size:11px;font-weight:850;letter-spacing:.05em;color:var(--theme-cold);overflow-wrap:anywhere}
