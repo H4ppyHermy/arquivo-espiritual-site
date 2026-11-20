@@ -244,7 +244,7 @@ BEGIN
  UPDATE public.ae_document SET data=jsonb_set(doc,'{sheets}',rows),revision=revision+1,changed_at=now()
  WHERE id=1 RETURNING revision INTO v_rev;
  RETURN jsonb_build_object('ok',true,'revision',v_rev,'resources',sh->'resources','combat',sh->'combat',
-   'exposures',sh->'exposures','abilityRuntime',sh->'abilityRuntime','info',coalesce(v_result,'{}'::jsonb));
+   'exposures',sh->'exposures','abilityRuntime',sh->'abilityRuntime','boss',sh->'boss','info',coalesce(v_result,'{}'::jsonb));
 END $cbb$;
 REVOKE ALL ON FUNCTION public.ae_cbb_action(text,text,integer,text,integer,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.ae_cbb_action(text,text,integer,text,integer,text) TO authenticated;
