@@ -27,6 +27,7 @@
  }
  function copyAbility(post){
   return {name:String(post.title).trim().slice(0,100),category:'active',
+   libraryType:post.category==='Técnicas'?'tecnica':'habilidade',
    cost:costNumber(post.cost),description:String(post.content||'').slice(0,20000)};
  }
  function snippet(post){
@@ -49,7 +50,7 @@
    '<input type="checkbox" data-export-ability="'+esc(id)+'"'+(checked?' checked':'')+
    (duplicate?' disabled':'')+' aria-label="Selecionar '+esc(post.title)+'">'+
    '<span class="ae-export-copy"><span class="ae-export-meta"><span>'+
-    (post.category==='Técnicas'?'TÉCNICA LIVRE':'HABILIDADE')+'</span>'+
+    (post.category==='Técnicas'?'TÉCNICA':'HABILIDADE')+'</span>'+
     (post.cost?'<span>'+esc(post.cost)+'</span>':'')+'</span>'+
    '<strong>'+esc(post.title)+'</strong>'+
    '<span class="ae-export-description">'+esc(snippet(post))+'</span>'+
@@ -78,7 +79,7 @@
    '<div class="ae-export-dialog">'+
    '<p>Selecione uma ou várias técnicas e habilidades para adicionar à ficha. Requisitos de raça e nível continuam sujeitos às regras.</p>'+
    '<div class="ae-export-filters"><label>BUSCAR<input id="aeExportAbilitySearch" type="search" autocomplete="off" placeholder="Nome, custo ou efeito"></label>'+
-   '<label>TIPO<select id="aeExportAbilityKind"><option value="Todas">Todas</option><option value="Técnicas">Técnicas livres</option><option value="Habilidades">Habilidades</option></select></label></div>'+
+   '<label>TIPO<select id="aeExportAbilityKind"><option value="Todas">Todas</option><option value="Técnicas">Apenas técnicas</option><option value="Habilidades">Apenas habilidades</option></select></label></div>'+
    '<div class="ae-export-controls"><span id="aeExportAbilityStatus" role="status" aria-live="polite"></span>'+
    '<button type="button" class="btn small" id="aeExportAbilitySelectAll" data-action="selectExportVisible">SELECIONAR VISÍVEIS</button></div>'+
    '<div id="aeExportAbilityList" class="ae-export-list" aria-label="Habilidades disponíveis"></div>'+
@@ -113,6 +114,7 @@
   if(!added.length){selected.clear();refresh();api.toast('Nenhuma habilidade nova','As selecionadas já estão na ficha ou não estão disponíveis.');return}
   busy=true;refresh();
   const updated={...current,abilities:[...(current.abilities||[]),...added]};
+  window.ARQUIVO_ORIGENS?.reconcile(updated);
   const sync=window.ARQUIVO_SYNC;
   try{
    if(sync?.state?.enabled&&api.role==='player'){
