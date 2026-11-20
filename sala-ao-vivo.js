@@ -436,9 +436,13 @@ function bindRemoteTrack(peer,index,track){
  renderPeople();updateDock();
 }
 function rtcConfig(){
- const external=global.ARQUIVO_LIVE_ICE;
- if(Array.isArray(external)&&external.length)return {iceServers:external,iceCandidatePoolSize:2};
- return {iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']}],iceCandidatePoolSize:2};
+ const runtime=global.ARQUIVO_LIVE_ICE;
+ const configured=Array.isArray(runtime)&&runtime.length?runtime:global.ARQUIVO_ONLINE_CONFIG?.iceServers;
+ const servers=Array.isArray(configured)?configured.filter(item=>item&&typeof item==='object'&&
+  (typeof item.urls==='string'||Array.isArray(item.urls))):[];
+ return {iceServers:servers.length?servers:[{
+  urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']
+ }],iceCandidatePoolSize:2};
 }
 async function sendHello(to=null,ack=false){
  if(!state.channel||!state.joined||!state.selfId)return;
@@ -483,8 +487,9 @@ function rtcHealth(){
   if(peer.pc.connectionState==='failed'){
    try{peer.pc.restartIce()}catch(e){}
   }
-  if(!peer.ready)sendHello(peer.id).catch(()=>{});
-  else if(peer.initiator)offerPeer(peer,true).catch(()=>{});
+  if(!peer.ready&&Date.now()-peer.lastHelloAt>=9500){
+   peer.lastHelloAt=Date.now();sendHello(peer.id).catch(()=>{});
+  }else if(peer.ready&&peer.initiator)offerPeer(peer,true).catch(()=>{});
  }
  // O servidor pode validar novos participantes antes da chegada do Presence.
  if(state.pendingSignals.size)refreshState().catch(()=>{});
@@ -495,7 +500,8 @@ function makePeer(meta){
  const peer={pc,id:meta.peerId,polite:state.selfId>meta.peerId,
   initiator:state.selfId<meta.peerId,ready:false,lastOfferAt:0,makingOffer:false,
   ignoreOffer:false,remoteAnswerPending:false,queue:[],
-  senders:[],audioStream:null,cameraStream:null,screenStream:null};
+  senders:[],audioStream:null,cameraStream:null,screenStream:null,
+  iceBatch:[],iceFlush:null,lastHelloAt:0};
  state.peers.set(meta.peerId,peer);
  // Só quem inicia cria as três m-lines. No navegador que responde,
  // setRemoteDescription(offer) cria os transceivers receptores;
@@ -510,7 +516,15 @@ function makePeer(meta){
    if(t)trans.sender.replaceTrack(t).catch(()=>{});
   }
  }
- pc.onicecandidate=({candidate})=>{if(candidate)sendSignal(peer.id,'candidate',candidate.toJSON()).catch(()=>{})};
+ pc.onicecandidate=({candidate})=>{
+  if(candidate&&peer.iceBatch.length<80)peer.iceBatch.push(candidate.toJSON());
+  if(peer.iceFlush)return;
+  peer.iceFlush=setTimeout(()=>{
+   peer.iceFlush=null;
+   const items=peer.iceBatch.splice(0);
+   if(items.length)sendSignal(peer.id,'candidates',items).catch(()=>{});
+  },130);
+ };
  pc.ontrack=e=>{
   const idx=pc.getTransceivers().indexOf(e.transceiver);
   if(idx>=0&&idx<=2)bindRemoteTrack(peer,idx,e.track);
@@ -560,7 +574,7 @@ async function sendSignal(to,type,data){
 async function signal(payload){
  if(!state.joined||!payload||payload.to!==state.selfId||payload.from===state.selfId)return;
  if(!validId.test(String(payload.from||'')))return;
- if(!['description','candidate','renegotiate'].includes(payload.type))return;
+ if(!['description','candidate','candidates','renegotiate'].includes(payload.type))return;
  if(!state.presence.has(payload.from)){
   const list=state.pendingSignals.get(payload.from)||[];
   if(list.length<20)list.push(payload);
@@ -601,17 +615,22 @@ async function signal(payload){
     await pc.setLocalDescription();
     await sendSignal(peer.id,'description',pc.localDescription.toJSON());
    }
-  }else if(payload.type==='candidate'){
-   const c=payload.data;
-   if(!c||typeof c.candidate!=='string'||c.candidate.length>16000)return;
-   if(!pc.remoteDescription){if(peer.queue.length<200)peer.queue.push(c);return}
-   await pc.addIceCandidate(c);
+  }else if(payload.type==='candidate'||payload.type==='candidates'){
+   const candidates=payload.type==='candidate'?[payload.data]:payload.data;
+   if(!Array.isArray(candidates)||candidates.length>80)return;
+   for(const c of candidates){
+    if(!c||typeof c.candidate!=='string'||c.candidate.length>16000)continue;
+    if(!pc.remoteDescription){if(peer.queue.length<200)peer.queue.push(c);continue}
+    await pc.addIceCandidate(c);
+   }
   }
  }catch(e){if(!peer.ignoreOffer)status('Conexão com '+(state.presence.get(peer.id)?.name||'participante')+': '+e.message,true)}
 }
 function removePeer(id){
  const peer=state.peers.get(id);if(!peer)return;
  peer.pc.ontrack=null;peer.pc.onnegotiationneeded=null;peer.pc.onicecandidate=null;
+ if(peer.iceFlush){clearTimeout(peer.iceFlush);peer.iceFlush=null}
+ peer.iceBatch.length=0;
  try{peer.pc.close()}catch(e){}
  state.peers.delete(id);
  audioRack();
@@ -729,8 +748,9 @@ async function toggleScreen(){
   stopStream(old);await replaceTracks();return}
  if(!navigator.mediaDevices.getDisplayMedia)throw Error('Compartilhamento de tela indisponível neste navegador.');
  // Solicitar captura diretamente após o clique, para manter a ativação do usuário.
- const stream=await navigator.mediaDevices.getDisplayMedia({video:{
-  width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:20,max:30}},audio:false});
+ // Constrangimentos de resolução podem rejeitar getDisplayMedia em alguns navegadores.
+ // A captura nativa escolhe a melhor resolução; o bitrate é regulado pelo perfil.
+ const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
  if(!state.joined){stopStream(stream);return}
  state.screen=stream;
  state.spotlight={peerId:state.selfId,kind:'screen'};
