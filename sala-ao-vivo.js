@@ -571,6 +571,7 @@ async function pollRoom(){
   if(!hb||hb.left_at||hb.removed_at){await leave(false);return}
   state.local=hb;
   if(state.channel)await trackPresence();
+  presenceSync();renderHudAssignments();
  }catch(e){if(state.joined)status('Conexão com o servidor: '+e.message,true)}
 }
 function stopStream(stream){
@@ -689,6 +690,8 @@ async function action(name,element){
  }
  if(name==='unspotlight'){state.spotlight=null;renderPeople();return}
  if(name==='sound'){state.sound=!state.sound;renderPeople();return}
+ if(name==='numbers'){state.hideAllNumbers=!state.hideAllNumbers;renderOverlays();renderPeople();
+  const b=document.querySelector('[data-live-action="numbers"]');if(b)b.textContent=state.hideAllNumbers?'MOSTRAR VALORES':'OCULTAR VALORES';return}
  if(['end','kick'].includes(name)){
   const confirmFn=api()?.confirmSite;
   if(typeof confirmFn==='function'){
@@ -724,6 +727,19 @@ document.addEventListener('click',event=>{
 });
 document.addEventListener('change',event=>{
  if(event.target?.id==='ae-live-quality')changeQuality(event.target.value).catch(e=>status(e.message,true));
+ const node=event.target,account=node?.dataset?.liveHudSelect||node?.dataset?.liveHudHidden;
+ if(account){
+  const row=Array.from(document.querySelectorAll('[data-live-hud-account]'))
+   .find(x=>x.dataset.liveHudAccount===account);
+  const selected=row?.querySelector('[data-live-hud-select]')?.value||'';
+  const hide=row?.querySelector('[data-live-hud-hidden]')?.checked===true;
+  assignHud(account,selected,hide).catch(e=>{
+   status(e.message,true);api()?.toast?.('HUD não atualizado',e.message,true);
+   const panel=document.querySelector('.ae-live-hud-management');
+   if(panel)panel.dataset.signature='';
+   renderHudAssignments();
+  });
+ }
 });
 global.addEventListener('arquivo-logged-out',()=>{leave(false).catch(()=>{})});
 global.addEventListener('arquivo-online-snapshot',()=>{if(state.joined)renderOverlays()});
