@@ -90,3 +90,51 @@ REVOKE ALL ON FUNCTION public.ae_live_hud_choices() FROM PUBLIC,anon;
 REVOKE ALL ON FUNCTION public.ae_live_set_hud(uuid,text,boolean) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.ae_live_hud_choices() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.ae_live_set_hud(uuid,text,boolean) TO authenticated;
+
+
+CREATE OR REPLACE FUNCTION public.ae_live_resource_pct(p_resource jsonb)
+RETURNS jsonb LANGUAGE sql IMMUTABLE SET search_path TO ''
+AS $f$
+ SELECT jsonb_build_object('percent',greatest(0,least(100,
+  coalesce(round((p_resource->>'current')::numeric*100/
+   nullif((p_resource->>'max')::numeric,0),2),0)
+ )));
+$f$;
+
+CREATE OR REPLACE FUNCTION public.ae_live_hud()
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO ''
+AS $live$
+DECLARE v_session uuid;v_result jsonb;
+BEGIN
+ SELECT s.id INTO v_session
+ FROM public.ae_live_sessions s JOIN public.ae_live_participants viewer
+ ON viewer.session_id=s.id
+ WHERE s.status='open' AND viewer.user_id=auth.uid()
+  AND viewer.left_at IS NULL AND viewer.removed_at IS NULL
+  AND viewer.last_seen>now()-interval '70 seconds'
+ LIMIT 1;
+ IF v_session IS NULL THEN RETURN '[]'::jsonb;END IF;
+ SELECT coalesce(jsonb_agg(jsonb_build_object(
+  'accountId',p.account_id,
+  'id',sh.item->>'id',
+  'name',left(coalesce(sh.item->>'name',''),100),
+  'image',coalesce(sh.item->'image','null'::jsonb),
+  'resources',CASE WHEN p.hud_hide_numbers THEN
+   jsonb_build_object(
+    'vida',public.ae_live_resource_pct(sh.item#>'{resources,vida}'),
+    'estabilidade',public.ae_live_resource_pct(sh.item#>'{resources,estabilidade}'),
+    'alma',public.ae_live_resource_pct(sh.item#>'{resources,alma}'))
+   ELSE coalesce(sh.item->'resources','{}'::jsonb) END,
+  'conditions',coalesce(sh.item->'conditions','[]'::jsonb),
+  'accent',coalesce(sh.item#>>'{appearance,accent}','')
+ ) ORDER BY p.joined_at),'[]'::jsonb) INTO v_result
+ FROM public.ae_live_participants p
+ JOIN public.ae_document d ON d.id=1
+ CROSS JOIN LATERAL jsonb_array_elements(coalesce(d.data->'sheets','[]'::jsonb)) sh(item)
+ WHERE p.session_id=v_session AND p.left_at IS NULL AND p.removed_at IS NULL
+  AND p.last_seen>now()-interval '70 seconds'
+  AND sh.item->>'id'=coalesce(p.hud_sheet_id,p.sheet_id);
+ RETURN v_result;
+END $live$;
+REVOKE ALL ON FUNCTION public.ae_live_resource_pct(jsonb) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.ae_live_resource_pct(jsonb) TO authenticated;
