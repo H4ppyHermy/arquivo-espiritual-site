@@ -4,7 +4,7 @@
  const api=global.ARQUIVO_INTERNAL,engine=global.ARQUIVO_CBB_ENGINE;
  if(!api||!engine)return;
  const E=api.esc,groups=engine.GROUPS,skillNames=Object.values(groups).flat();
- const lastResults=new Map(),lastAttacks=new Map(),resistanceByPhase=new Map(),statusBySheet=new Map(),modeBySheet=new Map();
+ const lastResults=new Map(),lastAttacks=new Map(),resistanceByPhase=new Map(),statusBySheet=new Map(),modeBySheet=new Map(),testBySheet=new Map();
  const phaseName={preparacao:'Preparação',distancia:'Distância',duelo:'Duelo',desfecho:'Desfecho'};
  let busy=false;
  const sheet=()=>api.db.sheets.find(s=>s.id===api.currentSheet)||null;
@@ -15,6 +15,77 @@
  const opts=(entries,value)=>entries.map(([id,label])=>'<option value="'+enc(id)+'"'+(String(id)===String(value)?' selected':'')+'>'+enc(label)+'</option>').join('');
  const on=()=>!!global.ARQUIVO_SYNC?.state?.enabled&&!!global.ARQUIVO_SYNC?.state?.identity?.id;
  const stateText=s=>statusBySheet.get(s.id)||'Pronto para a próxima ação.';
+ const safeSteps=value=>Math.max(-5,Math.min(5,Number(value)||0));
+ const testMemory=s=>{
+  const m=testBySheet.get(s.id)||{};
+  return {skill:skillNames.includes(m.skill)?m.skill:'Destreza',
+   context:['geral','ataque','defesa'].includes(m.context)?m.context:'geral',
+   groupSteps:safeSteps(m.groupSteps),skillSteps:safeSteps(m.skillSteps),
+   reaction:!!m.reaction,vision:!!m.vision,sense:!!m.sense,otherTarget:!!m.otherTarget};
+ };
+ function stepper(name,label,value,disabled=false){
+  return '<div class="ae-cbb-step-control"><span>'+enc(label)+'</span>'+
+   '<div class="ae-cbb-stepper" role="group" aria-label="'+enc(label)+'">'+
+   '<button type="button" data-cbb-step="'+name+'" data-cbb-delta="-1" aria-label="Reduzir '+enc(label)+' em um passo"'+(disabled?' disabled':'')+'>−</button>'+
+   '<input type="number" data-cbb-field="'+name+'" aria-label="'+enc(label)+'" min="-5" max="5" step="1" value="'+safeSteps(value)+'"'+(disabled?' disabled':'')+'>'+
+   '<button type="button" data-cbb-step="'+name+'" data-cbb-delta="1" aria-label="Aumentar '+enc(label)+' em um passo"'+(disabled?' disabled':'')+'>+</button></div></div>';
+ }
+ function contextualFlags(s,ctx){
+  const m=testMemory(s),conds=engine.normalizedConditions(s);
+  const choices=[
+   ['vision','A ação depende da visão',conds.has('cego')||conds.has('ofuscado')],
+   ['sense','A ação depende do sentido afetado',conds.has('insensível')],
+   ['otherTarget','Atacar outro alvo',conds.has('provocado')&&m.context==='ataque']
+  ].filter(x=>x[2]);
+  if(!choices.length)return '';
+  return '<div class="ae-cbb-conditional" data-cbb-conditional><strong>Condições dependentes da ação</strong>'+
+   '<div class="ae-cbb-conditional-list">'+choices.map(([key,label])=>'<label class="ae-cbb-inline">'+
+    '<input type="checkbox" data-cbb-field="'+key+'"'+(m[key]?' checked':'')+(ctx.disabled?' disabled':'')+'> '+enc(label)+'</label>').join('')+'</div></div>';
+ }
+ function previewMarkup(s,m){
+  const p=engine.previewSkill(s,m.skill,m.context,m.groupSteps,m.skillSteps,m);
+  const totalG=p.automaticGroup+p.manualGroup,totalS=p.automaticSkill+p.submittedSkill;
+  const die=(title,faces,base,steps)=>'<div class="ae-cbb-preview-die"><span>'+title+'</span>'+
+   '<strong>d'+faces+'</strong><small>d'+base+(steps?(' · '+(steps>0?'+':'')+steps+' passo'+(Math.abs(steps)===1?'':'s')):'')+'</small></div>';
+  const applied=p.reasons.map(r=>'<span class="ae-cbb-auto-effect">'+enc(r.name)+' <b>'+
+   (r.steps>0?'+':'')+r.steps+' '+enc(r.target)+'</b></span>').join('');
+  const fear=p.hasFear?'<span class="ae-cbb-auto-effect">Amedrontado <b>Dado de Pavor</b></span>':'';
+  const alerts=[
+   p.reactionBlocked&&m.reaction?'Atordoado impede reações.':'',
+   p.conditions.has('desorientado')||p.conditions.has('exausto')?'Movimentação reduzida pela metade.':'',
+   p.conditions.has('fragilizado')?'Fragilizado: proteção mais forte reduzida na Defesa.':''
+  ].filter(Boolean);
+  return '<div class="ae-cbb-preview-head"><strong>DADOS DO TESTE</strong><span>Atualização automática</span></div>'+
+   '<div class="ae-cbb-preview-dice">'+die('GRUPO',p.groupDie,p.baseGroup,totalG)+
+    die('PERÍCIA',p.skillDie,p.baseSkill,totalS)+'</div>'+
+   (applied||fear?'<div class="ae-cbb-auto-effects">'+applied+fear+'</div>':'')+
+   (alerts.length?'<p class="ae-cbb-preview-alert">'+enc(alerts.join(' · '))+'</p>':'');
+ }
+ function refreshPreview(root,s=sheet()){
+  if(!root||!s)return;
+  const stored=testMemory(s);
+  for(const key of ['skill','context','groupSteps','skillSteps','reaction','vision','sense','otherTarget']){
+   const node=field(root,key);
+   if(node)stored[key]=node.type==='checkbox'?!!node.checked:node.value;
+  }
+  stored.groupSteps=safeSteps(stored.groupSteps);stored.skillSteps=safeSteps(stored.skillSteps);
+  const p=engine.previewSkill(s,stored.skill,stored.context,stored.groupSteps,stored.skillSteps,stored);
+  if(!p.visionApplicable)stored.vision=false;
+  if(!p.senseApplicable)stored.sense=false;
+  if(!p.otherTargetApplicable)stored.otherTarget=false;
+  testBySheet.set(s.id,stored);
+  const preview=root.querySelector?.('[data-cbb-preview]');
+  if(preview)preview.innerHTML=previewMarkup(s,stored);
+  const choices=root.querySelector?.('[data-cbb-conditional-host]');
+  if(choices)choices.innerHTML=contextualFlags(s,{disabled:s.automationEnabled===false||!api.canEditSheet(s.id)||!on()});
+  const reaction=field(root,'reaction');
+  if(reaction){
+   const blocked=p.reactionBlocked||stored.context!=='defesa';
+   if(blocked&&reaction.checked){reaction.checked=false;stored.reaction=false;testBySheet.set(s.id,stored)}
+   reaction.disabled=blocked||s.automationEnabled===false||!api.canEditSheet(s.id)||!on();
+  }
+  return p;
+ }
  function abilityActions(ab,index,ctx){
   if(!ctx?.canEdit || !ab || ab.origin?.auto)return '';
   const p=engine.abilityPool(ab),mode=ab.costConfig?.mode;
@@ -53,6 +124,7 @@
  function render(s,ctx={}){
   const c=s.combat||{},ex=s.exposures||{},phase=c.phase||'preparacao',res=s.resources||{},selectedMode=modeBySheet.get(s.id)||'teste';
   const disabled=!ctx.canEdit||!on()||s.automationEnabled===false;
+  const test=testMemory(s);
   const lock=disabled?' disabled':'';
   const choices=skillNames.map(n=>[n,n+' · '+engine.groupOf(n)+' d'+(s.groups?.[engine.groupOf(n)]||4)+' + d'+(s.skills?.[n]||4)]);
   const abilityRolls=(s.abilities||[]).map((a,i)=>({a,i,p:engine.abilityPool(a)})).filter(x=>x.p);
@@ -73,18 +145,22 @@
    '<div class="ae-cbb-result" role="status" aria-live="polite">'+(result?resultMarkup(result):'<p>Escolha uma ação para começar.</p>')+'</div>'+
    '<div class="ae-cbb-grid">'+
     '<section class="ae-cbb-panel" data-cbb-panel="teste"'+(selectedMode==='teste'?'':' hidden')+'><h3>Teste de perícia</h3>'+
-     '<label>Perícia<select data-cbb-field="skill">'+opts(choices,'Destreza')+'</select></label>'+
-     '<div class="ae-cbb-pair"><label>Contexto<select data-cbb-field="context">'+opts([['geral','Geral'],['ataque','Ataque'],['defesa','Defesa']], 'geral')+'</select></label>'+
+     '<label>Perícia<select data-cbb-field="skill">'+opts(choices,test.skill)+'</select></label>'+
+     '<div class="ae-cbb-pair"><label>Contexto<select data-cbb-field="context">'+opts([['geral','Geral'],['ataque','Ataque'],['defesa','Defesa']], test.context)+'</select></label>'+
       '<label>DT (opcional)<input type="number" data-cbb-field="dt" min="1" max="200" placeholder="DT"></label></div>'+
-     '<details class="ae-cbb-advanced"><summary>MODIFICADORES E DADOS EXTRAS</summary><div class="ae-cbb-advanced-content">'+
-     '<div class="ae-cbb-pair"><label>Passos de grupo<input type="number" data-cbb-field="groupSteps" value="0" min="-5" max="5"></label>'+
-       '<label>Passos de perícia<input type="number" data-cbb-field="skillSteps" value="0" min="-5" max="5"></label></div>'+
+     '<div class="ae-cbb-step-row">'+stepper('groupSteps','PASSOS DO GRUPO',test.groupSteps,disabled)+
+      stepper('skillSteps','PASSOS DA PERÍCIA',test.skillSteps,disabled)+'</div>'+
+     '<div class="ae-cbb-live-preview" data-cbb-preview aria-live="polite">'+previewMarkup(s,test)+'</div>'+
+     '<div data-cbb-conditional-host>'+contextualFlags(s,{disabled})+'</div>'+
+     '<details class="ae-cbb-advanced"><summary>DADOS EXTRAS E EFEITOS</summary><div class="ae-cbb-advanced-content">'+
      '<div class="ae-cbb-pair"><label>Dado extra<select data-cbb-field="bonusFaces">'+opts([['0','Nenhum'],...engine.DIE_FACES.map(n=>[n,'d'+n])],0)+'</select></label>'+
       '<label>Quantidade extra<input type="number" data-cbb-field="bonusCount" min="0" max="4" value="0"></label></div>'+
      '<div class="ae-cbb-pair"><label>Pavor<select data-cbb-field="fear">'+opts([['','Automático'],['0','Nenhum'],...engine.DIE_FACES.map(n=>[n,'d'+n])],'')+'</select></label>'+
       '<label>Hollowficação<select data-cbb-field="hollow">'+opts([['','Automática'],['true','Ativa'],['false','Inativa']],'')+'</select></label></div>'+
      '</div></details>'+
-     '<label class="ae-cbb-inline"><input type="checkbox" data-cbb-field="reaction"> Usar reação na defesa (RT em vez de RA)</label>'+
+     '<label class="ae-cbb-inline"><input type="checkbox" data-cbb-field="reaction"'+(test.reaction?' checked':'')+
+       (test.context!=='defesa'||engine.normalizedConditions(s).has('atordoado')||disabled?' disabled':'')+
+       '> Usar reação na defesa (RT em vez de RA)</label>'+
      '<details class="ae-cbb-advanced"><summary>CONFRONTO DIRETO</summary><div class="ae-cbb-advanced-content">'+
      '<div class="ae-cbb-pair"><label>RA do oponente<input type="number" data-cbb-field="opponentRa" min="0" max="200" placeholder="Confronto"></label>'+
       '<label>Iniciativa<select data-cbb-field="initiator">'+opts([['oponente','Oponente iniciou'],['voce','Você iniciou']],'oponente')+'</select></label></div>'+
@@ -102,7 +178,8 @@
        '<label>Ajuste fixo<input type="number" data-cbb-field="flat" value="0" min="-500" max="500"></label></div>'+
      '<label class="ae-cbb-inline"><input type="checkbox" data-cbb-field="useAttackRa"'+(last?'':' disabled')+'> Somar RA do último ataque verificado '+(last?'('+enc(last.ra)+')':'(nenhum)')+'</label>'+
      '<div class="ae-cbb-pair"><label>RA manual (se necessário)<input type="number" data-cbb-field="manualRa" min="0" max="100" value="0"></label>'+
-       '<label>Passos resistência<input type="number" data-cbb-field="resistSteps" min="-5" max="5" value="0"></label></div>'+
+       '</div>'+stepper('resistSteps','PASSOS DA RESISTÊNCIA',0,disabled)+
+     '<div class="ae-cbb-pool-hint" data-cbb-resist-status aria-live="polite"></div>'+
      '<button class="btn main ae-cbb-action" type="button" data-cbb-command="pool"'+lock+'>ROLAR DADOS</button>'+
      ''+
     '</section>'+
