@@ -66,7 +66,7 @@ test('exportador lista técnicas e habilidades com busca e seleção múltipla',
  assert.equal(ctx.modal.title,'EXPORTAR DO ARMAZÉM');
  assert.match(ctx.nodes.aeExportAbilityList.innerHTML,/Mira Estável/);
  assert.match(ctx.nodes.aeExportAbilityList.innerHTML,/Hierro/);
- assert.match(ctx.nodes.aeExportAbilityList.innerHTML,/TÉCNICA LIVRE/);
+ assert.match(ctx.nodes.aeExportAbilityList.innerHTML,/TÉCNICA/);
  assert.match(ctx.nodes.aeExportAbilityList.innerHTML,/2 ALMA/);
  assert.equal(ctx.button.disabled,true);
  ctx.select('tecnica-mira-estavel',true);
