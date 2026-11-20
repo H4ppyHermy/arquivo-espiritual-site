@@ -175,14 +175,18 @@ function getPresenceList(){
 }
 function tileFor(p){
  const self=p.peerId===state.selfId,online=state.peers.get(p.peerId);
- const ready=self||online?.pc?.connectionState==='connected';
+ const connection=online?.pc?.connectionState||'new';
+ const ready=self||connection==='connected';
+ const waitText=connection==='failed'?'CONEXÃO BLOQUEADA · TURN':
+  connection==='disconnected'?'RECONEXÃO':
+  connection==='connecting'?'ESTABELECENDO LINK':'CONECTANDO';
  const thumbId='ae-live-video-'+p.peerId;
  return '<article class="ae-live-tile'+(self?' is-local':'')+'" data-peer-id="'+esc(p.peerId)+'">'+
   '<div class="ae-live-tile-image">'+
    '<video id="'+esc(thumbId)+'" muted autoplay playsinline class="ae-live-camera-video"'+(p.camera?'':' hidden')+'></video>'+
    (!p.camera?avatarFor(p.sheetId,p.name,p):'')+
    (p.screen?'<span class="ae-live-sharing-badge">TELA ATIVA</span>':'')+
-   (!self&&!ready?'<span class="ae-live-connect-badge">CONECTANDO</span>':'')+
+   (!self&&!ready?'<span class="ae-live-connect-badge">'+waitText+'</span>':'')+
    overlayFor(p.sheetId,p)+
   '</div><footer class="ae-live-tile-footer"><div class="ae-live-tile-identity"><strong>'+esc(p.name)+(self?' · VOCÊ':'')+
    '</strong><small>'+esc(p.master?'MESTRE':'JOGADOR')+'</small></div>'+
@@ -491,8 +495,12 @@ function makePeer(meta){
   if(idx>=0&&idx<=2)bindRemoteTrack(peer,idx,e.track);
  };
  pc.onconnectionstatechange=()=>{
-  if(pc.connectionState==='failed')try{pc.restartIce()}catch(e){}
-  renderPeople();
+  if(pc.connectionState==='failed'){
+   try{pc.restartIce()}catch(e){}
+   status('Falha na ligação com '+(state.presence.get(peer.id)?.name||'outro participante')+
+    '. Em redes restritas, configure um servidor TURN.',true);
+  }
+  renderPeople();updateDock();
  };
  pc.onnegotiationneeded=()=>{
   if(peer.initiator)offerPeer(peer).catch(e=>status('Negociação: '+e.message,true));
@@ -531,7 +539,7 @@ async function sendSignal(to,type,data){
 async function signal(payload){
  if(!state.joined||!payload||payload.to!==state.selfId||payload.from===state.selfId)return;
  if(!validId.test(String(payload.from||'')))return;
- if(!['description','candidate'].includes(payload.type))return;
+ if(!['description','candidate','renegotiate'].includes(payload.type))return;
  if(!state.presence.has(payload.from)){
   const list=state.pendingSignals.get(payload.from)||[];
   if(list.length<20)list.push(payload);
@@ -543,6 +551,10 @@ async function signal(payload){
  const peer=state.peers.get(payload.from);if(!peer)return;
  const pc=peer.pc;
  try{
+  if(payload.type==='renegotiate'){
+   if(peer.initiator)await offerPeer(peer,false,true);
+   return;
+  }
   if(payload.type==='description'){
    const d=payload.data;
    if(!d||!['offer','answer'].includes(d.type)||typeof d.sdp!=='string'||d.sdp.length>95000)return;
@@ -646,6 +658,9 @@ function stopStream(stream){
 async function replaceTracks(){
  await Promise.all(Array.from(state.peers.values()).map(p=>syncTracks(p).catch(()=>{})));
  await trackPresence().catch(()=>{});
+ // replaceTrack em transceivers que começaram sem mídia pode exigir nova SDP.
+ await Promise.all(Array.from(state.peers.values()).filter(p=>p.ready).map(p=>
+  (p.initiator?offerPeer(p,false,true):sendSignal(p.id,'renegotiate',{})).catch(()=>{})));
  renderPeople();
 }
 async function toggleCamera(){
