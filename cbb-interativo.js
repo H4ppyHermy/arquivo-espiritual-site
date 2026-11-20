@@ -407,7 +407,7 @@
  }
  async function onClick(event){
   const step=event.target?.closest?.('[data-cbb-step]');
-  if(step){
+  if(step?.dataset?.cbbStep){
    event.preventDefault();event.stopPropagation();
    if(step.disabled||busy)return;
    const root=step.closest?.('.ae-cbb-mesa')||document.querySelector('.ae-cbb-mesa');
