@@ -83,6 +83,7 @@ test('habilidades são separadas por categoria e só contêm ações manuais',()
   assert.ok(html.includes(name),name);
  assert.equal((html.match(/class="ae-ficha-ability-card"/g)||[]).length,3);
  assert.match(html,/data-action="editAbilityDirect:0"/);
+ assert.match(html,/data-action="exportAbilities"/);
  assert.match(html,/CUSTO INDICADO/);
  assert.doesNotMatch(html,/data-action="(?:abilityRoll|useAbility|rollSkill)/);
 });
@@ -122,9 +123,9 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  assert.match(app,/window\.ARQUIVO_FICHA_VISUAL\?\.upgradeEditor\?\.\(\)/);
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function updateDraft\(target\)/);
- assert.match(html,/ficha-visual\.js\?v=5/);
- assert.match(html,/ficha-visual\.css\?v=5/);
- assert.ok(html.indexOf('arquivo-app.js?v=15')<html.indexOf('ficha-visual.js?v=5'));
+ assert.match(html,/ficha-visual\.js\?v=6/);
+ assert.match(html,/ficha-visual\.css\?v=6/);
+ assert.ok(html.indexOf('arquivo-app.js?v=15')<html.indexOf('ficha-visual.js?v=6'));
 });
 
 test('cabeçalho não inventa raça e os títulos não recebem numeração',()=>{
