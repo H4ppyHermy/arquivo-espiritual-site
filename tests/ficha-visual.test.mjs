@@ -194,3 +194,16 @@ test('habilidades raciais e de classe são destacadas; técnicas podem ser filtr
  assert.match(html,/data-action="editAbilityDirect:5"/);
  assert.doesNotMatch(html,/class="ae-ficha-abilities" data-ability-filter/);
 });
+
+test('um controle compacto alterna + e − sem repetir a descrição da habilidade',()=>{
+ const {view}=setup(),sheet=example(),html=view.render(sheet,settings('abilities'));
+ assert.equal((html.match(/class="ae-ficha-ability-details"/g)||[]).length,3);
+ assert.equal((html.match(/class="ae-ficha-expand-plus"/g)||[]).length,3);
+ assert.equal((html.match(/class="ae-ficha-expand-minus"/g)||[]).length,3);
+ assert.match(html,/Mostrar ou ocultar a descrição de Corte Crescente/);
+ assert.match(html,/Mostrar ou ocultar a descrição de Bankai/);
+ assert.match(html,/ae-ficha-ability-full sheet-rich/);
+ assert.doesNotMatch(html,/LER DESCRIÇÃO COMPLETA|LER TÉCNICA COMPLETA|ae-ficha-ability-teaser/);
+ assert.doesNotMatch(read('ficha-visual.js'),/LER DESCRIÇÃO COMPLETA/);
+ assert.match(read('ficha-visual.css'),/ae-ficha-ability-details\[open\] \.ae-ficha-expand-minus/);
+});
