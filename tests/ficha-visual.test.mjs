@@ -123,9 +123,9 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  assert.match(app,/window\.ARQUIVO_FICHA_VISUAL\?\.upgradeEditor\?\.\(\)/);
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function updateDraft\(target\)/);
- assert.match(html,/ficha-visual\.js\?v=7/);
- assert.match(html,/ficha-visual\.css\?v=7/);
- assert.ok(html.indexOf('arquivo-app.js?v=16')<html.indexOf('ficha-visual.js?v=7'));
+ assert.match(html,/ficha-visual\.js\?v=8/);
+ assert.match(html,/ficha-visual\.css\?v=8/);
+ assert.ok(html.indexOf('arquivo-app.js?v=16')<html.indexOf('ficha-visual.js?v=8'));
 });
 
 test('cabeçalho não inventa raça e os títulos não recebem numeração',()=>{
