@@ -56,7 +56,7 @@ test('o botão Exportar aparece somente para quem edita a ficha',()=>{
  const html=read('index.html');
  assert.match(visual,/api\.btn\('EXPORTAR','exportAbilities'/);
  assert.match(visual,/ctx\.canEdit\?'<div class="ae-ficha-ability-create-actions"/);
- assert.match(html,/ficha-exportar\.js\?v=3/);
+ assert.match(html,/ficha-exportar\.js\?v=4/);
  assert.ok(html.indexOf('biblioteca-secoes.js')<html.indexOf('ficha-exportar.js'));
  assert.match(read('ficha-visual.css'),/\.ae-export-card/);
 });
