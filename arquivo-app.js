@@ -1212,11 +1212,18 @@ function historyRollCard(x,unverified=false){
  const badge=special?`<span class="history-special">${critical?'✦ ': '⚠ '}${esc(special)}</span>`:'';
  const rerolled=/^↻ RERROLOU #\d+ · /u.test(label),configured=/^⚙ CONFIGUROU #\d+ · /u.test(label);const title=esc(label||((kind==='shield')?'Escudo':'Rolagem'));
  const pieces=dice.map((d,i)=>historyDie(d,i,colors)).join('<span class="history-operator" aria-hidden="true">+</span>');
+ const activeResults=dice.filter(d=>d.canceled!==true&&Number(d.effective??d.value)!==0)
+  .map(d=>Number(d.effective??d.value)).filter(Number.isFinite);
+ const ra=failure?1:activeResults.length?Math.max(...activeResults):0;
+ const rb=failure?1:activeResults.length?Math.min(...activeResults):0;
+ const resultDetails=special==='CRÍTICO MÁXIMO'||special==='FALHA CRÍTICA'
+  ?`<div class="history-critical-metrics">RT ${total} · RA ${ra} · RB ${rb}</div>`:'';
+
  const allColors=colors.filter(Boolean),totalColor=allColors.length?(allColors[allColors.length-1]):null;
  return `<article class="history-card ${critical?'critical':failure?'failure':''}" ${totalColor&&!special?`style="--history-total:${totalColor}"`:''}>
  <div class="history-card-head"><span class="history-identity">${head}</span><span class="history-label">${title}</span>${rerolled?'<span class="history-rerolled">↻ RERROLOU</span>':''}${configured?'<span class="history-configured">⚙ CONFIGUROU</span>':''}${x.hidden?'<span class="history-hidden">OCULTA · MESTRE</span>':''}${unverified?'<span class="history-unverified">NÃO VERIFICADA</span>':''}</div>
  <div class="history-equation">${pieces}<span class="history-operator" aria-hidden="true">=</span>${special==='CRÍTICO'?`<span class="history-base">${base} × 2</span><span class="history-operator" aria-hidden="true">=</span>`:''}<strong class="history-total">${total}</strong>${badge}</div>
- ${date?`<div class="history-date">${date}</div>`:''}</article>`;
+ ${resultDetails}${date?`<div class="history-date">${date}</div>`:''}</article>`;
 }
 function formatVerifiedRoll(x){return historyRollCard(x,false)}
 
