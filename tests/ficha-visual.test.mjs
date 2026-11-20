@@ -133,7 +133,7 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  assert.match(app,/function updateDraft\(target\)/);
  assert.match(html,/ficha-visual\.js\?v=12/);
  assert.match(html,/ficha-visual\.css\?v=11/);
- assert.ok(html.indexOf('arquivo-app.js?v=19')<html.indexOf('ficha-visual.js?v=12'));
+ assert.ok(html.indexOf('arquivo-app.js?v=20')<html.indexOf('ficha-visual.js?v=12'));
 });
 
 test('cabeçalho não inventa raça e os títulos não recebem numeração',()=>{
