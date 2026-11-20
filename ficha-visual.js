@@ -215,6 +215,7 @@
   const key=abilityExpandedKey(ab),saved=expandedSet(sheetId).has(key),label=saved?'Desativar descrição fixa':'Manter descrição aberta';
   return '<button type="button" class="ae-ficha-ability-remember'+(saved?' is-saved':'')+
    '" data-ability-remember="'+esc(key)+'" data-ability-sheet="'+esc(sheetId)+
+   '" data-ability-name="'+esc(ab.name||'habilidade')+
    '" aria-pressed="'+saved+'" aria-label="'+label+' para '+esc(ab.name||'habilidade')+
    '" title="'+label+'">'+
    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">'+
@@ -427,6 +428,7 @@
    if(b.dataset.abilitySheet!==sheetId||b.dataset.abilityRemember!==key)return;
    b.classList.toggle('is-saved',next);b.setAttribute('aria-pressed',String(next));
    b.title=next?'Desativar descrição fixa':'Manter descrição aberta';
+   b.setAttribute('aria-label',b.title+' para '+(b.dataset.abilityName||'habilidade'));
    b.closest('details')?.toggleAttribute('open',next);
   });
  });

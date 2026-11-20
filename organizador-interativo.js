@@ -184,6 +184,8 @@
  document.addEventListener('pointermove',move,{passive:false});
  document.addEventListener('pointerup',up);
  document.addEventListener('pointercancel',teardown);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)teardown()});
+ window.addEventListener?.('pagehide',teardown);
  document.addEventListener('click',event=>{
   if(Date.now()>=clickGuard)return;
   if(!within(event.target,'[data-drag-handle],.ae-ficha-ability-entry,.ae-warehouse-post'))return;
