@@ -42,13 +42,18 @@ function setup(){
  };
  const window={ARQUIVO_INTERNAL:api};
  const context={window,document};
+ for(const file of ['racas-armazem.js','classes-armazem.js','habilidades-armazem.js'])
+  vm.runInNewContext(read(file),context);
+ window.ARQUIVO_SECOES={warehouse:()=>({posts:[
+  ...window.ARQUIVO_RACAS_CBB,...window.ARQUIVO_CLASSES_CBB,...window.ARQUIVO_HABILIDADES_CBB]})};
+ vm.runInNewContext(read('ficha-origens.js'),context);
  vm.runInNewContext(read('ficha-visual.js'),context);
  return {view:window.ARQUIVO_FICHA_VISUAL,api,context,listeners,seen};
 }
 const settings=(tab='summary',canEdit=true)=>({tab,groups,canEdit,master:false,links:0,
  style:'--theme-accent:#33d4ef;',body:'<section class="existing-panel">Painel manual preservado</section>',
  history:'<div class="history">Histórico de rolagem existente</div>'});
-test('ficha reconstruída preserva hero, retrato, recursos e navegação por oito seções',()=>{
+test('ficha reconstruída preserva hero, retrato, recursos e navegação por nove seções',()=>{
  const {view}=setup(),html=view.render(example(),settings());
  assert.match(html,/ae-ficha-v2/);
  assert.match(html,/ae-ficha-hero/);
@@ -56,7 +61,8 @@ test('ficha reconstruída preserva hero, retrato, recursos e navegação por oit
  assert.match(html,/https:\/\/example\.org\/portrait\.webp/);
  assert.match(html,/data-tab="summary"/);
  assert.match(html,/data-tab="guide"/);
- assert.equal((html.match(/class="ae-ficha-nav-button/g)||[]).length,8);
+ assert.ok(html.indexOf('data-tab="identification"')<html.indexOf('data-tab="abilities"'));
+ assert.equal((html.match(/class="ae-ficha-nav-button/g)||[]).length,9);
  assert.match(html,/aria-valuenow="20"/);
  assert.match(html,/aria-valuemax="30"/);
  assert.match(html,/data-action="editResource:vida"/);
@@ -123,9 +129,9 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  assert.match(app,/window\.ARQUIVO_FICHA_VISUAL\?\.upgradeEditor\?\.\(\)/);
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function updateDraft\(target\)/);
- assert.match(html,/ficha-visual\.js\?v=8/);
- assert.match(html,/ficha-visual\.css\?v=8/);
- assert.ok(html.indexOf('arquivo-app.js?v=16')<html.indexOf('ficha-visual.js?v=8'));
+ assert.match(html,/ficha-visual\.js\?v=9/);
+ assert.match(html,/ficha-visual\.css\?v=9/);
+ assert.ok(html.indexOf('arquivo-app.js?v=17')<html.indexOf('ficha-visual.js?v=9'));
 });
 
 test('cabeçalho não inventa raça e os títulos não recebem numeração',()=>{
@@ -135,7 +141,7 @@ test('cabeçalho não inventa raça e os títulos não recebem numeração',()=>
  assert.doesNotMatch(html,/class="ae-ficha-race"/);
  assert.match(html,/class="ae-ficha-level">NÍVEL 3/);
  assert.match(html,/GRUPOS/i);
- for(const tab of ['summary','skills','abilities','notes','guide']){
+ for(const tab of ['summary','skills','identification','abilities','notes','guide']){
   const content=view.render(sheet,settings(tab));
   assert.doesNotMatch(content,/<span>0[123]<\/span>\s*<h2/);
  }
@@ -155,7 +161,7 @@ test('retrato usa área exclusiva e limites responsivos sem invadir o nome',()=>
 });
 test('ficha mantém dados e ações sem textos auxiliares redundantes',()=>{
  const {view}=setup(),sheet=example();
- for(const tab of ['summary','skills','abilities','guide','notes']){
+ for(const tab of ['summary','skills','identification','abilities','guide','notes']){
   const markup=view.render(sheet,settings(tab));
   for(const redundant of ['REGISTRO DE PERSONAGEM','REGISTRO ESPIRITUAL','SOUL ARCHIVE','ANOTAÇÃO RECENTE',
     'Valores atualizados manualmente','Sem rolagem automática','Registros descritivos',
@@ -175,26 +181,34 @@ test('ficha mantém dados e ações sem textos auxiliares redundantes',()=>{
  assert.match(guide,/data-ficha-library/);
 });
 
-test('habilidades raciais e de classe são destacadas; técnicas podem ser filtradas',()=>{
+test('Identificação exibe textos integrais de classe e raça, sem misturar habilidades',()=>{
  const {view}=setup(),sheet=example();
- sheet.className='Coração de Aço';
+ sheet.race='Arrancar';sheet.className='Coração de Aço';
  sheet.abilities.push(
-  {name:'Hierro',category:'active',libraryType:'habilidade',cost:2,description:'Proteção racial',
-   origin:{auto:true,kind:'race',name:'Arrancar',sourceId:'habilidade-hierro'}},
-  {name:'Têmpera',category:'active',libraryType:'habilidade',cost:0,description:'Recurso de classe',
-   origin:{auto:true,kind:'class',name:'Coração de Aço',sourceId:'classe-coracao-de-aco'}},
+  {name:'Hierro',category:'active',libraryType:'habilidade',cost:2,description:'Legado',
+   origin:{auto:true,kind:'race',name:'Arrancar'}},
+  {name:'Têmpera',category:'active',libraryType:'habilidade',cost:0,description:'Legado',
+   origin:{auto:true,kind:'class',name:'Coração de Aço'}},
   {name:'Mira Estável',category:'active',libraryType:'tecnica',cost:2,description:'Disparo preparado'}
  );
- const html=view.render(sheet,settings('abilities'));
- for(const text of ['ae-ficha-ability-inherited--race','ae-ficha-ability-inherited--class',
-  'HABILIDADE RACIAL','HABILIDADE DE CLASSE','data-ability-kind="Técnicas"',
-  'data-ability-filter="Técnicas"','data-ability-filter="Habilidades"','Coração de Aço'])
-  assert.ok(html.includes(text),text);
- assert.doesNotMatch(html,/data-action="editAbilityDirect:3"|data-action="editAbilityDirect:4"/);
- assert.match(html,/data-action="editAbilityDirect:5"/);
- assert.doesNotMatch(html,/class="ae-ficha-abilities" data-ability-filter/);
+ const identity=view.render(sheet,settings('identification'));
+ for(const value of ['Identificação','Arrancar','Coração de Aço','Instinto Primário','Hierro','Sonído',
+  'Cero','## Têmpera','[barra:3/3]','Hollows que removeram suas máscaras'])
+  assert.ok(identity.includes(value),value);
+ const ability=view.render(sheet,settings('abilities'));
+ assert.match(ability,/data-ability-kind="Técnicas"/);
+ assert.match(ability,/data-ability-filter="Habilidades"/);
+ assert.match(ability,/Mira Estável/);
+ assert.doesNotMatch(ability,/HABILIDADE RACIAL|HABILIDADE DE CLASSE|Têmpera|Hierro/);
+ assert.equal((ability.match(/class="ae-ficha-ability-card"/g)||[]).length,4);
+ const summary=view.render(sheet,settings('summary'));
+ assert.match(summary,/Recursos de raça e classe/);
+ assert.match(summary,/Têmpera/);
+ assert.match(summary,/data-action="originMeter:class%3Aclasse-coracao-de-aco%3Atempera:1"/);
+ assert.match(summary,/aria-valuemax="3" aria-valuenow="0"/);
+ const readonly=view.render(sheet,settings('summary',false));
+ assert.doesNotMatch(readonly,/data-action="originMeter:/);
 });
-
 test('um controle compacto alterna + e − sem repetir a descrição da habilidade',()=>{
  const {view}=setup(),sheet=example(),html=view.render(sheet,settings('abilities'));
  assert.equal((html.match(/class="ae-ficha-ability-details"/g)||[]).length,3);
