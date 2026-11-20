@@ -5,7 +5,7 @@
  'use strict';
  const api=window.ARQUIVO_INTERNAL;
  if(!api)return;
- const BASE_CATEGORIES=['Classes','Habilidades','Técnicas','Itens','Outros'];
+ const BASE_CATEGORIES=['Raças','Classes','Habilidades','Técnicas','Itens','Outros'];
  let active='book1',selectedCategory='Todas',selectedTag='',search='',openedPost=null;
  const text=x=>String(x??'');
  const esc=x=>api.esc(x);
@@ -36,7 +36,8 @@
  }
  function warehouse(){
   const w=api.db.site?.warehouse;
-  const defaults=[...(Array.isArray(window.ARQUIVO_CLASSES_CBB)?window.ARQUIVO_CLASSES_CBB:[]),
+  const defaults=[...(Array.isArray(window.ARQUIVO_RACAS_CBB)?window.ARQUIVO_RACAS_CBB:[]),
+   ...(Array.isArray(window.ARQUIVO_CLASSES_CBB)?window.ARQUIVO_CLASSES_CBB:[]),
    ...(Array.isArray(window.ARQUIVO_HABILIDADES_CBB)?window.ARQUIVO_HABILIDADES_CBB:[])];
   const custom=Array.isArray(w?.posts)?w.posts.filter(p=>p&&typeof p==='object'&&!Array.isArray(p)):[];
   const hidden=new Set(Array.isArray(w?.hiddenPosts)?w.hiddenPosts:[]);
@@ -389,7 +390,7 @@
   const id=document.getElementById('dialogRoot').dataset.warehouseId||'',found=posts().find(p=>p.id===id);if(!found)return;
   api.confirmSite('EXCLUIR PUBLICAÇÃO','Remover "'+found.title+'" do Armazém? A exclusão não pode ser desfeita.',()=>{
    const w=writable();w.posts=w.posts.filter(p=>p.id!==id);
-   if([...(window.ARQUIVO_CLASSES_CBB||[]),...(window.ARQUIVO_HABILIDADES_CBB||[])].some(p=>p.id===id)&&!w.hiddenPosts.includes(id))w.hiddenPosts.push(id);
+   if([...(window.ARQUIVO_RACAS_CBB||[]),...(window.ARQUIVO_CLASSES_CBB||[]),...(window.ARQUIVO_HABILIDADES_CBB||[])].some(p=>p.id===id)&&!w.hiddenPosts.includes(id))w.hiddenPosts.push(id);
    if(openedPost===id)openedPost=null;
    api.save();api.render();api.toast('Publicação excluída');
   });
