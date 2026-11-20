@@ -235,3 +235,56 @@ test('expandir uma habilidade não estica o cartão vizinho',()=>{
  assert.equal((html.match(/class="ae-ficha-ability-entry"/g)||[]).length,3);
  assert.equal((html.match(/class="ae-ficha-ability-details"/g)||[]).length,3);
 });
+
+test('mestre cria grupos e organiza técnicas em Ressurreição sem alterar seus tipos',()=>{
+ const {view}=setup(),sheet=example();
+ sheet.name='Starrk';
+ sheet.abilityGroups=[{id:'ressurreicao',name:'Ressurreição'}];
+ sheet.abilities[0].groupId='ressurreicao';
+ sheet.abilities[2].groupId='ressurreicao';
+ const html=view.render(sheet,{...settings('abilities'),master:true});
+ assert.match(html,/data-action="abilityGroups"/);
+ assert.match(html,/data-action="newAbilityDirect"/);
+ assert.match(html,/ae-ficha-ability-group--custom/);
+ assert.match(html,/Ressurreição/);
+ assert.equal((html.match(/id="ability-0"/g)||[]).length,1);
+ assert.equal((html.match(/id="ability-1"/g)||[]).length,1);
+ assert.equal((html.match(/id="ability-2"/g)||[]).length,1);
+ const group=html.match(/<section class="ae-ficha-ability-group ae-ficha-ability-group--custom"[^>]*>[\s\S]*?<\/section>/)?.[0];
+ assert.ok(group);
+ assert.match(group,/Corte Crescente/);
+ assert.match(group,/Bankai/);
+ assert.doesNotMatch(group,/Instinto Espiritual/);
+ assert.match(html,/data-ability-kind="Habilidades"/);
+});
+
+test('jogador vinculado edita organização e aparência, sem permissão de criar categorias',()=>{
+ const {view}=setup(),sheet=example();
+ sheet.abilityGroups=[{id:'ressurreicao',name:'Ressurreição'}];
+ sheet.abilities[0].groupId='ressurreicao';
+ const html=view.render(sheet,{...settings('abilities'),master:false,canEdit:true});
+ assert.match(html,/Ressurreição/);
+ assert.match(html,/data-action="editAbilityDirect:0"/);
+ assert.match(html,/data-action="exportAbilities"/);
+ assert.doesNotMatch(html,/data-action="abilityGroups"|data-action="newAbilityDirect"/);
+ const restricted=view.render(sheet,{...settings('abilities'),master:false,canEdit:false});
+ assert.doesNotMatch(restricted,/data-action="editAbilityDirect:|data-action="abilityGroups"/);
+});
+
+test('editor do jogador preserva a descrição, enquanto o Mestre gerencia categorias por ficha',()=>{
+ const app=read('arquivo-app.js');
+ for(const literal of ['function abilityGroupsDialog()', 'function abilityGroupCreate()',
+   'function abilityGroupRename(id)', 'function abilityGroupDelete(id)',
+   'data-ability-group-rename', "if(!master()||!sheetPermission())return",
+   'function abilityGroupOptions(s,ab,i)', 'data-ability=', "':groupId",
+   'function abilityDescriptionField(ab,i)', 'textarea readonly aria-readonly="true"',
+   "if(key==='description'&&!master())return",
+   "raw.abilityGroups=clone(old.abilityGroups||[])",
+   "ab.description=originals[i].description||''"]){
+  assert.ok(app.includes(literal),literal);
+ }
+ assert.match(app,/case'abilityGroups':abilityGroupsDialog\(\)/);
+ assert.match(app,/abilityGroups:\[\]/);
+ assert.match(app,/function saveSheetForm\(/);
+ assert.doesNotMatch(app,/sectionId/);
+});
