@@ -1,3 +1,4 @@
+import {evaluateCriticalRoll} from "./dice.mjs";
 /**
  * Apresentação unificada de rolagens da mesa e do Discord.
  * Embeds suportam cor de destaque; marcadores por dado funcionam no mobile.
@@ -9,18 +10,25 @@ const markdown=(value,max=100)=>asText(value,max).replace(/([\\`*_~|[\]()])/g,"\
 const safeNumber=value=>Number.isFinite(Number(value))?Number(value):0;
 
 export function classifyHighlightedDice(row){
- const dice=Array.isArray(row?.dice)?row.dice:[];
- const special=String(row?.special||"");
- if(special!=="CRÍTICO"&&special!=="FALHA CRÍTICA")return dice.map(d=>d.canceled===true||Number(d.effective??d.value)===0?"dropped":"normal");
+ const dice=Array.isArray(row?.dice)?row.dice:[],special=String(row?.special||"");
+ const active=d=>d.canceled!==true&&Number(d.effective??d.value)!==0;
+ if(special!=="CRÍTICO"&&special!=="CRÍTICO MÁXIMO"&&special!=="FALHA CRÍTICA")
+  return dice.map(d=>active(d)?"normal":"dropped");
+ if(special==="CRÍTICO MÁXIMO"){
+  const winner=evaluateCriticalRoll(dice).priorityValue;
+  const annotated=dice.some(d=>d.criticalApplied===true);
+  return dice.map(d=>!active(d)?"dropped":annotated
+   ?(d.criticalApplied===true?"critical":"normal")
+   :(winner!==null&&Number(d.value)===winner?"critical":"normal"));
+ }
  const frequency=new Map();
- for(const d of dice){
-  const value=safeNumber(d.value),effective=d.effective===undefined?value:safeNumber(d.effective);
-  if(d.canceled===true||effective<=0)continue;
+ for(const d of dice)if(active(d)){
+  const value=Number(d.value);
   frequency.set(value,(frequency.get(value)||0)+1);
  }
  return dice.map(d=>{
-  const value=safeNumber(d.value),effective=d.effective===undefined?value:safeNumber(d.effective);
-  if(d.canceled===true||effective===0)return "dropped";
+  if(!active(d))return "dropped";
+  const value=Number(d.value);
   if(special==="CRÍTICO"&&value>=6&&(frequency.get(value)||0)>=2)return "critical";
   if(special==="FALHA CRÍTICA"&&value===1&&(frequency.get(1)||0)>=2)return "failure";
   return "normal";
@@ -48,7 +56,7 @@ function rollExpression(label){
 export function rollText(row){
  const dice=Array.isArray(row?.dice)?row.dice:[];
  const values=dice.slice(0,30).map(d=>safeNumber(d.value)).join(", ");
- const status=row.special==="CRÍTICO"?" · CRÍTICO":row.special==="FALHA CRÍTICA"?" · FALHA CRÍTICA":"";
+ const status=["CRÍTICO","CRÍTICO MÁXIMO"].includes(row.special)?" · "+row.special:row.special==="FALHA CRÍTICA"?" · FALHA CRÍTICA":"";
  return "🎲 "+asText(row.account_name||"Jogador",60)+" — "+asText(row.label||"Rolagem",80)+
   "\n["+values+"] = "+safeNumber(row.total)+status;
 }
@@ -56,7 +64,7 @@ export function rollCard(row,{reroll=true}={}){
  const dice=Array.isArray(row?.dice)?row.dice:[];
  const special=String(row?.special||"");
  const markers=classifyHighlightedDice(row);
- const critical=special==="CRÍTICO",failure=special==="FALHA CRÍTICA";
+ const critical=["CRÍTICO","CRÍTICO MÁXIMO"].includes(special),failure=special==="FALHA CRÍTICA";
  const color=critical?COLORS.critical:failure?COLORS.failure:COLORS.normal;
  const expression=rollExpression(row.label);
  const stamp=row.created_at?Date.parse(row.created_at):NaN;
@@ -66,14 +74,23 @@ export function rollCard(row,{reroll=true}={}){
   title:critical?"✦ ROLAGEM CRÍTICA":failure?"⚠ FALHA CRÍTICA":"🎲 "+markdown(row.label||"Rolagem",110),
   description:
    "## "+safeNumber(row.total)+
-   (critical?"  ·  **RESULTADO DUPLICADO**":failure?"  ·  **FALHA CRÍTICA**":"")+
+   (critical?(special==="CRÍTICO MÁXIMO"?"  ·  **CRÍTICO MÁXIMO**":"  ·  **CRÍTICO ANTIGO**"):failure?"  ·  **FALHA CRÍTICA**":"")+
    (critical||failure?"\n**"+markdown(row.label||"Rolagem",100)+"**":""),
   fields:[{name:"DADOS • "+dice.length+" lançado"+(dice.length===1?"":"s"),value:diceRows(dice,markers),inline:false}],
   footer:{text:"BLEACH CBB  •  ARQUIVO ESPIRITUAL"+(row.id?"  •  #"+row.id:"")}
  };
  if(Number.isFinite(stamp))embed.timestamp=new Date(stamp).toISOString();
- if(critical)embed.fields.push({name:"✦ EFEITO",value:"Valores repetidos de **6 ou mais**. O subtotal dos dados foi multiplicado por **2**.",inline:false});
- else if(failure)embed.fields.push({name:"⚠ EFEITO",value:"Dois ou mais resultados **1**. Falha crítica registrada.",inline:false});
+ if(special==="CRÍTICO MÁXIMO"||special==="FALHA CRÍTICA"){
+  const values=dice.filter(d=>d.canceled!==true&&Number(d.effective??d.value)!==0)
+   .map(d=>safeNumber(d.effective??d.value));
+  const ra=failure?1:values.length?Math.max(...values):0;
+  const rb=failure?1:values.length?Math.min(...values):0;
+  embed.fields.push({name:"RESULTADOS",value:"RT **"+safeNumber(row.total)+"**  ·  RA **"+ra+"**  ·  RB **"+rb+"**",inline:false});
+ }
+
+ if(special==="CRÍTICO MÁXIMO")embed.fields.push({name:"✦ EFEITO",value:"Apenas os dados do resultado repetido prioritário foram duplicados. Sucesso garantido, salvo impossibilidade narrativa.",inline:false});
+ else if(special==="CRÍTICO")embed.fields.push({name:"✦ EFEITO",value:"Resultado registrado antes da atualização das regras de críticos.",inline:false});
+ else if(failure)embed.fields.push({name:"⚠ EFEITO",value:"Dois ou mais dados com resultado **1**. **RT, RA e RB passam a 1.**",inline:false});
  else if(expression)embed.fields.push({name:"EXPRESSÃO",value:tick+expression+tick,inline:false});
  const components=reroll&&row.kind==="discord"&&row.id?[{
   type:1,components:[{type:2,style:1,label:"Re-rolar",emoji:{name:"🎲"},custom_id:"cbb:reroll:"+row.id}]
@@ -89,7 +106,7 @@ export function helpCard(){
    {name:"ROLAR DADOS",value:tick+"br 2d6 + 1d4"+tick+"\n"+tick+"br 1d20 + 3"+tick+"\n"+tick+"br 2d6 + 1d4 | Golpe espiritual"+tick,inline:false},
    {name:"CONSULTAR ROLAGENS",value:tick+"bajuda"+tick+" — este guia\n"+tick+"bhistorico"+tick+" — últimas rolagens públicas",inline:false},
    {name:"COMANDOS COM /",value:tick+"/rolar"+tick+" · "+tick+"/historico"+tick+" · "+tick+"/ajuda"+tick,inline:false},
-   {name:"RESULTADOS ESPECIAIS",value:"🟡 Crítico: dois valores iguais de **6+**\n🔴 Falha crítica: dois valores **1**",inline:false}
+   {name:"RESULTADOS ESPECIAIS",value:"🟡 Crítico máximo: dois resultados iguais de **6+**; duplica apenas esses dados.\n🔴 Falha crítica: dois resultados **1**; RT, RA e RB viram **1**.\nPrioridade: maior dado, depois maior resultado repetido.",inline:false}
   ],
   footer:{text:"BLEACH CBB  •  br = Bleach Rolar"}
  }],allowed_mentions:{parse:[]}};
