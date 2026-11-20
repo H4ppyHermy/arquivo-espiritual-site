@@ -182,6 +182,10 @@ BEGIN
   sh=jsonb_set(sh,'{resources,alma,current}',to_jsonb(current_alma-cost),true);
   v_result=jsonb_build_object('chargedCost',cost,'ability',ab->>'name','mode',preview->>'mode');
  ELSIF p_action IN ('main','reaction') THEN
+  IF p_action='reaction' AND EXISTS(
+   SELECT 1 FROM jsonb_array_elements_text(coalesce(sh->'conditions','[]'::jsonb)) c(value)
+   WHERE lower(btrim(c.value))='atordoado'
+  ) THEN RAISE EXCEPTION 'Atordoado impede reações até o próximo Desfecho.';END IF;
   change_target=CASE WHEN p_action='main' THEN 'mainUsed' ELSE 'reactionUsed' END;
   IF coalesce((combat->>change_target)::boolean,false) THEN
    IF p_action='main' AND extra_main>0 THEN combat=jsonb_set(combat,'{cbb,extraMain}','0'::jsonb,true);
