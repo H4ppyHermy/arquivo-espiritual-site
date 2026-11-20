@@ -131,7 +131,8 @@
  function render(s,ctx={}){
   const c=s.combat||{},ex=s.exposures||{},phase=c.phase||'preparacao',res=s.resources||{},selectedMode=modeBySheet.get(s.id)||'teste';
   const disabled=!ctx.canEdit||!on()||s.automationEnabled===false;
-  const test=testMemory(s);
+  const test=testMemory(s),conditions=engine.normalizedConditions(s);
+  const stunned=conditions.has('atordoado');
   const lock=disabled?' disabled':'';
   const choices=skillNames.map(n=>[n,n+' · '+engine.groupOf(n)+' d'+(s.groups?.[engine.groupOf(n)]||4)+' + d'+(s.skills?.[n]||4)]);
   const abilityRolls=(s.abilities||[]).map((a,i)=>({a,i,p:engine.abilityPool(a)})).filter(x=>x.p);
@@ -194,11 +195,11 @@
     '</section>'+
     '<section class="ae-cbb-panel" data-cbb-panel="turno"'+(selectedMode==='turno'?'':' hidden')+'><h3>Turno e exposições</h3>'+
      '<div class="ae-cbb-pills">'+pill('CENA',c.scene||1)+pill('RODADA',c.round||1)+pill('FASE',phaseName[phase]||phase)+'</div>'+
-     '<div class="ae-cbb-pills">'+pill('PRINCIPAL',c.mainUsed?(c.cbb?.extraMain?'extra':'usada'):'livre')+pill('REAÇÃO',c.reactionUsed?(c.cbb?.extraReaction?'extra':'usada'):'livre')+'</div>'+
+     '<div class="ae-cbb-pills">'+pill('PRINCIPAL',c.mainUsed?(c.cbb?.extraMain?'extra':'usada'):'livre')+pill('REAÇÃO',stunned?'bloqueada':c.reactionUsed?(c.cbb?.extraReaction?'extra':'usada'):'livre')+'</div>'+
      (c.cbb?.movementBlocked?'<p class="ae-cbb-hint">Exposição Rítmica: movimentação indisponível nesta rodada.</p>':'')+
      '<div class="ae-cbb-buttons">'+
        '<button class="btn small" type="button" data-cbb-command="main"'+(disabled||(c.mainUsed&&!c.cbb?.extraMain)?' disabled':'')+'>USAR PRINCIPAL</button>'+
-       '<button class="btn small" type="button" data-cbb-command="reaction"'+(disabled||(c.reactionUsed&&!c.cbb?.extraReaction)?' disabled':'')+'>USAR REAÇÃO</button>'+
+       '<button class="btn small" type="button" data-cbb-command="reaction"'+(disabled||stunned||(c.reactionUsed&&!c.cbb?.extraReaction)?' disabled':'')+'>USAR REAÇÃO</button>'+
        '<button class="btn small" type="button" data-cbb-command="'+(phase==='desfecho'?'round':'phase')+'"'+lock+'>'+(phase==='desfecho'?'PRÓXIMA RODADA':'PRÓXIMA FASE')+'</button>'+
        (ctx.master?'<button class="btn small quiet" type="button" data-cbb-command="scene"'+lock+'>NOVA CENA</button>':'')+
      '</div>'+
