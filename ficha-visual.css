@@ -804,3 +804,88 @@ html.performance-mode #page .ae-ficha-v2 .ae-ficha-quick-card{transition:none!im
  #page .ae-ficha-session-buttons button{transition:none!important}
 }
 html.performance-mode #page .ae-ficha-session-buttons button{transition:none!important}
+
+
+/* Acessibilidade: respeita exatamente a escala de texto configurada no dispositivo.
+ * O Armazém usa fontes relativas, mas as descrições das fichas estavam presas a 12px.
+ */
+#page .ae-ficha-ability-full .ae-unified-rich,
+#page .ae-ficha-quick-description>.sheet-rich .ae-unified-rich{
+ font-size:clamp(12px,.875rem,28px)!important;
+ line-height:1.7!important;
+ overflow-wrap:anywhere;
+}
+#page .ae-ficha-ability-full .ae-unified-rich :is(p,li,ol,ul,blockquote,table,td,th,
+ .book-paragraph,.book-quote,.book-list,.book-list-item),
+#page .ae-ficha-quick-description>.sheet-rich .ae-unified-rich :is(p,li,ol,ul,blockquote,table,td,th,
+ .book-paragraph,.book-quote,.book-list,.book-list-item){
+ font-size:inherit!important;line-height:inherit!important;
+}
+#page .ae-ficha-quick-description>.sheet-rich{
+ font-size:clamp(12px,.875rem,28px)!important;line-height:1.7!important;
+}
+#page .ae-ficha-ability-title{
+ font-size:clamp(18px,1.1875rem,36px);line-height:1.12;
+}
+#page .ae-ficha-ability-meta,
+#page .ae-ficha-ability-full>.book-text{
+ font-size:clamp(11px,.75rem,24px);
+}
+#page .ae-ficha-quick-description>summary{
+ font-size:clamp(10px,.69rem,22px);
+}
+
+/* Lembrar descrição expandida: comando separado de pin do Resumo. */
+#page .ae-ficha-ability-card{padding-right:92px}
+#page .ae-ficha-ability-remember{
+ position:absolute;right:51px;top:13px;z-index:3;
+ display:grid;place-items:center;width:32px;height:32px;
+ padding:0;border:1px solid var(--ae-ficha-line);border-radius:5px;
+ background:color-mix(in srgb,var(--theme-cold) 7%,var(--theme-panel));
+ color:var(--theme-cold);cursor:pointer;
+ transition:border-color .16s,background-color .16s;
+}
+#page .ae-ficha-ability-remember:hover,
+#page .ae-ficha-ability-remember:focus-visible{
+ border-color:var(--theme-accent);
+ background:color-mix(in srgb,var(--theme-accent) 17%,var(--theme-panel));
+}
+#page .ae-ficha-ability-remember.is-saved{
+ background:color-mix(in srgb,var(--theme-accent) 22%,var(--theme-panel));
+ border-color:var(--theme-accent);color:var(--theme-accent);
+}
+#page .ae-ficha-ability-remember.is-saved svg{fill:color-mix(in srgb,currentColor 30%,transparent)}
+#page .ae-ficha-quick-description{position:relative}
+#page .ae-ficha-quick-description>summary{padding-right:47px;min-height:32px}
+#page .ae-ficha-quick-description>.ae-ficha-ability-remember{top:3px;right:0}
+#page .ae-ficha-quick-description[open]>.sheet-rich{max-height:42vh}
+
+/* Alça para organização por arraste - mestre. */
+#page .ae-ability-drag-handle{
+ border:1px solid color-mix(in srgb,currentColor 36%,transparent);
+ border-radius:5px;background:transparent;color:inherit;
+ width:27px;height:29px;display:inline-grid;place-items:center;
+ cursor:grab;touch-action:none;flex:0 0 auto;
+}
+#page .ae-ability-drag-handle:active{cursor:grabbing}
+#page .ae-ficha-ability-tag .ae-ability-drag-handle{color:var(--theme-bg)}
+#page .ae-ficha-ability-group-head{
+ transition:background-color .14s,border-color .14s;
+}
+#page .ae-ficha-ability-group.ae-drag-target>.ae-ficha-ability-group-head{
+ background:color-mix(in srgb,var(--theme-accent) 16%,var(--theme-panel));
+ outline:2px dashed var(--theme-accent);outline-offset:3px;
+}
+#page .ae-ficha-ability-entry.ae-drag-target{
+ outline:2px dashed var(--theme-cold);outline-offset:4px;
+ border-radius:5px;
+}
+#page .ae-ficha-ability-entry.ae-drag-source{opacity:.45}
+@media(max-width:530px){
+ #page .ae-ficha-ability-tag{flex-wrap:wrap;gap:7px}
+ #page .ae-ficha-ability-card{padding-right:91px}
+}
+@media(prefers-reduced-motion:reduce){
+ #page .ae-ficha-ability-remember,
+ #page .ae-ficha-ability-group-head{transition:none!important}
+}
