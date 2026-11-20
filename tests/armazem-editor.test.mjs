@@ -65,8 +65,8 @@ test('habilidades e técnicas usam cartão textual sem quadrado de imagem, itens
   {id:'tech',title:'Técnica teste',category:'Técnicas',content:'Movimento breve',published:true},
   {id:'item',title:'Item teste',category:'Itens',content:'Regra',image:'https://example.com/item.png',published:true});
  const html=window.ARQUIVO_SECOES.warehousePage();
- const skill=html.match(/<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-skill">[\s\S]*?<\/article>/)?.[0];
- const tech=html.match(/<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-tech">[\s\S]*?<\/article>/)?.[0];
+ const skill=html.match(/<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-skill"[^>]*>[\s\S]*?<\/article>/)?.[0];
+ const tech=html.match(/<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-tech"[^>]*>[\s\S]*?<\/article>/)?.[0];
  assert.ok(skill&&tech,'habilidade e técnica devem possuir cartões específicos');
  assert.match(skill,/ae-wh-ability-title|CUSTO \/ USO · 2 Alma/);
  assert.match(skill,/Efeito único/);
