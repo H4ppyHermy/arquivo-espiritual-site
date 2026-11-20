@@ -17,15 +17,16 @@ function setup(){
 }
 const sheet=(race='',className='')=>({id:'f1',name:'Exemplo',race,className,abilities:[]});
 
-test('Arrancar recebe as três habilidades raciais, com custos e origem',()=>{
+test('Arrancar recebe Instinto Primário e as habilidades raciais, com custos e origem',()=>{
  const {logic}=setup(),s=sheet('Arrancar');
  assert.equal(logic.reconcile(s),true);
- assert.deepEqual(Array.from(s.abilities,a=>a.name),['Hierro','Sonído','Cero']);
- assert.deepEqual(Array.from(s.abilities,a=>a.cost),[2,2,3]);
+ assert.deepEqual(Array.from(s.abilities,a=>a.name),['Instinto Primário','Hierro','Sonído','Cero']);
+ assert.deepEqual(Array.from(s.abilities,a=>a.cost),[2,2,2,3]);
  assert.ok(s.abilities.every(a=>a.origin.auto&&a.origin.kind==='race'));
  assert.ok(s.abilities.every(a=>a.libraryType==='habilidade'));
  assert.equal(logic.reconcile(s),false,'reconciliação idempotente');
- assert.equal(s.abilities.length,3);
+ assert.equal(s.abilities.length,4);
+ assert.match(s.abilities[0].description,/Falha Crítica em um teste de Instinto/);
 });
 test('cada classe concede sua mecânica sem exigir código específico',()=>{
  const {logic}=setup();
@@ -43,7 +44,7 @@ test('troca de raça e classe remove apenas concessões automáticas, preservand
  const {logic}=setup(),s=sheet('Arrancar','Coração de Aço');
  s.abilities.push({name:'Técnica Inventada',description:'Original',cost:5,category:'active',libraryType:'tecnica'});
  logic.reconcile(s);
- assert.equal(s.abilities.length,5);
+ assert.equal(s.abilities.length,6);
  s.race='Quincy';s.className='Caçador';
  logic.reconcile(s);
  assert.deepEqual(Array.from(s.abilities,a=>a.name),['Técnica Inventada','Emboscada']);
@@ -57,7 +58,7 @@ test('habilidades existentes com mesmo nome não são sobrescritas nem duplicada
  logic.reconcile(s);
  assert.equal(s.abilities.filter(a=>a.name==='Hierro').length,1);
  assert.equal(s.abilities.find(a=>a.name==='Hierro').description,'Edição personalizada');
- assert.equal(s.abilities.length,3);
+ assert.equal(s.abilities.length,4);
 });
 test('nova raça e classe publicadas são reconhecidas sem alteração no programa',()=>{
  const {logic,catalog}=setup();
@@ -81,17 +82,17 @@ test('habilidades despublicadas não são concedidas; grants vazio revoga tags r
  hierro.published=false;
  const s=sheet('Arrancar');
  logic.reconcile(s);
- assert.deepEqual(Array.from(s.abilities,a=>a.name),['Sonído','Cero']);
+ assert.deepEqual(Array.from(s.abilities,a=>a.name),['Instinto Primário','Sonído','Cero']);
  const sonido=catalog.find(x=>x.title==='Sonído');
  sonido.grants={race:[],class:[]};
  logic.reconcile(s);
- assert.deepEqual(Array.from(s.abilities,a=>a.name),['Cero']);
+ assert.deepEqual(Array.from(s.abilities,a=>a.name),['Instinto Primário','Cero']);
 });
 test('projeção não modifica dados persistidos até salvar uma ficha',()=>{
  const {logic}=setup(),s=sheet('Arrancar','Porta-voz');
  const original=JSON.stringify(s),projected=logic.project(s);
  assert.equal(JSON.stringify(s),original);
- assert.equal(projected.abilities.length,4);
+ assert.equal(projected.abilities.length,5);
  assert.equal(s.abilities.length,0);
 });
 test('interface, edição e registro contêm as integrações dinâmicas',()=>{
