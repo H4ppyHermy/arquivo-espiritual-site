@@ -351,3 +351,19 @@ html.custom-font body,
 html.custom-font body *:not(svg):not(svg *){
  font-family:'CBB Personalizada',Georgia,serif!important;
 }
+
+/* Formatação editorial compartilhada: Biblioteca, Armazém, fichas e notas.
+   O parser é único; cada container preserva sua escala tipográfica própria. */
+.ae-unified-rich{min-width:0;max-width:100%;overflow-wrap:anywhere;white-space:normal}
+.ae-unified-rich .book-quote{
+ border-left:3px solid var(--theme-cold);
+ background:color-mix(in srgb,var(--theme-cold) 7%,var(--theme-raised));
+ color:var(--theme-text);padding:10px 15px;margin:12px 0 16px;
+ font-style:italic;overflow-wrap:anywhere
+}
+.ae-unified-rich .book-quote p{margin:5px 0;line-height:1.75}
+.ae-unified-rich .book-readable-list{max-width:100%;padding-inline-start:1.7em}
+.ae-unified-rich .book-code{white-space:pre-wrap;overflow-wrap:anywhere}
+.ae-unified-rich .book-table-wrap{max-width:100%;overflow-x:auto}
+.ae-unified-rich > :first-child{margin-top:0}
+.ae-unified-rich > :last-child{margin-bottom:0}
