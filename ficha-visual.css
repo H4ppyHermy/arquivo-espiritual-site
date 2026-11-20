@@ -538,3 +538,28 @@ html.performance-mode #page .ae-ficha-v2 *{animation:none!important;transition:n
  .ae-export-card{padding:11px}
 }
 @media(prefers-reduced-motion:reduce){.ae-export-card{transition:none}}
+
+/* Origem de habilidades e filtros — valores da paleta do usuário. */
+#page .ae-ficha-hero-tags .ae-ficha-class{border:1px solid var(--theme-cold);color:var(--theme-text);background:color-mix(in srgb,var(--theme-cold) 13%,var(--theme-panel))}
+#page .ae-ficha-ability-filters{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+#page .ae-ficha-ability-filters button{background:var(--theme-panel);color:var(--theme-text);border:1px solid var(--ae-ficha-line);
+ font-size:10px;letter-spacing:.08em;font-weight:900;min-height:36px;padding:7px 12px;cursor:pointer}
+#page .ae-ficha-ability-filters button.is-active{border-color:var(--theme-cold);background:color-mix(in srgb,var(--theme-cold) 18%,var(--theme-panel));color:var(--theme-cold)}
+#page .ae-ficha-ability-entry{display:flex;flex-direction:column;min-width:0}
+#page .ae-ficha-ability-entry[hidden],#page .ae-ficha-ability-group[hidden]{display:none!important}
+#page .ae-ficha-ability-entry>.ae-ficha-ability-card{flex:1}
+#page .ae-ficha-ability-inherited{border:1px solid var(--theme-cold);box-shadow:
+ inset 0 0 0 2px color-mix(in srgb,var(--theme-cold) 25%,transparent),
+ 0 0 16px color-mix(in srgb,var(--theme-cold) 10%,transparent)}
+#page .ae-ficha-ability-inherited--class{border-color:var(--theme-accent)}
+#page .ae-ficha-ability-inherited--class::before{background:linear-gradient(var(--theme-accent),transparent 85%)}
+#page .ae-ficha-ability-origin{display:flex;flex-wrap:wrap;align-items:center;gap:5px 9px;
+ padding:7px 9px;background:color-mix(in srgb,var(--theme-cold) 13%,var(--theme-panel));
+ border-left:2px solid var(--theme-cold);font-size:9px;letter-spacing:.04em}
+#page .ae-ficha-ability-origin strong{font-weight:900;color:var(--theme-cold)}
+#page .ae-ficha-ability-origin span{color:var(--theme-text);font-weight:750;overflow-wrap:anywhere}
+.ae-origin-editor-readonly{display:grid;gap:8px;border:1px solid var(--theme-cold);padding:14px;background:color-mix(in srgb,var(--theme-cold) 9%,var(--theme-panel))}
+.ae-origin-editor-readonly>strong{font-size:18px;color:var(--theme-text)}
+.ae-origin-editor-readonly>small{font-weight:900;color:var(--theme-cold);letter-spacing:.05em}
+.ae-origin-editor-readonly>p{white-space:pre-wrap;line-height:1.65;overflow-wrap:anywhere;margin:0;font-size:12px}
+@media(max-width:480px){#page .ae-ficha-ability-filters button{flex:1;padding:7px 5px}}
