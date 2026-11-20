@@ -176,9 +176,9 @@
   const list=(s.abilities||[]).map((ab,index)=>({ab,index})).filter(x=>!x.ab?.origin?.auto);
   const groups=(Array.isArray(s.abilityGroups)?s.abilityGroups:[]).filter(g=>g&&g.id&&g.name);
   const groupIds=new Set(groups.map(g=>g.id));
-  const ungrouped=list.filter(({ab})=>!groupIds.has(ab.sectionId));
+  const ungrouped=list.filter(({ab})=>!groupIds.has(ab.groupId));
   const sections=[
-   ...groups.map(group=>({name:group.name,items:list.filter(({ab})=>ab.sectionId===group.id),custom:true})),
+   ...groups.map(group=>({name:group.name,items:list.filter(({ab})=>ab.groupId===group.id),custom:true})),
    ...[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']].map(([key,name])=>({
     name,custom:false,items:ungrouped.filter(({ab})=>{
      const type=abilityCategory(ab);
