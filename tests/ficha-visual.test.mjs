@@ -131,8 +131,8 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  assert.match(app,/window\.ARQUIVO_FICHA_VISUAL\?\.upgradeEditor\?\.\(\)/);
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function updateDraft\(target\)/);
- assert.match(html,/ficha-visual\.js\?v=15/);
- assert.match(html,/ficha-visual\.css\?v=12/);
+ assert.match(html,/ficha-visual\.js\?v=16/);
+ assert.match(html,/ficha-visual\.css\?v=13/);
  assert.ok(html.indexOf('arquivo-app.js?v=23')<html.indexOf('ficha-visual.js?v=16'));
 });
 
