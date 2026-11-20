@@ -150,7 +150,7 @@ test('estilos da antiga ficha foram eliminados sem remover componentes atuais',(
  for(const kept of ['.sheet-personal .panel','.sheet-palette-controls','.die-figure'])
   assert.ok(css.includes(kept),kept);
  const index=read('index.html');
- assert.match(index,/arquivo-base\.css\?v=5/);
+ assert.match(index,/arquivo-base\.css\?v=6/);
 });
 
 test('campos da paleta enviados ao servidor permanecem compatíveis com a versão online',()=>{
