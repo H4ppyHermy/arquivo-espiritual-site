@@ -117,7 +117,7 @@ test('sequência inválida permanece literal e não modifica regras de combate',
  assert.match(read('arquivo-app.js'),/option value="sequencia">Sequência/);
  assert.match(read('biblioteca-secoes.js'),/option value="sequencia">Sequência/);
  assert.doesNotMatch(read('biblioteca-secoes.js'),/resourceBars\(|barEditorRow\(/);
- assert.match(read('ficha-visual.js'),/sequencia/);
+ assert.match(read('ficha-visual.js'),/api\.sheetRich\(description\)/);
 });
 
 test('Porta-voz usa os graus oficiais de Vínculos em ambas as fontes',()=>{
