@@ -1,4 +1,4 @@
-/* Técnicas e habilidades raciais oficiais do Bleach CBB.
+/* Técnicas e habilidades oficiais do Bleach CBB.
    Registros de leitura do Armazém; não aplicam efeitos automaticamente. */
 window.ARQUIVO_HABILIDADES_CBB = [
   {
@@ -40,6 +40,51 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "tags": "",
     "cost": "3 ALMA",
     "content": "Quando um aliado dentro do alcance de seus disparos for alvo de um ataque, utilize sua reação para realizar um Teste-Clash de Precisão contra o agressor. Caso vença, interrompe o ataque inimigo.",
+    "published": true,
+    "grants": {
+      "race": [],
+      "class": []
+    }
+  },
+  {
+    "id": "tecnica-soco-soco-bate-bate",
+    "category": "Técnicas",
+    "title": "Soco Soco Bate Bate",
+    "summary": "",
+    "image": "",
+    "tags": "",
+    "cost": "2 ALMA",
+    "content": "Ao realizar um ataque de Duelo contra um adversário que tenha lhe causado dano desde sua última ação, amplifique a força do golpe.\n\n> Dano: +1d8",
+    "published": true,
+    "grants": {
+      "race": [],
+      "class": []
+    }
+  },
+  {
+    "id": "tecnica-monte-tibetano",
+    "category": "Técnicas",
+    "title": "Monte Tibetano",
+    "summary": "",
+    "image": "",
+    "tags": "",
+    "cost": "2 ALMA",
+    "content": "Ao sofrer um ataque, ignore seus efeitos de deslocamento forçado e a condição Derrubado. Caso o ataque cause dano, reduza-o em 1d4.",
+    "published": true,
+    "grants": {
+      "race": [],
+      "class": []
+    }
+  },
+  {
+    "id": "tecnica-imperdivel",
+    "category": "Técnicas",
+    "title": "Imperdível",
+    "summary": "",
+    "image": "",
+    "tags": "",
+    "cost": "3 ALMA",
+    "content": "Ao falhar em um ataque de Duelo, role novamente o dado da perícia utilizada, mantendo o novo resultado. Caso o alvo tenha sofrido dano por você nesta rodada, aumente esse dado em 1 passo antes da nova rolagem.",
     "published": true,
     "grants": {
       "race": [],
@@ -111,6 +156,51 @@ window.ARQUIVO_HABILIDADES_CBB = [
       "race": [
         "Arrancar"
       ],
+      "class": []
+    }
+  },
+  {
+    "id": "habilidade-revestimento-corpo",
+    "category": "Habilidades",
+    "title": "Revestimento de Corpo",
+    "summary": "",
+    "image": "",
+    "tags": "",
+    "cost": "2 ALMA",
+    "content": "Ao receber um ataque que afete sua Vida, aumente em 1 passo sua resistência natural até o término da fase.",
+    "published": true,
+    "grants": {
+      "race": [],
+      "class": []
+    }
+  },
+  {
+    "id": "habilidade-alma-extensiva",
+    "category": "Habilidades",
+    "title": "Alma Extensiva",
+    "summary": "",
+    "image": "",
+    "tags": "",
+    "cost": "2 ALMA",
+    "content": "Ao realizar um ataque de Duelo, aumente seu alcance em 3 metros. Caso acerte, pode aproximar o alvo em até 2 metros.",
+    "published": true,
+    "grants": {
+      "race": [],
+      "class": []
+    }
+  },
+  {
+    "id": "habilidade-ressonancia-material",
+    "category": "Habilidades",
+    "title": "Ressonância Material",
+    "summary": "",
+    "image": "",
+    "tags": "",
+    "cost": "3 ALMA",
+    "content": "Ao acertar um ataque de Duelo, amplifique o impacto.\n\n> Dano: +1d6\n\nCaso o alvo esteja em contato com uma superfície sólida, também fica Derrubado.",
+    "published": true,
+    "grants": {
+      "race": [],
       "class": []
     }
   }
