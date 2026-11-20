@@ -20,7 +20,7 @@
   const p=engine.abilityPool(ab),mode=ab.costConfig?.mode;
   const canPay=(Number(ab.cost)>0||mode==='activation') && ab.category!=='passive' && !ab.passive;
   const billingKey=String(ab.abilityId||ab.automation?.id||'legacy:'+index);
-  const sh=sheet(),runtime=sh?.abilityRuntime?.billing?.[billingKey],scene=Number(sh?.combat?.scene||1);
+  const sh=sheet(),runtime=sh?.abilityRuntime?.billing?.[billingKey],scene=Number(sh?.combat?.scene||1),automationOff=sh?.automationEnabled===false;
   const active=mode==='activation'&&runtime?.active===true&&Number(runtime.scene)===scene;
   const locked=ab.unlock?.mode==='locked'&&!ctx.master;
   const requires=ab.costConfig?.requires||ab.unlock?.requires;
@@ -29,9 +29,9 @@
   if(canPay){
    const cmd=active?'deactivate':'ability';
    const label=active?'ENCERRAR LIBERAÇÃO':mode==='activation'?'ATIVAR · '+(Number(ab.cost)||0)+' ALMA':'UTILIZAR · '+Number(ab.cost)+' ALMA';
-   out.push('<button type="button" class="ae-cbb-card-btn" data-cbb-command="'+cmd+'" data-cbb-index="'+index+'"'+(locked||prerequisite?' disabled':'')+'>'+enc(locked?'BLOQUEADA':prerequisite?'REQUER LIBERAÇÃO':label)+'</button>');
+   out.push('<button type="button" class="ae-cbb-card-btn" data-cbb-command="'+cmd+'" data-cbb-index="'+index+'"'+(locked||prerequisite||automationOff?' disabled':'')+'>'+enc(locked?'BLOQUEADA':prerequisite?'REQUER LIBERAÇÃO':label)+'</button>');
   }
-  if(p)out.push('<button type="button" class="ae-cbb-card-btn ae-cbb-card-btn--secondary" data-cbb-command="abilityPool" data-cbb-index="'+index+'">ROLAR '+(p.kind==='dano'?'DANO':'CURA')+'</button>');
+  if(p)out.push('<button type="button" class="ae-cbb-card-btn ae-cbb-card-btn--secondary" data-cbb-command="abilityPool" data-cbb-index="'+index+'"'+(automationOff?' disabled':'')+'>ROLAR '+(p.kind==='dano'?'DANO':'CURA')+'</button>');
   return out.length?'<div class="ae-cbb-card-actions">'+out.join('')+'</div>':'';
  }
  function bossPanel(s,ctx){
@@ -52,7 +52,7 @@
  function pill(label,value){return '<span class="ae-cbb-pill">'+enc(label)+' <b>'+enc(value)+'</b></span>'}
  function render(s,ctx={}){
   const c=s.combat||{},ex=s.exposures||{},phase=c.phase||'preparacao',res=s.resources||{},selectedMode=modeBySheet.get(s.id)||'teste';
-  const disabled=!ctx.canEdit||!on();
+  const disabled=!ctx.canEdit||!on()||s.automationEnabled===false;
   const lock=disabled?' disabled':'';
   const choices=skillNames.map(n=>[n,n+' · '+engine.groupOf(n)+' d'+(s.groups?.[engine.groupOf(n)]||4)+' + d'+(s.skills?.[n]||4)]);
   const abilityRolls=(s.abilities||[]).map((a,i)=>({a,i,p:engine.abilityPool(a)})).filter(x=>x.p);
@@ -68,7 +68,7 @@
    '<nav class="ae-cbb-modes" role="group" aria-label="Escolher modo da mesa">'+
     [['teste','TESTE'],['dano','DANO'],['resistencia','DEFESA'],['recuperacao','CURA'],['turno','TURNO'],['recursos','RECURSOS']].map(([mode,label])=>
      '<button type="button" data-cbb-mode="'+mode+'" aria-pressed="'+(selectedMode===mode)+'" class="'+(selectedMode===mode?'is-active':'')+'">'+label+'</button>').join('')+'</nav>'+
-   (!ctx.canEdit?'<p class="ae-cbb-hint">Somente leitura: esta ficha não está vinculada à sua chave.</p>':!on()?'<p class="ae-cbb-hint">Conecte uma chave de jogador ou mestre para rolar e alterar a ficha.</p>':'')+
+   (!ctx.canEdit?'<p class="ae-cbb-hint">Somente leitura: esta ficha não está vinculada à sua chave.</p>':!on()?'<p class="ae-cbb-hint">Conecte uma chave de jogador ou mestre para rolar e alterar a ficha.</p>':s.automationEnabled===false?'<p class="ae-cbb-hint">Automação desativada. Reative no Resumo para usar esta Mesa.</p>':'')+
    '<div class="ae-cbb-status" role="status" aria-live="polite">'+enc(stateText(s))+'</div>'+
    '<div class="ae-cbb-result" role="status" aria-live="polite">'+(result?resultMarkup(result):'<p>Escolha uma ação para começar.</p>')+'</div>'+
    '<div class="ae-cbb-grid">'+
@@ -276,8 +276,22 @@
   }
   const response=await sync.cbbAction(args);
   if(!response?.ok)throw Error('O servidor não confirmou a ação.');
-  for(const key of ['resources','combat','exposures','abilityRuntime','boss','pinnedAbilities'])if(response[key])s[key]=response[key];
-  statusBySheet.set(s.id,response.info?.chargedCost!==undefined?'Custo: '+response.info.chargedCost+' ALMA':cmd==='party'?'Confronto ajustado para '+args.p_value+' jogadores.':cmd==='pin'?(response.info?.active?'Habilidade fixada no Resumo.':'Habilidade desafixada.'):'Ação registrada.');
+  for(const key of ['resources','combat','exposures','abilityRuntime','boss','pinnedAbilities',
+   'automationEnabled','conditions','restCount','desgaste']){
+    if(Object.hasOwn(response,key))s[key]=response[key];
+   }
+  if(cmd==='reset'){
+   lastResults.delete(s.id);lastAttacks.delete(s.id);modeBySheet.delete(s.id);
+   for(const key of resistanceByPhase.keys()){
+    if(key.startsWith(s.id+':'))resistanceByPhase.delete(key);
+   }
+  }
+  statusBySheet.set(s.id,cmd==='reset'?'Ficha reiniciada.':cmd==='toggleAutomation'?
+   (s.automationEnabled===false?'Automação desativada.':'Automação reativada.'):
+   response.info?.chargedCost!==undefined?'Custo: '+response.info.chargedCost+' ALMA':
+   cmd==='party'?'Confronto ajustado para '+args.p_value+' jogadores.':
+   cmd==='pin'?(response.info?.active?'Habilidade fixada no Resumo.':'Habilidade desafixada.'):
+   'Ação registrada.');
   api.render();
  }
  function switchMode(s,mode,root){
@@ -309,6 +323,10 @@
   event.preventDefault();event.stopPropagation();
   if(busy)return;
   const cmd=b.dataset.cbbCommand,sh=sheet();if(!sh)return;
+  if(sh.automationEnabled===false&&!['toggleAutomation','reset','pin'].includes(cmd)){
+   api.toast('Automação desativada','Reative a automação no Resumo para usar a Mesa.',true);
+   return;
+  }
   if(cmd==='abilityPool'){
    const index=Number(b.dataset.cbbIndex),ab=sh.abilities?.[index],pool=engine.abilityPool(ab);
    if(!pool)return;
@@ -328,6 +346,25 @@
   }
   if(!on()){api.toast('Conexão necessária','Entre com uma chave para registrar ações e rolagens.',true);return;}
   const root=b.closest('.ae-cbb-mesa')||document.querySelector('.ae-cbb-mesa');
+  if(cmd==='reset'){
+   if(!api.master?.()){
+    api.toast('Somente mestre','O reinício integral da ficha é reservado ao mestre.',true);
+    return;
+   }
+   if(typeof api.confirmSite!=='function'){
+    api.toast('Confirmação indisponível','Não foi possível confirmar o reinício.',true);
+    return;
+   }
+   api.confirmSite('REINICIAR FICHA?',
+    'Restaurar Vida, Estabilidade e ALMA, zerar condições e exposições, encerrar efeitos e voltar à primeira rodada? A construção da ficha e o histórico de rolagens serão preservados.',
+    ()=>{
+     if(busy)return;
+     busy=true;lockResult(b,true);
+     executeAction(root,b,cmd).catch(error=>api.toast('Reinício não realizado',String(error?.message||error),true))
+      .finally(()=>{busy=false;lockResult(b,false)});
+    });
+   return;
+  }
   busy=true;lockResult(b,true);
   try{
    if(cmd==='skill'||cmd==='pool')await executeRoll(root,cmd);
