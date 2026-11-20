@@ -1088,9 +1088,9 @@ function libraryTermTone(name){
  if(['desmaiado','acorrentado','morto','pressionado','ruptura da máscara','resistência hollow'].includes(x))return 'risk';
  return 'rule';
 }
-function formatBook(source,chapterTitle=''){
+function formatBook(source,chapterTitle='',options={}){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
- const searchText=query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
+ const searchText=options.highlight===false?'':query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\ const searchText=query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;'),'gi'):null;
  const names=[...libraryGlossary.keys()].filter(Boolean).sort((a,b)=>b.length-a.length);
  const letterOrNumber=/[\p{L}\p{N}]/u;
  // Correspondência literal: jamais normalizar acentos, caixa ou grafia na leitura.
@@ -1357,25 +1357,15 @@ function dieShape(n,kind='',count=1){
  };
  return '<span class="die-figure '+esc(kind)+'" data-count="'+count+'" title="'+(count>1?count+' dados de ':'Dado de ')+n+' lados"><svg viewBox="0 0 24 24" role="img" aria-label="'+(count>1?count+' dados de ':'Dado de ')+n+' lados"><polygon points="'+DICE_POLYGONS[geometry]+'"></polygon><g fill="none" stroke="currentColor" stroke-width=".8" opacity=".55">'+facets[geometry]+'</g><text x="12" y="13">'+n+'</text></svg>'+(count>1?'<small class="ae-die-count" aria-hidden="true">×'+count+'</small>':'')+'</span>';
 }
-function sheetRich(text){
- const markers=[];
- const raw=markInlineDice(window.ARQUIVO_BARRAS_INLINE?.mark(String(text||''),markers)??String(text||''),markers,'@@AEDIE');
- const escaped=esc(raw);
- const fragments=escaped.split(/(\[cor=#[0-9a-fA-F]{6}\]|\[\/cor\])/gi);
- let open=false,out='';
- for(const p of fragments){
-  if(/^\[cor=#[0-9a-f]{6}\]$/i.test(p)){
-   if(open)out+='</span>';
-   out+='<span style="color:'+p.slice(5,12)+'">';open=true;
-  }else if(/^\[\/cor\]$/i.test(p)){
-   if(open)out+='</span>';open=false;
-  }else out+=p.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+// Fonte única de formatação: o mesmo Markdown do Armazém também na ficha.
+// O único caso inline é o dado no cabeçalho da perícia, sem blocos HTML.
+function sheetRich(text,inlineOnly=false){
+ const html=formatBook(text,'',{highlight:false});
+ if(inlineOnly){
+  const match=/^<p class="book-paragraph">([\\s\\S]*)<\\/p>$/.exec(html);
+  return match?match[1]:html;
  }
- return (out+(open?'</span>':'')).replace(/@@(?:AEDIE|AEBAR)(\d+)@@/g,(_,index)=>{
-  const marker=markers[Number(index)];
-  if(marker?.inlineBar)return window.ARQUIVO_BARRAS_INLINE?.render(marker)||'';
-  return marker?.sides?dieShape(marker.sides,'ae-inline-die',marker.count):'';
- });
+ return '<div class="book-text ae-unified-rich">'+html+'</div>';
 }
 function wrapColoredSelection(textareaId,colorId){const t=el(textareaId),c=el(colorId);if(!t||!c)return;const start=t.selectionStart,end=t.selectionEnd,value=t.value;const before=value.slice(0,start),mid=value.slice(start,end)||'texto colorido',after=value.slice(end);t.value=before+'[cor='+c.value+']'+mid+'[/cor]'+after;t.focus();t.setSelectionRange(start+5+c.value.length,start+5+c.value.length+mid.length);t.dispatchEvent(new Event('input',{bubbles:true}))}
 
