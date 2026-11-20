@@ -762,3 +762,45 @@ html.performance-mode #page .ae-ficha-v2 *{animation:none!important;transition:n
 html.performance-mode #page .ae-ficha-v2 .ae-ability-pin,
 html.performance-mode #page .ae-ficha-v2 .ae-ficha-ability-card,
 html.performance-mode #page .ae-ficha-v2 .ae-ficha-quick-card{transition:none!important;transform:none!important}
+
+
+/* Resumo: duas ações de sessão, sem comprometer o layout do HUD. */
+#page .ae-ficha-session-controls{
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+ gap:13px 20px;min-width:0;padding:14px 17px;
+ border:1px solid var(--ae-ficha-line);border-radius:9px;
+ background:linear-gradient(115deg,color-mix(in srgb,var(--theme-cold) 8%,var(--theme-panel)),var(--theme-panel))
+}
+#page .ae-ficha-session-title{display:grid;gap:4px;min-width:0}
+#page .ae-ficha-session-title>span{font-size:9px;font-weight:850;letter-spacing:.13em;color:var(--theme-cold)}
+#page .ae-ficha-session-title>strong{
+ font:850 17px/1.1 'Barlow Condensed',Impact,sans-serif;
+ color:var(--theme-text);text-transform:uppercase
+}
+#page .ae-ficha-session-buttons{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#page .ae-ficha-session-buttons button{
+ min-height:37px;border:1px solid var(--ae-ficha-line);border-radius:5px;
+ padding:9px 13px;font:850 10px/1.25 Manrope,system-ui,sans-serif;
+ letter-spacing:.06em;cursor:pointer;transition:background-color .14s,border-color .14s;
+ color:var(--theme-text);background:color-mix(in srgb,var(--theme-cold) 8%,var(--theme-panel))
+}
+#page .ae-ficha-session-buttons button:hover{
+ border-color:var(--theme-cold);
+ background:color-mix(in srgb,var(--theme-cold) 17%,var(--theme-panel))
+}
+#page .ae-ficha-session-buttons .ae-ficha-session-toggle.is-off{
+ border-color:color-mix(in srgb,var(--theme-accent) 75%,var(--ae-ficha-line));
+ background:color-mix(in srgb,var(--theme-accent) 14%,var(--theme-panel))
+}
+#page .ae-ficha-session-buttons .ae-ficha-session-reset{
+ border-color:color-mix(in srgb,var(--theme-accent) 50%,var(--ae-ficha-line))
+}
+@media(max-width:590px){
+ #page .ae-ficha-session-controls{padding:13px}
+ #page .ae-ficha-session-buttons{width:100%}
+ #page .ae-ficha-session-buttons button{flex:1 1 auto}
+}
+@media(prefers-reduced-motion:reduce){
+ #page .ae-ficha-session-buttons button{transition:none!important}
+}
+html.performance-mode #page .ae-ficha-session-buttons button{transition:none!important}
