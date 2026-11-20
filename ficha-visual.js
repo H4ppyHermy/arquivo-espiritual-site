@@ -137,7 +137,7 @@
  function abilities(s,ctx){
   if(lastAbilitySheet!==s.id){abilityKind='Todas';lastAbilitySheet=s.id}
   const list=s.abilities||[],sections=[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']];
-  return '<div class="ae-ficha-abilities" data-ability-filter="'+abilityKind+'"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Habilidades & Técnicas</h2></div>'+
+  return '<div class="ae-ficha-abilities" data-ability-view="'+abilityKind+'"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Habilidades & Técnicas</h2></div>'+
    (ctx.canEdit?'<div class="ae-ficha-ability-create-actions">'+
     api.btn('+ HABILIDADE','newAbilityDirect','main')+
     api.btn('EXPORTAR','exportAbilities','small')+'</div>':'')+'</div>'+
@@ -280,7 +280,7 @@
    abilityKind=type;
    const root=typeBtn.closest('.ae-ficha-abilities');
    if(!root)return;
-   root.dataset.abilityFilter=type;
+   root.dataset.abilityView=type;
    for(const button of root.querySelectorAll('[data-ability-filter]')){
     const active=button.dataset.abilityFilter===type;
     button.classList.toggle('is-active',active);
