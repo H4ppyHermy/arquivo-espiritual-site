@@ -32,6 +32,7 @@ BEGIN
  IF coalesce((sh->>'redacted')::boolean,false) AND key_kind<>'master' THEN RAISE EXCEPTION 'Ficha indisponível.';END IF;
  IF key_kind='player' AND NOT public.ae_sheet_linked(sh,key_id,key_sheet) THEN RAISE EXCEPTION 'Ficha não vinculada.';END IF;
  combat=coalesce(sh->'combat','{}'::jsonb);
+ combat=combat||jsonb_build_object('cbb',coalesce(combat->'cbb','{}'::jsonb));
  exposures=coalesce(sh->'exposures','{}'::jsonb);
  rt=coalesce(sh->'abilityRuntime','{}'::jsonb);
  scene_num=greatest(1,coalesce((combat->>'scene')::integer,1));
