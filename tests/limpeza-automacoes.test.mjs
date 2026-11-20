@@ -24,9 +24,9 @@ test('scripts extintos de combate realmente foram excluídos',()=>{
 });
 test('editor de personagem mantém registros e não oferece automação antiga',()=>{
  assert.match(app,/<h3>HABILIDADES<\/h3>/);
- assert.match(app,/function abilityDescriptionField\\(ab,i\\)/);
+ assert.match(app,/function abilityDescriptionField\(ab,i\)/);
  assert.match(app,/textarea readonly aria-readonly="true"/);
- assert.match(app,/if\\(key==='description'&&!master\\(\\)\\)return/);
+ assert.match(app,/if\(key==='description'&&!master\(\)\)return/);
  assert.match(app,/Registros manuais: descreva o efeito/);
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function newSheet\(/);
