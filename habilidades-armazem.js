@@ -1,4 +1,4 @@
-/* Técnicas livres e habilidades raciais oficiais do Bleach CBB.
+/* Técnicas e habilidades raciais oficiais do Bleach CBB.
    Registros de leitura do Armazém; não aplicam efeitos automaticamente. */
 window.ARQUIVO_HABILIDADES_CBB = [
   {
@@ -43,6 +43,23 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "published": true,
     "grants": {
       "race": [],
+      "class": []
+    }
+  },
+  {
+    "id": "habilidade-instinto-primario",
+    "category": "Habilidades",
+    "title": "Instinto Primário",
+    "summary": "",
+    "image": "",
+    "tags": "Racial, Arrancar",
+    "cost": "2 ALMA",
+    "content": "Sua perícia Instinto passa a ser d10. Durante a criação da ficha, escolha três perícias que poderão ser substituídas por Instinto. Ao obter uma Falha Crítica em um teste de Instinto, perde sua reação da rodada. Caso já tenha utilizado sua reação, perde a da rodada seguinte.",
+    "published": true,
+    "grants": {
+      "race": [
+        "Arrancar"
+      ],
       "class": []
     }
   },
