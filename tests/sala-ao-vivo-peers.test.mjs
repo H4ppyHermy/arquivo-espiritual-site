@@ -122,6 +122,10 @@ function createHub(){
    }
    async setRemoteDescription(desc){
     this.remoteDescription=desc;
+    // Em navegadores reais, a oferta cria m-lines na resposta automaticamente.
+    if(desc.type==='offer'&&!this.transceivers.length){
+     for(const kind of ['audio','video','video'])this.addTransceiver(kind);
+    }
     this.signalingState=desc.type==='offer'?'have-remote-offer':'stable';
     if(desc.type==='answer'){this.connectionState='connected';this.onconnectionstatechange?.()}
    }
