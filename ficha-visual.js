@@ -130,7 +130,9 @@
  function abilities(s,ctx){
   const list=s.abilities||[],sections=[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']];
   return '<div class="ae-ficha-abilities"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Habilidades</h2></div>'+
-   (ctx.canEdit?api.btn('+ HABILIDADE','newAbilityDirect','main'):'')+'</div>'+
+   (ctx.canEdit?'<div class="ae-ficha-ability-create-actions">'+
+    api.btn('+ HABILIDADE','newAbilityDirect','main')+
+    api.btn('EXPORTAR','exportAbilities','small')+'</div>':'')+'</div>'+
    sections.map(([section,label])=>{
     const entries=list.map((x,i)=>({ab:x,index:i})).filter(({ab})=>{
       const t=abilityCategory(ab);return section==='other'?!['active','passive'].includes(t):t===section;
