@@ -139,10 +139,27 @@
  }
  function resultMarkup(data){
   const r=data.result,calc=engine.rollSummary(r),kind=data.mode;
-  const parts=calc.dice.map(x=>'<span class="ae-cbb-die">'+enc(x)+'</span>').join('');
-  const base='<div class="ae-cbb-result-head"><strong>'+enc(kind==='teste'?'TESTE VERIFICADO':kind==='dano'?'DANO-BASE':kind==='resistencia'?'RESISTÊNCIA':'RECUPERAÇÃO')+'</strong> <small>REGISTRO #'+enc(r.id||'')+(r.protectionId?' + #'+enc(r.protectionId):'')+'</small></div>'+
-   '<div class="ae-cbb-pills">'+pill('RT',calc.rt)+pill('RA',calc.ra)+pill('RB',calc.rb)+
-    (calc.special?pill('CRÍTICO',calc.special):'')+'</div><div class="ae-cbb-dice">'+parts+'</div>';
+  const dice=Array.isArray(r.dice)?r.dice:[],colors=Array.isArray(r.colors)?r.colors:[];
+  const label=kind==='teste'?'TESTE VERIFICADO':kind==='dano'?'DANO-BASE':kind==='resistencia'?'RESISTÊNCIA':'RECUPERAÇÃO';
+  const critical=calc.special==='CRÍTICO MÁXIMO'||calc.special==='CRÍTICO';
+  const failure=calc.special==='FALHA CRÍTICA';
+  const tokens=dice.map((d,i)=>{
+   const size=Number(d?.sides)||4,raw=Number(d?.value)||0,effective=Number(d?.effective??raw);
+   const verifiedColor=typeof colors[i]==='string'&&/^#[0-9a-fA-F]{6}$/.test(colors[i])?colors[i]:null;
+   const fallback=i===0?'var(--sheet-dice-group,var(--theme-accent))':'var(--sheet-dice-skill,var(--theme-cold))';
+   const isModified=raw!==effective;
+   const status=d?.canceled?' ANULADO':d?.criticalApplied?' CRÍTICO':d?.maximized?' MAXIMIZADO':'';
+   return '<div class="ae-cbb-die'+(d?.canceled?' is-canceled':d?.criticalApplied?' is-critical':'')+
+    '" data-sides="'+size+'" style="--cbb-die-color:'+(verifiedColor||fallback)+'" title="Dado de '+size+' faces'+status+'">'+
+    '<span class="ae-cbb-die-kind">d'+size+'</span><strong>'+raw+'</strong>'+
+    (isModified?'<span class="ae-cbb-die-mod">→ '+effective+'</span>':'')+
+    (status?'<span class="ae-cbb-die-status">'+status.trim()+'</span>':'')+'</div>';
+  }).join('');
+  const header='<div class="ae-cbb-result-head"><strong>'+enc(label)+'</strong><small>REGISTRO #'+enc(r.id||'')+
+   (r.protectionId?' + #'+enc(r.protectionId):'')+'</small></div>';
+  const figures='<div class="ae-cbb-roll-layout"><div class="ae-cbb-total"><span>RT</span><strong>'+enc(calc.rt)+
+   '</strong></div><div class="ae-cbb-roll-secondary">'+pill('RA',calc.ra)+pill('RB',calc.rb)+
+   (calc.special?pill('CRÍTICO',calc.special):'')+'</div></div>';
   const effect=[];
   if(r.fearDie)effect.push('Pavor d'+r.fearDie+': '+r.fearRoll+(r.fearClear?' · superado':''));
   if(r.hollowDie)effect.push('Hollowficação d6: '+r.hollowRoll+(r.hollowLost?' · Falha Crítica: perda de controle':''));
@@ -150,7 +167,9 @@
   if(data.clash)effect.push('Teste-Clash: '+(data.clash.win?'vitória':'derrota')+' · '+data.clash.reason);
   if(kind==='dano')effect.push('RA incorporada ao dano: '+(r.attack_ra||0)+'. Confirme o acerto antes de aplicar.');
   if(kind==='resistencia')effect.push('Reutilize esta resistência contra ataques ao mesmo recurso nesta fase.');
-  return base+(effect.length?'<p class="ae-cbb-result-message">'+enc(effect.join(' · '))+'</p>':'');
+  return '<div class="ae-cbb-result-shell'+(critical?' is-critical':failure?' is-failure':'')+'">'+header+figures+
+   '<div class="ae-cbb-dice">'+tokens+'</div>'+
+   (effect.length?'<p class="ae-cbb-result-message">'+enc(effect.join(' · '))+'</p>':'')+'</div>';
  }
  const responseField=(s,result,mode,dt,clash)=>{lastResults.set(s.id,{result,mode,dt,clash});const node=document.querySelector('.ae-cbb-mesa .ae-cbb-result');if(node)node.innerHTML=resultMarkup({result,mode,dt,clash});};
  const lockResult=(button,locked)=>{if(button){button.disabled=locked;button.setAttribute('aria-busy',String(locked));}};
@@ -202,7 +221,8 @@
       const second=extra.dice[0];
       updated={...updated,dice:[original,second],rt:Number(original.value)+Number(second.value),
        ra:Math.max(Number(original.value),Number(second.value)),
-       rb:Math.min(Number(original.value),Number(second.value)),protectionId:extra.id};
+       rb:Math.min(Number(original.value),Number(second.value)),protectionId:extra.id,
+       colors:[...(cached.natural.colors||[]),...(extra.colors||[])]};
      }
      cached.count=count;cached.faces=faces;cached.current=updated;
      responseField(s,updated,'resistencia',null,null);
@@ -242,7 +262,7 @@
  async function executeAction(root,button,cmd){
   const s=sheet(),sync=global.ARQUIVO_SYNC;if(!s||!api.canEditSheet(s.id)||!sync?.cbbAction)throw Error('Chave sem permissão de edição.');
   const args={p_sheet_id:s.id,p_action:cmd,p_ability_index:null,p_resource:null,p_value:null,p_exposure:null};
-  if(cmd==='ability'||cmd==='deactivate')args.p_ability_index=normalize(button.dataset.cbbIndex,0,99,'índice da habilidade');
+  if(cmd==='ability'||cmd==='deactivate'||cmd==='pin')args.p_ability_index=normalize(button.dataset.cbbIndex,0,99,'índice da habilidade');
   if(cmd==='party')args.p_value=normalize(button.dataset.cbbParty,6,8,'jogadores');
   if(cmd==='adjust'){
    args.p_resource=read(root,'adjustResource','vida');
@@ -256,8 +276,8 @@
   }
   const response=await sync.cbbAction(args);
   if(!response?.ok)throw Error('O servidor não confirmou a ação.');
-  for(const key of ['resources','combat','exposures','abilityRuntime','boss'])if(response[key])s[key]=response[key];
-  statusBySheet.set(s.id,response.info?.chargedCost!==undefined?'Custo: '+response.info.chargedCost+' ALMA':cmd==='party'?'Confronto ajustado para '+args.p_value+' jogadores.':'Ação registrada.');
+  for(const key of ['resources','combat','exposures','abilityRuntime','boss','pinnedAbilities'])if(response[key])s[key]=response[key];
+  statusBySheet.set(s.id,response.info?.chargedCost!==undefined?'Custo: '+response.info.chargedCost+' ALMA':cmd==='party'?'Confronto ajustado para '+args.p_value+' jogadores.':cmd==='pin'?(response.info?.active?'Habilidade fixada no Resumo.':'Habilidade desafixada.'):'Ação registrada.');
   api.render();
  }
  function switchMode(s,mode,root){
