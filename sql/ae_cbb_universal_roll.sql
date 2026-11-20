@@ -55,6 +55,9 @@ BEGIN
  IF coalesce((sh->>'masterOnly')::boolean,false) AND key_kind<>'master' THEN RAISE EXCEPTION 'Ficha exclusiva do mestre.';END IF;
  IF coalesce((sh->>'redacted')::boolean,false) AND key_kind<>'master' THEN RAISE EXCEPTION 'Ficha indisponível.';END IF;
  IF key_kind='player' AND NOT public.ae_sheet_linked(sh,key_id,key_sheet) THEN RAISE EXCEPTION 'Ficha não vinculada.';END IF;
+ IF coalesce((sh->>'automationEnabled')::boolean,true)=false THEN
+  RAISE EXCEPTION 'Automação desativada nesta ficha.';
+ END IF;
  group_color=sh->'appearance'->>'diceGroup';skill_color=sh->'appearance'->>'diceSkill';
  IF coalesce(group_color,'') !~ '^#[0-9a-fA-F]{6}$' THEN group_color='#FF7A1A';END IF;
  IF coalesce(skill_color,'') !~ '^#[0-9a-fA-F]{6}$' THEN skill_color='#4CC9F0';END IF;
