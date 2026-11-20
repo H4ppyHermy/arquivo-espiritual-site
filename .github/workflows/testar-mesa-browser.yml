@@ -1,0 +1,26 @@
+name: Teste Mesa interativa no navegador
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cbb-engine.js'
+      - 'cbb-interativo.js'
+      - 'cbb-interativo.css'
+      - 'e2e/mesa-**'
+      - '.github/workflows/testar-mesa-browser.yml'
+  workflow_dispatch:
+jobs:
+  mesa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar Chrome driver
+        run: npm install --no-save --no-audit --no-fund puppeteer-core@24.26.0
+      - name: Testar interface com Chrome
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: node --test e2e/mesa-browser.test.mjs

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Mesa — teste de passos e condições</title>
+<link rel="stylesheet" href="/cbb-interativo.css">
+</head><body><div id="page"></div>
+<script>
+window.__rolls=[];
+const skills=Object.fromEntries(['Vigor','Fortitude','Destreza','Atenção','Sigilo','Precisão',
+'Cultura','Determinação','Raciocínio','Tática','Instinto','Lábia',
+'Presença','Sensibilidade','Integridade','Disciplina','Manipulação','Liberação'].map(x=>[x,6]));
+skills.Raciocínio=8;
+const s={id:'mesa-e2e',name:'Personagem de teste',conditions:['Confuso'],
+groups:{Corpo:6,Mente:6,Espírito:6},skills,
+resources:{vida:{current:30,max:30},estabilidade:{current:20,max:20},alma:{current:10,max:10}},
+combat:{scene:1,round:1,phase:'duelo',reactionUsed:false},exposures:{ofensiva:1,defensiva:0},
+abilities:[],abilityRuntime:{}};
+const api={db:{sheets:[s]},currentSheet:s.id,
+ canEditSheet:()=>true,master:()=>true,
+ esc:x=>String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'),
+ render(){document.getElementById('page').innerHTML=window.ARQUIVO_CBB_UI.render(s,{canEdit:true,master:true})},
+ toast(title,body){window.__error=title+': '+body}};
+window.ARQUIVO_INTERNAL=api;
+window.ARQUIVO_SYNC={state:{enabled:true,identity:{id:'test-master'}},
+ async cbbRoll(args){
+  window.__rolls.push(args);
+  return {id:window.__rolls.length,rt:8,ra:5,rb:3,groupDie:6,skillDie:6,
+   dice:[{sides:6,value:3},{sides:6,value:5}],colors:['#F06D45','#43A8F0'],
+   autoGroupSteps:0,autoSkillSteps:-2,special:''};
+ },
+ async cbbAction(){return {ok:true}}
+};
+window.__sheet=s;
+</script>
+<script src="/cbb-engine.js"></script>
+<script src="/cbb-interativo.js"></script>
+<script>window.ARQUIVO_INTERNAL.render()</script>
+</body></html>
