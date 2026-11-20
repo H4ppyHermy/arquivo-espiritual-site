@@ -53,7 +53,7 @@ function setup(){
 const settings=(tab='summary',canEdit=true)=>({tab,groups,canEdit,master:false,links:0,
  style:'--theme-accent:#33d4ef;',body:'<section class="existing-panel">Painel manual preservado</section>',
  history:'<div class="history">Histórico de rolagem existente</div>'});
-test('ficha reconstruída preserva hero, retrato, recursos e navegação por nove seções',()=>{
+test('ficha reconstruída preserva hero, retrato, recursos e navegação por dez seções',()=>{
  const {view}=setup(),html=view.render(example(),settings());
  assert.match(html,/ae-ficha-v2/);
  assert.match(html,/ae-ficha-hero/);
@@ -63,7 +63,7 @@ test('ficha reconstruída preserva hero, retrato, recursos e navegação por nov
  assert.match(html,/data-tab="guide"/);
  const nav=html.slice(html.indexOf('class="ae-ficha-navigation"'));
  assert.ok(nav.indexOf('data-tab="identification"')<nav.indexOf('data-tab="abilities"'));
- assert.equal((html.match(/class="ae-ficha-nav-button/g)||[]).length,9);
+ assert.equal((html.match(/class="ae-ficha-nav-button/g)||[]).length,10);
  assert.match(html,/aria-valuenow="20"/);
  assert.match(html,/aria-valuemax="30"/);
  assert.match(html,/data-action="editResource:vida"/);
@@ -131,9 +131,9 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  assert.match(app,/window\.ARQUIVO_FICHA_VISUAL\?\.upgradeEditor\?\.\(\)/);
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function updateDraft\(target\)/);
- assert.match(html,/ficha-visual\.js\?v=14/);
+ assert.match(html,/ficha-visual\.js\?v=15/);
  assert.match(html,/ficha-visual\.css\?v=12/);
- assert.ok(html.indexOf('arquivo-app.js?v=23')<html.indexOf('ficha-visual.js?v=14'));
+ assert.ok(html.indexOf('arquivo-app.js?v=23')<html.indexOf('ficha-visual.js?v=15'));
 });
 
 test('cabeçalho não inventa raça e os títulos não recebem numeração',()=>{
