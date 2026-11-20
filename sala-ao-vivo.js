@@ -11,12 +11,12 @@ const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;
 const state={
  session:null,participants:[],joined:false,joining:false,connecting:false,
  hudChoices:[],hudChoicesReady:false,hideAllNumbers:false,
- hudChoices:[],hudChoicesReady:false,hideAllNumbers:false,
  channel:null,peers:new Map(),presence:new Map(),hud:new Map(),pendingSignals:new Map(),
  selfId:null,accountId:null,local:null,
  camera:null,microphone:null,screen:null,screenAudio:null,
  quality:'balanced',sound:true,spotlight:null,status:'',error:'',
  busy:false,lastPresence:0,lobbyBusy:false,
+ presenceSignature:'',presenceTimer:null,joinedAt:0,
  lobbyTimer:null,roomTimer:null,hudTimer:null,rtcTimer:null,lastHudAt:0
 };
 const quality={
@@ -42,11 +42,27 @@ function localPresence(){
   name:display().slice(0,80),sheetId:localSheet(),
   master:!!state.local?.is_master,
   camera:!!state.camera,microphone:!!state.microphone,
-  screen:!!state.screen,connectedAt:Date.now()};
+  screen:!!state.screen,connectedAt:state.joinedAt};
 }
 async function trackPresence(){
  if(!state.channel||!state.joined)return;
- await state.channel.track(localPresence());
+ const data=localPresence();
+ const signature=JSON.stringify([data.peerId,data.accountId,data.name,data.sheetId,
+  data.master,data.camera,data.microphone,data.screen]);
+ if(signature===state.presenceSignature)return;
+ const wait=1700-(Date.now()-state.lastPresence);
+ if(wait>0){
+  if(!state.presenceTimer)state.presenceTimer=setTimeout(()=>{
+   state.presenceTimer=null;trackPresence().catch(e=>status('Presença não enviada: '+e.message,true));
+  },wait);
+  return;
+ }
+ if(state.presenceTimer){clearTimeout(state.presenceTimer);state.presenceTimer=null}
+ state.lastPresence=Date.now();
+ try{
+  await state.channel.track(data);
+  state.presenceSignature=signature;
+ }catch(e){state.presenceSignature='';throw e}
 }
 function setTimer(name,handler,ms){if(state[name])clearInterval(state[name]);state[name]=setInterval(handler,ms)}
 function clearTimers(){
@@ -594,6 +610,7 @@ async function openRoom(){
   if(!self?.account_id||!self?.session_id)throw Error('A entrada não foi confirmada.');
   state.local=self;state.accountId=self.account_id;
   state.selfId=global.crypto?.randomUUID?.()||'';
+  state.joinedAt=Date.now();state.presenceSignature='';state.lastPresence=0;
   if(!validId.test(state.selfId))throw Error('Identificação de conexão indisponível.');
   state.joined=true;state.quality='balanced';state.error='';
   const channel=st.client.channel('ae-video-'+self.session_id,{config:{
@@ -712,6 +729,8 @@ async function toggleScreen(){
 }
 async function leave(notify=true){
  clearTimers();
+ if(state.presenceTimer){clearTimeout(state.presenceTimer);state.presenceTimer=null}
+ state.presenceSignature='';state.lastPresence=0;state.joinedAt=0;
  for(const id of Array.from(state.peers.keys()))removePeer(id);
  const ch=state.channel;state.channel=null;
  if(ch){try{await ch.untrack()}catch(e){}try{await sync()?.state.client?.removeChannel(ch)}catch(e){}}
