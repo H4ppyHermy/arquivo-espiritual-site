@@ -279,9 +279,9 @@
     '<div class="ae-wh-editor-grants" id="warehouseGrantFields"'+(single?'':' hidden')+'>'+
      '<strong>CONCESSÃO AUTOMÁTICA</strong><p>Indique quais raças ou classes recebem esta habilidade automaticamente. Separe múltiplos nomes por vírgula.</p>'+
      '<div class="ae-wh-editor-grants-grid"><label>Raças contempladas<input id="warehouseGrantRaces" maxlength="300" value="'+
-      esc((window.ARQUIVO_ORIGENS?.requirements?.(p).race||[]).join(', '))+'" placeholder="Ex.: Arrancar"></label>'+
+      esc((window.ARQUIVO_ORIGENS?.requirements?.(p).race||p.grants?.race||[]).join(', '))+'" placeholder="Ex.: Arrancar"></label>'+
      '<label>Classes contempladas<input id="warehouseGrantClasses" maxlength="300" value="'+
-      esc((window.ARQUIVO_ORIGENS?.requirements?.(p).class||[]).join(', '))+'" placeholder="Ex.: Coração de Aço"></label></div></div>'+
+      esc((window.ARQUIVO_ORIGENS?.requirements?.(p).class||p.grants?.class||[]).join(', '))+'" placeholder="Ex.: Coração de Aço"></label></div></div>'+
     '<div class="ae-wh-editor-tags"><label>Tags <span class="ae-wh-field-helper">Separe por vírgulas · máximo de 8</span>'+
      '<input id="warehouseTagsInput" maxlength="220" value="'+esc(p.tags||'')+'" placeholder="Ex.: Mobilidade, Defesa, Hohō"></label>'+
     '<div id="warehouseTagPreview" class="ae-wh-editor-tag-preview">'+parseTags(p.tags).map(t=>
