@@ -11,16 +11,20 @@ DECLARE ac_id uuid; key_id uuid;key_kind text;key_sheet text;doc jsonb;sh jsonb;
  need_main boolean:=false;need_reaction boolean:=false;is_locked boolean:=false;
  state_key text;v_mode text;v_limit text;desc_text text;
  extra_main integer;extra_reaction integer;uses_in_scene integer;
- v_result jsonb;rows jsonb;v_rev bigint;change_target text;rhythm_level integer;hit_count integer;raised_round integer;pending_rhythm boolean;phase_req text;ability_ix integer;pin_key text;pins jsonb;pin_position integer;boss_ratio numeric;boss_partner jsonb;boss_party jsonb;party_old integer;party_new integer;vida_step integer;max_old integer;max_new integer;current_old integer;
+ v_result jsonb;rows jsonb;v_rev bigint;change_target text;rhythm_level integer;hit_count integer;raised_round integer;pending_rhythm boolean;phase_req text;ability_ix integer;pin_key text;pins jsonb;pin_position integer;boss_ratio numeric;boss_partner jsonb;boss_party jsonb;party_old integer;party_new integer;vida_step integer;max_old integer;max_new integer;current_old integer;initial_meters jsonb;meter_key text;meter_initial integer;origin_post text;origin_content text;meter_match text[];
 BEGIN
  IF p_sheet_id IS NULL OR length(p_sheet_id)>150 OR p_action NOT IN
-  ('ability','deactivate','main','reaction','phase','round','scene','adjust','expose','contain','commit','hit','party','pin')
+  ('ability','deactivate','main','reaction','phase','round','scene','adjust','expose','contain','commit','hit','party','pin','toggleAutomation','reset')
  THEN RAISE EXCEPTION 'Ação inválida.';END IF;
  SELECT a.id,k.id,k.kind,k.sheet_id INTO ac_id,key_id,key_kind,key_sheet
  FROM public.ae_sessions se JOIN public.ae_accounts a ON a.id=se.account_id AND a.key_id=se.key_id
  JOIN public.ae_keys k ON k.id=se.key_id AND k.active WHERE se.user_id=auth.uid() LIMIT 1;
  IF ac_id IS NULL OR key_kind NOT IN ('master','player') THEN RAISE EXCEPTION 'Entre para usar a ficha.';END IF;
  IF p_action='deactivate' THEN
+  SELECT x.value INTO sh FROM public.ae_document d
+   CROSS JOIN LATERAL jsonb_array_elements(coalesce(d.data->'sheets','[]'::jsonb)) x(value)
+   WHERE d.id=1 AND x.value->>'id'=p_sheet_id LIMIT 1;
+  IF coalesce((sh->>'automationEnabled')::boolean,true)=false THEN RAISE EXCEPTION 'Automação desativada nesta ficha.';END IF;
   IF p_ability_index IS NULL OR p_ability_index NOT BETWEEN 0 AND 99 THEN RAISE EXCEPTION 'Habilidade inválida.';END IF;
   v_result=public.ae_ability_deactivate(p_sheet_id,p_ability_index);
   SELECT d.revision,x.value INTO v_rev,sh FROM public.ae_document d
@@ -45,7 +49,51 @@ BEGIN
  phase=coalesce(combat->>'phase','preparacao');
  extra_main=greatest(0,coalesce((combat#>>'{cbb,extraMain}')::integer,0));
  extra_reaction=greatest(0,coalesce((combat#>>'{cbb,extraReaction}')::integer,0));
- IF p_action='pin' THEN
+ IF coalesce((sh->>'automationEnabled')::boolean,true)=false
+    AND p_action NOT IN ('pin','toggleAutomation','reset')
+ THEN RAISE EXCEPTION 'Automação desativada nesta ficha.';END IF;
+ IF p_action='toggleAutomation' THEN
+  sh=jsonb_set(sh,'{automationEnabled}',
+    to_jsonb(NOT coalesce((sh->>'automationEnabled')::boolean,true)),true);
+  v_result=jsonb_build_object('enabled',sh->'automationEnabled');
+ ELSIF p_action='reset' THEN
+  IF key_kind<>'master' THEN RAISE EXCEPTION 'Somente o mestre pode reiniciar fichas.';END IF;
+  -- Reconstrói apenas estado transitório. Identidade, talentos, inventário,
+  -- fichas vinculadas, notas, pins e escolha de participantes são preservados.
+  FOR change_target IN SELECT value FROM jsonb_array_elements_text('["vida","estabilidade","alma"]'::jsonb)
+  LOOP
+   max_resource=greatest(0,coalesce((sh->'resources'->change_target->>'max')::integer,0));
+   sh=jsonb_set(sh,ARRAY['resources',change_target,'current'],to_jsonb(max_resource),true);
+  END LOOP;
+  sh=jsonb_set(sh,'{conditions}','[]'::jsonb,true);
+  sh=jsonb_set(sh,'{exposures}','{"defensiva":0,"ofensiva":0,"ritmica":0}'::jsonb,true);
+  sh=jsonb_set(sh,'{restCount}','0'::jsonb,true);
+  sh=jsonb_set(sh,'{desgaste}','0'::jsonb,true);
+  initial_meters='{}'::jsonb;
+  FOR meter_key IN SELECT x.key FROM jsonb_each(coalesce(sh#>'{abilityRuntime,originMeters}','{}'::jsonb)) x
+  LOOP
+   meter_initial=0;
+   origin_post=split_part(meter_key,':',2);
+   SELECT p->>'content' INTO origin_content
+     FROM jsonb_array_elements(coalesce(doc#>'{site,warehouse,posts}','[]'::jsonb)) p
+     WHERE p->>'id'=origin_post LIMIT 1;
+   -- Mesmo cálculo genérico das iniciações explícitas de classe/raça.
+   IF origin_content IS NOT NULL THEN
+    meter_match=regexp_match(origin_content,
+     '(?:começa|inicia)[^.!?\n]{0,100}?com\s+\[(?:sequencia|barra|marca|contador):\s*([0-9]+)', 'i');
+    IF meter_match IS NOT NULL THEN meter_initial=greatest(0,least(100,(meter_match[1])::integer));END IF;
+   END IF;
+   initial_meters=jsonb_set(initial_meters,ARRAY[meter_key],to_jsonb(meter_initial),true);
+  END LOOP;
+  sh=jsonb_set(sh,'{abilityRuntime}',jsonb_build_object('originMeters',initial_meters),true);
+  combat=jsonb_build_object('scene',1,'round',1,'phase','preparacao',
+   'mainUsed',false,'reactionUsed',false,'committedUsed',false,'pressureHits',0,
+   'cbb',jsonb_build_object(
+     'extraMain',greatest(0,least(2,coalesce((sh#>>'{boss,tempo,extraMain}')::integer,0))),
+     'extraReaction',greatest(0,least(2,coalesce((sh#>>'{boss,tempo,extraReaction}')::integer,0)))));
+  exposures=sh->'exposures';
+  v_result=jsonb_build_object('reset',true);
+ ELSIF p_action='pin' THEN
   IF p_ability_index IS NULL OR p_ability_index NOT BETWEEN 0 AND 99
    OR jsonb_typeof(sh->'abilities')<>'array' OR p_ability_index>=jsonb_array_length(sh->'abilities')
   THEN RAISE EXCEPTION 'Habilidade inexistente.';END IF;
@@ -260,7 +308,12 @@ BEGIN
  UPDATE public.ae_document SET data=jsonb_set(doc,'{sheets}',rows),revision=revision+1,changed_at=now()
  WHERE id=1 RETURNING revision INTO v_rev;
  RETURN jsonb_build_object('ok',true,'revision',v_rev,'resources',sh->'resources','combat',sh->'combat',
-   'exposures',sh->'exposures','abilityRuntime',sh->'abilityRuntime','pinnedAbilities',coalesce(sh->'pinnedAbilities','[]'::jsonb),'boss',sh->'boss','info',coalesce(v_result,'{}'::jsonb));
+   'exposures',sh->'exposures','abilityRuntime',sh->'abilityRuntime','pinnedAbilities',coalesce(sh->'pinnedAbilities','[]'::jsonb),'boss',sh->'boss',
+    'automationEnabled',coalesce(sh->'automationEnabled','true'::jsonb),
+    'conditions',coalesce(sh->'conditions','[]'::jsonb),
+    'restCount',coalesce(sh->'restCount','0'::jsonb),
+    'desgaste',coalesce(sh->'desgaste','0'::jsonb),
+    'info',coalesce(v_result,'{}'::jsonb));
 END $cbb$;
 REVOKE ALL ON FUNCTION public.ae_cbb_action(text,text,integer,text,integer,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.ae_cbb_action(text,text,integer,text,integer,text) TO authenticated;
