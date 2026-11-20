@@ -141,3 +141,27 @@ test('código protege títulos e tags contra HTML malicioso e não insere rascun
  assert.doesNotMatch(html,/<img|<script>/);
  assert.doesNotMatch(html,/Rascunho privado/);
 });
+
+test('Exportar permite associar várias técnicas a uma categoria existente da ficha',()=>{
+ const ctx=setup();
+ ctx.sheet.abilityGroups=[{id:'ressurreicao',name:'Ressurreição'}];
+ ctx.nodes.aeExportAbilityGroup={value:'ressurreicao'};
+ ctx.click('exportAbilities');
+ assert.match(ctx.modal.body,/ADICIONAR À CATEGORIA DA FICHA/);
+ assert.match(ctx.modal.body,/Ressurreição/);
+ ctx.select('tecnica-mira-estavel',true);
+ ctx.select('tecnica-fogo-cobertura',true);
+ ctx.click('applyExportAbilities');
+ assert.equal(ctx.sheet.abilities.length,2);
+ assert.deepEqual(Array.from(ctx.sheet.abilities,ab=>ab.groupId),['ressurreicao','ressurreicao']);
+});
+test('Categoria desconhecida no exportador não é gravada na ficha',()=>{
+ const ctx=setup();
+ ctx.sheet.abilityGroups=[{id:'ressurreicao',name:'Ressurreição'}];
+ ctx.nodes.aeExportAbilityGroup={value:'outra-ficha'};
+ ctx.click('exportAbilities');
+ ctx.select('tecnica-mira-estavel',true);
+ ctx.click('applyExportAbilities');
+ assert.equal(ctx.sheet.abilities.length,1);
+ assert.equal(ctx.sheet.abilities[0].groupId,undefined);
+});
