@@ -1205,7 +1205,7 @@ function finishRollFeedback(){
 function historyDiceColors(x){const safe=c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c)?c:null;return (Array.isArray(x.colors)?x.colors:[]).map(safe)}
 function historyDie(d,i,colors){const color=colors[i],sides=Number(d.sides),value=Number(d.value),eff=d.effective===undefined?value:Number(d.effective);return `<span class="history-die" ${color?`style="--history-die:${color}"`:''} aria-label="d${sides}, resultado ${value}, efetivo ${eff}"><span class="history-die-faces">d${sides}</span><b class="history-die-value">${value}${value!==eff?' → '+eff:''}</b></span>`}
 function historyRollCard(x,unverified=false){
- const dice=Array.isArray(x.dice)?x.dice:[],colors=historyDiceColors(x),base=dice.reduce((a,d)=>a+Number(d.effective??d.value??0),0),special=x.special||'',critical=special==='CRÍTICO',failure=special==='FALHA CRÍTICA';
+ const dice=Array.isArray(x.dice)?x.dice:[],colors=historyDiceColors(x),base=dice.reduce((a,d)=>a+Number(d.effective??d.value??0),0),special=x.special||'',critical=['CRÍTICO','CRÍTICO MÁXIMO'].includes(special),failure=special==='FALHA CRÍTICA';
  const total=Number(x.total??base),account=x.account_name||'',character=x.character_name||'',kind=x.kind||'',label=x.label||'';
  const head=account?`${esc(account)}${character?' ('+esc(character)+')':''}`:(character?esc(character):'Rolagem local');
  const date=x.created_at?`<time datetime="${esc(x.created_at)}">${new Date(x.created_at).toLocaleString('pt-BR')}</time>`:'';
@@ -1215,7 +1215,7 @@ function historyRollCard(x,unverified=false){
  const allColors=colors.filter(Boolean),totalColor=allColors.length?(allColors[allColors.length-1]):null;
  return `<article class="history-card ${critical?'critical':failure?'failure':''}" ${totalColor&&!special?`style="--history-total:${totalColor}"`:''}>
  <div class="history-card-head"><span class="history-identity">${head}</span><span class="history-label">${title}</span>${rerolled?'<span class="history-rerolled">↻ RERROLOU</span>':''}${configured?'<span class="history-configured">⚙ CONFIGUROU</span>':''}${x.hidden?'<span class="history-hidden">OCULTA · MESTRE</span>':''}${unverified?'<span class="history-unverified">NÃO VERIFICADA</span>':''}</div>
- <div class="history-equation">${pieces}<span class="history-operator" aria-hidden="true">=</span>${critical?`<span class="history-base">${base} × 2</span><span class="history-operator" aria-hidden="true">=</span>`:''}<strong class="history-total">${total}</strong>${badge}</div>
+ <div class="history-equation">${pieces}<span class="history-operator" aria-hidden="true">=</span>${special==='CRÍTICO'?`<span class="history-base">${base} × 2</span><span class="history-operator" aria-hidden="true">=</span>`:''}<strong class="history-total">${total}</strong>${badge}</div>
  ${date?`<div class="history-date">${date}</div>`:''}</article>`;
 }
 function formatVerifiedRoll(x){return historyRollCard(x,false)}
@@ -1542,13 +1542,13 @@ function rolls(){return headline('MESA DE DADOS','ROLAGEM LIVRE','Escolha qualqu
 
 let activeRollImpact=null,rollImpactTimeout=null;
 function showRollImpact(special){
- if(!prefs.rollImpacts||motionOff()||!['CRÍTICO','FALHA CRÍTICA'].includes(special))return;
+ if(!prefs.rollImpacts||motionOff()||!['CRÍTICO','CRÍTICO MÁXIMO','FALHA CRÍTICA'].includes(special))return;
  if(activeRollImpact){activeRollImpact.remove();clearTimeout(rollImpactTimeout)}
- const node=document.createElement('div');node.className='roll-impact '+(special==='CRÍTICO'?'good':'bad');node.setAttribute('aria-hidden','true');
- if(special==='CRÍTICO')node.innerHTML='<svg viewBox="0 0 1000 700" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M500 345 L450 240 360 138 275 0 M500 345 L590 258 670 141 755 0 M500 345 L700 315 870 251 1000 225 M500 345 L651 452 764 545 1000 670 M500 345 L453 482 394 608 359 700 M500 345 L350 372 176 421 0 530 M500 345 L369 283 230 214 0 162"/><path class="fine" d="M450 240 L531 166 548 35 M360 138 L280 168 180 144 M590 258 L661 265 713 314 M670 141 L633 65 603 0 M700 315 L774 372 844 367 M651 452 L610 543 629 700 M764 545 L759 633 785 700 M453 482 L335 491 275 578 M394 608 L476 663 490 700 M350 372 L297 293 216 300 M176 421 L149 564 114 700 M369 283 L391 188 351 61"/><path d="M500 345 l-22 -38 17 -40 -29 -43 M500 345 l32 -22 22 6 35 -27 M500 345 l14 43 34 24 12 42 M500 345 l-46 9 -22 37 -46 15"/></svg>';
+ const node=document.createElement('div');node.className='roll-impact '+(['CRÍTICO','CRÍTICO MÁXIMO'].includes(special)?'good':'bad');node.setAttribute('aria-hidden','true');
+ if(['CRÍTICO','CRÍTICO MÁXIMO'].includes(special))node.innerHTML='<svg viewBox="0 0 1000 700" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M500 345 L450 240 360 138 275 0 M500 345 L590 258 670 141 755 0 M500 345 L700 315 870 251 1000 225 M500 345 L651 452 764 545 1000 670 M500 345 L453 482 394 608 359 700 M500 345 L350 372 176 421 0 530 M500 345 L369 283 230 214 0 162"/><path class="fine" d="M450 240 L531 166 548 35 M360 138 L280 168 180 144 M590 258 L661 265 713 314 M670 141 L633 65 603 0 M700 315 L774 372 844 367 M651 452 L610 543 629 700 M764 545 L759 633 785 700 M453 482 L335 491 275 578 M394 608 L476 663 490 700 M350 372 L297 293 216 300 M176 421 L149 564 114 700 M369 283 L391 188 351 61"/><path d="M500 345 l-22 -38 17 -40 -29 -43 M500 345 l32 -22 22 6 35 -27 M500 345 l14 43 34 24 12 42 M500 345 l-46 9 -22 37 -46 15"/></svg>';
  document.body.appendChild(node);activeRollImpact=node;rollImpactTimeout=setTimeout(()=>{node.remove();if(activeRollImpact===node)activeRollImpact=null},1150)
 }
-function rollStage(r){return `<div class="roll-stage ${r.special==='CRÍTICO'?'critical':r.special==='FALHA CRÍTICA'?'failure':''}"><span class="eyebrow">${esc(r.label)} ${r.special?'// '+esc(r.special):''}</span><div class="roll-number" data-counter="${r.total}">${r.total}</div><div class="dice">${r.dice.map((d,i)=>`<div class="die ${sheetMotionOff()?'':'spin'}" data-sides="${d.sides}" style="animation-delay:${i*60}ms;${r.colors?.[i]&&SHEET_HEX.test(r.colors[i])?'--roll-die:'+r.colors[i]:''}"><small>d${d.sides}</small><b>${d.value}${d.effective!==undefined&&Number(d.effective)!==Number(d.value)?` <small>→ ${d.effective}</small>`:''}</b></div>`).join('')}</div><p class="subtitle">${esc(r.summary)}</p></div>`}
+function rollStage(r){return `<div class="roll-stage ${['CRÍTICO','CRÍTICO MÁXIMO'].includes(r.special)?'critical':r.special==='FALHA CRÍTICA'?'failure':''}"><span class="eyebrow">${esc(r.label)} ${r.special?'// '+esc(r.special):''}</span><div class="roll-number" data-counter="${r.total}">${r.total}</div><div class="dice">${r.dice.map((d,i)=>`<div class="die ${sheetMotionOff()?'':'spin'}" data-sides="${d.sides}" style="animation-delay:${i*60}ms;${r.colors?.[i]&&SHEET_HEX.test(r.colors[i])?'--roll-die:'+r.colors[i]:''}"><small>d${d.sides}</small><b>${d.value}${d.effective!==undefined&&Number(d.effective)!==Number(d.value)?` <small>→ ${d.effective}</small>`:''}</b></div>`).join('')}</div><p class="subtitle">${esc(r.summary)}</p></div>`}
 let sharedMusic=null,musicReady=false,musicSoundUnlocked=false,ytPlayer=null,ytLastId='',musicBusy=false;
 function parseMusicLink(url){let u;try{u=new URL(url)}catch(e){return null}if(!['https:','http:'].includes(u.protocol))return null;
  const host=u.hostname.toLowerCase();
@@ -1734,15 +1734,38 @@ function downloadText(filename,body){const url=URL.createObjectURL(new Blob([bod
 function publishData(){if(!requireMaster())return;downloadText('dados.js','window.ARQUIVO_PUBLICADO = '+JSON.stringify(db,null,2)+';\n');toast('Arquivo pronto','Envie dados.js junto do index.html para o Netlify.')}
 async function migrateLegacyKeys(){if(Array.isArray(db.keys))return;const old=db.keys||{},items=[];for(const [kind,name] of [['master','Mestre antigo'],['player','Jogador antigo']]){if(typeof old[kind]!=='string')continue;const salt=randomCode().replaceAll('-','');items.push({id:'legacy-'+kind,kind,name,hash:await hashKey(salt,old[kind]),salt,active:true,sheetId:kind==='player'?(db.sheets[0]?.id||''):null,demo:!db.keysChanged})}db.keys=items.length?items:clone(DEFAULT.keys);save()}
 
+// Regra unificada com Supabase/Discord: repetição de resultado >= 6 ou 1.
 function avaliarResultadoDados(dice){
- const faces=Array.isArray(dice)?dice:[];
- const base=faces.reduce((v,d)=>v+Number(d.value||0),0);
- const grouped=new Map();
- for(const d of faces){const v=Number(d.value);if(!grouped.has(v))grouped.set(v,[]);grouped.get(v).push(Number(d.sides||0))}
- let crit=0,fail=0;
- for(const [v,sides] of grouped){if(sides.length<2)continue;const priority=Math.max(...sides);if(v>=6)crit=Math.max(crit,priority);else if(v===1)fail=Math.max(fail,priority)}
- const special=crit>0&&crit>=fail?'CRÍTICO':fail>0?'FALHA CRÍTICA':'';
- return {base,total:special==='CRÍTICO'?base*2:base,special};
+ const faces=Array.isArray(dice)?dice:[],groups=new Map();
+ const original=faces.map(d=>{
+  const value=Number(d.effective??d.value);
+  return d.canceled===true||!Number.isFinite(value)?0:value;
+ });
+ faces.forEach((die,i)=>{
+  const value=Number(die.value),sides=Number(die.sides);
+  if(!original[i]||!Number.isInteger(value)||!Number.isInteger(sides)||sides<1)return;
+  if(!groups.has(value))groups.set(value,{value,sides:0,indices:[]});
+  const group=groups.get(value);group.sides=Math.max(group.sides,sides);group.indices.push(i);
+ });
+ const winners=[...groups.values()].filter(x=>x.indices.length>=2&&(x.value===1||x.value>=6))
+  .sort((a,b)=>b.sides-a.sides||b.value-a.value);
+ const winner=winners[0],special=winner?(winner.value===1?'FALHA CRÍTICA':'CRÍTICO MÁXIMO'):'';
+ const priority=new Set(winner?.indices||[]);
+ const result=faces.map((die,i)=>{
+  const updated={...die};
+  if(special==='CRÍTICO MÁXIMO'&&priority.has(i)){
+   updated.effective=original[i]*2;updated.criticalApplied=true;
+  }
+  if(special==='FALHA CRÍTICA'&&priority.has(i))updated.failureApplied=true;
+  return updated;
+ });
+ const values=result.map((d,i)=>d.canceled===true?0:Number(d.effective??original[i]))
+  .filter(x=>Number.isFinite(x)&&x!==0);
+ const base=original.reduce((n,x)=>n+x,0);
+ return {base,total:special==='FALHA CRÍTICA'?1:values.reduce((n,x)=>n+x,0),
+  ra:special==='FALHA CRÍTICA'?1:values.length?Math.max(...values):0,
+  rb:special==='FALHA CRÍTICA'?1:values.length?Math.min(...values):0,
+  dice:result,special};
 }
 function updateFreeDicePreview(){
  const count=Number(el('diceCount')?.value),faces=Number(el('diceFaces')?.value),node=el('freeDicePreview');
@@ -1759,13 +1782,19 @@ async function freeRoll(hidden=false){
  const n=rawCount,d=rawFaces;
  if(window.ARQUIVO_SYNC?.state.enabled){if(rollingBusy)return;rollingBusy=true;
  try{const x=await window.ARQUIVO_SYNC.rollFree(n,d,hidden,Array.from({length:n},()=>hidden?currentPalette().accent:currentPalette().cold));const baseTotal=x.dice.reduce((a,v)=>a+Number(v.value),0);
- const r={label:x.label,total:x.total,special:x.special||'',dice:x.dice,summary:'VERIFICADA · '+x.dice.map(v=>v.value).join(' + ')+' = '+baseTotal+(x.special==='CRÍTICO'?' × 2 = '+x.total:'')+(x.special?' · '+x.special:'')};
+ const calculated=avaliarResultadoDados(x.dice),actualDice=x.dice.some(v=>v.criticalApplied)?x.dice:calculated.dice;
+ const values=actualDice.map(v=>Number(v.effective??v.value)).filter(Number.isFinite);
+ const ra=x.special==='FALHA CRÍTICA'?1:values.length?Math.max(...values):0;
+ const rb=x.special==='FALHA CRÍTICA'?1:values.length?Math.min(...values):0;
+ const r={label:x.label,total:x.total,special:x.special||'',dice:actualDice,ra,rb,
+ summary:'VERIFICADA · RT '+x.total+' · RA '+ra+' · RB '+rb+(x.special?' · '+x.special:'')};
  r.colors=Array.isArray(x.colors)?x.colors:[];lastRoll=r;showRollImpact(r.special);sound('dice');refreshRollHistorySoon();if(!hidden){el('rollLive').textContent='Rolagem verificada: '+r.total;const area=el('freeResult');if(area)area.innerHTML=rollStage(r)}else{const a=el('shieldResult');if(a)a.innerHTML=rollStage(r)}
  }catch(e){toast('Rolagem não registrada',e.message,true)}finally{rollingBusy=false;finishRollFeedback()}return;}
  if(hidden){toast('Escudo requer conexão online.','',true);finishRollFeedback();return}
  const dice=Array.from({length:n},()=>({sides:d,value:randomDie(d)}));
- const {base:baseTotal,special,total}=avaliarResultadoDados(dice);const critical=special==='CRÍTICO';
- const r={label:`${n}d${d}`,total,special,dice,summary:`NÃO VERIFICADA · ${dice.map(x=>x.value).join(' + ')} = ${baseTotal}${critical?' × 2 = '+total:''}${special?' · '+special:''}`};
+ const {base:baseTotal,special,total,ra,rb,dice:changedDice}=avaliarResultadoDados(dice);
+ const r={label:`${n}d${d}`,total,special,ra,rb,dice:changedDice,
+ summary:`NÃO VERIFICADA · RT ${total} · RA ${ra} · RB ${rb}${special?' · '+special:''}`};
  r.colors=dice.map(()=>currentPalette().cold);lastRoll=r;rollHistory.unshift(r);showRollImpact(special);sound('dice');el('rollLive').textContent=`Rolagem NÃO VERIFICADA: ${total}`;const area=el('freeResult');if(area)area.innerHTML=rollStage(r);finishRollFeedback()}
 
 
