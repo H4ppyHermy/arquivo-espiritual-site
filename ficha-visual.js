@@ -37,9 +37,15 @@
     '</div>'+
    '<div class="ae-ficha-hero-rule" aria-hidden="true"></div></header>';
  }
+ const dieMarkupCache=new Map();
  function numberDie(value,type='skill'){
   const n=Number(value)||4;
-  return '<span class="ae-ficha-die ae-ficha-die--'+(type==='group'?'group':'skill')+'">'+api.sheetRich('d'+n,true)+'</span>';
+  let markup=dieMarkupCache.get(n);
+  if(markup===undefined){
+   markup=api.sheetRich('d'+n,true);
+   dieMarkupCache.set(n,markup);
+  }
+  return '<span class="ae-ficha-die ae-ficha-die--'+(type==='group'?'group':'skill')+'">'+markup+'</span>';
  }
  function attributes(s,ctx){
   const g=ctx.groups||{};
@@ -171,10 +177,15 @@
   if(lastAbilitySheet!==s.id){abilityKind='Todas';lastAbilitySheet=s.id}
   const list=(s.abilities||[]).map((ab,index)=>({ab,index})).filter(x=>!x.ab?.origin?.auto);
   const groups=(Array.isArray(s.abilityGroups)?s.abilityGroups:[]).filter(g=>g&&g.id&&g.name);
-  const groupIds=new Set(groups.map(g=>g.id));
-  const ungrouped=list.filter(({ab})=>!groupIds.has(ab.groupId));
+  const grouped=new Map(groups.map(group=>[group.id,[]]));
+  const ungrouped=[];
+  for(const entry of list){
+   const target=grouped.get(entry.ab.groupId);
+   if(target)target.push(entry);
+   else ungrouped.push(entry);
+  }
   const sections=[
-   ...groups.map(group=>({name:group.name,items:list.filter(({ab})=>ab.groupId===group.id),custom:true})),
+   ...groups.map(group=>({name:group.name,items:grouped.get(group.id),custom:true})),
    {name:'GERAIS',custom:false,items:ungrouped}
   ];
   const matches=ab=>abilityKind==='Todas'||(ab.libraryType==='tecnica'?'Técnicas':'Habilidades')===abilityKind;
@@ -223,6 +234,7 @@
     (ctx.body||'')+'</section>';
  }
  function switchTab(s,ctx={}){
+  dieMarkupCache.clear();
   const selected=Object.hasOwn(labels,ctx.tab)?ctx.tab:'summary';
   const panel=document.querySelector('#page .ae-ficha-v2');
   const body=panel?.querySelector('#sheetBody');
@@ -243,6 +255,7 @@
   return true;
  }
  function render(s,ctx={}){
+  dieMarkupCache.clear();
   const selected=Object.hasOwn(labels,ctx.tab)?ctx.tab:'summary';
   const body=content(s,selected,ctx);
   const actions=api.btn('VOLTAR','backSheets','quiet')+

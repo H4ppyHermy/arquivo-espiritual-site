@@ -56,9 +56,9 @@
  }
  function coreFeatures(post){
   const body=text(post?.content);
-  const blocks=body.split(/(?=^#{2}\s+)/m).map(x=>x.trim()).filter(Boolean),sections=[];
+  const blocks=body.split(/(?=^#{2,3}\s+)/m).map(x=>x.trim()).filter(Boolean),sections=[];
   for(const block of blocks){
-   const heading=/^#{2}\s+([^\n]+)(?:\n|$)/.exec(block);
+   const heading=/^#{2,3}\s+([^\n]+)(?:\n|$)/.exec(block);
    if(!heading)continue;
    const title=heading[1].replace(/\*\*/g,'').trim();
    if(!title||fold(title)==='identidade')continue;

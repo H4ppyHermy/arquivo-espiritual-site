@@ -131,7 +131,7 @@ test('recursos da ficha usam estado sincronizável existente sem novos campos SQ
  assert.match(visual,/identification:'Identificação'/);
  assert.match(visual,/selected==='identification'\?identification/);
  assert.match(html,/racas-armazem\.js\?v=1/);
- assert.match(html,/ficha-origens\.js\?v=4/);
+ assert.match(html,/ficha-origens\.js\?v=5/);
 });
 
 test('classes antigas sem metadados reconhecem valores iniciais narrados por cena',()=>{
@@ -149,4 +149,16 @@ test('classes antigas sem metadados reconhecem valores iniciais narrados por cen
  assert.equal(speaker.max,1);
  assert.equal(hoho.initial,0);
  assert.equal(hoho.max,1);
+});
+
+test('medidor vivo com seção ### é reconhecido sem campos especiais',()=>{
+ const {logic,catalog}=setup();
+ catalog.push({id:'classe-ao-vivo',title:'Classe ao Vivo',category:'Classes',published:true,
+  content:'## Identidade\nClasse.\n\n### Reserva\nPossui [barra:3/3] de Reserva.\n\nCorpo — +1 passo.'});
+ const meter=logic.meters(sheet('','Classe ao Vivo'))[0];
+ assert.ok(meter);
+ assert.equal(meter.label,'Reserva');
+ assert.equal(meter.max,3);
+ assert.equal(meter.visual,'barra');
+ assert.equal(meter.current,0);
 });

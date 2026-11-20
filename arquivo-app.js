@@ -1092,6 +1092,12 @@ function formatBook(source,chapterTitle='',options={}){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
  const searchText=options.highlight===false?'':query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
  const names=[...libraryGlossary.keys()].filter(Boolean).sort((a,b)=>b.length-a.length);
+ const namesByInitial=new Map();
+ for(const name of names){
+  const initial=name[0];
+  if(!namesByInitial.has(initial))namesByInitial.set(initial,[]);
+  namesByInitial.get(initial).push(name);
+ }
  const letterOrNumber=/[\p{L}\p{N}]/u;
  // Correspondência literal: jamais normalizar acentos, caixa ou grafia na leitura.
  function insertGlossaryReferences(source,markers){
@@ -1101,7 +1107,7 @@ function formatBook(source,chapterTitle='',options={}){
   while(position<original.length){
    let title=null;
    if(position===0||!letterOrNumber.test(original[position-1])){
-    for(const candidate of names){
+    for(const candidate of namesByInitial.get(original[position])||[]){
      if(!original.startsWith(candidate,position))continue;
      const next=original[position+candidate.length]||'';
      if(!next||!letterOrNumber.test(next)){title=candidate;break}
