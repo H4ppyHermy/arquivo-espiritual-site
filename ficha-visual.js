@@ -107,30 +107,29 @@
   if(ab?.passive===true||ab?.category==='passive')return 'passive';
   return TYPES[ab?.category]?ab.category:'active';
  }
- function plain(value){
-  return text(value).replace(/\[\/?cor(?:=#[0-9a-f]{6})?\]/gi,'')
-   .replace(/\[(?:(?:barra|marca|contador):[^\]]+|sequencia(?::[^\]]+)?)\]/gi,'[recurso]')
-   .replace(/[*_#>]/g,'').replace(/\s+/g,' ').trim();
- }
  function abilityCard(ab,index,ctx){
-  const name=esc(ab.name||'Habilidade sem nome'),type=abilityCategory(ab),description=text(ab.description||'Sem descrição.');
-  const teaser=plain(description),expand=teaser.length>175||description.includes('\n')||!!ab.image;
+  const name=esc(ab.name||'Habilidade sem nome'),type=abilityCategory(ab);
+  const description=text(ab.description||'Sem descrição.');
   const image=ab.image&&api.dataUrlOk(ab.image)?api.mediaSrc(ab.image):'';
   const origin=ab.origin?.auto?ab.origin:null;
   const kind=ab.libraryType==='tecnica'?'Técnica':'Habilidade';
-  return '<article class="ae-ficha-ability-card'+(origin?' ae-ficha-ability-inherited ae-ficha-ability-inherited--'+(origin.kind==='race'?'race':'class'):'')+
+  return '<article class="ae-ficha-ability-card'+
+   (origin?' ae-ficha-ability-inherited ae-ficha-ability-inherited--'+(origin.kind==='race'?'race':'class'):'')+
    '" data-ability-kind="'+(kind==='Técnica'?'Técnicas':'Habilidades')+'" id="ability-'+index+'">'+
     '<div class="ae-ficha-ability-tag">'+name+'</div>'+
     '<div class="ae-ficha-ability-meta"><span>'+esc(kind.toUpperCase())+' · '+esc(TYPES[type])+'</span>'+
      (Number(ab.cost)>0?'<span>CUSTO INDICADO · '+esc(ab.cost)+' ALMA</span>':'')+'</div>'+
     (origin?'<div class="ae-ficha-ability-origin"><strong>'+esc(origin.kind==='race'?'HABILIDADE RACIAL':'HABILIDADE DE CLASSE')+
      '</strong><span>'+esc(origin.name||'')+'</span></div>':'')+
-    (expand?'<p class="ae-ficha-ability-teaser">'+esc(teaser.slice(0,215))+(teaser.length>215?'…':'')+'</p>':
-     '<div class="ae-ficha-ability-short sheet-rich">'+api.sheetRich(description)+'</div>')+
-    (expand?'<details class="ae-ficha-ability-details"><summary>LER DESCRIÇÃO COMPLETA <span aria-hidden="true">+</span></summary>'+
-      '<div class="ae-ficha-ability-full sheet-rich">'+
-      (image?'<img alt="Ilustração da habilidade '+name+'" src="'+esc(image)+'" loading="lazy">':'')+
-      api.sheetRich(description)+'</div></details>':'')+
+    '<details class="ae-ficha-ability-details">'+
+     '<summary aria-label="Mostrar ou ocultar a descrição de '+name+'" title="Abrir ou fechar descrição">'+
+      '<span class="ae-ficha-ability-expand" aria-hidden="true">'+
+       '<span class="ae-ficha-expand-plus">+</span><span class="ae-ficha-expand-minus">−</span>'+
+      '</span></summary>'+
+     '<div class="ae-ficha-ability-full sheet-rich">'+
+       (image?'<img alt="Ilustração da habilidade '+name+'" src="'+esc(image)+'" loading="lazy">':'')+
+       api.sheetRich(description)+'</div>'+
+    '</details>'+
     (ctx.canEdit&&!origin?'<div class="ae-ficha-ability-tools">'+api.btn('EDITAR','editAbilityDirect:'+index,'small')+'</div>':'')+
    '</article>';
  }
