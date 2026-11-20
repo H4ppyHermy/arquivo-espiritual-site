@@ -53,6 +53,8 @@
   let w=api.db.site.warehouse;
   if(!w||typeof w!=='object'||Array.isArray(w))w=api.db.site.warehouse={};
   if(!Array.isArray(w.categories)||!w.categories.length)w.categories=[...BASE_CATEGORIES];
+  else for(const category of BASE_CATEGORIES)
+   if(!w.categories.includes(category)&&w.categories.length<25)w.categories.push(category);
   if(!Array.isArray(w.posts))w.posts=[];
   if(!Array.isArray(w.hiddenPosts))w.hiddenPosts=[];
   return w;
