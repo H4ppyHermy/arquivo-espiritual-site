@@ -1090,7 +1090,7 @@ function libraryTermTone(name){
 }
 function formatBook(source,chapterTitle='',options={}){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
- const searchText=options.highlight===false?'':query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\ const searchText=query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;'),'gi'):null;
+ const searchText=options.highlight===false?'':query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
  const names=[...libraryGlossary.keys()].filter(Boolean).sort((a,b)=>b.length-a.length);
  const letterOrNumber=/[\p{L}\p{N}]/u;
  // Correspondência literal: jamais normalizar acentos, caixa ou grafia na leitura.
