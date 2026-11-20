@@ -159,9 +159,21 @@
     '<p class="ae-ficha-quick-empty">Use o pin ao lado de uma habilidade para deixá-la aqui.</p>')+
    '</section>';
  }
+ function sessionControls(s,ctx){
+  if(!ctx?.canEdit)return '';
+  const enabled=s.automationEnabled!==false;
+  return '<section class="ae-ficha-session-controls" aria-label="Controles da ficha">'+
+   '<div class="ae-ficha-session-title"><span>CONTROLES DA FICHA</span><strong>'+ (enabled?'Automação ativa':'Modo manual')+'</strong></div>'+
+   '<div class="ae-ficha-session-buttons">'+
+    '<button type="button" class="ae-ficha-session-toggle'+(enabled?'':' is-off')+'" data-cbb-command="toggleAutomation" aria-pressed="'+(!enabled)+'">'+
+     (enabled?'DESATIVAR AUTOMAÇÃO':'REATIVAR AUTOMAÇÃO')+'</button>'+
+    (ctx.master?'<button type="button" class="ae-ficha-session-reset" data-cbb-command="reset">REINICIAR FICHA</button>':'')+
+   '</div></section>';
+ }
  function summary(s,ctx){
   return '<div class="ae-ficha-summary">'+
     '<div class="ae-ficha-summary-columns">'+attributes(s,ctx)+resources(s,ctx)+'</div>'+
+    sessionControls(s,ctx)+
     '<button type="button" class="btn small ae-cbb-open" data-tab="mesa">ABRIR MESA DE COMBATE</button>'+
     quickAccess(s,ctx)+originMeters(s,ctx)+snapshot(s)+
     (ctx.history?'<section class="ae-ficha-history">'+ctx.history+'</section>':'')+
