@@ -15,7 +15,7 @@
   const grants=post.grants&&typeof post.grants==='object'?post.grants:{};
   const race=values(grants.race),kind=values(grants.class);
   // Acervos anteriores a grants ainda podem sinalizar "Racial, Arrancar" por tags.
-  if(!race.length&&(post.category==='Habilidades'||post.category==='Técnicas')){
+  if(!Object.prototype.hasOwnProperty.call(grants,'race')&&(post.category==='Habilidades'||post.category==='Técnicas')){
    const tags=values(post.tags),racial=tags.some(t=>fold(t)==='racial');
    if(racial)for(const tag of tags){
     if(['racial','livre','habilidade','tecnica'].includes(fold(tag)))continue;
