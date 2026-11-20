@@ -209,7 +209,7 @@
  }
  function abilityExpandedKey(ab){
   return encodeURIComponent(String(ab.abilityId||((ab.libraryType==='tecnica'?'t:':'h:')+
-   String(ab.name||'')+':'+String(ab.cost||0)+':'+String(ab.description||'').slice(0,35))).slice(0,180));
+   String(ab.name||''))).slice(0,180));
  }
  function rememberButton(ab,sheetId){
   const key=abilityExpandedKey(ab),saved=expandedSet(sheetId).has(key),label=saved?'Desativar descrição fixa':'Manter descrição aberta';
