@@ -87,6 +87,10 @@
    '<p>Selecione uma ou várias técnicas e habilidades para adicionar à ficha. Requisitos de raça e nível continuam sujeitos às regras.</p>'+
    '<div class="ae-export-filters"><label>BUSCAR<input id="aeExportAbilitySearch" type="search" autocomplete="off" placeholder="Nome, custo ou efeito"></label>'+
    '<label>TIPO<select id="aeExportAbilityKind"><option value="Todas">Todas</option><option value="Técnicas">Apenas técnicas</option><option value="Habilidades">Apenas habilidades</option></select></label></div>'+
+   ((sheet()?.abilityGroups||[]).length?'<label class="ae-export-group-choice">ADICIONAR À CATEGORIA DA FICHA'+
+    '<select id="aeExportAbilityGroup"><option value="">Seções padrão</option>'+
+     sheet().abilityGroups.map(g=>'<option value="'+api.esc(g.id)+'">'+api.esc(g.name)+'</option>').join('')+
+    '</select></label>':'')+
    '<div class="ae-export-controls"><span id="aeExportAbilityStatus" role="status" aria-live="polite"></span>'+
    '<button type="button" class="btn small" id="aeExportAbilitySelectAll" data-action="selectExportVisible">SELECIONAR VISÍVEIS</button></div>'+
    '<div id="aeExportAbilityList" class="ae-export-list" aria-label="Habilidades disponíveis"></div>'+
@@ -109,12 +113,15 @@
    api.toast('Permissão indisponível','Reabra a ficha antes de adicionar habilidades.',true);return;
   }
   const current=sheet();if(!current)return;
+  const selectedGroup=document.getElementById('aeExportAbilityGroup')?.value||'';
+  const validGroup=(current.abilityGroups||[]).some(g=>g.id===selectedGroup)?selectedGroup:'';
   const names=existingNames(),fresh=allPosts(),lookup=new Map(fresh.map(p=>[p.id,p]));
   const added=[];
   for(const id of selected){
    const post=lookup.get(id);
    if(!post||names.has(fold(post.title)))continue;
    const ability=copyAbility(post);
+   if(validGroup)ability.groupId=validGroup;
    if(!ability.name||!ability.description)continue;
    names.add(fold(ability.name));added.push(ability);
   }
