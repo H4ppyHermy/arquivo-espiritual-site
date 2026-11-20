@@ -101,7 +101,7 @@ test('teste de perícia envia um pedido ao servidor e mostra RT RA RB',async()=>
 
 test('scripts e duas RPCs universais estão ligados sem reativar código por personagem',()=>{
  const html=read('index.html'),online=read('online.js'),visual=read('ficha-visual.js');
- for(const file of ['cbb-engine.js?v=1','cbb-interativo.js?v=6','cbb-interativo.css?v=3'])
+ for(const file of ['cbb-engine.js?v=1','cbb-interativo.js?v=7','cbb-interativo.css?v=3'])
   assert.ok(html.includes(file),file);
  assert.ok(visual.includes("mesa:'Mesa'"));
  assert.match(visual,/ARQUIVO_CBB_UI\?\.render/);
@@ -193,4 +193,66 @@ test('resultado apresenta RT grande, dados coloridos e bloqueia CSS de cores inv
  await x.listeners.click({target:{closest(){return b}},preventDefault(){},stopPropagation(){}});
  assert.doesNotMatch(x.result.innerHTML,/--evil/);
  assert.match(x.result.innerHTML,/--cbb-die-color:var\(--sheet-dice-group/);
+});
+
+
+test('modo manual bloqueia todos os controles automáticos mas mantém os pins',()=>{
+ const x=fixture();x.s.automationEnabled=false;
+ const ui=x.window.ARQUIVO_CBB_UI;
+ const html=ui.render(x.s,{canEdit:true,master:true});
+ assert.match(html,/Automação desativada/);
+ assert.match(html,/data-cbb-command="skill" disabled/);
+ assert.match(html,/data-cbb-command="pool" disabled/);
+ const ability=ui.abilityActions(x.s.abilities[0],0,{canEdit:true,master:true});
+ assert.match(ability,/data-cbb-command="ability" data-cbb-index="0" disabled/);
+ assert.match(ability,/data-cbb-command="abilityPool" data-cbb-index="0" disabled/);
+});
+
+test('alternância em Resumo atualiza corretamente o booleano false e depois true',async()=>{
+ const x=fixture();
+ x.window.ARQUIVO_SYNC.cbbAction=async args=>{
+  x.calls.action.push(args);
+  return {ok:true,automationEnabled:x.calls.action.length===2,resources:x.s.resources,
+   combat:x.s.combat,exposures:x.s.exposures,abilityRuntime:x.s.abilityRuntime};
+ };
+ const b={dataset:{cbbCommand:'toggleAutomation'},disabled:false,closest(){return null},setAttribute(){}};
+ const click=()=>x.listeners.click({target:{closest(){return b}},preventDefault(){},stopPropagation(){}});
+ await click();
+ assert.equal(x.s.automationEnabled,false);
+ await click();
+ assert.equal(x.s.automationEnabled,true);
+ assert.equal(x.calls.action.length,2);
+ assert.equal(x.state.rendered,2);
+ assert.equal(x.calls.action[0].p_action,'toggleAutomation');
+});
+
+test('reinício exige confirmação e conserva a automação escolhida',async()=>{
+ const x=fixture();x.s.automationEnabled=false;
+ x.s.resources.alma.current=4;
+ x.s.combat.phase='duelo';x.s.combat.round=4;
+ let confirmation=null;
+ x.window.ARQUIVO_INTERNAL.confirmSite=(title,body,fn)=>{confirmation={title,body,fn}};
+ x.window.ARQUIVO_SYNC.cbbAction=async payload=>{
+  x.calls.action.push(payload);
+  return {ok:true,automationEnabled:false,
+   resources:{vida:{current:30,max:30},estabilidade:{current:18,max:18},alma:{current:24,max:24}},
+   conditions:[],restCount:0,desgaste:0,
+   combat:{round:1,scene:1,phase:'preparacao',mainUsed:false,reactionUsed:false},
+   exposures:{ofensiva:0,defensiva:0,ritmica:0},abilityRuntime:{originMeters:{}},
+   info:{reset:true}};
+ };
+ const b={dataset:{cbbCommand:'reset'},disabled:false,closest(){return null},setAttribute(){}};
+ await x.listeners.click({target:{closest(){return b}},preventDefault(){},stopPropagation(){}});
+ assert.equal(x.calls.action.length,0,'Não reiniciar sem confirmar');
+ assert.ok(confirmation?.title.includes('REINICIAR'));
+ assert.match(confirmation.body,/histórico de rolagens/);
+ confirmation.fn();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.calls.action.length,1);
+ assert.equal(x.calls.action[0].p_action,'reset');
+ assert.equal(x.s.automationEnabled,false);
+ assert.equal(x.s.resources.alma.current,24);
+ assert.equal(x.s.combat.phase,'preparacao');
+ assert.equal(x.s.combat.round,1);
+ assert.equal(x.state.rendered,1);
 });

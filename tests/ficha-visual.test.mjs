@@ -131,9 +131,9 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  assert.match(app,/window\.ARQUIVO_FICHA_VISUAL\?\.upgradeEditor\?\.\(\)/);
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function updateDraft\(target\)/);
- assert.match(html,/ficha-visual\.js\?v=16/);
- assert.match(html,/ficha-visual\.css\?v=13/);
- assert.ok(html.indexOf('arquivo-app.js?v=23')<html.indexOf('ficha-visual.js?v=16'));
+ assert.match(html,/ficha-visual\.js\?v=17/);
+ assert.match(html,/ficha-visual\.css\?v=14/);
+ assert.ok(html.indexOf('arquivo-app.js?v=23')<html.indexOf('ficha-visual.js?v=17'));
 });
 
 test('cabeçalho não inventa raça e os títulos não recebem numeração',()=>{
@@ -335,4 +335,23 @@ test('acesso rápido ignora pins obsoletos e itens automáticos sem duplicar con
  assert.match(empty,/Use o pin ao lado de uma habilidade/);
  const guest=view.render(s,settings('summary',false));
  assert.doesNotMatch(guest,/ae-ficha-quick-access/);
+});
+
+
+test('Resumo oferece automação para o editor e reinício somente para mestre',()=>{
+ const {view}=setup(),sheet=example();
+ let output=view.render(sheet,settings('summary',true));
+ assert.match(output,/data-cbb-command="toggleAutomation"/);
+ assert.match(output,/DESATIVAR AUTOMAÇÃO/);
+ assert.doesNotMatch(output,/data-cbb-command="reset"/);
+ output=view.render(sheet,{...settings('summary',true),master:true});
+ assert.match(output,/data-cbb-command="reset"/);
+ assert.match(output,/REINICIAR FICHA/);
+ sheet.automationEnabled=false;
+ output=view.render(sheet,{...settings('summary',true),master:true});
+ assert.match(output,/REATIVAR AUTOMAÇÃO/);
+ assert.match(output,/Modo manual/);
+ assert.match(output,/aria-pressed="true"/);
+ const readonly=view.render(sheet,{...settings('summary',false),master:false});
+ assert.doesNotMatch(readonly,/data-cbb-command="reset"|data-cbb-command="toggleAutomation"/);
 });
