@@ -27,7 +27,8 @@ function setup(){
  const listeners={},seen={modal:null,page:null};
  const document={
   addEventListener(name,fn){(listeners[name]??=[]).push(fn)},
-  querySelector(){return null}
+  querySelector(){return null},
+  querySelectorAll(){return []}
  };
  const api={
   esc:escape,
@@ -354,4 +355,65 @@ test('Resumo oferece automação para o editor e reinício somente para mestre',
  assert.match(output,/aria-pressed="true"/);
  const readonly=view.render(sheet,{...settings('summary',false),master:false});
  assert.doesNotMatch(readonly,/data-cbb-command="reset"|data-cbb-command="toggleAutomation"/);
+});
+
+
+test('descrição fixa utiliza armazenamento local e reaparece aberta ao voltar à ficha',()=>{
+ const ctx=setup(),sheet=example(),data=new Map();
+ ctx.context.window.localStorage={
+  getItem:key=>data.get(key)||null,
+  setItem:(key,val)=>data.set(key,val)
+ };
+ const markup=ctx.view.render(sheet,settings('abilities'));
+ assert.match(markup,/data-ability-remember=/);
+ assert.match(markup,/ae-ficha-ability-details/);
+ const key=markup.match(/data-ability-remember="([^"]+)"/)?.[1];
+ assert.ok(key);
+ const button={dataset:{abilityRemember:key,abilitySheet:sheet.id},
+  closest(sel){return sel==='[data-ability-remember]'?this:null}};
+ const event={target:button,preventDefault(){}};
+ for(const handler of ctx.listeners.click||[])handler(event);
+ const stored=JSON.parse(data.get('ae_ability_expanded_v1:'+sheet.id));
+ assert.ok(stored.includes(key));
+ const revisited=ctx.view.render(sheet,settings('abilities'));
+ assert.match(revisited,/<details class="ae-ficha-ability-details" open>/);
+ assert.match(revisited,/ae-ficha-ability-remember is-saved/);
+ const ctx2=setup();ctx2.context.window.localStorage=ctx.context.window.localStorage;
+ const afterReload=ctx2.view.render(sheet,settings('abilities'));
+ assert.match(afterReload,/<details class="ae-ficha-ability-details" open>/);
+});
+
+test('Resumo mostra barras de raça e classe antes das habilidades fixadas',()=>{
+ const {view,api,context}=setup(),s=example();
+ s.pinnedAbilities=['habilidade:Corte Crescente'];
+ const original=context.window.ARQUIVO_ORIGENS;
+ context.window.ARQUIVO_ORIGENS={...original,meters:()=>[{key:'raça:teste',label:'Teste',
+   kind:'race',source:'Shinigami',current:1,max:3,visual:'marks'}]};
+ const html=view.render(s,settings());
+ assert.ok(html.indexOf('Recursos de raça e classe')>=0);
+ assert.ok(html.indexOf('Recursos de raça e classe')<html.indexOf('Acesso rápido'));
+});
+
+test('mestre pode arrastar entre categorias, inclusive voltar para Gerais vazia',()=>{
+ const {view,api}=setup(),sheet=example();
+ sheet.abilityGroups=[{id:'shikai',name:'Shikai'}];
+ sheet.abilities.forEach(x=>x.groupId='shikai');
+ api.db.sheets=[sheet];
+ const out=view.render(sheet,{...settings('abilities'),master:true});
+ assert.match(out,/data-ability-sheet="ficha-01"/);
+ assert.match(out,/data-drop-ability-group="shikai"/);
+ assert.match(out,/data-drop-ability-group=""/);
+ assert.match(out,/data-drop-ability-index="0"/);
+ assert.match(out,/data-drag-handle="ability"/);
+ assert.match(out,/Arraste uma habilidade até aqui/);
+ const player=view.render(sheet,{...settings('abilities'),master:false});
+ assert.doesNotMatch(player,/data-drag-handle="ability"/);
+});
+
+test('fonte das descrições acompanha o ajuste percentual em vez de permanecer em 12 pixels',()=>{
+ const css=read('ficha-visual.css'),app=read('arquivo-app.js');
+ assert.match(app,/root\.style\.fontSize=prefs\.fontSize\+'%'/);
+ assert.match(css,/ae-ficha-ability-full \.ae-unified-rich[\s\S]*?font-size:clamp\(12px,\.875rem,28px\)!important/);
+ assert.match(css,/ae-ficha-quick-description>\\.sheet-rich/);
+ assert.match(css,/font-size:inherit!important/);
 });

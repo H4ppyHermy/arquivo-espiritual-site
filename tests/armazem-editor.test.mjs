@@ -521,3 +521,19 @@ test('novas técnicas de Duelo e habilidades preservam integralmente o texto e o
  assert.match(posts.find(x=>x.id==='tecnica-soco-soco-bate-bate').content,/\n\n> Dano: \+1d8/);
  assert.match(posts.find(x=>x.id==='habilidade-ressonancia-material').content,/\n\n> Dano: \+1d6\n\nCaso/);
 });
+
+
+test('mestre vê alças de arraste nos cartões editáveis e categorias de destino',()=>{
+ const {db,window}=setup(true);
+ db.site.warehouse.posts.push({id:'habilidade-1',title:'Escudo',
+  category:'Habilidades',content:'Cria proteção.',published:true});
+ const html=window.ARQUIVO_SECOES.warehousePage();
+ assert.match(html,/data-drag-handle="warehouse"/);
+ assert.match(html,/data-drag-warehouse-id="habilidade-1"/);
+ assert.match(html,/data-drop-warehouse-category="Técnicas"/);
+ assert.match(html,/data-drop-warehouse-id="habilidade-1"/);
+ const guest=setup(false);
+ guest.db.site.warehouse.posts.push({id:'habilidade-1',title:'Escudo',category:'Habilidades',
+  content:'Cria proteção.',published:true});
+ assert.doesNotMatch(guest.window.ARQUIVO_SECOES.warehousePage(),/data-drag-handle="warehouse"/);
+});
