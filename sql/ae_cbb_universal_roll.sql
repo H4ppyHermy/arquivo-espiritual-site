@@ -61,6 +61,8 @@ BEGIN
  group_color=sh->'appearance'->>'diceGroup';skill_color=sh->'appearance'->>'diceSkill';
  IF coalesce(group_color,'') !~ '^#[0-9a-fA-F]{6}$' THEN group_color='#FF7A1A';END IF;
  IF coalesce(skill_color,'') !~ '^#[0-9a-fA-F]{6}$' THEN skill_color='#4CC9F0';END IF;
+ SELECT coalesce(array_agg(lower(c.value)),ARRAY[]::text[]) INTO conditions
+ FROM jsonb_array_elements_text(coalesce(sh->'conditions','[]'::jsonb)) c(value);
  IF p_kind='teste' THEN
   grp=CASE WHEN p_skill=ANY(ARRAY['Vigor','Fortitude','Destreza','Atenção','Sigilo','Precisão']) THEN 'Corpo'
     WHEN p_skill=ANY(ARRAY['Cultura','Determinação','Raciocínio','Tática','Instinto','Lábia']) THEN 'Mente'
@@ -69,8 +71,6 @@ BEGIN
   gdie=(sh->'groups'->>grp)::integer;sdie=(sh->'skills'->>p_skill)::integer;
   ix_g=array_position(scale,gdie);ix_s=array_position(scale,sdie);
   IF ix_g IS NULL OR ix_s IS NULL THEN RAISE EXCEPTION 'Dados inválidos na ficha.';END IF;
-  SELECT coalesce(array_agg(lower(c.value)),ARRAY[]::text[]) INTO conditions
-  FROM jsonb_array_elements_text(coalesce(sh->'conditions','[]'::jsonb)) c(value);
   IF 'confuso'=ANY(conditions) AND grp='Mente' THEN sstep=sstep-1;END IF;
   IF 'suprimido'=ANY(conditions) AND grp='Espírito' THEN sstep=sstep-1;END IF;
   IF 'exausto'=ANY(conditions) AND grp='Corpo' THEN sstep=sstep-1;END IF;
@@ -99,7 +99,10 @@ BEGIN
   grp=CASE p_resource WHEN 'vida' THEN 'Corpo' WHEN 'estabilidade' THEN 'Mente' ELSE 'Espírito' END;
   gdie=(sh->'groups'->>grp)::integer;ix_g=array_position(scale,gdie);
   IF ix_g IS NULL THEN RAISE EXCEPTION 'Dado de resistência inválido.';END IF;
-  rolled_group=scale[greatest(1,least(greatest(ix_g,5),ix_g+p_group_steps))];
+  IF 'fragilizado'=ANY(conditions) AND jsonb_array_length(p_pool)=0 THEN
+   auto_g=-1;
+  END IF;
+  rolled_group=scale[greatest(1,least(greatest(ix_g,5),ix_g+p_group_steps+auto_g))];
   result_dice=result_dice||jsonb_build_array(jsonb_build_object('sides',rolled_group,'value',public.ae_cbb_random(rolled_group)));
   colors=colors||to_jsonb(group_color);
   IF jsonb_array_length(p_pool)>1 THEN RAISE EXCEPTION 'Uma proteção adicional por recurso.';END IF;
@@ -114,6 +117,9 @@ BEGIN
   IF jsonb_typeof(datum)<>'object' OR coalesce(datum->>'faces','') !~ '^(4|6|8|10|12|14|16|18|20)$'
    OR coalesce(datum->>'count','') !~ '^[1-9][0-9]?$' THEN RAISE EXCEPTION 'Dados adicionais inválidos.';END IF;
   faces=(datum->>'faces')::integer;amount=(datum->>'count')::integer;
+  IF p_kind IN ('resistencia','protecao') AND 'fragilizado'=ANY(conditions) THEN
+   faces=scale[greatest(1,array_position(scale,faces)-1)];
+  END IF;
   total_extra=total_extra+amount;
   IF total_extra>20 OR (p_kind='teste' AND total_extra>4) OR (p_kind IN ('resistencia','protecao') AND total_extra>1) THEN RAISE EXCEPTION 'Excesso de dados.';END IF;
   FOR v_i IN 1..amount LOOP
@@ -189,6 +195,7 @@ BEGIN
  RETURN to_jsonb(new_roll)||jsonb_build_object('rt',total,'ra',ra,'rb',rb,'attack_ra',attack_ra,
    'kind_cbb',p_kind,'context',p_context,'reaction',p_reaction,'group',grp,
    'groupDie',rolled_group,'skillDie',rolled_skill,'autoGroupSteps',auto_g,'autoSkillSteps',auto_s,
+   'fragilized',p_kind IN ('resistencia','protecao') AND 'fragilizado'=ANY(conditions),
    'fearDie',fear_size,'fearRoll',fear_value,'fearClear',fear_size>0 AND fear_value=1,
    'hollowDie',CASE WHEN hollow_on THEN 6 ELSE 0 END,'hollowRoll',hollow_value,
    'hollowLost',hollow_on AND special='FALHA CRÍTICA');
