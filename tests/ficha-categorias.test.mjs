@@ -97,7 +97,7 @@ test('Dados usam groupId já existente nas fichas e preservam descrições do jo
  for(const statement of [
   "raw.abilityGroups=clone(old.abilityGroups||[])",
   "ab.description=originals[i].description||''",
-  "if(key==='description'&&!master())return",
+  "if((key==='description'||key==='usage')&&!master())return",
   "if(!master())return;editorDraft.abilities.push",
   "if(!master())return;editorDraft.abilities.splice",
   "view?.switchTab?.(window.ARQUIVO_ORIGENS?.project(sh)||sh,{tab,groups:GROUPS,canEdit:canEditSheet(sh.id),master:master()"
