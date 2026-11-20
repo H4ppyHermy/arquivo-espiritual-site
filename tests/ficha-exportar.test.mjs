@@ -56,7 +56,7 @@ test('o botão Exportar aparece somente para quem edita a ficha',()=>{
  const html=read('index.html');
  assert.match(visual,/api\.btn\('EXPORTAR','exportAbilities'/);
  assert.match(visual,/ctx\.canEdit\?'<div class="ae-ficha-ability-create-actions"/);
- assert.match(html,/ficha-exportar\.js\?v=1/);
+ assert.match(html,/ficha-exportar\.js\?v=2/);
  assert.ok(html.indexOf('biblioteca-secoes.js')<html.indexOf('ficha-exportar.js'));
  assert.match(read('ficha-visual.css'),/\.ae-export-card/);
 });
@@ -80,6 +80,8 @@ test('exportador lista técnicas e habilidades com busca e seleção múltipla',
  assert.equal(ctx.sheet.abilities.length,2);
  assert.deepEqual(Array.from(ctx.sheet.abilities,a=>a.name),['Mira Estável','Hierro']);
  assert.equal(ctx.sheet.abilities[0].category,'active');
+ assert.equal(ctx.sheet.abilities[0].libraryType,'tecnica');
+ assert.equal(ctx.sheet.abilities[1].libraryType,'habilidade');
  assert.equal(ctx.sheet.abilities[0].cost,2);
  assert.match(ctx.sheet.abilities[1].description,/resistência de Vida/);
  assert.equal(ctx.saved,1);
