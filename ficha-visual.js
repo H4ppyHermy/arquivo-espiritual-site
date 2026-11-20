@@ -285,7 +285,7 @@
     (abilityKind===type?'is-active':'')+'">'+label+'</button>').join('')+'</div>'+
    sections.map(section=>{
     const entries=section.items,available=entries.some(({ab})=>matches(ab));
-    if(!entries.length&&(!section.custom||!ctx.master))return '';
+    if(!entries.length&&!ctx.master)return '';
     return '<section class="ae-ficha-ability-group'+(section.custom?' ae-ficha-ability-group--custom':'')+
      '" data-drop-ability-group="'+esc(section.custom?groups.find(g=>g.name===section.name)?.id||'':'')+'"'+
      (available||(!entries.length&&ctx.master)?'':' hidden')+'>'+
@@ -293,7 +293,7 @@
      (entries.length?'<div class="ae-ficha-ability-grid">'+entries.map(({ab,index})=>
       '<div class="ae-ficha-ability-entry" data-drop-ability-index="'+index+'"'+(matches(ab)?'':' hidden')+'>'+
       abilityCard(ab,index,ctx,(s.pinnedAbilities||[]).includes(abilityPinKey(ab)),s.id)+'</div>').join('')+'</div>':
-      '<p class="ae-ficha-ability-group-empty">Nenhuma habilidade vinculada. Escolha esta categoria ao editar uma habilidade.</p>')+
+      '<p class="ae-ficha-ability-group-empty">Nenhuma habilidade vinculada. Arraste uma habilidade até aqui ou escolha esta categoria no editor.</p>')+
      '</section>';
    }).join('')+
    (!list.length&&!groups.length?'<div class="ae-ficha-empty">Nenhuma habilidade registrada nesta ficha.'+
