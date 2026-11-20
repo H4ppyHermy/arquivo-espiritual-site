@@ -268,3 +268,36 @@
  .ae-live-root *,#ae-live-dock *{animation:none!important;transition:none!important}
 }
 html.performance-mode .ae-live-root *,html.performance-mode #ae-live-dock *{animation:none!important;transition:none!important}
+
+
+/* Mini-sala persistente ao alternar entre Fichas e Rolagens. */
+#ae-live-dock{
+ display:grid;grid-template-columns:132px minmax(0,1fr);gap:9px;
+ width:min(380px,calc(100vw - 30px));align-items:stretch;
+ padding:8px;border-color:var(--ae-live-line,var(--theme-cold));
+}
+#ae-live-dock .ae-live-dock-preview{
+ position:relative;aspect-ratio:16/12;overflow:hidden;border-radius:7px;background:var(--theme-bg)
+}
+#ae-live-dock .ae-live-dock-preview video{
+ position:absolute;inset:0;height:100%;width:100%;object-fit:cover
+}
+#ae-live-dock .ae-live-dock-preview .ae-live-hud{padding:17px 5px 5px}
+#ae-live-dock .ae-live-dock-preview .ae-live-hud-head{margin-bottom:2px}
+#ae-live-dock .ae-live-dock-preview .ae-live-hud-head>b{font-size:11px}
+#ae-live-dock .ae-live-dock-preview .ae-live-hud-head>span{display:none}
+#ae-live-dock .ae-live-dock-preview .ae-live-meters{gap:3px}
+#ae-live-dock .ae-live-dock-preview .ae-live-meter-label>span,
+#ae-live-dock .ae-live-dock-preview .ae-live-meter-label>b{font-size:8px}
+#ae-live-dock .ae-live-dock-preview .ae-live-meter-track{height:3px}
+#ae-live-dock .ae-live-dock-preview .ae-live-avatar>span{width:47px;height:47px;font-size:24px}
+#ae-live-dock .ae-live-dock-controls{display:flex;flex-direction:column;justify-content:space-between;gap:9px;min-width:0}
+#ae-live-dock .ae-live-dock-title{display:grid;grid-template-columns:9px minmax(0,1fr);align-items:center;gap:4px 7px}
+#ae-live-dock .ae-live-dock-title>strong{font-size:10px;line-height:1.3}
+#ae-live-dock .ae-live-dock-title>small{grid-column:2;font-size:10px;color:var(--theme-cold)}
+#ae-live-dock .ae-live-dock-buttons{display:flex;flex-wrap:wrap;gap:5px}
+#ae-live-dock .ae-live-dock-buttons button{flex:1 1 auto}
+#ae-live-audio-rack{display:none}
+@media(max-width:660px){
+ #ae-live-dock{bottom:75px;right:8px;left:auto;width:min(345px,calc(100vw - 16px))}
+}
