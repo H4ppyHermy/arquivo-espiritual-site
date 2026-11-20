@@ -39,7 +39,7 @@
  }
  function numberDie(value,type='skill'){
   const n=Number(value)||4;
-  return '<span class="ae-ficha-die ae-ficha-die--'+(type==='group'?'group':'skill')+'">'+api.sheetRich('d'+n)+'</span>';
+  return '<span class="ae-ficha-die ae-ficha-die--'+(type==='group'?'group':'skill')+'">'+api.sheetRich('d'+n,true)+'</span>';
  }
  function attributes(s,ctx){
   const g=ctx.groups||{};
@@ -97,7 +97,7 @@
    const part=data[key];if(!part)return '';
    return '<article class="ae-ficha-origin-chapter ae-ficha-origin-chapter--'+key+'">'+
     '<div class="ae-ficha-origin-heading"><span>'+label+'</span><h3>'+esc(part.title)+'</h3></div>'+
-    (part.content?'<div class="ae-ficha-origin-prose sheet-rich">'+api.formatBook(part.content,part.title)+'</div>':
+    (part.content?'<div class="ae-ficha-origin-prose sheet-rich book-text ae-unified-rich">'+api.formatBook(part.content,part.title,{highlight:false})+'</div>':
      '<p class="ae-ficha-origin-empty">Descrição ainda não cadastrada no Armazém.</p>')+
     '</article>';
   }).filter(Boolean).join('');
@@ -350,7 +350,7 @@
   if(!guideBtn)return;
   event.preventDefault();
   const item=(api.db?.rules||[]).find(x=>x.id===guideBtn.dataset.fichaGuide);
-  if(item)api.modal(item.title||'Guia rápido','<div class="ae-ficha-guide-modal">'+api.formatBook(item.text||'',item.title||'')+'</div>');
+  if(item)api.modal(item.title||'Guia rápido','<div class="ae-ficha-guide-modal book-text ae-unified-rich">'+api.formatBook(item.text||'',item.title||'',{highlight:false})+'</div>');
  });
  window.ARQUIVO_FICHA_VISUAL=Object.freeze({render,switchTab,upgradeEditor});
 })();
