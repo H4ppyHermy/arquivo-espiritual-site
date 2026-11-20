@@ -48,7 +48,7 @@ function setup(master=true){
 
 test('livros e quatro classes permanecem disponíveis, mas sem conexão com a ficha',()=>{
  const {window,db}=setup();
- assert.equal(window.ARQUIVO_SECOES.warehouse().posts.length,10);
+ assert.equal(window.ARQUIVO_SECOES.warehouse().posts.length,11);
  const html=window.ARQUIVO_SECOES.warehousePage();
  for(const name of ['Coração de Aço','Especialista em Hohō','Caçador','Porta-voz'])
   assert.ok(html.includes(name),name);
@@ -417,11 +417,12 @@ test('três técnicas livres e três habilidades raciais constam do Armazém sem
   ['Mira Estável','Técnicas','2 ALMA','Ao realizar um ataque à distância sem ter se movimentado na rodada, aumente em 1 passo o dado da perícia utilizada no ataque.'],
   ['Disparo de Contenção','Técnicas','2 ALMA','Ao acertar um ataque à distância, reduza a movimentação do alvo pela metade até o próximo Desfecho.'],
   ['Fogo de Cobertura','Técnicas','3 ALMA','Quando um aliado dentro do alcance de seus disparos for alvo de um ataque, utilize sua reação para realizar um Teste-Clash de Precisão contra o agressor. Caso vença, interrompe o ataque inimigo.'],
+  ['Instinto Primário','Habilidades','2 ALMA','Sua perícia Instinto passa a ser d10. Durante a criação da ficha, escolha três perícias que poderão ser substituídas por Instinto. Ao obter uma Falha Crítica em um teste de Instinto, perde sua reação da rodada. Caso já tenha utilizado sua reação, perde a da rodada seguinte.'],
   ['Hierro','Habilidades','2 ALMA','Ao sofrer um ataque que afete sua Vida, acrescente 1d6 à resistência de Vida até o término da fase. Esse dado é considerado uma proteção adicional.'],
   ['Sonído','Habilidades','2 ALMA','Ao se movimentar, dobre a distância percorrida e ignore bloqueios formados por criaturas durante o deslocamento.'],
   ['Cero','Habilidades','3 ALMA','Utilize sua ação principal na fase de Distância para realizar um ataque de Liberação, concentrando sua energia espiritual em um disparo. Ao acertar, acrescente 1d8 ao dano-base.']
  ];
- assert.equal(source.length,6);
+ assert.equal(source.length,7);
  const ids=new Set();
  const published=ctx.window.ARQUIVO_SECOES.warehouse().posts;
  for(const [title,category,cost,description] of expected){
