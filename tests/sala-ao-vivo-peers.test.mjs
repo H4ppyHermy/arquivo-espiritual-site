@@ -181,6 +181,8 @@ test('dois navegadores descobrem seus peers, trocam offer/answer e enxergam a c�
  assert.equal(ap.pc.connectionState,'connected');
  assert.equal(bp.pc.connectionState,'connected');
  await a.click('camera');
+ // A presença é intencionalmente consolidada por 1,7 s para evitar rate limiting.
+ await new Promise(resolve=>setTimeout(resolve,1850));
  for(let i=0;i<14;i++)await flush();
  const remoteMeta=b.window.ARQUIVO_LIVE.getPresenceList().find(x=>x.peerId===ALICE_PEER);
  assert.equal(remoteMeta?.camera,true,'câmera do mestre visível ao segundo navegador');
