@@ -2055,7 +2055,7 @@ function updateDraft(target){
   }
   if(field==='race'||field==='className'){
    const changed=window.ARQUIVO_ORIGENS?.reconcile(editorDraft);
-   if(changed){drawSheetForm();return}
+   if(changed){drawSheetForm();modalDirty=true;return}
   }
  }
  if(target.dataset.ability){
