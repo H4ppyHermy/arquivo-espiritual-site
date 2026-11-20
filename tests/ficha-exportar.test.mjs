@@ -56,34 +56,38 @@ test('o botão Exportar aparece somente para quem edita a ficha',()=>{
  const html=read('index.html');
  assert.match(visual,/api\.btn\('EXPORTAR','exportAbilities'/);
  assert.match(visual,/ctx\.canEdit\?'<div class="ae-ficha-ability-create-actions"/);
- assert.match(html,/ficha-exportar\.js\?v=2/);
+ assert.match(html,/ficha-exportar\.js\?v=3/);
  assert.ok(html.indexOf('biblioteca-secoes.js')<html.indexOf('ficha-exportar.js'));
  assert.match(read('ficha-visual.css'),/\.ae-export-card/);
 });
-test('exportador lista técnicas e habilidades com busca e seleção múltipla',()=>{
+test('exportador separa registros livres dos de Identificação e permite múltiplos tipos',()=>{
  const ctx=setup();
+ ctx.window.ARQUIVO_HABILIDADES_CBB.push({
+  id:'habilidade-neutra',title:'Postura',category:'Habilidades',
+  published:true,content:'Efeito da postura',cost:'1 ALMA',grants:{race:[],class:[]}
+ });
  ctx.click('exportAbilities');
  assert.equal(ctx.modal.title,'EXPORTAR DO ARMAZÉM');
- assert.match(ctx.nodes.aeExportAbilityList.innerHTML,/Mira Estável/);
- assert.match(ctx.nodes.aeExportAbilityList.innerHTML,/Hierro/);
- assert.match(ctx.nodes.aeExportAbilityList.innerHTML,/TÉCNICA/);
- assert.match(ctx.nodes.aeExportAbilityList.innerHTML,/2 ALMA/);
+ const markup=ctx.nodes.aeExportAbilityList.innerHTML;
+ assert.match(markup,/Mira Estável/);
+ assert.match(markup,/Postura/);
+ assert.match(markup,/TÉCNICA/);
+ assert.doesNotMatch(markup,/Hierro|Instinto Primário|Sonído|Cero/);
  assert.equal(ctx.button.disabled,true);
  ctx.select('tecnica-mira-estavel',true);
- ctx.select('habilidade-hierro',true);
+ ctx.select('habilidade-neutra',true);
  assert.match(ctx.button.textContent,/2 À FICHA/);
  ctx.dispatch('input',{id:'aeExportAbilitySearch',value:'Cero'});
- assert.match(ctx.nodes.aeExportAbilityList.innerHTML,/Cero/);
+ assert.match(ctx.nodes.aeExportAbilityList.innerHTML,/Nenhuma habilidade encontrada/);
  assert.doesNotMatch(ctx.nodes.aeExportAbilityList.innerHTML,/Mira Estável/);
  assert.match(ctx.button.textContent,/2 À FICHA/);
  ctx.click('applyExportAbilities');
  assert.equal(ctx.sheet.abilities.length,2);
- assert.deepEqual(Array.from(ctx.sheet.abilities,a=>a.name),['Mira Estável','Hierro']);
- assert.equal(ctx.sheet.abilities[0].category,'active');
+ assert.deepEqual(Array.from(ctx.sheet.abilities,a=>a.name),['Mira Estável','Postura']);
  assert.equal(ctx.sheet.abilities[0].libraryType,'tecnica');
  assert.equal(ctx.sheet.abilities[1].libraryType,'habilidade');
  assert.equal(ctx.sheet.abilities[0].cost,2);
- assert.match(ctx.sheet.abilities[1].description,/resistência de Vida/);
+ assert.match(ctx.sheet.abilities[1].description,/Efeito da postura/);
  assert.equal(ctx.saved,1);
  assert.equal(ctx.closed,1);
  assert.equal(ctx.rendered,1);
@@ -104,7 +108,7 @@ test('não duplica habilidades existentes e preserva os campos já preenchidos',
 test('cancelar não altera a ficha; permissão negada não abre o seletor',()=>{
  const ctx=setup();
  ctx.click('exportAbilities');
- ctx.select('habilidade-cero',true);
+ ctx.select('tecnica-mira-estavel',true);
  ctx.click('cancelExportAbilities');
  assert.equal(ctx.sheet.abilities.length,0);
  assert.equal(ctx.saved,0);
@@ -116,13 +120,13 @@ test('cancelar não altera a ficha; permissão negada não abre o seletor',()=>{
 test('jogador online salva a lista completa pela rotina correta, sem salvar estado incompleto',async()=>{
  const ctx=setup({onlinePlayer:true});
  ctx.click('exportAbilities');
- ctx.select('habilidade-cero',true);
+ ctx.select('tecnica-mira-estavel',true);
  ctx.select('tecnica-fogo-cobertura',true);
  ctx.click('applyExportAbilities');
  await new Promise(resolve=>setImmediate(resolve));
  assert.equal(ctx.saved,0);
  assert.equal(ctx.payload?.abilities.length,2);
- assert.deepEqual(Array.from(ctx.payload.abilities,a=>a.cost),[3,3]);
+ assert.deepEqual(Array.from(ctx.payload.abilities,a=>a.cost),[2,3]);
  assert.equal(ctx.closed,1);
 });
 test('código protege títulos e tags contra HTML malicioso e não insere rascunhos do jogador',()=>{
