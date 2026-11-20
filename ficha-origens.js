@@ -6,7 +6,20 @@
  const fold=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLocaleLowerCase('pt-BR');
  const text=value=>String(value??'');
  const builtInRaces=['Shinigami','Visored','Hollow','Arrancar','Quincy','Humano','Fullbringer'];
- function posts(){return window.ARQUIVO_SECOES?.warehouse?.().posts||[]}
+ function posts(){
+  const catalog=window.ARQUIVO_SECOES?.warehouse?.().posts||[];
+  const defaults=Array.isArray(window.ARQUIVO_HABILIDADES_CBB)?window.ARQUIVO_HABILIDADES_CBB:[];
+  const byId=new Map(defaults.filter(x=>x?.id&&x?.grants).map(x=>[x.id,x.grants]));
+  // Cópias anteriores ao campo grants podem estar salvas no documento online.
+  // Herdam somente campos ausentes; escolhas explícitas (inclusive vazias) prevalecem.
+  return catalog.map(post=>{
+   const original=byId.get(post?.id);
+   if(!original)return post;
+   const own=post?.grants&&typeof post.grants==='object'?post.grants:{};
+   if(Object.hasOwn(own,'race')&&Object.hasOwn(own,'class'))return post;
+   return {...post,grants:{...original,...own}};
+  });
+ }
  function values(raw){
   if(Array.isArray(raw))return raw.map(x=>text(x).trim()).filter(Boolean);
   return text(raw).split(/[,;\n]+/g).map(x=>x.trim()).filter(Boolean);
