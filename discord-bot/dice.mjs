@@ -69,22 +69,45 @@ function randomDie(faces){
  return x%faces+1;
 }
 
-// Mesma regra de ae_avaliar_dados do site: valores iguais >=6 geram CRÍTICO;
-// dois valores 1 geram FALHA CRÍTICA. Crítico dobra apenas o subtotal dos dados.
-export function evaluateRpgSpecial(dice){
- const active=(Array.isArray(dice)?dice:[]).filter(d=>Number(d.effective??d.value)>0);
- const matching=new Map();let highestFailure=0;
- for(const die of active){
-  const value=Number(die.value),sides=Number(die.sides);
-  if(value===1)highestFailure=Math.max(highestFailure,sides);
-  const key=String(value);
-  const group=matching.get(key)||{count:0,highestSides:0};
-  group.count++;group.highestSides=Math.max(group.highestSides,sides);
-  matching.set(key,group);
+// Regras atuais: somente dados do crítico prioritário são duplicados.
+export function evaluateCriticalRoll(input){
+ const dice=Array.isArray(input)?input:[];
+ const groups=new Map(),original=[];
+ for(let i=0;i<dice.length;i++){
+  const d=dice[i]||{},value=Number(d.value),sides=Number(d.sides);
+  const effective=Number(d.effective??d.value);
+  const active=d.canceled!==true&&Number.isFinite(effective)&&effective!==0;
+  original.push(active?effective:0);
+  if(!active||!Number.isInteger(value)||!Number.isInteger(sides)||sides<1)continue;
+  if(!groups.has(value))groups.set(value,{value,sides:0,indices:[]});
+  const group=groups.get(value);
+  group.sides=Math.max(group.sides,sides);group.indices.push(i);
  }
- const crit=Math.max(0,...[...matching.entries()].filter(([v,g])=>Number(v)>=6&&g.count>=2).map(([,g])=>g.highestSides));
- const failures=matching.get("1")?.count>=2?highestFailure:0;
- return crit>0&&crit>=failures?"CRÍTICO":failures>0?"FALHA CRÍTICA":"";
+ const candidates=[...groups.values()]
+  .filter(group=>group.indices.length>=2&&(group.value===1||group.value>=6))
+  .sort((a,b)=>b.sides-a.sides||b.value-a.value);
+ const winner=candidates[0]||null;
+ const special=winner?(winner.value===1?"FALHA CRÍTICA":"CRÍTICO MÁXIMO"):"";
+ const chosen=new Set(winner?.indices||[]);
+ const finalDice=dice.map((die,i)=>{
+  const d={...die};
+  const marked=chosen.has(i)&&special==="CRÍTICO MÁXIMO";
+  const failure=chosen.has(i)&&special==="FALHA CRÍTICA";
+  if(marked)d.effective=original[i]*2;
+  if(marked)d.criticalApplied=true;
+  if(failure)d.failureApplied=true;
+  return d;
+ });
+ const base=original.reduce((sum,n)=>sum+n,0);
+ const values=finalDice.map((d,i)=>d.canceled===true?0:Number(d.effective??original[i])).filter(n=>Number.isFinite(n)&&n!==0);
+ const total=special==="FALHA CRÍTICA"?1:values.reduce((sum,n)=>sum+n,0);
+ return {base,total,ra:special==="FALHA CRÍTICA"?1:values.length?Math.max(...values):0,
+  rb:special==="FALHA CRÍTICA"?1:values.length?Math.min(...values):0,
+  special,prioritySides:winner?.sides||0,priorityValue:winner?.value??null,
+  dice:finalDice};
+}
+export function evaluateRpgSpecial(dice){
+ return evaluateCriticalRoll(dice).special;
 }
 
 export function rollDiceExpression(input){
@@ -100,8 +123,9 @@ export function rollDiceExpression(input){
   for(const value of values)dice.push({sides:term.sides,value,effective:term.sign*value});
   groups.push((term.sign===-1?"-":"+")+values.join(","));
  }
- const special=evaluateRpgSpecial(dice);
- // O bônus fixo não é multiplicado. Mantém compatibilidade com o critico de 2x do RPG.
- if(special==="CRÍTICO")total=(total-parsed.constant)*2+parsed.constant;
- return {expression:parsed.expression,dice,total,special,breakdown:groups.join(" ").replace(/^\+/,""),count:parsed.count};
+ const evaluated=evaluateCriticalRoll(dice);
+ const totalAfter= evaluated.special==="FALHA CRÍTICA"?1:evaluated.total+parsed.constant;
+ return {expression:parsed.expression,dice:evaluated.dice,total:totalAfter,
+  ra:evaluated.ra,rb:evaluated.rb,base:evaluated.base+parsed.constant,
+  special:evaluated.special,breakdown:groups.join(" ").replace(/^\+/,""),count:parsed.count};
 }
