@@ -335,8 +335,10 @@ function bindRemoteTrack(peer,index,track){
  const key=index===0?'audioStream':index===1?'cameraStream':'screenStream';
  peer[key]=mediaStream(track);
  audioRack();
- track.addEventListener('ended',()=>{if(peer[key]?.getTracks().includes(track)){peer[key]=null;renderPeople()}},{once:true});
- renderPeople();
+ track.addEventListener('ended',()=>{if(peer[key]?.getTracks().includes(track)){
+  peer[key]=null;renderPeople();updateDock()
+ }},{once:true});
+ renderPeople();updateDock();
 }
 function rtcConfig(){
  const external=global.ARQUIVO_LIVE_ICE;
@@ -484,7 +486,7 @@ async function openRoom(){
   state.status='Conexão pronta. Ative câmera ou microfone quando quiser.';
   render();updateDock();
  }catch(e){
-  await leave(false);
+  await leave(true);
   throw e;
  }finally{state.joining=false}
 }
