@@ -61,12 +61,16 @@
  // Fonte de tela de teste: quadros reais gerados por canvas, não evento ontrack falso.
  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
  const ctx=canvas.getContext('2d');let ticks=0;
- setInterval(()=>{
-  ticks++;ctx.fillStyle=ticks%2?'#2244ff':'#dd4422';ctx.fillRect(0,0,640,360);
-  ctx.fillStyle='white';ctx.font='36px sans-serif';ctx.fillText('TELA '+ticks,50,170);
- },100);
+ let screenFrames=null;
  const md=navigator.mediaDevices;
- md.getDisplayMedia=async()=>canvas.captureStream(15);
+ md.getDisplayMedia=async()=>{
+  if(!screenFrames)screenFrames=setInterval(()=>{
+   ticks++;ctx.fillStyle=ticks%2?'#2244ff':'#dd4422';ctx.fillRect(0,0,640,360);
+   ctx.fillStyle='white';ctx.font='36px sans-serif';ctx.fillText('TELA '+ticks,50,170);
+  },120);
+  ctx.fillStyle='#2244ff';ctx.fillRect(0,0,640,360);
+  return canvas.captureStream(12);
+ };
  window.__rtcProbe={account,canvas,participants,session};
 })();
 </script><script src="/sala-ao-vivo.js"></script><script>

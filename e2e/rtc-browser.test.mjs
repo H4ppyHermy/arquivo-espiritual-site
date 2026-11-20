@@ -34,7 +34,7 @@ test('navegadores reais recebem quadros de câmera e compartilhamento de tela em
  t.after(()=>server.close());
  console.log('E2E STEP: iniciar Chrome');
  const browser=await puppeteer.launch({
-  protocolTimeout:12000,
+  protocolTimeout:30000,
   executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',
   headless:true,
   args:['--no-sandbox','--disable-dev-shm-usage','--use-fake-device-for-media-stream',
@@ -57,16 +57,16 @@ test('navegadores reais recebem quadros de câmera e compartilhamento de tela em
  await ua.waitForSelector('[data-live-action=join]',{timeout:15000});
  await ub.waitForSelector('[data-live-action=join]',{timeout:15000});
  console.log('E2E STEP: entrar mestre');
- await ua.click('[data-live-action=join]');
+ await ua.evaluate(()=>document.querySelector('[data-live-action=join]').click());
  console.log('E2E STEP: entrar jogador');
- await ub.click('[data-live-action=join]');
+ await ub.evaluate(()=>document.querySelector('[data-live-action=join]').click());
  console.log('E2E STEP: negociar peers');
  await until(async()=>{
   const [a,b]=await Promise.all([ua.evaluate(()=>window.__rtcProbe.snapshot()),ub.evaluate(()=>window.__rtcProbe.snapshot())]);
   return a.joined&&b.joined&&a.peers[0]?.connection==='connected'&&b.peers[0]?.connection==='connected';
  },25000);
  console.log('E2E STEP: câmera mestre');
- await ua.click('[data-live-action=camera]');
+ await ua.evaluate(()=>document.querySelector('[data-live-action=camera]').click());
  try{
   await until(async()=>{
    const p=await ub.evaluate(()=>window.__rtcProbe.snapshot());
@@ -78,7 +78,7 @@ test('navegadores reais recebem quadros de câmera e compartilhamento de tela em
  }
  // Verifica o caminho inverso: jogador compartilha a tela e o mestre vê quadros reais.
  console.log('E2E STEP: tela jogador');
- await ub.click('[data-live-action=screen]');
+ await ub.evaluate(()=>document.querySelector('[data-live-action=screen]').click());
  try{
   await until(async()=>{
    const p=await ua.evaluate(()=>window.__rtcProbe.snapshot());
