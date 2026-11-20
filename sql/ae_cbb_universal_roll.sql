@@ -35,7 +35,7 @@ DECLARE ac_id uuid;ac_name text;key_id uuid;key_kind text;key_sheet text;
  total integer:=0;ra integer:=0;rb integer:=0;special text:='';attack_ra integer:=0;
  prev public.ae_rolls%rowtype;new_roll public.ae_rolls%rowtype;label_text text;v_i integer;
 BEGIN
- IF p_sheet_id IS NULL OR length(p_sheet_id)>150 OR p_kind NOT IN ('teste','dano','resistencia','recuperacao')
+ IF p_sheet_id IS NULL OR length(p_sheet_id)>150 OR p_kind NOT IN ('teste','dano','resistencia','recuperacao','protecao')
   OR p_context NOT IN ('geral','ataque','defesa')
   OR p_group_steps NOT BETWEEN -5 AND 5 OR p_skill_steps NOT BETWEEN -5 AND 5
   OR p_flat NOT BETWEEN -500 AND 500 OR p_manual_ra NOT BETWEEN 0 AND 100
@@ -101,14 +101,18 @@ BEGIN
   colors=colors||to_jsonb(group_color);
   IF jsonb_array_length(p_pool)>1 THEN RAISE EXCEPTION 'Uma proteção adicional por recurso.';END IF;
  END IF;
+ IF p_kind='protecao' AND (p_resource NOT IN ('vida','estabilidade','alma')
+  OR jsonb_array_length(p_pool)<>1 OR p_group_steps<>0 OR p_flat<>0
+  OR p_attack_id IS NOT NULL OR p_manual_ra<>0)
+ THEN RAISE EXCEPTION 'Proteção exige exatamente um dado adicional e um recurso.';END IF;
  IF p_kind<>'teste' AND p_skill_steps<>0 THEN RAISE EXCEPTION 'Perícia somente em testes.';END IF;
- IF p_kind IN ('dano','recuperacao') AND p_group_steps<>0 THEN RAISE EXCEPTION 'Grupo somente em testes ou resistência.';END IF;
+ IF p_kind IN ('dano','recuperacao','protecao') AND p_group_steps<>0 THEN RAISE EXCEPTION 'Grupo somente em testes ou resistência.';END IF;
  FOR datum IN SELECT value FROM jsonb_array_elements(p_pool) LOOP
   IF jsonb_typeof(datum)<>'object' OR coalesce(datum->>'faces','') !~ '^(4|6|8|10|12|14|16|18|20)$'
    OR coalesce(datum->>'count','') !~ '^[1-9][0-9]?$' THEN RAISE EXCEPTION 'Dados adicionais inválidos.';END IF;
   faces=(datum->>'faces')::integer;amount=(datum->>'count')::integer;
   total_extra=total_extra+amount;
-  IF total_extra>20 OR (p_kind='teste' AND total_extra>4) OR (p_kind='resistencia' AND total_extra>1) THEN RAISE EXCEPTION 'Excesso de dados.';END IF;
+  IF total_extra>20 OR (p_kind='teste' AND total_extra>4) OR (p_kind IN ('resistencia','protecao') AND total_extra>1) THEN RAISE EXCEPTION 'Excesso de dados.';END IF;
   FOR v_i IN 1..amount LOOP
    result_dice=result_dice||jsonb_build_array(jsonb_build_object('sides',faces,'value',public.ae_cbb_random(faces)));
    colors=colors||to_jsonb(skill_color);
@@ -158,7 +162,7 @@ BEGIN
    ELSE attack_ra=p_manual_ra;END IF;
   END IF;
   total=total+p_flat+attack_ra;
-  label_text=CASE p_kind WHEN 'dano' THEN 'DANO' WHEN 'resistencia' THEN 'RESISTÊNCIA · '||p_resource ELSE 'RECUPERAÇÃO' END
+  label_text=CASE p_kind WHEN 'dano' THEN 'DANO' WHEN 'resistencia' THEN 'RESISTÊNCIA · '||p_resource WHEN 'protecao' THEN 'PROTEÇÃO · '||p_resource ELSE 'RECUPERAÇÃO' END
    ||CASE WHEN attack_ra<>0 THEN ' · RA '||attack_ra ELSE '' END
    ||CASE WHEN p_flat<>0 THEN ' · ajuste '||p_flat ELSE '' END;
  END IF;
