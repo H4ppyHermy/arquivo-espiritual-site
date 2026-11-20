@@ -130,9 +130,9 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  assert.match(app,/window\.ARQUIVO_FICHA_VISUAL\?\.upgradeEditor\?\.\(\)/);
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function updateDraft\(target\)/);
- assert.match(html,/ficha-visual\.js\?v=9/);
- assert.match(html,/ficha-visual\.css\?v=9/);
- assert.ok(html.indexOf('arquivo-app.js?v=17')<html.indexOf('ficha-visual.js?v=9'));
+ assert.match(html,/ficha-visual\.js\?v=10/);
+ assert.match(html,/ficha-visual\.css\?v=10/);
+ assert.ok(html.indexOf('arquivo-app.js?v=17')<html.indexOf('ficha-visual.js?v=10'));
 });
 
 test('cabeçalho não inventa raça e os títulos não recebem numeração',()=>{
@@ -193,9 +193,11 @@ test('Identificação exibe textos integrais de classe e raça, sem misturar hab
   {name:'Mira Estável',category:'active',libraryType:'tecnica',cost:2,description:'Disparo preparado'}
  );
  const identity=view.render(sheet,settings('identification'));
- for(const value of ['Identificação','Arrancar','Coração de Aço','Instinto Primário','Hierro','Sonído',
-  'Cero','## Têmpera','[barra:3/3]','Hollows que removeram suas máscaras'])
+ for(const value of ['Identificação','Arrancar','Coração de Aço','## Têmpera',
+  '[barra:3/3]','Hollows que removeram suas máscaras'])
   assert.ok(identity.includes(value),value);
+ assert.doesNotMatch(identity,/Habilidades da raça|Habilidades da classe|ae-ficha-origin-trait|Instinto Primário|Sonído|Hierro|Cero/i,
+  'A identificação apresenta a raça e classe, sem repetir habilidades que já estão na ficha');
  const ability=view.render(sheet,settings('abilities'));
  assert.match(ability,/data-ability-kind="Técnicas"/);
  assert.match(ability,/data-ability-filter="Habilidades"/);
@@ -221,4 +223,15 @@ test('um controle compacto alterna + e − sem repetir a descrição da habilida
  assert.doesNotMatch(html,/LER DESCRIÇÃO COMPLETA|LER TÉCNICA COMPLETA|ae-ficha-ability-teaser/);
  assert.doesNotMatch(read('ficha-visual.js'),/LER DESCRIÇÃO COMPLETA/);
  assert.match(read('ficha-visual.css'),/ae-ficha-ability-details\[open\] \.ae-ficha-expand-minus/);
+});
+
+test('expandir uma habilidade não estica o cartão vizinho',()=>{
+ const css=read('ficha-visual.css');
+ assert.match(css,/#page \.ae-ficha-ability-grid\{[^}]*align-items:start/);
+ assert.match(css,/#page \.ae-ficha-ability-entry\{[^}]*align-self:start/);
+ assert.match(css,/#page \.ae-ficha-ability-entry>\.ae-ficha-ability-card\{[^}]*height:auto/);
+ assert.doesNotMatch(css,/#page \.ae-ficha-ability-entry>\.ae-ficha-ability-card\{flex:1\}/);
+ const {view}=setup(),sheet=example(),html=view.render(sheet,settings('abilities'));
+ assert.equal((html.match(/class="ae-ficha-ability-entry"/g)||[]).length,3);
+ assert.equal((html.match(/class="ae-ficha-ability-details"/g)||[]).length,3);
 });
