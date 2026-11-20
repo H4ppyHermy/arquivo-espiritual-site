@@ -140,7 +140,7 @@
  function resultMarkup(data){
   const r=data.result,calc=engine.rollSummary(r),kind=data.mode;
   const parts=calc.dice.map(x=>'<span class="ae-cbb-die">'+enc(x)+'</span>').join('');
-  const base='<div class="ae-cbb-result-head"><strong>'+enc(kind==='teste'?'TESTE VERIFICADO':kind==='dano'?'DANO-BASE':kind==='resistencia'?'RESISTÊNCIA':'RECUPERAÇÃO')+'</strong> <small>REGISTRO #'+enc(r.id||'')+'</small></div>'+
+  const base='<div class="ae-cbb-result-head"><strong>'+enc(kind==='teste'?'TESTE VERIFICADO':kind==='dano'?'DANO-BASE':kind==='resistencia'?'RESISTÊNCIA':'RECUPERAÇÃO')+'</strong> <small>REGISTRO #'+enc(r.id||'')+(r.protectionId?' + #'+enc(r.protectionId):'')+'</small></div>'+
    '<div class="ae-cbb-pills">'+pill('RT',calc.rt)+pill('RA',calc.ra)+pill('RB',calc.rb)+
     (calc.special?pill('CRÍTICO',calc.special):'')+'</div><div class="ae-cbb-dice">'+parts+'</div>';
   const effect=[];
@@ -183,12 +183,33 @@
    if(mode==='resistencia'&&count>1)throw Error('Use no máximo um dado de proteção adicional.');
    if(mode==='resistencia'){
     const key=s.id+':'+currentPhase(s)+':'+args.p_resource;
-    if(resistanceByPhase.has(key)){
-     responseField(s,resistanceByPhase.get(key),'resistencia',null,null);
-     statusBySheet.set(s.id,'Resistência da fase reutilizada sem nova rolagem.');
+    args.p_group_steps=normalize(number(root,'resistSteps'),-5,5,'passos de resistência');
+    const cached=resistanceByPhase.get(key);
+    if(cached){
+     if(cached.steps!==args.p_group_steps)throw Error('A resistência natural já foi rolada nesta fase; seus passos ficam fixos.');
+     if(cached.count===count && (!count||cached.faces===faces)){
+      responseField(s,cached.current,'resistencia',null,null);
+      statusBySheet.set(s.id,'Resistência da fase reaproveitada.');
+      const node=document.querySelector('.ae-cbb-status');if(node)node.textContent=stateText(s);
+      return;
+     }
+     const original=cached.natural.dice[0];
+     let updated={...cached.natural,dice:[original],rt:Number(original.value),
+      ra:Number(original.value),rb:Number(original.value),protectionId:null};
+     if(count){
+      const extra=await sync.cbbRoll({...args,p_kind:'protecao',p_group_steps:0,p_pool:[{count:1,faces}]});
+      if(!extra?.id||!Array.isArray(extra.dice)||extra.dice.length!==1)throw Error('Proteção adicional não confirmada.');
+      const second=extra.dice[0];
+      updated={...updated,dice:[original,second],rt:Number(original.value)+Number(second.value),
+       ra:Math.max(Number(original.value),Number(second.value)),
+       rb:Math.min(Number(original.value),Number(second.value)),protectionId:extra.id};
+     }
+     cached.count=count;cached.faces=faces;cached.current=updated;
+     responseField(s,updated,'resistencia',null,null);
+     statusBySheet.set(s.id,count?'Proteção adicional atualizada.':'Resistência natural reaproveitada.');
+     const node=document.querySelector('.ae-cbb-status');if(node)node.textContent=stateText(s);
      return;
     }
-    args.p_group_steps=normalize(number(root,'resistSteps'),-5,5,'passos de resistência');
    }else{
     args.p_flat=normalize(number(root,'flat'),-500,500,'bônus fixo');
     if(mode==='dano'&&field(root,'useAttackRa')?.checked){
@@ -209,7 +230,7 @@
    }
    if(args.p_reaction){s.combat??={};s.combat.reactionUsed=true;}
   }
-  if(args.p_kind==='resistencia')resistanceByPhase.set(s.id+':'+currentPhase(s)+':'+args.p_resource,result);
+  if(args.p_kind==='resistencia')resistanceByPhase.set(s.id+':'+currentPhase(s)+':'+args.p_resource,{natural:result,current:result,steps:args.p_group_steps,count:number(root,'poolCount'),faces:number(root,'poolFaces')});
   responseField(s,result,args.p_kind,dt,clash);
   const hazard=s.boss?.scenario;
   if(hazard?.critical===result.special && hazard.skill===args.p_skill && args.p_kind==='teste'){
