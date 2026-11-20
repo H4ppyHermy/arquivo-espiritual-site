@@ -156,6 +156,18 @@ async function rollFree(count,faces,hidden=false,colors=[]){
   return withDiscordRoll(rpc('ae_roll_custom',{p_count:count,p_faces:faces,p_colors:Array.isArray(colors)?colors:[]}));
  return withDiscordRoll(rpc('ae_roll_free_colored',{p_count:count,p_faces:faces,p_hidden:hidden,p_colors:Array.isArray(colors)?colors:[]}));
 }
+async function cbbRoll(args){
+ if(!state.enabled||!state.identity?.id)throw Error('Entre com a chave do personagem para rolar.');
+ return withDiscordRoll(rpc('ae_cbb_roll',args));
+}
+async function cbbAction(args){
+ if(!state.enabled||!state.identity?.id)throw Error('Entre com uma chave para agir.');
+ await state.pending.catch(()=>{});
+ state.busyUntil=Date.now()+900;
+ const result=await rpc('ae_cbb_action',args);
+ if(result?.revision)state.revision=Math.max(state.revision,Number(result.revision)||0);
+ return result;
+}
 async function rollHistory(limit=10,offset=0,sheetId=null){
  if(!state.enabled||!state.identity?.id)return {rows:[],total:0};
  const size=Math.max(1,Math.min(30,Math.trunc(Number(limit)||10)));
@@ -217,5 +229,5 @@ async function mediaSignedUrl(ref){
  return data.signedUrl;
 }
 
-window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,rollFree,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
+window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,rollFree,cbbRoll,cbbAction,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
 })();

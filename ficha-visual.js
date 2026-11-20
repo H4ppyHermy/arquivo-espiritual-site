@@ -4,8 +4,8 @@
  'use strict';
  const api=window.ARQUIVO_INTERNAL;
  if(!api)return;
- const esc=api.esc,labels={summary:'Resumo',skills:'Perícias',identification:'Identificação',abilities:'Habilidades',bonds:'Vínculos',conditions:'Condições',inventory:'Inventário',notes:'Notas',guide:'Guia rápido'};
- const symbols={summary:'◇',skills:'▦',identification:'◈',abilities:'✦',bonds:'∞',conditions:'◈',inventory:'▣',notes:'≡',guide:'▤'};
+ const esc=api.esc,labels={summary:'Resumo',skills:'Perícias',identification:'Identificação',abilities:'Habilidades',mesa:'Mesa',bonds:'Vínculos',conditions:'Condições',inventory:'Inventário',notes:'Notas',guide:'Guia rápido'};
+ const symbols={summary:'◇',skills:'▦',identification:'◈',abilities:'✦',mesa:'◎',bonds:'∞',conditions:'◈',inventory:'▣',notes:'≡',guide:'▤'};
  let editorStep='',abilityKind='Todas',lastAbilitySheet='';
  const resourceDefs=[['vida','VIDA'],['estabilidade','ESTABILIDADE'],['alma','ALMA']];
  const text=(x)=>String(x??'');
@@ -129,6 +129,7 @@
  function summary(s,ctx){
   return '<div class="ae-ficha-summary">'+
     '<div class="ae-ficha-summary-columns">'+attributes(s,ctx)+resources(s,ctx)+'</div>'+
+    '<button type="button" class="btn small ae-cbb-open" data-tab="mesa">ABRIR MESA DE COMBATE</button>'+
     originMeters(s,ctx)+snapshot(s)+
     (ctx.history?'<section class="ae-ficha-history">'+ctx.history+'</section>':'')+
    '</div>';
@@ -171,6 +172,7 @@
        api.sheetRich(description)+'</div>'+
     '</details>'+
     (ctx.canEdit?'<div class="ae-ficha-ability-tools">'+api.btn('EDITAR','editAbilityDirect:'+index,'small')+'</div>':'')+
+    (window.ARQUIVO_CBB_UI?.abilityActions?.(ab,index,ctx)||'')+
    '</article>';
  }
  function abilities(s,ctx){
@@ -229,7 +231,7 @@
  function content(s,selected,ctx){
   return selected==='summary'?summary(s,ctx):selected==='skills'?skills(s,ctx):
    selected==='identification'?identification(s,ctx):
-   selected==='abilities'?abilities(s,ctx):selected==='guide'?guide():
+   selected==='abilities'?abilities(s,ctx):selected==='mesa'?(window.ARQUIVO_CBB_UI?.render?.(s,ctx)||'<p>Mesa de combate indisponível.</p>'):selected==='guide'?guide():
    '<section class="ae-ficha-extras"><div class="ae-ficha-section-title"><h2>'+labels[selected]+'</h2></div>'+
     (ctx.body||'')+'</section>';
  }
