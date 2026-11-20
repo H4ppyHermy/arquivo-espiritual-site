@@ -461,6 +461,11 @@ async function openRoom(){
   channel.on('presence',{event:'sync'},presenceSync);
   channel.on('broadcast',{event:'rtc-signal'},({payload})=>{signal(payload)});
   channel.on('broadcast',{event:'session-end'},()=>leave(false));
+  channel.on('broadcast',{event:'participant-kicked'},({payload})=>{
+   if(payload?.account_id===state.accountId){
+    leave(false).then(()=>status('Você foi removido pelo mestre.',true)).catch(()=>{});
+   }else refreshState().catch(()=>{});
+  });
   await new Promise((resolve,reject)=>{
    const timeout=setTimeout(()=>reject(Error('A sala privada não respondeu.')),12000);
    channel.subscribe(async status=>{
