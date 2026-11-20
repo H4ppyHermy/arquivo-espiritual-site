@@ -101,7 +101,7 @@ test('teste de perícia envia um pedido ao servidor e mostra RT RA RB',async()=>
 
 test('scripts e duas RPCs universais estão ligados sem reativar código por personagem',()=>{
  const html=read('index.html'),online=read('online.js'),visual=read('ficha-visual.js');
- for(const file of ['cbb-engine.js?v=1','cbb-interativo.js?v=2','cbb-interativo.css?v=1'])
+ for(const file of ['cbb-engine.js?v=1','cbb-interativo.js?v=3','cbb-interativo.css?v=2'])
   assert.ok(html.includes(file),file);
  assert.ok(visual.includes("mesa:'Mesa'"));
  assert.match(visual,/ARQUIVO_CBB_UI\?\.render/);

@@ -70,6 +70,7 @@
      '<button type="button" data-cbb-mode="'+mode+'" aria-pressed="'+(selectedMode===mode)+'" class="'+(selectedMode===mode?'is-active':'')+'">'+label+'</button>').join('')+'</nav>'+
    (!ctx.canEdit?'<p class="ae-cbb-hint">Somente leitura: esta ficha não está vinculada à sua chave.</p>':!on()?'<p class="ae-cbb-hint">Conecte uma chave de jogador ou mestre para rolar e alterar a ficha.</p>':'')+
    '<div class="ae-cbb-status" role="status" aria-live="polite">'+enc(stateText(s))+'</div>'+
+   '<div class="ae-cbb-result" role="status" aria-live="polite">'+(result?resultMarkup(result):'<p>Escolha uma ação para começar.</p>')+'</div>'+
    '<div class="ae-cbb-grid">'+
     '<section class="ae-cbb-panel" data-cbb-panel="teste"'+(selectedMode==='teste'?'':' hidden')+'><h3>Teste de perícia</h3>'+
      '<label>Perícia<select data-cbb-field="skill">'+opts(choices,'Destreza')+'</select></label>'+
@@ -134,8 +135,7 @@
      '<button type="button" class="btn main ae-cbb-action" data-cbb-command="adjust"'+lock+'>APLICAR À MINHA FICHA</button>'+
      ''+
     '</section>'+
-   '</div>'+
-   '<div class="ae-cbb-result" role="status" aria-live="polite">'+(result?resultMarkup(result):'<p>Os resultados das rolagens aparecerão aqui.</p>')+'</div></section>';
+   '</div></section>';
  }
  function resultMarkup(data){
   const r=data.result,calc=engine.rollSummary(r),kind=data.mode;
