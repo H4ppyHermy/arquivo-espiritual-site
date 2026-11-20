@@ -178,3 +178,24 @@ test('importar custo e limite de uso não reintroduz a classificação antiga',(
  assert.equal(limited.cost,0);
  assert.equal(limited.usage,'1 uso por cena');
 });
+
+test('as seis novas entradas também podem ser importadas para a ficha sem restrições',()=>{
+ const ctx=setup();
+ ctx.click('exportAbilities');
+ const html=ctx.nodes.aeExportAbilityList.innerHTML;
+ const names=['Soco Soco Bate Bate','Monte Tibetano','Imperdível',
+  'Revestimento de Corpo','Alma Extensiva','Ressonância Material'];
+ for(const name of names)assert.ok(html.includes(name),name);
+ for(const id of [
+  'tecnica-soco-soco-bate-bate','tecnica-monte-tibetano','tecnica-imperdivel',
+  'habilidade-revestimento-corpo','habilidade-alma-extensiva','habilidade-ressonancia-material'
+ ])ctx.select(id,true);
+ ctx.click('applyExportAbilities');
+ assert.deepEqual(Array.from(ctx.sheet.abilities,a=>a.name),names);
+ assert.deepEqual(Array.from(ctx.sheet.abilities,a=>a.libraryType),
+  ['tecnica','tecnica','tecnica','habilidade','habilidade','habilidade']);
+ assert.deepEqual(Array.from(ctx.sheet.abilities,a=>a.cost),[2,2,3,2,2,3]);
+ assert.match(ctx.sheet.abilities[0].description,/> Dano: \+1d8/);
+ assert.match(ctx.sheet.abilities[5].description,/> Dano: \+1d6/);
+ assert.equal(ctx.saved,1);
+});
