@@ -6,7 +6,6 @@
  if(!api)return;
  const esc=api.esc,labels={summary:'Resumo',skills:'Perícias',identification:'Identificação',abilities:'Habilidades',bonds:'Vínculos',conditions:'Condições',inventory:'Inventário',notes:'Notas',guide:'Guia rápido'};
  const symbols={summary:'◇',skills:'▦',identification:'◈',abilities:'✦',bonds:'∞',conditions:'◈',inventory:'▣',notes:'≡',guide:'▤'};
- const TYPES={active:'ATIVA',passive:'PASSIVA',mechanic:'MECÂNICA',release:'LIBERAÇÃO',transformation:'TRANSFORMAÇÃO',ultimate:'SUPREMA',item:'ITEM'};
  let editorStep='',abilityKind='Todas',lastAbilitySheet='';
  const resourceDefs=[['vida','VIDA'],['estabilidade','ESTABILIDADE'],['alma','ALMA']];
  const text=(x)=>String(x??'');
@@ -145,19 +144,16 @@
     '<div class="ae-ficha-skills-col" aria-label="Coluna de perícias '+(index+1)+'">'+list.map(row).join('')+'</div>'
    ).join('')+'</div></section>';
  }
- function abilityCategory(ab){
-  if(ab?.passive===true||ab?.category==='passive')return 'passive';
-  return TYPES[ab?.category]?ab.category:'active';
- }
  function abilityCard(ab,index,ctx){
-  const name=esc(ab.name||'Habilidade sem nome'),type=abilityCategory(ab);
+  const name=esc(ab.name||'Habilidade sem nome');
   const description=text(ab.description||'Sem descrição.');
   const image=ab.image&&api.dataUrlOk(ab.image)?api.mediaSrc(ab.image):'';
   const kind=ab.libraryType==='tecnica'?'Técnica':'Habilidade';
   return '<article class="ae-ficha-ability-card" data-ability-kind="'+(kind==='Técnica'?'Técnicas':'Habilidades')+'" id="ability-'+index+'">'+
     '<div class="ae-ficha-ability-tag">'+name+'</div>'+
-    '<div class="ae-ficha-ability-meta"><span>'+esc(kind.toUpperCase())+' · '+esc(TYPES[type])+'</span>'+
-     (Number(ab.cost)>0?'<span>CUSTO INDICADO · '+esc(ab.cost)+' ALMA</span>':'')+'</div>'+
+    '<div class="ae-ficha-ability-meta"><span>'+esc(kind.toUpperCase())+'</span>'+
+     (Number(ab.cost)>0?'<span>'+esc(ab.cost)+' ALMA</span>':'')+
+     (ab.usage?'<span>'+esc(ab.usage)+'</span>':'')+'</div>'+
 
     '<details class="ae-ficha-ability-details">'+
      '<summary aria-label="Mostrar ou ocultar a descrição de '+name+'" title="Abrir ou fechar descrição">'+
@@ -179,12 +175,7 @@
   const ungrouped=list.filter(({ab})=>!groupIds.has(ab.groupId));
   const sections=[
    ...groups.map(group=>({name:group.name,items:list.filter(({ab})=>ab.groupId===group.id),custom:true})),
-   ...[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']].map(([key,name])=>({
-    name,custom:false,items:ungrouped.filter(({ab})=>{
-     const type=abilityCategory(ab);
-     return key==='other'?!['active','passive'].includes(type):type===key;
-    })
-   }))
+   {name:'GERAIS',custom:false,items:ungrouped}
   ];
   const matches=ab=>abilityKind==='Todas'||(ab.libraryType==='tecnica'?'Técnicas':'Habilidades')===abilityKind;
   return '<div class="ae-ficha-abilities" data-ability-view="'+abilityKind+'"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Habilidades & Técnicas</h2></div>'+
