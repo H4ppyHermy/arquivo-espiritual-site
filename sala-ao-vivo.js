@@ -10,6 +10,7 @@ const validId=/^[a-z0-9-]{20,60}$/i;
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 const state={
  session:null,participants:[],joined:false,joining:false,connecting:false,
+ hudChoices:[],hudChoicesReady:false,hideAllNumbers:false,
  channel:null,peers:new Map(),presence:new Map(),hud:new Map(),
  selfId:null,accountId:null,local:null,
  camera:null,microphone:null,screen:null,screenAudio:null,
@@ -71,44 +72,62 @@ async function refreshHud(){
  try{
   const data=await rpc('ae_live_hud');
   if(!Array.isArray(data))return;
-  state.hud=new Map(data.filter(x=>typeof x.id==='string').map(x=>[x.id,x]));
+  state.hud=new Map(data.filter(x=>typeof x.id==='string'&&typeof x.accountId==='string').map(x=>[x.accountId,x]));
   state.lastHudAt=Date.now();renderOverlays();
  }catch(e){status('Recursos indisponíveis: '+e.message,true)}
 }
-function hudRecord(sheetId){
+function hudRecord(sheetId,opts={}){
  if(!sheetId)return null;
- const remote=state.hud.get(sheetId);
+ const remote=opts.accountId?state.hud.get(opts.accountId):null;
+ if(remote?.id===sheetId)return {...remote,appearance:{accent:remote.accent||''}};
+ if(opts.hideNumbers)return null;
  const sheet=api()?.db?.sheets?.find(x=>x.id===sheetId);
- if(!remote&&!sheet)return null;
- if(remote)return {...remote,appearance:sheet?.appearance||{}};
- return sheet?.masterOnly?null:sheet;
+ if(!sheet||sheet.masterOnly&&!opts.master)return null;
+ return sheet;
 }
-function bar(label,key,data){
+function bar(label,key,data,hideNumbers=false){
  const raw=data?.[key]||{},current=Number(raw.current),max=Number(raw.max);
- if(!Number.isFinite(current)||!Number.isFinite(max)||max<=0)return '';
- const pct=Math.max(0,Math.min(100,current/max*100));
- return '<div class="ae-live-meter ae-live-meter-'+key+'"><div class="ae-live-meter-label"><span>'+label+'</span><b>'+esc(current)+' / '+esc(max)+'</b></div>'+
-  '<div class="ae-live-meter-track"><i style="width:'+pct.toFixed(2)+'%"></i></div></div>';
+ const percent=Number(raw.percent);
+ const hasTotals=raw.current!==undefined&&raw.max!==undefined&&Number.isFinite(current)&&Number.isFinite(max)&&max>0;
+ const hasPercent=raw.percent!==undefined&&Number.isFinite(percent);
+ if(!hasTotals&&!hasPercent)return '';
+ const pct=Math.max(0,Math.min(100,hasPercent?percent:current/max*100));
+ return '<div class="ae-live-meter ae-live-meter-'+key+'"><div class="ae-live-meter-label"><span>'+label+'</span>'+
+  (hideNumbers?'':'<b>'+esc(current)+' / '+esc(max)+'</b>')+'</div>'+
+  '<div class="ae-live-meter-track" role="img" aria-label="'+label+
+  (hideNumbers?'':' '+esc(current)+' de '+esc(max))+'"><i style="width:'+pct.toFixed(2)+'%"></i></div></div>';
 }
-function overlayFor(sheetId){
- const sh=hudRecord(sheetId);
- if(!sh)return '<div class="ae-live-hud ae-live-hud-empty"><span>SEM FICHA VINCULADA</span></div>';
+function overlayFor(sheetId,opts={}){
+ const sh=hudRecord(sheetId,opts);
+ if(!sh){
+  const title=opts.master?'MESTRE':sheetId?'HUD INDISPONÍVEL':'SEM PERSONAGEM NO HUD';
+  return '<div class="ae-live-hud ae-live-hud-empty'+(opts.master?' is-master':'')+'"><span>'+title+'</span></div>';
+ }
  const conds=Array.isArray(sh.conditions)?sh.conditions.slice(0,3):[];
- const color=String(sh.appearance?.accent||'');
+ const color=String(sh.accent||sh.appearance?.accent||'');
  const safeColor=/^#[0-9a-fA-F]{6}$/.test(color)?' style="--ae-live-accent:'+color+'"':'';
+ const hide=opts.hideNumbers||state.hideAllNumbers;
  return '<div class="ae-live-hud"'+safeColor+'><div class="ae-live-hud-head"><b>'+esc(sh.name||'Personagem')+'</b>'+
    (conds.length?'<span>'+esc(conds.join(' · '))+'</span>':'')+'</div>'+
-   '<div class="ae-live-meters">'+bar('VIDA','vida',sh.resources)+bar('ESTABILIDADE','estabilidade',sh.resources)+bar('ALMA','alma',sh.resources)+'</div></div>';
+   '<div class="ae-live-meters">'+bar('VIDA','vida',sh.resources,hide)+
+   bar('ESTABILIDADE','estabilidade',sh.resources,hide)+bar('ALMA','alma',sh.resources,hide)+'</div></div>';
 }
-function avatarFor(sheetId,name){
- const sh=hudRecord(sheetId);
+function avatarFor(sheetId,name,opts={}){
+ const sh=hudRecord(sheetId,opts);
  const url=sh?.image&&api()?.mediaSrc?.(sh.image);
  return '<div class="ae-live-avatar">'+(url?'<img src="'+esc(url)+'" alt="" loading="lazy">':
   '<span>'+esc((name||'?').trim().slice(0,1).toUpperCase())+'</span>')+'</div>';
 }
 function getPresenceList(){
  const list=[localPresence(),...Array.from(state.presence.values()).filter(p=>p.peerId!==state.selfId)];
- return list.sort((a,b)=>(a.peerId===state.selfId?-1:b.peerId===state.selfId?1:0)||a.name.localeCompare(b.name,'pt-BR'));
+ return list.map(p=>{
+  const record=state.participants.find(x=>x.account_id===p.accountId)||
+   (p.accountId===state.accountId?state.local:null);
+  if(!record)return {...p,hideNumbers:false};
+  return {...p,name:record.account_name||p.name,master:record.is_master===true,
+   sheetId:record.hud_sheet_id||record.sheet_id||null,
+   hideNumbers:record.hud_hide_numbers===true};
+ }).sort((a,b)=>(a.peerId===state.selfId?-1:b.peerId===state.selfId?1:0)||a.name.localeCompare(b.name,'pt-BR'));
 }
 function tileFor(p){
  const self=p.peerId===state.selfId,online=state.peers.get(p.peerId);
@@ -117,10 +136,10 @@ function tileFor(p){
  return '<article class="ae-live-tile'+(self?' is-local':'')+'" data-peer-id="'+esc(p.peerId)+'">'+
   '<div class="ae-live-tile-image">'+
    '<video id="'+esc(thumbId)+'" muted autoplay playsinline class="ae-live-camera-video"'+(p.camera?'':' hidden')+'></video>'+
-   (!p.camera?avatarFor(p.sheetId,p.name):'')+
+   (!p.camera?avatarFor(p.sheetId,p.name,p):'')+
    (p.screen?'<span class="ae-live-sharing-badge">TELA ATIVA</span>':'')+
    (!self&&!ready?'<span class="ae-live-connect-badge">CONECTANDO</span>':'')+
-   overlayFor(p.sheetId)+
+   overlayFor(p.sheetId,p)+
   '</div><footer class="ae-live-tile-footer"><div class="ae-live-tile-identity"><strong>'+esc(p.name)+(self?' · VOCÊ':'')+
    '</strong><small>'+esc(p.master?'MESTRE':'JOGADOR')+'</small></div>'+
    '<div class="ae-live-tile-actions">'+
@@ -133,20 +152,20 @@ function tileFor(p){
 function renderOverlays(){
  if(!state.joined)return;
  for(const el of document.querySelectorAll('.ae-live-tile[data-peer-id]')){
-  const p=el.dataset.peerId===state.selfId?localPresence():state.presence.get(el.dataset.peerId);
+  const p=getPresenceList().find(x=>x.peerId===el.dataset.peerId);
   if(!p)continue;
   const hud=el.querySelector('.ae-live-hud');
-  if(hud)hud.outerHTML=overlayFor(p.sheetId);
+  if(hud)hud.outerHTML=overlayFor(p.sheetId,p);
  }
  const dockHud=document.querySelector('#ae-live-dock .ae-live-hud');
  if(dockHud){
   const focus=dockFocus();
-  dockHud.outerHTML=overlayFor(focus?.sheetId);
+  dockHud.outerHTML=overlayFor(focus?.sheetId,focus||{});
  }
  const spot=document.querySelector('.ae-live-spotlight .ae-live-hud');
  if(spot&&state.spotlight){
-  const p=state.spotlight.peerId===state.selfId?localPresence():state.presence.get(state.spotlight.peerId);
-  if(p)spot.outerHTML=overlayFor(p.sheetId);
+  const p=getPresenceList().find(x=>x.peerId===state.spotlight.peerId);
+  if(p)spot.outerHTML=overlayFor(p.sheetId,p);
  }
 }
 function dockFocus(){
@@ -199,7 +218,7 @@ function renderPeople(){
  const panel=document.querySelector('.ae-live-people');
  if(panel){
   const peers=getPresenceList();
-  const signature=JSON.stringify(peers.map(p=>[p.peerId,p.accountId,p.sheetId,p.camera,p.microphone,p.screen,
+  const signature=JSON.stringify(peers.map(p=>[p.peerId,p.accountId,p.sheetId,p.hideNumbers,p.camera,p.microphone,p.screen,
    p.master,p.name,p.peerId===state.selfId?'self':state.peers.get(p.peerId)?.pc?.connectionState||'new']));
   if(panel.dataset.liveSignature!==signature){
    panel.innerHTML=peers.map(tileFor).join('');
@@ -212,12 +231,12 @@ function renderPeople(){
   const active=state.spotlight&&(state.spotlight.peerId===state.selfId||state.presence.has(state.spotlight.peerId));
   spotlight.hidden=!active;
   if(active){
-   const p=state.spotlight.peerId===state.selfId?localPresence():state.presence.get(state.spotlight.peerId);
-   const signature=state.spotlight.peerId+':'+state.spotlight.kind;
+   const p=getPresenceList().find(x=>x.peerId===state.spotlight.peerId);
+   const signature=state.spotlight.peerId+':'+state.spotlight.kind+':'+p?.sheetId+':'+p?.hideNumbers;
    if(spotlight.dataset.liveSignature!==signature){
     spotlight.innerHTML='<div class="ae-live-spotlight-head"><strong>'+esc(p.name)+' · '+(state.spotlight.kind==='screen'?'TELA':'CÂMERA')+
      '</strong>'+button('FECHAR','unspotlight')+'</div><div class="ae-live-spotlight-view">'+
-     '<video id="ae-live-spotlight-video" autoplay playsinline muted></video>'+overlayFor(p.sheetId)+'</div>';
+     '<video id="ae-live-spotlight-video" autoplay playsinline muted></video>'+overlayFor(p.sheetId,p)+'</div>';
     spotlight.dataset.liveSignature=signature;
    }
   }
@@ -241,8 +260,8 @@ function updateDock(){
  const signature=[focus?.peerId||'',kind,focus?.camera,focus?.screen,getPresenceList().length].join(':');
  if(dock.dataset.liveSignature!==signature){
   dock.innerHTML='<div class="ae-live-dock-preview">'+
-   (focus?.camera||focus?.screen?'<video id="ae-live-dock-video" autoplay playsinline muted></video>':avatarFor(focus?.sheetId,focus?.name))+
-   overlayFor(focus?.sheetId)+'</div>'+
+   (focus?.camera||focus?.screen?'<video id="ae-live-dock-video" autoplay playsinline muted></video>':avatarFor(focus?.sheetId,focus?.name,focus||{}))+
+   overlayFor(focus?.sheetId,focus||{})+'</div>'+
    '<div class="ae-live-dock-controls"><div class="ae-live-dock-title"><span class="ae-live-dock-dot"></span>'+
    '<strong>SESSÃO AO VIVO</strong><small>'+getPresenceList().length+' pessoas</small></div>'+
    '<div class="ae-live-dock-buttons">'+button('ABRIR','open')+
