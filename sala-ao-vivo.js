@@ -62,7 +62,7 @@ async function refreshState(){
    if(!state.session||!active){await leave(false);status('A sessão terminou ou seu acesso foi encerrado.',true);}
   }
   if(!state.joined&&api()?.page==='live')render();
-  if(state.joined)renderPeople();
+  if(state.joined)presenceSync();
  }catch(error){if(api()?.page==='live')status(error.message,true)}
  finally{state.lobbyBusy=false}
 }
@@ -174,8 +174,13 @@ function renderPeople(){
  const panel=document.querySelector('.ae-live-people');
  if(panel){
   const peers=getPresenceList();
-  panel.innerHTML=peers.map(tileFor).join('')+
-   peers.filter(p=>p.peerId!==state.selfId).map(p=>'<audio id="ae-live-audio-'+esc(p.peerId)+'" autoplay playsinline></audio>').join('');
+  const signature=JSON.stringify(peers.map(p=>[p.peerId,p.accountId,p.sheetId,p.camera,p.microphone,p.screen,
+   p.master,p.name,p.peerId===state.selfId?'self':state.peers.get(p.peerId)?.pc?.connectionState||'new']));
+  if(panel.dataset.liveSignature!==signature){
+   panel.innerHTML=peers.map(tileFor).join('')+
+    peers.filter(p=>p.peerId!==state.selfId).map(p=>'<audio id="ae-live-audio-'+esc(p.peerId)+'" autoplay playsinline></audio>').join('');
+   panel.dataset.liveSignature=signature;
+  }
  }
  const head=document.querySelector('.ae-live-count');if(head)head.textContent=getPresenceList().length+' NA SALA';
  const spotlight=document.querySelector('.ae-live-spotlight');
@@ -184,9 +189,13 @@ function renderPeople(){
   spotlight.hidden=!active;
   if(active){
    const p=state.spotlight.peerId===state.selfId?localPresence():state.presence.get(state.spotlight.peerId);
-   spotlight.innerHTML='<div class="ae-live-spotlight-head"><strong>'+esc(p.name)+' · '+(state.spotlight.kind==='screen'?'TELA':'CÂMERA')+
-    '</strong>'+button('FECHAR','unspotlight')+'</div><div class="ae-live-spotlight-view">'+
-    '<video id="ae-live-spotlight-video" autoplay playsinline muted></video>'+overlayFor(p.sheetId)+'</div>';
+   const signature=state.spotlight.peerId+':'+state.spotlight.kind;
+   if(spotlight.dataset.liveSignature!==signature){
+    spotlight.innerHTML='<div class="ae-live-spotlight-head"><strong>'+esc(p.name)+' · '+(state.spotlight.kind==='screen'?'TELA':'CÂMERA')+
+     '</strong>'+button('FECHAR','unspotlight')+'</div><div class="ae-live-spotlight-view">'+
+     '<video id="ae-live-spotlight-video" autoplay playsinline muted></video>'+overlayFor(p.sheetId)+'</div>';
+    spotlight.dataset.liveSignature=signature;
+   }
   }
  }
  const cam=document.querySelector('[data-live-action="camera"]');if(cam){cam.classList.toggle('is-on',!!state.camera);cam.textContent=state.camera?'DESLIGAR CÂMERA':'LIGAR CÂMERA'}
@@ -251,23 +260,33 @@ function render(){
  renderPeople();
 }
 function peerSet(){
- const entries=[];
+ const entries=[],allowed=new Map(state.participants.map(p=>[p.account_id,p]));
+ let unknown=false;
  const channels=state.channel?.presenceState?.()||{};
  for(const value of Object.values(channels))for(const item of (Array.isArray(value)?value:[])){
   if(!item||typeof item.peerId!=='string'||!validId.test(item.peerId)||!validId.test(String(item.accountId||'')))continue;
   if(item.peerId===state.selfId)continue;
-  entries.push({peerId:item.peerId,accountId:item.accountId,name:String(item.name||'Participante').slice(0,80),
-   sheetId:typeof item.sheetId==='string'?item.sheetId:null,
+  const known=allowed.get(item.accountId);
+  if(!known){unknown=true;continue}
+  entries.push({peerId:item.peerId,accountId:item.accountId,
+   name:String(known.account_name||'Participante').slice(0,80),
+   sheetId:typeof known.sheet_id==='string'?known.sheet_id:null,
    camera:item.camera===true,microphone:item.microphone===true,screen:item.screen===true,
-   master:item.master===true});
+   master:known.is_master===true});
  }
- // Uma instância por conta na sala; presença duplicada é tratada pelo peerId.
- const unique=new Map();for(const p of entries)unique.set(p.peerId,p);
- return unique;
+ if(unknown&&!state.lobbyBusy&&!state.connecting){
+  state.connecting=true;
+  queueMicrotask(()=>refreshState().catch(()=>{}).finally(()=>{state.connecting=false}));
+ }
+ return new Map(entries.map(p=>[p.peerId,p]));
 }
 function presenceSync(){
  if(!state.joined)return;
  const next=peerSet();state.presence=next;
+ if(!state.spotlight){
+  const shared=Array.from(next.values()).find(p=>p.screen);
+  if(shared)state.spotlight={peerId:shared.peerId,kind:'screen'};
+ }
  for(const [id,p] of next)if(!state.peers.has(id))makePeer(p);
  for(const id of Array.from(state.peers.keys()))if(!next.has(id))removePeer(id);
  if(state.spotlight&&!next.has(state.spotlight.peerId)&&state.spotlight.peerId!==state.selfId)state.spotlight=null;
@@ -477,16 +496,21 @@ async function toggleMic(){
 }
 async function toggleScreen(){
  if(!state.joined)return;
- if(state.screen){const old=state.screen;state.screen=null;stopStream(old);await replaceTracks();return}
+ if(state.screen){const old=state.screen;state.screen=null;
+  if(state.spotlight?.peerId===state.selfId&&state.spotlight.kind==='screen')state.spotlight=null;
+  stopStream(old);await replaceTracks();return}
  if(!navigator.mediaDevices.getDisplayMedia)throw Error('Compartilhamento de tela indisponível neste navegador.');
  // Solicitar captura diretamente após o clique, para manter a ativação do usuário.
  const stream=await navigator.mediaDevices.getDisplayMedia({video:{
   width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:20,max:30}},audio:false});
  if(!state.joined){stopStream(stream);return}
  state.screen=stream;
+ state.spotlight={peerId:state.selfId,kind:'screen'};
  const track=stream.getVideoTracks()[0];
  if(track){track.contentHint='detail';track.addEventListener('ended',()=>{
-  if(state.screen===stream){state.screen=null;replaceTracks().catch(()=>{})}
+  if(state.screen===stream){state.screen=null;
+   if(state.spotlight?.peerId===state.selfId&&state.spotlight.kind==='screen')state.spotlight=null;
+   replaceTracks().catch(()=>{})}
  },{once:true})}
  await replaceTracks();
 }
