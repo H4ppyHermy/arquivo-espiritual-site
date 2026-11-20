@@ -501,3 +501,40 @@ html.performance-mode #page .ae-ficha-v2 *{animation:none!important;transition:n
 @media(max-width:680px){
  .ae-ficha-editor-steps .ae-ficha-editor-progress{position:relative}
 }
+
+/* Exportação manual de habilidades do Armazém para a ficha */
+#page .ae-ficha-ability-create-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
+#page .ae-ficha-ability-create-actions .btn{min-height:39px}
+.modal-backdrop .dialog.ae-export-modal{width:min(760px,calc(100vw - 26px));max-width:760px}
+.ae-export-dialog{display:grid;gap:13px;min-width:0}
+.ae-export-dialog>p{margin:0;color:var(--theme-text);font-size:12px;line-height:1.65;opacity:.85}
+.ae-export-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(145px,190px);gap:9px}
+.ae-export-filters label{display:grid;gap:5px;min-width:0;color:var(--theme-cold);font-size:10px;letter-spacing:.07em;font-weight:900}
+.ae-export-filters input,.ae-export-filters select{min-width:0;width:100%;min-height:42px}
+.ae-export-controls{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.ae-export-controls>span{font-size:11px;color:var(--theme-cold);font-weight:850}
+.ae-export-controls .btn{min-height:37px}
+.ae-export-list{display:grid;gap:8px;align-content:start;max-height:min(54dvh,465px);min-height:100px;overflow-y:auto;overscroll-behavior:contain;padding:2px}
+.ae-export-card{display:flex;align-items:flex-start;gap:12px;min-width:0;padding:13px 14px;
+ border:1px solid var(--theme-structure);
+ background:linear-gradient(145deg,color-mix(in srgb,var(--theme-raised) 62%,var(--theme-panel)),var(--theme-panel));
+ cursor:pointer;transition:border-color .12s,background .12s}
+.ae-export-card:hover,.ae-export-card:focus-within{border-color:var(--theme-cold)}
+.ae-export-card.is-selected{border-color:var(--theme-accent);background:color-mix(in srgb,var(--theme-accent) 10%,var(--theme-panel))}
+.ae-export-card.is-existing{opacity:.58;cursor:default}
+.ae-export-card input[type=checkbox]{width:17px;height:17px;min-height:17px;flex:0 0 17px;margin:2px 0 0;accent-color:var(--theme-accent)}
+.ae-export-copy{display:grid;gap:6px;min-width:0;flex:1}
+.ae-export-copy>strong{font:900 20px/1.15 'Barlow Condensed',Impact,sans-serif;color:var(--theme-text);overflow-wrap:anywhere}
+.ae-export-meta{display:flex;flex-wrap:wrap;gap:9px;color:var(--theme-cold);font-size:10px;font-weight:900;letter-spacing:.06em}
+.ae-export-description{font-size:12px;line-height:1.65;color:var(--theme-text);opacity:.85;overflow-wrap:anywhere}
+.ae-export-tags{display:flex;gap:5px;flex-wrap:wrap}
+.ae-export-tags small{font-size:9px;color:var(--theme-cold);border:1px solid var(--theme-structure);padding:3px 6px}
+.ae-export-existing{font-size:10px;letter-spacing:.06em;color:var(--theme-cold);font-weight:900}
+.ae-export-empty{padding:24px 12px;text-align:center;color:var(--theme-text);opacity:.7}
+@media(max-width:580px){
+ #page .ae-ficha-ability-create-actions{justify-content:flex-start}
+ .ae-export-filters{grid-template-columns:minmax(0,1fr)}
+ .ae-export-list{max-height:46dvh}
+ .ae-export-card{padding:11px}
+}
+@media(prefers-reduced-motion:reduce){.ae-export-card{transition:none}}
