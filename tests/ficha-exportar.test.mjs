@@ -165,3 +165,16 @@ test('Categoria desconhecida no exportador não é gravada na ficha',()=>{
  assert.equal(ctx.sheet.abilities.length,1);
  assert.equal(ctx.sheet.abilities[0].groupId,undefined);
 });
+
+test('importar custo e limite de uso não reintroduz a classificação antiga',()=>{
+ const ctx=setup();
+ const imported=ctx.window.ARQUIVO_EXPORTADOR.copyAbility({
+  id:'novo',title:'Flecha Rápida',category:'Técnicas',cost:'3 ALMA',usage:'Uma vez por rodada',content:'Ataque.'});
+ assert.equal(imported.cost,3);
+ assert.equal(imported.usage,'Uma vez por rodada');
+ assert.equal(imported.category,undefined);
+ const limited=ctx.window.ARQUIVO_EXPORTADOR.copyAbility({
+  id:'especial',title:'Grito',category:'Habilidades',cost:'1 uso por cena',content:'Efeito.'});
+ assert.equal(limited.cost,0);
+ assert.equal(limited.usage,'1 uso por cena');
+});
