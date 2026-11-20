@@ -280,7 +280,8 @@
  color:var(--theme-cold);font:900 16px/1 'Barlow Condensed',sans-serif
 }
 #page .ae-ficha-ability-grid{
- display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;min-width:0
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:15px;min-width:0;align-items:start
 }
 #page .ae-ficha-ability-card{
  position:relative;min-width:0;display:flex;flex-direction:column;gap:11px;
@@ -554,9 +555,10 @@ html.performance-mode #page .ae-ficha-v2 *{animation:none!important;transition:n
 #page .ae-ficha-ability-filters button{background:var(--theme-panel);color:var(--theme-text);border:1px solid var(--ae-ficha-line);
  font-size:10px;letter-spacing:.08em;font-weight:900;min-height:36px;padding:7px 12px;cursor:pointer}
 #page .ae-ficha-ability-filters button.is-active{border-color:var(--theme-cold);background:color-mix(in srgb,var(--theme-cold) 18%,var(--theme-panel));color:var(--theme-cold)}
-#page .ae-ficha-ability-entry{display:flex;flex-direction:column;min-width:0}
+/* A abertura de uma habilidade não altera a altura visual de sua vizinha. */
+#page .ae-ficha-ability-entry{display:block;min-width:0;align-self:start}
 #page .ae-ficha-ability-entry[hidden],#page .ae-ficha-ability-group[hidden]{display:none!important}
-#page .ae-ficha-ability-entry>.ae-ficha-ability-card{flex:1}
+#page .ae-ficha-ability-entry>.ae-ficha-ability-card{width:100%;height:auto;min-height:0;box-sizing:border-box}
 @media(max-width:480px){#page .ae-ficha-ability-filters button{flex:1;padding:7px 5px}}
 
 /* Identificação: textos integrais de classe, raça e concessões raciais. */
@@ -572,12 +574,6 @@ html.performance-mode #page .ae-ficha-v2 *{animation:none!important;transition:n
 #page .ae-ficha-origin-prose{font-size:12px;line-height:1.82;color:var(--theme-text);overflow-wrap:anywhere}
 #page .ae-ficha-origin-prose :first-child{margin-top:0}
 #page .ae-ficha-origin-prose :last-child{margin-bottom:0}
-#page .ae-ficha-origin-traits{display:grid;gap:10px;border-top:1px solid var(--ae-ficha-line);padding-top:13px}
-#page .ae-ficha-origin-traits>h3{margin:0;font-size:11px;letter-spacing:.09em;color:var(--theme-cold);text-transform:uppercase}
-#page .ae-ficha-origin-trait{display:grid;gap:9px;padding:13px 12px;border:1px solid var(--ae-ficha-line);background:color-mix(in srgb,var(--theme-bg) 30%,transparent)}
-#page .ae-ficha-origin-trait-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline}
-#page .ae-ficha-origin-trait-head>h4{margin:0;font:900 20px/1.1 'Barlow Condensed',Impact,sans-serif;color:var(--theme-text)}
-#page .ae-ficha-origin-trait-head>span{color:var(--theme-cold);font-size:10px;font-weight:900}
 #page .ae-ficha-origin-empty{font-size:12px;color:var(--ae-ficha-muted);line-height:1.6}
 /* Medidores de recursos exclusivos da ficha — nunca no Armazém. */
 #page .ae-ficha-origin-resources{min-width:0;display:grid;gap:10px}
