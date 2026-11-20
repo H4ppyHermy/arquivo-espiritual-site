@@ -33,9 +33,13 @@
   return match?Number(match[1]):0;
  }
  function copyAbility(post){
-  return {name:String(post.title).trim().slice(0,100),category:'active',
+  const cost=costNumber(post.cost);
+  const declared=String(post.usage||'').trim();
+  const rawCost=String(post.cost||'').trim();
+  const usage=declared||(cost===0&&!/ALMA/i.test(rawCost)?rawCost:'');
+  return {name:String(post.title).trim().slice(0,100),
    libraryType:post.category==='Técnicas'?'tecnica':'habilidade',
-   cost:costNumber(post.cost),description:String(post.content||'').slice(0,20000)};
+   cost,usage:usage.slice(0,120),description:String(post.content||'').slice(0,20000)};
  }
  function snippet(post){
   return String(post.content||'').replace(/\[\/?cor(?:=#[0-9a-f]{6})?\]/gi,'')
