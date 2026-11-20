@@ -276,6 +276,12 @@
     '<label><span id="warehouseSummaryLabel">'+(single?'Prévia curta (opcional)':'Resumo para o cartão')+'</span>'+
      '<input id="warehouseSummaryInput" maxlength="280" value="'+esc(p.summary||'')+'" placeholder="'+
      (single?'Usada apenas quando a descrição precisar ser expandida':'O que esta publicação faz?')+'"></label>'+
+    '<div class="ae-wh-editor-grants" id="warehouseGrantFields"'+(single?'':' hidden')+'>'+
+     '<strong>CONCESSÃO AUTOMÁTICA</strong><p>Indique quais raças ou classes recebem esta habilidade automaticamente. Separe múltiplos nomes por vírgula.</p>'+
+     '<div class="ae-wh-editor-grants-grid"><label>Raças contempladas<input id="warehouseGrantRaces" maxlength="300" value="'+
+      esc((window.ARQUIVO_ORIGENS?.requirements?.(p).race||[]).join(', '))+'" placeholder="Ex.: Arrancar"></label>'+
+     '<label>Classes contempladas<input id="warehouseGrantClasses" maxlength="300" value="'+
+      esc((window.ARQUIVO_ORIGENS?.requirements?.(p).class||[]).join(', '))+'" placeholder="Ex.: Coração de Aço"></label></div></div>'+
     '<div class="ae-wh-editor-tags"><label>Tags <span class="ae-wh-field-helper">Separe por vírgulas · máximo de 8</span>'+
      '<input id="warehouseTagsInput" maxlength="220" value="'+esc(p.tags||'')+'" placeholder="Ex.: Mobilidade, Defesa, Hohō"></label>'+
     '<div id="warehouseTagPreview" class="ae-wh-editor-tag-preview">'+parseTags(p.tags).map(t=>
@@ -365,6 +371,10 @@
   let entry={...(defaultPost||{}),...(previous||{}),id:previous?.id||defaultPost?.id||api.uid(),title,category,
    summary:get('warehouseSummaryInput').slice(0,280),image,cost:get('warehouseCostInput').slice(0,45),
    tags:joinedTags,hiddenTags,content:content.slice(0,20000),published};
+  if(isAbilityPost(entry)){
+   const parseGrants=value=>value.split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean).slice(0,15);
+   entry.grants={race:parseGrants(get('warehouseGrantRaces')),class:parseGrants(get('warehouseGrantClasses'))};
+  }else delete entry.grants;
   entry=alignLegacyPortaVoz(entry);
   // Não levar o esquema aposentado do HUD para publicações editadas.
   delete entry.bars;
