@@ -9,7 +9,8 @@ test("expressões de dados e modificadores",()=>{
   const parsed=parseDiceExpression(expression),result=rollDiceExpression(expression);
   assert.equal(result.dice.length,parsed.count);
   const base=result.dice.reduce((v,d)=>v+d.effective,0);
-  assert.equal(result.total,result.special==="FALHA CRÍTICA"?1:base+parsed.constant);\n  assert.ok(["","CRÍTICO MÁXIMO","FALHA CRÍTICA"].includes(result.special));
+  assert.equal(result.total,result.special==="FALHA CRÍTICA"?1:base+parsed.constant);
+  assert.ok(["","CRÍTICO MÁXIMO","FALHA CRÍTICA"].includes(result.special));
  }
 });
 test("expressões inválidas e vantagem antiga são recusadas",()=>{
