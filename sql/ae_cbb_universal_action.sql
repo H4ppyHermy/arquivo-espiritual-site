@@ -11,10 +11,10 @@ DECLARE ac_id uuid; key_id uuid;key_kind text;key_sheet text;doc jsonb;sh jsonb;
  need_main boolean:=false;need_reaction boolean:=false;is_locked boolean:=false;
  state_key text;v_mode text;v_limit text;desc_text text;
  extra_main integer;extra_reaction integer;uses_in_scene integer;
- v_result jsonb;rows jsonb;v_rev bigint;change_target text;rhythm_level integer;hit_count integer;raised_round integer;pending_rhythm boolean;phase_req text;ability_ix integer;boss_ratio numeric;boss_partner jsonb;boss_party jsonb;party_old integer;party_new integer;vida_step integer;max_old integer;max_new integer;current_old integer;
+ v_result jsonb;rows jsonb;v_rev bigint;change_target text;rhythm_level integer;hit_count integer;raised_round integer;pending_rhythm boolean;phase_req text;ability_ix integer;pin_key text;pins jsonb;pin_position integer;boss_ratio numeric;boss_partner jsonb;boss_party jsonb;party_old integer;party_new integer;vida_step integer;max_old integer;max_new integer;current_old integer;
 BEGIN
  IF p_sheet_id IS NULL OR length(p_sheet_id)>150 OR p_action NOT IN
-  ('ability','deactivate','main','reaction','phase','round','scene','adjust','expose','contain','commit','hit','party')
+  ('ability','deactivate','main','reaction','phase','round','scene','adjust','expose','contain','commit','hit','party','pin')
  THEN RAISE EXCEPTION 'Ação inválida.';END IF;
  SELECT a.id,k.id,k.kind,k.sheet_id INTO ac_id,key_id,key_kind,key_sheet
  FROM public.ae_sessions se JOIN public.ae_accounts a ON a.id=se.account_id AND a.key_id=se.key_id
@@ -45,7 +45,23 @@ BEGIN
  phase=coalesce(combat->>'phase','preparacao');
  extra_main=greatest(0,coalesce((combat#>>'{cbb,extraMain}')::integer,0));
  extra_reaction=greatest(0,coalesce((combat#>>'{cbb,extraReaction}')::integer,0));
- IF p_action='ability' THEN
+ IF p_action='pin' THEN
+  IF p_ability_index IS NULL OR p_ability_index NOT BETWEEN 0 AND 99
+   OR jsonb_typeof(sh->'abilities')<>'array' OR p_ability_index>=jsonb_array_length(sh->'abilities')
+  THEN RAISE EXCEPTION 'Habilidade inexistente.';END IF;
+  ab=sh->'abilities'->p_ability_index;
+  IF nullif(btrim(ab->>'name'),'') IS NULL THEN RAISE EXCEPTION 'Habilidade sem nome.';END IF;
+  pin_key=(CASE WHEN ab->>'libraryType'='tecnica' THEN 'tecnica' ELSE 'habilidade' END)||':'||btrim(ab->>'name');
+  pins=CASE WHEN jsonb_typeof(sh->'pinnedAbilities')='array' THEN sh->'pinnedAbilities' ELSE '[]'::jsonb END;
+  SELECT ord-1 INTO pin_position FROM jsonb_array_elements_text(pins) WITH ORDINALITY x(value,ord)
+    WHERE x.value=pin_key LIMIT 1;
+  IF pin_position IS NULL THEN
+   IF jsonb_array_length(pins)>=12 THEN RAISE EXCEPTION 'Limite de 12 habilidades fixadas.';END IF;
+   pins=pins||to_jsonb(pin_key);
+  ELSE pins=pins-pin_position;END IF;
+  sh=jsonb_set(sh,'{pinnedAbilities}',pins,true);
+  v_result=jsonb_build_object('pin',pin_key,'active',pin_position IS NULL);
+ ELSIF p_action='ability' THEN
   IF p_ability_index IS NULL OR p_ability_index NOT BETWEEN 0 AND 99
    OR jsonb_typeof(sh->'abilities')<>'array' OR p_ability_index>=jsonb_array_length(sh->'abilities')
   THEN RAISE EXCEPTION 'Habilidade inválida.';END IF;
@@ -244,7 +260,7 @@ BEGIN
  UPDATE public.ae_document SET data=jsonb_set(doc,'{sheets}',rows),revision=revision+1,changed_at=now()
  WHERE id=1 RETURNING revision INTO v_rev;
  RETURN jsonb_build_object('ok',true,'revision',v_rev,'resources',sh->'resources','combat',sh->'combat',
-   'exposures',sh->'exposures','abilityRuntime',sh->'abilityRuntime','boss',sh->'boss','info',coalesce(v_result,'{}'::jsonb));
+   'exposures',sh->'exposures','abilityRuntime',sh->'abilityRuntime','pinnedAbilities',coalesce(sh->'pinnedAbilities','[]'::jsonb),'boss',sh->'boss','info',coalesce(v_result,'{}'::jsonb));
 END $cbb$;
 REVOKE ALL ON FUNCTION public.ae_cbb_action(text,text,integer,text,integer,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.ae_cbb_action(text,text,integer,text,integer,text) TO authenticated;
