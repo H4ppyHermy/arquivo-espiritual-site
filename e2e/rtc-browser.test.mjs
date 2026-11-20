@@ -18,7 +18,7 @@ async function until(fn,timeout=20000,step=300){
  }
  throw Error('Esgotado: '+JSON.stringify(sample));
 }
-test('navegadores reais recebem quadros de câmera e compartilhamento de tela em ambos os lados',async t=>{
+test('navegadores reais recebem quadros de câmera e compartilhamento de tela em ambos os lados',{timeout:90000},async t=>{
  const files={
   '/':fs.readFileSync(path.join(here,'rtc-fixture.html')),
   '/sala-ao-vivo.js':fs.readFileSync(path.join(parent,'sala-ao-vivo.js'))
@@ -32,30 +32,40 @@ test('navegadores reais recebem quadros de câmera e compartilhamento de tela em
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const port=server.address().port;
  t.after(()=>server.close());
+ console.log('E2E STEP: iniciar Chrome');
  const browser=await puppeteer.launch({
+  protocolTimeout:12000,
   executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',
   headless:true,
   args:['--no-sandbox','--disable-dev-shm-usage','--use-fake-device-for-media-stream',
    '--use-fake-ui-for-media-stream','--autoplay-policy=no-user-gesture-required',
    '--disable-features=WebRtcHideLocalIpsWithMdns']
  });
- t.after(()=>browser.close());
+ t.after(async()=>{try{await Promise.race([browser.close(),wait(4000)])}catch(e){} browser.process()?.kill()});
+ console.log('E2E STEP: abrir abas');
  const ua=await browser.newPage(),ub=await browser.newPage();
+ ua.setDefaultTimeout(8000);ub.setDefaultTimeout(8000);
  ua.on('console',m=>{if(m.type()==='error')console.log('MASTER CONSOLE '+m.text())});
  ub.on('console',m=>{if(m.type()==='error')console.log('PLAYER CONSOLE '+m.text())});
  ua.on('pageerror',e=>console.log('MASTER PAGE ERROR '+e.message));
  ub.on('pageerror',e=>console.log('PLAYER PAGE ERROR '+e.message));
  const base='http://127.0.0.1:'+port;
+ console.log('E2E STEP: carregar mestre');
  await ua.goto(base+'/?account=11111111-1111-4111-8111-111111111111&master=1',{waitUntil:'load'});
+ console.log('E2E STEP: carregar jogador');
  await ub.goto(base+'/?account=22222222-2222-4222-8222-222222222222&master=0',{waitUntil:'load'});
  await ua.waitForSelector('[data-live-action=join]',{timeout:15000});
  await ub.waitForSelector('[data-live-action=join]',{timeout:15000});
+ console.log('E2E STEP: entrar mestre');
  await ua.click('[data-live-action=join]');
+ console.log('E2E STEP: entrar jogador');
  await ub.click('[data-live-action=join]');
+ console.log('E2E STEP: negociar peers');
  await until(async()=>{
   const [a,b]=await Promise.all([ua.evaluate(()=>window.__rtcProbe.snapshot()),ub.evaluate(()=>window.__rtcProbe.snapshot())]);
   return a.joined&&b.joined&&a.peers[0]?.connection==='connected'&&b.peers[0]?.connection==='connected';
  },25000);
+ console.log('E2E STEP: câmera mestre');
  await ua.click('[data-live-action=camera]');
  try{
   await until(async()=>{
@@ -67,6 +77,7 @@ test('navegadores reais recebem quadros de câmera e compartilhamento de tela em
   throw e;
  }
  // Verifica o caminho inverso: jogador compartilha a tela e o mestre vê quadros reais.
+ console.log('E2E STEP: tela jogador');
  await ub.click('[data-live-action=screen]');
  try{
   await until(async()=>{
