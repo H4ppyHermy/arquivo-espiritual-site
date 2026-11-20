@@ -92,5 +92,20 @@ test('navegadores reais recebem quadros de câmera e compartilhamento de tela em
  assert.ok(a.peers[0]?.frames>=2,'mestre recebe quadros de tela do jogador');
  assert.ok(b.peers[0]?.frames>=2,'jogador recebe quadros da câmera do mestre');
  assert.ok(a.spotlight.width>=100,'prévia remota de tela possui vídeo válido');
- console.log('RTCPeerConnection real: '+JSON.stringify({master:a,player:b}));
+ assert.equal(a.peers[0].transceivers.length,3,'mestre não criou m-lines duplicadas');
+ assert.equal(b.peers[0].transceivers.length,3,'jogador não criou m-lines duplicadas');
+ console.log('E2E STEP: câmera no jogador');
+ await ub.evaluate(()=>document.querySelector('[data-live-action=camera]').click());
+ await until(async()=>{
+  const p=await ua.evaluate(()=>window.__rtcProbe.snapshot());
+  return p.peers[0]?.hasCamera&&!p.peers[0]?.camMuted;
+ },16000);
+ console.log('E2E STEP: tela no mestre');
+ await ua.evaluate(()=>document.querySelector('[data-live-action=screen]').click());
+ await until(async()=>{
+  const p=await ub.evaluate(()=>window.__rtcProbe.snapshot());
+  return p.peers[0]?.hasScreen&&!p.peers[0]?.screenMuted;
+ },16000);
+ console.log('RTCPeerConnection real: '+JSON.stringify({master:await ua.evaluate(()=>window.__rtcProbe.snapshot()),
+  player:await ub.evaluate(()=>window.__rtcProbe.snapshot())}));
 });

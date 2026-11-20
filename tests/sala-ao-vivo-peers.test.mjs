@@ -184,6 +184,8 @@ test('dois navegadores descobrem seus peers, trocam offer/answer e enxergam a c�
   'resposta SDR transmitida');
  assert.equal(ap.pc.connectionState,'connected');
  assert.equal(bp.pc.connectionState,'connected');
+ assert.equal(ap.pc.getTransceivers().length,3,'iniciador possui 3 transceivers');
+ assert.equal(bp.pc.getTransceivers().length,3,'respondedor usa os mesmos 3 slots da oferta');
  await a.click('camera');
  // A presença é intencionalmente consolidada por 1,7 s para evitar rate limiting.
  await new Promise(resolve=>setTimeout(resolve,1850));

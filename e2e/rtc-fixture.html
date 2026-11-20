@@ -82,8 +82,12 @@ window.__rtcProbe.snapshot=async()=>{
  for(const [id,p] of st.peers){
   const stats=await p.pc.getStats();
   let frames=0,bytes=0,packets=0,sent=0,outFrames=0;
+  const videoSlots=[];
   stats.forEach(v=>{
-   if(v.type==='inbound-rtp'&&v.kind==='video'){frames+=v.framesDecoded||0;bytes+=v.bytesReceived||0;packets+=v.packetsReceived||0}
+   if(v.type==='inbound-rtp'&&v.kind==='video'){
+    frames+=v.framesDecoded||0;bytes+=v.bytesReceived||0;packets+=v.packetsReceived||0;
+    videoSlots.push({mid:v.mid||'',frames:v.framesDecoded||0,bytes:v.bytesReceived||0});
+   }
    if(v.type==='outbound-rtp'&&v.kind==='video'){sent+=v.bytesSent||0;outFrames+=v.framesEncoded||0}
   });
   list.push({id,connection:p.pc.connectionState,ice:p.pc.iceConnectionState,
@@ -91,7 +95,7 @@ window.__rtcProbe.snapshot=async()=>{
    camMuted:p.cameraStream?.getVideoTracks()[0]?.muted??null,
    hasScreen:!!p.screenStream,
    screenMuted:p.screenStream?.getVideoTracks()[0]?.muted??null,
-   frames,bytes,packets,sent,outFrames,transceivers:p.pc.getTransceivers().map(t=>({mid:t.mid,direction:t.direction,current:t.currentDirection,
+   frames,bytes,packets,sent,outFrames,videoSlots,transceivers:p.pc.getTransceivers().map(t=>({mid:t.mid,direction:t.direction,current:t.currentDirection,
     sender:t.sender.track?.kind||null,trackId:t.sender.track?.id||null,receiver:t.receiver.track?.kind||null}))});
  }
  const spot=document.getElementById('ae-live-spotlight-video');
