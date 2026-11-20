@@ -101,7 +101,7 @@ test('teste de perícia envia um pedido ao servidor e mostra RT RA RB',async()=>
 
 test('scripts e duas RPCs universais estão ligados sem reativar código por personagem',()=>{
  const html=read('index.html'),online=read('online.js'),visual=read('ficha-visual.js');
- for(const file of ['cbb-engine.js?v=1','cbb-interativo.js?v=4','cbb-interativo.css?v=2'])
+ for(const file of ['cbb-engine.js?v=1','cbb-interativo.js?v=5','cbb-interativo.css?v=2'])
   assert.ok(html.includes(file),file);
  assert.ok(visual.includes("mesa:'Mesa'"));
  assert.match(visual,/ARQUIVO_CBB_UI\?\.render/);
@@ -117,4 +117,40 @@ test('scripts e duas RPCs universais estão ligados sem reativar código por per
  assert.match(actSql,/public\.ae_ability_cost_commit/);
  assert.match(actSql,/public\.ae_sheet_linked/);
  assert.doesNotMatch(actSql,/arquivo-shinji|arquivo-tsukishima|arquivo-komamura/);
+});
+
+
+test('proteção adicional usa rolagem verificada separada e preserva resistência natural',async()=>{
+ const x=fixture();
+ let nextId=101;
+ x.window.ARQUIVO_SYNC.cbbRoll=async payload=>{
+  x.calls.roll.push(payload);
+  if(payload.p_kind==='resistencia')return {id:nextId++,rt:4,ra:4,rb:4,dice:[{sides:6,value:4}],special:''};
+  if(payload.p_kind==='protecao')return {id:nextId++,rt:5,ra:5,rb:5,dice:[{sides:8,value:5}],special:''};
+  throw Error('Tipo não esperado');
+ };
+ const settings={poolMode:'resistencia',poolResource:'vida',poolCount:'0',poolFaces:'8',flat:'0',manualRa:'0',resistSteps:'0'};
+ const fields=Object.fromEntries(Object.entries(settings).map(([k,value])=>[k,{value,checked:false}]));
+ const root={querySelector(q){const match=q.match(/data-cbb-field="([^"]+)"/);return fields[match?.[1]]||null}};
+ const click=async()=>{
+  const b={dataset:{cbbCommand:'pool'},disabled:false,closest(){return root},setAttribute(){}};
+  await x.listeners.click({target:{closest(){return b}},preventDefault(){},stopPropagation(){}});
+ };
+ await click();
+ assert.equal(x.calls.roll.length,1);
+ assert.equal(x.calls.roll[0].p_kind,'resistencia');
+ assert.match(x.result.innerHTML,/REGISTRO #101/);
+ fields.poolCount.value='1';
+ await click();
+ assert.equal(x.calls.roll.length,2);
+ assert.equal(x.calls.roll[1].p_kind,'protecao');
+ assert.equal(x.calls.roll[1].p_pool[0].faces,8);
+ assert.match(x.result.innerHTML,/REGISTRO #101 \+ #102/);
+ assert.match(x.result.innerHTML,/RT[\s\S]*9/);
+ await click();
+ assert.equal(x.calls.roll.length,2,'A mesma proteção deve ser reaproveitada');
+ fields.poolCount.value='0';
+ await click();
+ assert.equal(x.calls.roll.length,2,'Retirar a proteção não deve rolar novamente');
+ assert.match(x.result.innerHTML,/RT[\s\S]*4/);
 });
