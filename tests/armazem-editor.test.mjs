@@ -460,3 +460,27 @@ test('registro oficial pode ser editado, ocultado e substituído sem reaparecer 
  assert.equal(ctx.window.ARQUIVO_SECOES.warehouse().posts.some(x=>x.id===id),false);
  assert.ok(ctx.db.site.warehouse.hiddenPosts.includes(id));
 });
+
+test('cadastro permite vincular habilidades a múltiplas raças e classes sem código especial',()=>{
+ const ctx=setup(true);
+ ctx.elements.dialogRoot.dataset.warehouseId='';
+ Object.assign(ctx.elements,{
+  warehouseTitleInput:{value:'Energia da Lua'},
+  warehouseCategoryInput:{value:'Habilidades'},
+  warehouseContentInput:{value:'Acrescenta uma energia a ataques espirituais.'},
+  warehouseSummaryInput:{value:''},warehouseTagsInput:{value:'Espiritual'},
+  warehouseVisibilityInput:{value:'published'},warehouseCostInput:{value:'2 ALMA'},
+  warehouseImageInput:{value:''},warehouseGrantRaces:{value:'Arrancar, Quincy'},
+  warehouseGrantClasses:{value:'Coração de Aço; Atirador'}
+ });
+ ctx.dispatch('click','','warehouse-save',{kind:'modal'});
+ const post=ctx.db.site.warehouse.posts[0];
+ assert.deepEqual(Array.from(post.grants.race),['Arrancar','Quincy']);
+ assert.deepEqual(Array.from(post.grants.class),['Coração de Aço','Atirador']);
+ assert.equal(post.category,'Habilidades');
+ assert.equal(post.image,'');
+ ctx.dispatch('click','','edit:'+encodeURIComponent(post.id),{kind:'warehouse'});
+ assert.match(ctx.modal(),/warehouseGrantFields/);
+ assert.match(ctx.modal(),/Arrancar, Quincy/);
+ assert.match(ctx.modal(),/Coração de Aço, Atirador/);
+});
