@@ -2319,7 +2319,7 @@ function bindEvents(){document.addEventListener('keydown',event=>{
  tab=tb.dataset.tab;sound();
  const sh=page==='sheets'&&currentSheet?db.sheets.find(x=>x.id===currentSheet):null;
  const view=window.ARQUIVO_FICHA_VISUAL;
- const fast=sh&&view?.switchTab?.(window.ARQUIVO_ORIGENS?.project(sh)||sh,{tab,groups:GROUPS,canEdit:canEditSheet(sh.id),
+ const fast=sh&&view?.switchTab?.(window.ARQUIVO_ORIGENS?.project(sh)||sh,{tab,groups:GROUPS,canEdit:canEditSheet(sh.id),master:master(),
   body:['bonds','conditions','inventory','notes'].includes(tab)?sheetTabs(sh):'',
   history:tab==='summary'?historyHtml():''});
  if(fast){
