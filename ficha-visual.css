@@ -632,3 +632,19 @@ html.performance-mode #page .ae-ficha-v2 *{animation:none!important;transition:n
 
 .ae-export-group-choice{display:grid;gap:6px;font-size:10px;font-weight:900;letter-spacing:.06em;color:var(--theme-cold)}
 .ae-export-group-choice select{width:100%;min-width:0;min-height:41px}
+
+/* Tipografia das descrições usa o mesmo parser da Biblioteca/Armazém,
+   adaptando apenas as dimensões ao espaço das fichas. */
+#page .ae-ficha-ability-full .ae-unified-rich{font-size:12px;line-height:1.85}
+#page .ae-ficha-ability-full .ae-unified-rich .book-paragraph{
+ font-size:inherit;line-height:inherit;max-width:none
+}
+#page .ae-ficha-ability-full .ae-unified-rich :is(h2,h3,h4){
+ font-size:clamp(17px,2vw,22px);line-height:1.2;margin:16px 0 8px
+}
+#page .ae-ficha-ability-full .ae-unified-rich .book-quote{font-size:inherit}
+#page .ae-ficha-origin-prose.ae-unified-rich .book-paragraph{
+ font-size:inherit;line-height:inherit;max-width:none
+}
+#page .ae-ficha-origin-prose.ae-unified-rich .book-quote{font-size:inherit}
+#page .ae-ficha-guide-modal.ae-unified-rich{min-width:0;overflow-wrap:anywhere}
