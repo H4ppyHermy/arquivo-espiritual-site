@@ -177,9 +177,10 @@
      '<div class="ae-cbb-pair"><label>Recurso<select data-cbb-field="poolResource">'+opts(resourceChoices,'vida')+'</select></label>'+
        '<label>Ajuste fixo<input type="number" data-cbb-field="flat" value="0" min="-500" max="500"></label></div>'+
      '<label class="ae-cbb-inline"><input type="checkbox" data-cbb-field="useAttackRa"'+(last?'':' disabled')+'> Somar RA do último ataque verificado '+(last?'('+enc(last.ra)+')':'(nenhum)')+'</label>'+
-     '<div class="ae-cbb-pair"><label>RA manual (se necessário)<input type="number" data-cbb-field="manualRa" min="0" max="100" value="0"></label>'+
-       '</div>'+stepper('resistSteps','PASSOS DA RESISTÊNCIA',0,disabled)+
-     '<div class="ae-cbb-pool-hint" data-cbb-resist-status aria-live="polite"></div>'+
+     '<label>RA manual (se necessário)<input type="number" data-cbb-field="manualRa" min="0" max="100" value="0"></label>'+
+     '<div data-cbb-resist-controls'+(selectedMode==='resistencia'?'':' hidden')+'>'+
+      stepper('resistSteps','PASSOS DA RESISTÊNCIA',0,disabled)+
+      '<div class="ae-cbb-pool-hint" data-cbb-resist-status aria-live="polite"></div></div>'+
      '<button class="btn main ae-cbb-action" type="button" data-cbb-command="pool"'+lock+'>ROLAR DADOS</button>'+
      ''+
     '</section>'+
@@ -286,8 +287,10 @@
    if(mode==='resistencia'){
     const key=s.id+':'+currentPhase(s)+':'+args.p_resource;
     args.p_group_steps=normalize(number(root,'resistSteps'),-5,5,'passos de resistência');
+    const signature=JSON.stringify([s.groups?.[{vida:'Corpo',estabilidade:'Mente',alma:'Espírito'}[args.p_resource]],
+     [...engine.normalizedConditions(s)].sort()]);
     const cached=resistanceByPhase.get(key);
-    if(cached){
+    if(cached&&cached.signature===signature){
      if(cached.steps!==args.p_group_steps)throw Error('A resistência natural já foi rolada nesta fase; seus passos ficam fixos.');
      if(cached.count===count && (!count||cached.faces===faces)){
       responseField(s,cached.current,'resistencia',null,null);
@@ -333,7 +336,11 @@
    }
    if(args.p_reaction){s.combat??={};s.combat.reactionUsed=true;}
   }
-  if(args.p_kind==='resistencia')resistanceByPhase.set(s.id+':'+currentPhase(s)+':'+args.p_resource,{natural:result,current:result,steps:args.p_group_steps,count:number(root,'poolCount'),faces:number(root,'poolFaces')});
+  if(args.p_kind==='resistencia')resistanceByPhase.set(s.id+':'+currentPhase(s)+':'+args.p_resource,{
+   natural:result,current:result,steps:args.p_group_steps,count:number(root,'poolCount'),
+   faces:number(root,'poolFaces'),
+   signature:JSON.stringify([s.groups?.[{vida:'Corpo',estabilidade:'Mente',alma:'Espírito'}[args.p_resource]],
+    [...engine.normalizedConditions(s)].sort()])});
   responseField(s,result,args.p_kind,dt,clash);
   const hazard=s.boss?.scenario;
   if(hazard?.critical===result.special && hazard.skill===args.p_skill && args.p_kind==='teste'){
@@ -389,10 +396,13 @@
   }
   if(panelMode==='pool'){
    const kind=field(root,'poolMode');if(kind)kind.value=mode;
+   const resist=root.querySelector?.('[data-cbb-resist-controls]');
+   if(resist)resist.hidden=mode!=='resistencia';
    if(mode==='resistencia'){
     const qty=field(root,'poolCount');if(qty)qty.value='0';
     const src=field(root,'source');if(src)src.value='';
    }
+   refreshResistance(root,s);
   }
  }
  async function onClick(event){
@@ -489,6 +499,10 @@
   if(!key)return;
   const root=target.closest?.('.ae-cbb-mesa'),s=sheet();
   if(!root||!s)return;
+  if(key==='poolMode'){
+   const resist=root.querySelector?.('[data-cbb-resist-controls]');
+   if(resist)resist.hidden=target.value!=='resistencia';
+  }
   if(key==='poolMode'&&target.value==='resistencia'){
    const qty=field(root,'poolCount');if(qty)qty.value='0';
    const src=field(root,'source');if(src)src.value='';
