@@ -14,6 +14,7 @@
  const session={id:room,title:'Teste RTC real',status:'open'};
  const api={page:'live',db:{sheets:[]},setPage(){},toast(){},mediaSrc(){return ''},confirmSite(a,b,fn){fn()}};
  window.ARQUIVO_INTERNAL=api;
+ window.__rtcSignals=[];
  const client={
   async rpc(name,args={}){
    if(name==='ae_live_state')return {data:{session,participants},error:null};
@@ -51,7 +52,7 @@
      fire('presence','sync',{});return 'ok';
     },
     async untrack(){if(own)localStorage.removeItem(own);bus.postMessage({type:'presence-sync'});return 'ok'},
-    async send(data){bus.postMessage({...data});return 'ok'}
+    async send(data){window.__rtcSignals.push({type:data.type,event:data.event,payload:data.payload});bus.postMessage({...data});return 'ok'}
    };
   },
   removeChannel(ch){return Promise.resolve()}
@@ -90,12 +91,13 @@ window.__rtcProbe.snapshot=async()=>{
    camMuted:p.cameraStream?.getVideoTracks()[0]?.muted??null,
    hasScreen:!!p.screenStream,
    screenMuted:p.screenStream?.getVideoTracks()[0]?.muted??null,
-   frames,bytes,packets,sent,outFrames});
+   frames,bytes,packets,sent,outFrames,transceivers:p.pc.getTransceivers().map(t=>({mid:t.mid,direction:t.direction,current:t.currentDirection,
+    sender:t.sender.track?.kind||null,trackId:t.sender.track?.id||null,receiver:t.receiver.track?.kind||null}))});
  }
  const spot=document.getElementById('ae-live-spotlight-video');
  return {joined:st.joined,camera:!!st.camera,screen:!!st.screen,peers:list,
   presence:window.ARQUIVO_LIVE.getPresenceList().map(p=>({name:p.name,camera:p.camera,screen:p.screen})),
   spotlight:{kind:st.spotlight?.kind||null,readyState:spot?.readyState||0,width:spot?.videoWidth||0},
-  msg:st.status,err:st.error};
+  msg:st.status,err:st.error,signals:window.__rtcSignals.slice(-18).map(x=>({event:x.event,type:x.payload?.type,descType:x.payload?.data?.type}))};
 };
 </script></body></html>
