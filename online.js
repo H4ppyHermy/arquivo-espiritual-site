@@ -119,6 +119,26 @@ async function saveAppearance(sheetId,appearance){if(!state.enabled)throw Error(
  });
  return state.pending;
 }
+async function moveAbility(args){
+ if(!state.enabled||state.identity?.kind!=='master')throw Error('A organização exige uma chave de mestre conectada.');
+ await state.pending.catch(()=>{});
+ state.busyUntil=Date.now()+1800;
+ const result=await rpc('ae_sheet_move_ability',args);
+ if(!result?.sheet?.id||result.sheet.id!==args.p_sheet_id||!Array.isArray(result.sheet.abilities))
+  throw Error('O servidor não confirmou a movimentação da habilidade.');
+ state.revision=Math.max(state.revision,Number(result.revision)||0);
+ return result;
+}
+async function moveWarehousePost(args){
+ if(!state.enabled||state.identity?.kind!=='master')throw Error('A organização exige uma chave de mestre conectada.');
+ await state.pending.catch(()=>{});
+ state.busyUntil=Date.now()+1800;
+ const result=await rpc('ae_warehouse_move_post',args);
+ if(!Array.isArray(result?.posts)||result?.post?.id!==args.p_post_id)
+  throw Error('O servidor não confirmou a movimentação da publicação.');
+ state.revision=Math.max(state.revision,Number(result.revision)||0);
+ return result;
+}
 async function playerDirectory(){return rpc('ae_player_directory')}
 async function sheetLink(sheetId,action,targetKey=null){
  if(!state.enabled)throw Error('Conexão online indisponível.');
@@ -229,5 +249,5 @@ async function mediaSignedUrl(ref){
  return data.signedUrl;
 }
 
-window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,rollFree,cbbRoll,cbbAction,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
+window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,moveAbility,moveWarehousePost,rollFree,cbbRoll,cbbAction,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
 })();
