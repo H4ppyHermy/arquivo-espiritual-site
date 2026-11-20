@@ -119,7 +119,7 @@ test('o app utiliza nova ficha após controles de acesso e o editor preserva sal
  const app=read('arquivo-app.js'),html=read('index.html');
  assert.match(app,/if\(s\?\.masterOnly&&!master\(\)\)/);
  assert.match(app,/if\(s\.locked&&\(!canEditSheet\(s\.id\)\|\|s\.redacted\)\)/);
- assert.match(app,/window\.ARQUIVO_FICHA_VISUAL\.render\(s/);
+ assert.match(app,/window\.ARQUIVO_FICHA_VISUAL\.render\(window\.ARQUIVO_ORIGENS\?\.project\(s\)\|\|s/);
  assert.match(app,/window\.ARQUIVO_FICHA_VISUAL\?\.upgradeEditor\?\.\(\)/);
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function updateDraft\(target\)/);
