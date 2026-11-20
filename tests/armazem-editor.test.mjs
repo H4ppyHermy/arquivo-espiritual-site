@@ -49,7 +49,7 @@ function setup(master=true){
 
 test('raça, classes e habilidades continuam acessíveis no Armazém sem HUD de ficha',()=>{
  const {window,db}=setup();
- assert.equal(window.ARQUIVO_SECOES.warehouse().posts.length,12);
+ assert.equal(window.ARQUIVO_SECOES.warehouse().posts.length,18);
  const html=window.ARQUIVO_SECOES.warehousePage();
  for(const name of ['Arrancar','Coração de Aço','Especialista em Hohō','Caçador','Porta-voz'])
   assert.ok(html.includes(name),name);
@@ -411,7 +411,7 @@ test('editor atualiza campos e não salva imagem em habilidade ou técnica',()=>
  assert.equal(post.image,'');
 });
 
-test('três técnicas livres e três habilidades raciais constam do Armazém sem imagens',()=>{
+test('habilidades e técnicas oficiais constam do Armazém sem imagens',()=>{
  const ctx=setup();
  const source=ctx.window.ARQUIVO_HABILIDADES_CBB;
  const expected=[
@@ -423,7 +423,7 @@ test('três técnicas livres e três habilidades raciais constam do Armazém sem
   ['Sonído','Habilidades','2 ALMA','Ao se movimentar, dobre a distância percorrida e ignore bloqueios formados por criaturas durante o deslocamento.'],
   ['Cero','Habilidades','3 ALMA','Utilize sua ação principal na fase de Distância para realizar um ataque de Liberação, concentrando sua energia espiritual em um disparo. Ao acertar, acrescente 1d8 ao dano-base.']
  ];
- assert.equal(source.length,7);
+ assert.equal(source.length,13);
  const ids=new Set();
  const published=ctx.window.ARQUIVO_SECOES.warehouse().posts;
  for(const [title,category,cost,description] of expected){
@@ -485,4 +485,39 @@ test('cadastro permite vincular habilidades a múltiplas raças e classes sem c�
  assert.match(ctx.modal(),/warehouseGrantFields/);
  assert.match(ctx.modal(),/Arrancar, Quincy/);
  assert.match(ctx.modal(),/Coração de Aço, Atirador/);
+});
+
+test('novas técnicas de Duelo e habilidades preservam integralmente o texto e os danos destacados',()=>{
+ const ctx=setup();
+ const entries=[
+  ['tecnica-soco-soco-bate-bate','Soco Soco Bate Bate','Técnicas','2 ALMA',
+   'Ao realizar um ataque de Duelo contra um adversário que tenha lhe causado dano desde sua última ação, amplifique a força do golpe.\n\n> Dano: +1d8'],
+  ['tecnica-monte-tibetano','Monte Tibetano','Técnicas','2 ALMA',
+   'Ao sofrer um ataque, ignore seus efeitos de deslocamento forçado e a condição Derrubado. Caso o ataque cause dano, reduza-o em 1d4.'],
+  ['tecnica-imperdivel','Imperdível','Técnicas','3 ALMA',
+   'Ao falhar em um ataque de Duelo, role novamente o dado da perícia utilizada, mantendo o novo resultado. Caso o alvo tenha sofrido dano por você nesta rodada, aumente esse dado em 1 passo antes da nova rolagem.'],
+  ['habilidade-revestimento-corpo','Revestimento de Corpo','Habilidades','2 ALMA',
+   'Ao receber um ataque que afete sua Vida, aumente em 1 passo sua resistência natural até o término da fase.'],
+  ['habilidade-alma-extensiva','Alma Extensiva','Habilidades','2 ALMA',
+   'Ao realizar um ataque de Duelo, aumente seu alcance em 3 metros. Caso acerte, pode aproximar o alvo em até 2 metros.'],
+  ['habilidade-ressonancia-material','Ressonância Material','Habilidades','3 ALMA',
+   'Ao acertar um ataque de Duelo, amplifique o impacto.\n\n> Dano: +1d6\n\nCaso o alvo esteja em contato com uma superfície sólida, também fica Derrubado.']
+ ];
+ const posts=ctx.window.ARQUIVO_SECOES.warehouse().posts;
+ const seen=new Set();
+ for(const [id,title,category,cost,description] of entries){
+  const post=posts.find(p=>p.id===id);
+  assert.ok(post,id);assert.ok(!seen.has(post.id));seen.add(post.id);
+  assert.equal(post.title,title);assert.equal(post.category,category);
+  assert.equal(post.cost,cost);assert.equal(post.content,description);
+  assert.equal(post.summary,'');assert.equal(post.image,'');
+  assert.equal(post.published,true);
+  assert.deepEqual(Array.from(post.grants.race),[]);
+  assert.deepEqual(Array.from(post.grants.class),[]);
+  assert.equal(posts.filter(p=>p.id===id).length,1);
+  const markup=ctx.window.ARQUIVO_SECOES.warehousePage();
+  assert.ok(markup.includes('id="warehousePost-'+id+'"'),id);
+ }
+ assert.match(posts.find(x=>x.id==='tecnica-soco-soco-bate-bate').content,/\n\n> Dano: \+1d8/);
+ assert.match(posts.find(x=>x.id==='habilidade-ressonancia-material').content,/\n\n> Dano: \+1d6\n\nCaso/);
 });
