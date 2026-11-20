@@ -52,7 +52,13 @@
   const fear=p.hasFear?'<span class="ae-cbb-auto-effect">Amedrontado <b>Dado de Pavor</b></span>':'';
   const alerts=[
    p.conditions.has('atordoado')?'Atordoado: reação indisponível.':'',
+   s.combat?.reactionUsed&&Number(s.combat?.cbb?.extraReaction||0)<1&&m.context==='defesa'?
+    'Reação já utilizada nesta rodada.':'',
    p.conditions.has('desorientado')||p.conditions.has('exausto')?'Movimentação reduzida pela metade.':'',
+   p.conditions.has('imobilizado')?'Imobilizado: deslocamento impedido.':'',
+   p.conditions.has('agarrado')?'Agarrado: não pode se afastar de quem o segura.':'',
+   p.conditions.has('derrubado')?'Levantar exige metade da movimentação.':'',
+   p.conditions.has('silenciado')?'Silenciado: habilidades dependentes da manifestação bloqueada.':'',
    p.conditions.has('fragilizado')?'Fragilizado: proteção mais forte reduzida na Defesa.':''
   ].filter(Boolean);
   return '<div class="ae-cbb-preview-head"><strong>DADOS DO TESTE</strong><span>Atualização automática</span></div>'+
@@ -80,7 +86,8 @@
   if(choices)choices.innerHTML=contextualFlags(s,{disabled:s.automationEnabled===false||!api.canEditSheet(s.id)||!on()});
   const reaction=field(root,'reaction');
   if(reaction){
-   const blocked=p.reactionBlocked||stored.context!=='defesa';
+   const spent=!!s.combat?.reactionUsed&&Number(s.combat?.cbb?.extraReaction||0)<1;
+   const blocked=p.reactionBlocked||spent||stored.context!=='defesa';
    if(blocked&&reaction.checked){reaction.checked=false;stored.reaction=false;testBySheet.set(s.id,stored)}
    reaction.disabled=blocked||s.automationEnabled===false||!api.canEditSheet(s.id)||!on();
   }
@@ -159,7 +166,8 @@
       '<label>Hollowficação<select data-cbb-field="hollow">'+opts([['','Automática'],['true','Ativa'],['false','Inativa']],'')+'</select></label></div>'+
      '</div></details>'+
      '<label class="ae-cbb-inline"><input type="checkbox" data-cbb-field="reaction"'+(test.reaction?' checked':'')+
-       (test.context!=='defesa'||engine.normalizedConditions(s).has('atordoado')||disabled?' disabled':'')+
+       (test.context!=='defesa'||engine.normalizedConditions(s).has('atordoado')||
+        (c.reactionUsed&&Number(c.cbb?.extraReaction||0)<1)||disabled?' disabled':'')+
        '> Usar reação na defesa (RT em vez de RA)</label>'+
      '<details class="ae-cbb-advanced"><summary>CONFRONTO DIRETO</summary><div class="ae-cbb-advanced-content">'+
      '<div class="ae-cbb-pair"><label>RA do oponente<input type="number" data-cbb-field="opponentRa" min="0" max="200" placeholder="Confronto"></label>'+
@@ -499,6 +507,10 @@
   if(!key)return;
   const root=target.closest?.('.ae-cbb-mesa'),s=sheet();
   if(!root||!s)return;
+  if(['groupSteps','skillSteps','resistSteps'].includes(key)&&event.type==='change'){
+   const numeric=Number(target.value);
+   target.value=String(target.value===''||!Number.isInteger(numeric)?0:safeSteps(numeric));
+  }
   if(key==='poolMode'){
    const resist=root.querySelector?.('[data-cbb-resist-controls]');
    if(resist)resist.hidden=target.value!=='resistencia';
