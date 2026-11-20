@@ -94,11 +94,15 @@ test('o app atualiza só a aba, sem recarregar estilos, música, menus e retrato
  assert.doesNotMatch(app,/function abilityBadge\(/);
 });
 
-test('modificar tipo de habilidade e copiar dado não recria o formulário',()=>{
+test('editar frequência ou nome não recria formulário nem reintroduz tipos antigos',()=>{
  const app=read('arquivo-app.js');
- const typeBlock=app.slice(app.indexOf("if(key==='category')"),app.indexOf("if(['name','cost','description','image','libraryType','groupId'].includes(key))"));
- assert.match(typeBlock,/input\.disabled=ab\.passive/);
- assert.doesNotMatch(typeBlock,/drawSheetForm\(\)/);
+ const start=app.indexOf('if(target.dataset.ability){');
+ const end=app.indexOf(" const name=el('previewName')",start);
+ const block=app.slice(start,end);
+ assert.match(block,/key==='usage'/);
+ assert.match(block,/ab\[key\]=key==='cost'/);
+ assert.doesNotMatch(block,/drawSheetForm\(\)|key==='category'|ab\.passive/);
+ assert.doesNotMatch(app,/function abilityCategory\(|Tipo de habilidade/);
  const applyBlock=app.slice(app.indexOf('function applyGroup(g)'),app.indexOf('function addAbility()',app.indexOf('function applyGroup(g)')));
  assert.match(applyBlock,/field\.value=String\(editorDraft\.groups\[g\]\)/);
  assert.doesNotMatch(applyBlock,/drawSheetForm\(\)/);
