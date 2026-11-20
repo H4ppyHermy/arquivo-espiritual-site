@@ -64,11 +64,11 @@ test('integração mantém os capítulos originais e carrega recursos em ordem',
  assert.match(app,/r\.book!=='book2'/);
  assert.match(app,/book:libraryVolume\(\)==='book2'\?'book2':'book1'/);
  assert.match(html,/biblioteca-secoes\.css\?v=9/);
- assert.match(html,/habilidades-armazem\.js\?v=3/);
+ assert.match(html,/habilidades-armazem\.js\?v=4/);
  assert.match(html,/racas-armazem\.js\?v=1/);
  assert.ok(html.indexOf('racas-armazem.js?v=1')<html.indexOf('biblioteca-secoes.js?v=18'));
- assert.ok(html.indexOf('classes-armazem.js?v=5')<html.indexOf('habilidades-armazem.js?v=3'));
- assert.ok(html.indexOf('habilidades-armazem.js?v=3')<html.indexOf('biblioteca-secoes.js?v=18'));
+ assert.ok(html.indexOf('classes-armazem.js?v=5')<html.indexOf('habilidades-armazem.js?v=4'));
+ assert.ok(html.indexOf('habilidades-armazem.js?v=4')<html.indexOf('biblioteca-secoes.js?v=18'));
 
  assert.ok(html.indexOf('arquivo-app.js?v=22')<html.indexOf('biblioteca-secoes.js?v=18'));
 });
