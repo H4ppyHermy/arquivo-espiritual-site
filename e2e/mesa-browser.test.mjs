@@ -49,6 +49,10 @@ test('Mesa: passos e condições atualizam a rolagem sem recarregar a ficha',{ti
   window.dispatchEvent(new Event('arquivo-online-snapshot'))});
  assert.deepEqual(await previewData(),['d6','d4']);
  assert.match(await preview(),/Atordoado/);
+ await page.select('[data-cbb-field="context"]','defesa');
+ assert.equal(await page.$eval('[data-cbb-field="reaction"]',e=>e.disabled),true,
+  'Atordoado bloqueia reação ao escolher Defesa');
+ await page.select('[data-cbb-field="context"]','ataque');
  await page.evaluate(()=>{window.__sheet.conditions.push('Cego');
   window.dispatchEvent(new Event('arquivo-online-snapshot'))});
  assert.equal(await page.$('[data-cbb-field="vision"]')!==null,true);

@@ -101,7 +101,7 @@ test('teste de perícia envia um pedido ao servidor e mostra RT RA RB',async()=>
 
 test('scripts e duas RPCs universais estão ligados sem reativar código por personagem',()=>{
  const html=read('index.html'),online=read('online.js'),visual=read('ficha-visual.js');
- for(const file of ['cbb-engine.js?v=2','cbb-interativo.js?v=8','cbb-interativo.css?v=4'])
+ for(const file of ['cbb-engine.js?v=2','cbb-interativo.js?v=9','cbb-interativo.css?v=4'])
   assert.ok(html.includes(file),file);
  assert.ok(visual.includes("mesa:'Mesa'"));
  assert.match(visual,/ARQUIVO_CBB_UI\?\.render/);
@@ -353,4 +353,40 @@ test('SQL aplica Fragilizado à proteção e não cobra redução duas vezes',()
  assert.match(sql,/IF 'fragilizado'=ANY\(conditions\) AND jsonb_array_length\(p_pool\)=0 THEN/);
  assert.match(sql,/IF p_kind IN \('resistencia','protecao'\) AND 'fragilizado'=ANY\(conditions\)/);
  assert.match(sql,/faces=scale\[greatest\(1,array_position\(scale,faces\)-1\)\]/);
+});
+
+
+test('Atordoado bloqueia ação de reação também no turno e no servidor',()=>{
+ const x=fixture();x.s.conditions=['Atordoado'];
+ const ui=x.window.ARQUIVO_CBB_UI;
+ const html=ui.render(x.s,{canEdit:true,master:true});
+ assert.match(html,/data-cbb-command="reaction" disabled/);
+ assert.match(html,/REAÇÃO[\s\S]*?bloqueada/);
+ x.s.conditions=[];
+ const free=ui.render(x.s,{canEdit:true,master:true});
+ assert.match(free,/data-cbb-command="reaction">USAR REAÇÃO/);
+ assert.match(read('sql/ae_cbb_universal_action.sql'),/IF p_action='reaction' AND EXISTS\(/);
+});
+
+test('Condição alterada invalida cache de resistência da fase para rolagem atualizada',async()=>{
+ const x=fixture();
+ let id=100;
+ x.window.ARQUIVO_SYNC.cbbRoll=async payload=>{
+  x.calls.roll.push(payload);
+  const base=payload.p_kind==='resistencia'?6:8;
+  return {id:id++,rt:3,ra:3,rb:3,dice:[{sides:base,value:3}],special:''};
+ };
+ const values={poolMode:'resistencia',poolResource:'vida',poolCount:'0',poolFaces:'8',
+  flat:'0',manualRa:'0',resistSteps:'0'};
+ const fields=Object.fromEntries(Object.entries(values).map(([k,value])=>[k,{value,checked:false}]));
+ const root={querySelector(q){const m=q.match(/data-cbb-field="([^"]+)"/);return fields[m?.[1]]||null}};
+ const b={dataset:{cbbCommand:'pool'},disabled:false,closest(){return root},setAttribute(){}};
+ const click=()=>x.listeners.click({target:{closest(){return b}},preventDefault(){},stopPropagation(){}});
+ await click();
+ assert.equal(x.calls.roll.length,1);
+ await click();
+ assert.equal(x.calls.roll.length,1,'Mesma condição reutiliza resistência');
+ x.s.conditions=['Fragilizado'];
+ await click();
+ assert.equal(x.calls.roll.length,2,'Nova condição invalida a resistência cacheada');
 });
