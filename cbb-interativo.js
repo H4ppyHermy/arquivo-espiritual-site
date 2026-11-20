@@ -51,7 +51,7 @@
    (r.steps>0?'+':'')+r.steps+' '+enc(r.target)+'</b></span>').join('');
   const fear=p.hasFear?'<span class="ae-cbb-auto-effect">Amedrontado <b>Dado de Pavor</b></span>':'';
   const alerts=[
-   p.reactionBlocked&&m.reaction?'Atordoado impede reações.':'',
+   p.conditions.has('atordoado')?'Atordoado: reação indisponível.':'',
    p.conditions.has('desorientado')||p.conditions.has('exausto')?'Movimentação reduzida pela metade.':'',
    p.conditions.has('fragilizado')?'Fragilizado: proteção mais forte reduzida na Defesa.':''
   ].filter(Boolean);
@@ -240,6 +240,10 @@
   const effect=[];
   if(r.fearDie)effect.push('Pavor d'+r.fearDie+': '+r.fearRoll+(r.fearClear?' · superado':''));
   if(r.hollowDie)effect.push('Hollowficação d6: '+r.hollowRoll+(r.hollowLost?' · Falha Crítica: perda de controle':''));
+  if(kind==='teste'&&r.groupDie&&r.skillDie)effect.push('Dados utilizados: d'+r.groupDie+' (grupo) + d'+r.skillDie+' (perícia)');
+  if(kind==='teste'&&(r.autoGroupSteps||r.autoSkillSteps))
+   effect.push('Condições/exposições: '+(r.autoGroupSteps?'grupo '+r.autoGroupSteps+' ':'')+
+    (r.autoSkillSteps?'perícia '+r.autoSkillSteps:''));
   if(data.dt!==null && kind==='teste')effect.push('DT '+data.dt+': '+(calc.special==='CRÍTICO MÁXIMO'||calc.rt>=data.dt?'sucesso':'falha'));
   if(data.clash)effect.push('Teste-Clash: '+(data.clash.win?'vitória':'derrota')+' · '+data.clash.reason);
   if(kind==='dano')effect.push('RA incorporada ao dano: '+(r.attack_ra||0)+'. Confirme o acerto antes de aplicar.');
@@ -262,7 +266,9 @@
    args.p_reaction=!!field(root,'reaction')?.checked;
    if(args.p_reaction && args.p_context!=='defesa')throw Error('Reação somente em testes de defesa.');
    args.p_group_steps=normalize(number(root,'groupSteps'),-5,5,'passos de grupo');
-   args.p_skill_steps=normalize(number(root,'skillSteps'),-5,5,'passos de perícia');
+   normalize(number(root,'skillSteps'),-5,5,'passos de perícia');
+   const preview=refreshPreview(root,s)||engine.previewSkill(s,args.p_skill,args.p_context,args.p_group_steps,number(root,'skillSteps'));
+   args.p_skill_steps=preview.submittedSkill;
    const bonus=number(root,'bonusCount'),bonusFace=number(root,'bonusFaces');
    normalize(bonus,0,4,'dados extras');
    if(bonus){if(!engine.DIE_FACES.includes(bonusFace))throw Error('Escolha a face dos dados extras.');args.p_pool=[{count:bonus,faces:bonusFace}];}
@@ -390,6 +396,18 @@
   }
  }
  async function onClick(event){
+  const step=event.target?.closest?.('[data-cbb-step]');
+  if(step){
+   event.preventDefault();event.stopPropagation();
+   if(step.disabled||busy)return;
+   const root=step.closest?.('.ae-cbb-mesa')||document.querySelector('.ae-cbb-mesa');
+   const sh=sheet(),target=field(root,step.dataset.cbbStep);
+   if(!sh||!api.canEditSheet(sh.id)||sh.automationEnabled===false||!on()||!target||target.disabled)return;
+   target.value=String(safeSteps(Number(target.value||0)+Number(step.dataset.cbbDelta||0)));
+   if(step.dataset.cbbStep==='resistSteps')refreshResistance(root,sh);
+   else refreshPreview(root,sh);
+   return;
+  }
   const mode=event.target?.closest?.('[data-cbb-mode]');
   if(mode?.dataset?.cbbMode){
    event.preventDefault();event.stopPropagation();
@@ -449,26 +467,58 @@
   }catch(error){api.toast('Ação não realizada',String(error?.message||error),true)}
   finally{busy=false;lockResult(b,false)}
  }
+ function refreshResistance(root,s=sheet()){
+  if(!root||!s)return;
+  const target=root.querySelector?.('[data-cbb-resist-status]');
+  if(!target)return;
+  if(read(root,'poolMode','dano')!=='resistencia'){target.textContent='';return}
+  const resource=read(root,'poolResource','vida');
+  const group={vida:'Corpo',estabilidade:'Mente',alma:'Espírito'}[resource]||'Corpo';
+  const original=Number(s.groups?.[group]||4);
+  const steps=safeSteps(read(root,'resistSteps','0'));
+  const count=Number(read(root,'poolCount','0'));
+  const baseProtection=Number(read(root,'poolFaces','8'));
+  const fragile=engine.normalizedConditions(s).has('fragilizado');
+  const natural=engine.stepDie(s,original,steps+(fragile&&count===0?-1:0));
+  const protection=count>0?' · proteção d'+engine.stepDie(s,baseProtection,fragile?-1:0):'';
+  target.textContent='Resistência: '+group+' d'+natural+protection+
+   (fragile?' · Fragilizado aplicado':'');
+ }
  function onChange(event){
-  const target=event.target;
-  if(!['source','poolMode'].includes(target?.dataset?.cbbField))return;
-  const root=target.closest('.ae-cbb-mesa'),s=sheet();
-  if(target.dataset.cbbField==='poolMode'){
-   if(root&&target.value==='resistencia'){
-    field(root,'poolCount').value='0';
-    field(root,'source').value='';
-    field(root,'flat').value='0';
-   }
-   return;
+  const target=event.target,key=target?.dataset?.cbbField;
+  if(!key)return;
+  const root=target.closest?.('.ae-cbb-mesa'),s=sheet();
+  if(!root||!s)return;
+  if(key==='poolMode'&&target.value==='resistencia'){
+   const qty=field(root,'poolCount');if(qty)qty.value='0';
+   const src=field(root,'source');if(src)src.value='';
+   const flat=field(root,'flat');if(flat)flat.value='0';
   }
-  const index=Number(target.value);
-  if(!root||!s||target.value===''||!s.abilities?.[index])return;
-  const pool=engine.abilityPool(s.abilities[index]);if(!pool)return;
-  field(root,'poolCount').value=String(pool.count);
-  field(root,'poolFaces').value=String(pool.faces);
-  field(root,'poolMode').value=pool.kind;
+  if(key==='source'){
+   const index=Number(target.value);
+   if(target.value!==''&&s.abilities?.[index]){
+    const pool=engine.abilityPool(s.abilities[index]);
+    if(pool){
+     const qty=field(root,'poolCount');if(qty)qty.value=String(pool.count);
+     const faces=field(root,'poolFaces');if(faces)faces.value=String(pool.faces);
+     const mode=field(root,'poolMode');if(mode)mode.value=pool.kind;
+    }
+   }
+  }
+  if(['skill','context','groupSteps','skillSteps','reaction','vision','sense','otherTarget'].includes(key))
+   refreshPreview(root,s);
+  if(['poolMode','poolCount','poolFaces','poolResource','resistSteps','source'].includes(key))
+   refreshResistance(root,s);
+ }
+ function onInput(event){
+  if(['groupSteps','skillSteps','resistSteps'].includes(event.target?.dataset?.cbbField))onChange(event);
  }
  document.addEventListener('click',onClick);
  document.addEventListener('change',onChange);
- global.ARQUIVO_CBB_UI=Object.freeze({render,abilityActions,engine});
+ document.addEventListener('input',onInput);
+ global.addEventListener?.('arquivo-online-snapshot',()=>{
+  const root=document.querySelector?.('.ae-cbb-mesa');
+  if(root?.dataset?.cbbSheet===api.currentSheet){refreshPreview(root);refreshResistance(root)}
+ });
+ global.ARQUIVO_CBB_UI=Object.freeze({render,abilityActions,engine,refreshPreview,refreshResistance});
 })(window);
