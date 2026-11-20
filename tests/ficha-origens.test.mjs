@@ -104,7 +104,7 @@ test('interface, edição e registro contêm as integrações dinâmicas',()=>{
  assert.match(visual,/HABILIDADE RACIAL|HABILIDADE DE CLASSE/);
  assert.match(visual,/data-ability-filter/);
  assert.match(warehouse,/warehouseGrantRaces|warehouseGrantClasses/);
- assert.match(html,/ficha-origens\.js\?v=1/);
+ assert.match(html,/ficha-origens\.js\?v=2/);
  assert.ok(html.indexOf('biblioteca-secoes.js')<html.indexOf('ficha-origens.js'));
  assert.ok(html.indexOf('ficha-origens.js')<html.indexOf('ficha-exportar.js'));
 });
