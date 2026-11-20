@@ -11,10 +11,10 @@ DECLARE ac_id uuid; key_id uuid;key_kind text;key_sheet text;doc jsonb;sh jsonb;
  need_main boolean:=false;need_reaction boolean:=false;is_locked boolean:=false;
  state_key text;v_mode text;v_limit text;desc_text text;
  extra_main integer;extra_reaction integer;uses_in_scene integer;
- v_result jsonb;rows jsonb;v_rev bigint;change_target text;rhythm_level integer;hit_count integer;raised_round integer;pending_rhythm boolean;phase_req text;ability_ix integer;
+ v_result jsonb;rows jsonb;v_rev bigint;change_target text;rhythm_level integer;hit_count integer;raised_round integer;pending_rhythm boolean;phase_req text;ability_ix integer;boss_ratio numeric;boss_partner jsonb;boss_party jsonb;party_old integer;party_new integer;vida_step integer;max_old integer;max_new integer;current_old integer;
 BEGIN
  IF p_sheet_id IS NULL OR length(p_sheet_id)>150 OR p_action NOT IN
-  ('ability','deactivate','main','reaction','phase','round','scene','adjust','expose','contain','commit','hit')
+  ('ability','deactivate','main','reaction','phase','round','scene','adjust','expose','contain','commit','hit','party')
  THEN RAISE EXCEPTION 'Ação inválida.';END IF;
  SELECT a.id,k.id,k.kind,k.sheet_id INTO ac_id,key_id,key_kind,key_sheet
  FROM public.ae_sessions se JOIN public.ae_accounts a ON a.id=se.account_id AND a.key_id=se.key_id
@@ -69,6 +69,20 @@ BEGIN
   END IF;
   IF v_limit<>'none' AND ab->'costConfig'->>'limit' IS DISTINCT FROM v_limit THEN
    ab=jsonb_set(ab,'{costConfig}',coalesce(ab->'costConfig','{}'::jsonb)||jsonb_build_object('limit',v_limit),true);
+  END IF;
+  IF ab->'costConfig' ? 'requiresHealthBelow' THEN
+   boss_ratio=(ab->'costConfig'->>'requiresHealthBelow')::numeric;
+   IF boss_ratio<=0 OR boss_ratio>=1 THEN RAISE EXCEPTION 'Limiar de Vida inválido.';END IF;
+   IF coalesce((sh#>>'{resources,vida,current}')::numeric,0) >
+      coalesce((sh#>>'{resources,vida,max}')::numeric,0)*boss_ratio THEN
+    RAISE EXCEPTION 'Esta liberação só pode ser ativada com %%% da Vida ou menos.',round(boss_ratio*100);
+   END IF;
+  END IF;
+  IF coalesce((ab#>>'{costConfig,requiresPartnerDown}')::boolean,false) THEN
+   SELECT x.value INTO boss_partner FROM jsonb_array_elements(doc->'sheets') x(value)
+    WHERE x.value->>'id'=sh#>>'{boss,partner}' LIMIT 1;
+   IF boss_partner IS NULL OR coalesce((boss_partner#>>'{resources,vida,current}')::numeric,1)>0
+   THEN RAISE EXCEPTION 'A liberação exige que o parceiro esteja incapacitado.';END IF;
   END IF;
   preview=public.ae_ability_cost_preview(sh,ab,p_ability_index);
   cost=(preview->>'cost')::integer;
@@ -134,8 +148,8 @@ BEGIN
    'committedUsed',false,'pressureHits',0);
   combat=jsonb_set(combat,'{cbb,movementBlocked}',to_jsonb(pending_rhythm AND rhythm_level>=1),true);
   combat=jsonb_set(combat,'{cbb,rhythmPending}','false'::jsonb,true);
-  combat=jsonb_set(combat,'{cbb,extraMain}','0'::jsonb,true);
-  combat=jsonb_set(combat,'{cbb,extraReaction}','0'::jsonb,true);
+  combat=jsonb_set(combat,'{cbb,extraMain}',to_jsonb(greatest(0,least(2,coalesce((sh#>>'{boss,tempo,extraMain}')::integer,0)))),true);
+  combat=jsonb_set(combat,'{cbb,extraReaction}',to_jsonb(greatest(0,least(2,coalesce((sh#>>'{boss,tempo,extraReaction}')::integer,0)))),true);
  ELSIF p_action='scene' THEN
   IF key_kind<>'master' THEN RAISE EXCEPTION 'Somente o mestre pode iniciar outra cena.';END IF;
   -- Durações de sessão sobrevivem à troca de cena, independentemente do personagem.
@@ -157,12 +171,28 @@ BEGIN
   END IF;
   combat=combat||jsonb_build_object('scene',scene_num+1,'round',1,'phase','preparacao',
    'mainUsed',false,'reactionUsed',false,'committedUsed',false,'pressureHits',0);
-  combat=jsonb_set(combat,'{cbb,extraMain}','0'::jsonb,true);
-  combat=jsonb_set(combat,'{cbb,extraReaction}','0'::jsonb,true);
+  combat=jsonb_set(combat,'{cbb,extraMain}',to_jsonb(greatest(0,least(2,coalesce((sh#>>'{boss,tempo,extraMain}')::integer,0)))),true);
+  combat=jsonb_set(combat,'{cbb,extraReaction}',to_jsonb(greatest(0,least(2,coalesce((sh#>>'{boss,tempo,extraReaction}')::integer,0)))),true);
   combat=jsonb_set(combat,'{cbb,movementBlocked}','false'::jsonb,true);
   combat=jsonb_set(combat,'{cbb,rhythmPending}','false'::jsonb,true);
   combat=jsonb_set(combat,'{cbb,pressured}','false'::jsonb,true);
   combat=jsonb_set(combat,'{cbb,pendingDefensive}','false'::jsonb,true);
+ ELSIF p_action='party' THEN
+  IF key_kind<>'master' OR sh->'boss' IS NULL THEN RAISE EXCEPTION 'Somente o mestre ajusta confrontos de chefes.';END IF;
+  IF p_value IS NULL OR p_value NOT BETWEEN 6 AND 8 THEN RAISE EXCEPTION 'Selecione 6, 7 ou 8 jogadores.';END IF;
+  boss_party=sh->'boss'->'party';
+  party_old=coalesce((boss_party->>'current')::integer,(boss_party->>'base')::integer,7);
+  party_new=p_value;
+  vida_step=coalesce((boss_party->>'vidaPorJogador')::integer,0);
+  IF party_old NOT BETWEEN 6 AND 8 OR vida_step NOT BETWEEN 0 AND 100 THEN RAISE EXCEPTION 'Escalonamento de chefe inválido.';END IF;
+  max_old=(sh#>>'{resources,vida,max}')::integer;
+  current_old=(sh#>>'{resources,vida,current}')::integer;
+  max_new=max_old+(party_new-party_old)*vida_step;
+  IF max_new<1 THEN RAISE EXCEPTION 'Vida final inválida.';END IF;
+  sh=jsonb_set(sh,'{resources,vida}',jsonb_build_object('max',max_new,
+   'current',greatest(0,least(max_new,current_old+(max_new-max_old)))),true);
+  sh=jsonb_set(sh,'{boss,party,current}',to_jsonb(party_new),true);
+  v_result=jsonb_build_object('party',party_new,'vidaMax',max_new);
  ELSIF p_action='adjust' THEN
   IF p_resource NOT IN ('vida','estabilidade','alma') OR p_value IS NULL OR p_value NOT BETWEEN -100000 AND 100000
    THEN RAISE EXCEPTION 'Ajuste de recurso inválido.';END IF;
