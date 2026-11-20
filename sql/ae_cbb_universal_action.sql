@@ -11,7 +11,7 @@ DECLARE ac_id uuid; key_id uuid;key_kind text;key_sheet text;doc jsonb;sh jsonb;
  need_main boolean:=false;need_reaction boolean:=false;is_locked boolean:=false;
  state_key text;v_mode text;v_limit text;desc_text text;
  extra_main integer;extra_reaction integer;uses_in_scene integer;
- v_result jsonb;rows jsonb;v_rev bigint;change_target text;rhythm_level integer;hit_count integer;raised_round integer;pending_rhythm boolean;
+ v_result jsonb;rows jsonb;v_rev bigint;change_target text;rhythm_level integer;hit_count integer;raised_round integer;pending_rhythm boolean;phase_req text;ability_ix integer;
 BEGIN
  IF p_sheet_id IS NULL OR length(p_sheet_id)>150 OR p_action NOT IN
   ('ability','deactivate','main','reaction','phase','round','scene','adjust','expose','contain','commit','hit')
@@ -74,6 +74,17 @@ BEGIN
   cost=(preview->>'cost')::integer;
   current_alma=coalesce((sh#>>'{resources,alma,current}')::integer,0);
   IF current_alma<cost THEN RAISE EXCEPTION 'Alma insuficiente.';END IF;
+  phase_req=lower(coalesce(ab->'costConfig'->>'phase',''));
+  IF phase_req='' THEN
+   IF position('na fase de preparação' in desc_text)>0 THEN phase_req='preparacao';
+   ELSIF position('na fase de distância' in desc_text)>0 THEN phase_req='distancia';
+   ELSIF position('na fase de duelo' in desc_text)>0 THEN phase_req='duelo';
+   END IF;
+  END IF;
+  IF phase_req<>'' AND phase_req NOT IN ('preparacao','distancia','duelo') THEN RAISE EXCEPTION 'Fase da habilidade inválida.';END IF;
+  IF phase_req<>'' AND phase_req<>phase THEN
+   RAISE EXCEPTION 'Essa habilidade exige a fase %.',phase_req;
+  END IF;
   need_main=desc_text LIKE '%utilize sua ação principal%';
   need_reaction=desc_text LIKE '%utilize sua reação%';
   IF need_main AND need_reaction THEN RAISE EXCEPTION 'A habilidade exige definição manual da ação.';END IF;
@@ -127,6 +138,23 @@ BEGIN
   combat=jsonb_set(combat,'{cbb,extraReaction}','0'::jsonb,true);
  ELSIF p_action='scene' THEN
   IF key_kind<>'master' THEN RAISE EXCEPTION 'Somente o mestre pode iniciar outra cena.';END IF;
+  -- Durações de sessão sobrevivem à troca de cena, independentemente do personagem.
+  billing=coalesce(rt->'billing','{}'::jsonb);
+  IF jsonb_typeof(billing)='object' THEN
+   FOR ab,ability_ix IN SELECT x.item,(x.ord-1)::integer
+     FROM jsonb_array_elements(coalesce(sh->'abilities','[]'::jsonb)) WITH ORDINALITY x(item,ord) LOOP
+    IF ab->'costConfig'->>'duration'='session' AND ab->'costConfig'->>'mode'='activation' THEN
+     state_key=public.ae_ability_billing_key(ab,ability_ix);
+     old_entry=billing->state_key;
+     IF old_entry IS NOT NULL AND coalesce((old_entry->>'active')::boolean,false)
+       AND coalesce((old_entry->>'scene')::integer,0)=scene_num THEN
+      billing=jsonb_set(billing,ARRAY[state_key],old_entry||jsonb_build_object('scene',scene_num+1,'lastRound',0,'usesRound',0),true);
+     END IF;
+    END IF;
+   END LOOP;
+   rt=jsonb_set(rt,'{billing}',billing,true);
+   sh=jsonb_set(sh,'{abilityRuntime}',rt,true);
+  END IF;
   combat=combat||jsonb_build_object('scene',scene_num+1,'round',1,'phase','preparacao',
    'mainUsed',false,'reactionUsed',false,'committedUsed',false,'pressureHits',0);
   combat=jsonb_set(combat,'{cbb,extraMain}','0'::jsonb,true);
