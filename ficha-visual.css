@@ -629,3 +629,6 @@ html.performance-mode #page .ae-ficha-v2 *{animation:none!important;transition:n
  .ae-ability-group-editor-row input{flex:1 1 100%}
  .ae-ability-group-editor-row .btn{flex:1}
 }
+
+.ae-export-group-choice{display:grid;gap:6px;font-size:10px;font-weight:900;letter-spacing:.06em;color:var(--theme-cold)}
+.ae-export-group-choice select{width:100%;min-width:0;min-height:41px}
