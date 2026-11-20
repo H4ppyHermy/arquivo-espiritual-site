@@ -11,6 +11,7 @@ const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;
 const state={
  session:null,participants:[],joined:false,joining:false,connecting:false,
  hudChoices:[],hudChoicesReady:false,hideAllNumbers:false,
+ hudChoices:[],hudChoicesReady:false,hideAllNumbers:false,
  channel:null,peers:new Map(),presence:new Map(),hud:new Map(),
  selfId:null,accountId:null,local:null,
  camera:null,microphone:null,screen:null,screenAudio:null,
@@ -59,11 +60,12 @@ async function refreshState(){
   state.session=response?.session||null;
   state.participants=Array.isArray(response?.participants)?response.participants:[];
   if(state.joined){
+   state.local=state.participants.find(p=>p.account_id===state.accountId)||state.local;
    const active=state.participants.some(p=>p.account_id===state.accountId);
    if(!state.session||!active){await leave(false);status('A sessão terminou ou seu acesso foi encerrado.',true);}
   }
   if(!state.joined&&api()?.page==='live')render();
-  if(state.joined)presenceSync();
+  if(state.joined){presenceSync();renderHudAssignments();}
  }catch(error){if(api()?.page==='live')status(error.message,true)}
  finally{state.lobbyBusy=false}
 }
@@ -75,6 +77,48 @@ async function refreshHud(){
   state.hud=new Map(data.filter(x=>typeof x.id==='string'&&typeof x.accountId==='string').map(x=>[x.accountId,x]));
   state.lastHudAt=Date.now();renderOverlays();
  }catch(e){status('Recursos indisponíveis: '+e.message,true)}
+}
+async function loadHudChoices(){
+ if(!state.local?.is_master)return;
+ const data=await rpc('ae_live_hud_choices');
+ state.hudChoices=Array.isArray(data)?data.filter(x=>typeof x.id==='string'&&typeof x.name==='string'):[];
+ state.hudChoicesReady=true;renderHudAssignments();
+}
+function renderHudAssignments(){
+ if(!state.joined||!state.local?.is_master||api()?.page!=='live')return;
+ const panel=document.querySelector('.ae-live-hud-management');
+ if(!panel)return;
+ const people=state.participants.filter(p=>!p.left_at&&!p.removed_at);
+ const signature=JSON.stringify([people.map(p=>[p.account_id,p.account_name,p.sheet_id,p.hud_sheet_id,p.hud_hide_numbers]),
+  state.hudChoicesReady,state.hudChoices.map(x=>x.id)]);
+ if(panel.dataset.signature===signature)return;
+ panel.dataset.signature=signature;
+ if(!state.hudChoicesReady){panel.innerHTML='<p>Carregando fichas da sessão...</p>';return}
+ panel.innerHTML='<div class="ae-live-hud-management-head"><div><span class="ae-live-eyebrow">CONTROLE DO MESTRE</span>'+
+  '<h2>HUD DOS PARTICIPANTES</h2></div><small>Não altera as fichas vinculadas às chaves</small></div>'+
+  '<div class="ae-live-hud-management-grid">'+people.map(p=>{
+   const acc=esc(p.account_id),shown=String(p.hud_sheet_id||''),original=p.sheet_id||null;
+   const options='<option value="">'+(original?'FICHA VINCULADA (PADRÃO)':'SEM PERSONAGEM (PADRÃO)')+'</option>'+
+    state.hudChoices.map(sh=>'<option value="'+esc(sh.id)+'"'+(sh.id===shown?' selected':'')+'>'+
+     esc(sh.name)+(sh.masterOnly?' · MESTRE':'')+'</option>').join('');
+   return '<div class="ae-live-hud-management-person" data-live-hud-account="'+acc+'">'+
+    '<div class="ae-live-hud-management-identity"><b>'+esc(p.account_name||'Participante')+'</b>'+
+    '<small>'+(p.is_master?'MESTRE':'JOGADOR')+'</small></div>'+
+    '<label>PERSONAGEM NO HUD<select data-live-hud-select="'+acc+'" aria-label="Personagem exibido para '+
+     esc(p.account_name||'participante')+'">'+options+'</select></label>'+
+    '<label class="ae-live-hud-hide"><input type="checkbox" data-live-hud-hidden="'+acc+'"'+
+     (p.hud_hide_numbers?' checked':'')+'> OCULTAR VALORES DAS BARRAS</label></div>';
+  }).join('')+'</div>';
+}
+async function assignHud(accountId,sheetId,hideNumbers){
+ if(!state.joined||!state.local?.is_master)throw Error('Somente o mestre pode alterar o HUD.');
+ const updated=await rpc('ae_live_set_hud',{p_account_id:accountId,
+  p_sheet_id:sheetId||null,p_hide_numbers:!!hideNumbers});
+ if(!updated||updated.account_id!==accountId)throw Error('O servidor não confirmou o HUD.');
+ state.participants=state.participants.map(p=>p.account_id===accountId?updated:p);
+ if(state.accountId===accountId)state.local=updated;
+ await refreshHud();
+ renderPeople();renderHudAssignments();
 }
 function hudRecord(sheetId,opts={}){
  if(!sheetId)return null;
@@ -307,14 +351,16 @@ function render(){
    button(state.microphone?'SILENCIAR MICROFONE':'ATIVAR MICROFONE','microphone')+
    button(state.screen?'PARAR TELA':'COMPARTILHAR TELA','screen')+
    button(state.sound?'ÁUDIO RECEBIDO: ON':'ÁUDIO RECEBIDO: OFF','sound')+
+   button(state.hideAllNumbers?'MOSTRAR VALORES':'OCULTAR VALORES','numbers')+
    '<label class="ae-live-quality">QUALIDADE<select id="ae-live-quality">'+qualityOptions+'</select></label></div>'+
   '<div class="ae-live-message'+(state.error?' is-error':'')+'" role="status" aria-live="polite">'+esc(state.status||'Conectado à sessão privada.')+'</div>'+
   '<section class="ae-live-spotlight" hidden></section>'+
   '<div class="ae-live-gallery-head"><h2>PARTICIPANTES</h2><span>HUD SINCRONIZADO COM AS FICHAS</span></div>'+
   '<div class="ae-live-people" aria-label="Câmeras dos participantes"></div>'+
+  (master?'<section class="ae-live-hud-management" aria-label="HUDs da sessão"></section>':'')+
   '<details class="ae-live-technical"><summary>Sobre a transmissão</summary><p>Conexão direta e criptografada entre navegadores. Sem gravação automática. A qualidade depende da internet, dos dispositivos e da rede de cada jogador. Para estabilidade e alta definição garantidas com 6–8 câmeras, será necessário um servidor SFU/TURN dedicado.</p></details>'+
   '</section>';
- renderPeople();
+ renderPeople();renderHudAssignments();
 }
 function peerSet(){
  const entries=[],allowed=new Map(state.participants.map(p=>[p.account_id,p]));
@@ -482,6 +528,7 @@ async function openRoom(){
   channel.on('presence',{event:'sync'},presenceSync);
   channel.on('broadcast',{event:'rtc-signal'},({payload})=>{signal(payload)});
   channel.on('broadcast',{event:'session-end'},()=>leave(false));
+  channel.on('broadcast',{event:'hud-updated'},()=>{refreshState().then(()=>refreshHud()).catch(()=>{})});
   channel.on('broadcast',{event:'participant-kicked'},({payload})=>{
    if(payload?.account_id===state.accountId){
     leave(false).then(()=>status('Você foi removido pelo mestre.',true)).catch(()=>{});
@@ -501,6 +548,8 @@ async function openRoom(){
   clearTimers();
   setTimer('roomTimer',()=>{pollRoom().catch(()=>{})},14000);
   setTimer('hudTimer',()=>{refreshHud().catch(()=>{})},9000);
+  await refreshState();
+  if(state.local?.is_master)await loadHudChoices().catch(e=>status(e.message,true));
   await refreshHud();
   state.status='Conexão pronta. Ative câmera ou microfone quando quiser.';
   render();updateDock();
@@ -586,7 +635,7 @@ async function leave(notify=true){
  const ch=state.channel;state.channel=null;
  if(ch){try{await ch.untrack()}catch(e){}try{await sync()?.state.client?.removeChannel(ch)}catch(e){}}
  const hadJoined=state.joined;
- state.joined=false;state.presence.clear();state.hud.clear();
+ state.joined=false;state.presence.clear();state.hud.clear();state.hudChoices=[];state.hudChoicesReady=false;
  document.getElementById('ae-live-audio-rack')?.remove();
  stopStream(state.camera);stopStream(state.microphone);stopStream(state.screen);
  state.camera=null;state.microphone=null;state.screen=null;state.spotlight=null;
