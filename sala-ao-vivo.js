@@ -591,7 +591,7 @@ global.addEventListener('pagehide',()=>{if(state.joined){stopStream(state.camera
 
 function pageChanged(page){
  if(page==='live'){
-  render();
+  if(!root()?.hasChildNodes())render();else if(state.joined){renderOverlays();updateDock()}
   if(!state.joined){refreshState().catch(()=>{});startLobbyPolling()}
  }else{
   if(state.lobbyTimer){clearInterval(state.lobbyTimer);state.lobbyTimer=null}
