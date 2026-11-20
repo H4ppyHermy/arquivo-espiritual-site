@@ -96,7 +96,7 @@ test('o app atualiza só a aba, sem recarregar estilos, música, menus e retrato
 
 test('modificar tipo de habilidade e copiar dado não recria o formulário',()=>{
  const app=read('arquivo-app.js');
- const typeBlock=app.slice(app.indexOf("if(key==='category')"),app.indexOf("if(['name','cost','description','image','libraryType'].includes(key))"));
+ const typeBlock=app.slice(app.indexOf("if(key==='category')"),app.indexOf("if(['name','cost','description','image','libraryType','groupId'].includes(key))"));
  assert.match(typeBlock,/input\.disabled=ab\.passive/);
  assert.doesNotMatch(typeBlock,/drawSheetForm\(\)/);
  const applyBlock=app.slice(app.indexOf('function applyGroup(g)'),app.indexOf('function addAbility()',app.indexOf('function applyGroup(g)')));
