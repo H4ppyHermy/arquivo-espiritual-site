@@ -33,6 +33,8 @@ function harness(){
   if(name==='ae_live_start')return session;
   if(name==='ae_live_join')return me;
   if(name==='ae_live_hud')return [];
+  if(name==='ae_live_hud_choices')return [{id:SHEET,name:'Personagem de Teste',masterOnly:false}];
+  if(name==='ae_live_set_hud')return {...me,hud_sheet_id:args.p_sheet_id,hud_hide_numbers:args.p_hide_numbers};
   if(name==='ae_live_heartbeat')return me;
   if(name==='ae_live_leave')return true;
   throw Error('Unexpected RPC: '+name);
@@ -108,7 +110,7 @@ test('HUD obedece Vida, Estabilidade, ALMA e escapa caracteres perigosos',()=>{
  assert.match(overlay,/&lt;script&gt;Falha&lt;\/script&gt;/);
  assert.doesNotMatch(overlay,/<script>/);
  assert.match(overlay,/--ae-live-accent:#234abc/);
- assert.match(s.overlayFor('sheet-desconhecida'),/SEM FICHA VINCULADA/);
+ assert.match(s.overlayFor('sheet-desconhecida'),/HUD INDISPONÍVEL/);
 });
 
 test('iniciar e entrar não captura câmera ou tela sem clique',async()=>{
@@ -165,4 +167,54 @@ test('o vídeo permanece conectado quando o usuário navega para outra ficha',as
  assert.equal(x.nodes['ae-live-dock'].hidden,false);
  assert.equal(x.captures.stopped,0);
  assert.equal(x.win.ARQUIVO_LIVE.state.camera?.getVideoTracks().length,1);
+});
+
+
+test('mestre sem personagem vê identidade de MESTRE, não aviso de vínculo faltante',()=>{
+ const x=harness(),v=x.win.ARQUIVO_LIVE;
+ const result=v.overlayFor(null,{master:true,name:'Mestre de Teste'});
+ assert.match(result,/MESTRE/);
+ assert.doesNotMatch(result,/SEM FICHA VINCULADA/);
+});
+
+test('HUD de chefe recebe apenas percentuais e nunca revela Vida ou ALMA por atributos',()=>{
+ const x=harness(),v=x.win.ARQUIVO_LIVE;
+ v.state.hud.set(MASTER,{accountId:MASTER,id:SHEET,name:'Chefe de Teste',
+  accent:'#d02244',conditions:[],
+  resources:{vida:{percent:44.5},estabilidade:{percent:80},alma:{percent:10}}});
+ const out=v.overlayFor(SHEET,{accountId:MASTER,hideNumbers:true,master:true});
+ assert.match(out,/Chefe de Teste/);
+ assert.match(out,/width:44\.50%/);
+ assert.match(out,/width:80\.00%/);
+ assert.match(out,/width:10\.00%/);
+ assert.doesNotMatch(out,/NaN|undefined| \/ |de \d/);
+ assert.equal((out.match(/ae-live-meter-track/g)||[]).length,3);
+});
+
+test('ficha de exibição do mestre não substitui a ficha vinculada',()=>{
+ const x=harness(),v=x.win.ARQUIVO_LIVE;
+ v.state.joined=true;v.state.selfId=PEER;v.state.accountId=MASTER;
+ v.state.local={account_id:MASTER,account_name:'Mestre',sheet_id:null,
+  hud_sheet_id:SHEET,hud_hide_numbers:true,is_master:true};
+ v.state.participants=[v.state.local];
+ const people=v.getPresenceList();
+ assert.equal(people[0].sheetId,SHEET);
+ assert.equal(people[0].hideNumbers,true);
+ assert.equal(v.state.local.sheet_id,null);
+ const sh=v.overlayFor(people[0].sheetId,people[0]);
+ assert.match(sh,/MESTRE|HUD INDISPONÍVEL/);
+});
+
+test('controle geral de valores ocultos não impede as barras do HUD',async()=>{
+ const x=harness(),v=x.win.ARQUIVO_LIVE;
+ x.win.ARQUIVO_LIVE.state.session={id:ROOM,title:'Sessão'};
+ await x.click('join');
+ assert.equal(v.state.hideAllNumbers,false);
+ await x.click('numbers');
+ assert.equal(v.state.hideAllNumbers,true);
+ const out=v.overlayFor(SHEET);
+ assert.match(out,/ae-live-meter-track/);
+ assert.doesNotMatch(out,/22 \/ 40/);
+ await x.click('numbers');
+ assert.equal(v.state.hideAllNumbers,false);
 });
