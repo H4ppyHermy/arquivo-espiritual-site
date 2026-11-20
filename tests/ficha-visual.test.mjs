@@ -61,7 +61,8 @@ test('ficha reconstruída preserva hero, retrato, recursos e navegação por nov
  assert.match(html,/https:\/\/example\.org\/portrait\.webp/);
  assert.match(html,/data-tab="summary"/);
  assert.match(html,/data-tab="guide"/);
- assert.ok(html.indexOf('data-tab="identification"')<html.indexOf('data-tab="abilities"'));
+ const nav=html.slice(html.indexOf('class="ae-ficha-navigation"'));
+ assert.ok(nav.indexOf('data-tab="identification"')<nav.indexOf('data-tab="abilities"'));
  assert.equal((html.match(/class="ae-ficha-nav-button/g)||[]).length,9);
  assert.match(html,/aria-valuenow="20"/);
  assert.match(html,/aria-valuemax="30"/);
