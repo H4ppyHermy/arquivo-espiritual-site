@@ -9,6 +9,8 @@ AS $fn$
 DECLARE v_doc jsonb;v_revision bigint;v_sh jsonb;v_sheet_index integer;
  v_items jsonb;v_rest jsonb;v_moved jsonb;v_result jsonb;v_head jsonb;v_tail jsonb;
  v_group text;v_insert integer;v_target jsonb;v_updated_revision bigint;
+ v_old_billing jsonb;v_new_billing jsonb;v_old_index integer;v_rest_index integer;
+ v_old_key text;v_new_key text;v_new_index integer;v_legacy_key text;
 BEGIN
  IF NOT public.ae_is_master() THEN RAISE EXCEPTION 'Somente o mestre pode organizar habilidades.';END IF;
  SELECT data,revision INTO v_doc,v_revision FROM public.ae_document WHERE id=1 FOR UPDATE;
@@ -61,6 +63,31 @@ BEGIN
  INTO v_tail FROM jsonb_array_elements(v_rest) WITH ORDINALITY x(value,ordinality)
  WHERE x.ordinality>v_insert;
  v_result=v_head||jsonb_build_array(v_moved)||v_tail;
+ -- A Mesa usa abilityId quando disponível; habilidades legadas usam "legacy:<índice>".
+ -- Transportar a cobrança junto com a habilidade preserva suas ativações e limites
+ -- quando a lista muda de posição durante uma cena.
+ v_old_billing=coalesce(v_sh#>'{abilityRuntime,billing}','{}'::jsonb);
+ IF jsonb_typeof(v_old_billing)='object' AND v_old_billing<>'{}'::jsonb THEN
+  v_new_billing=v_old_billing;
+  FOR v_legacy_key IN SELECT k FROM jsonb_object_keys(v_old_billing) k
+   WHERE k LIKE 'legacy:%' LOOP
+   v_new_billing=v_new_billing-v_legacy_key;
+  END LOOP;
+  FOR v_new_index IN 0..jsonb_array_length(v_result)-1 LOOP
+   IF v_new_index=v_insert THEN
+    v_old_index=p_from_index;
+   ELSE
+    v_rest_index=v_new_index-CASE WHEN v_new_index>v_insert THEN 1 ELSE 0 END;
+    v_old_index=v_rest_index+CASE WHEN v_rest_index>=p_from_index THEN 1 ELSE 0 END;
+   END IF;
+   v_old_key=public.ae_ability_billing_key(v_items->v_old_index,v_old_index);
+   v_new_key=public.ae_ability_billing_key(v_result->v_new_index,v_new_index);
+   IF v_old_billing?v_old_key THEN
+    v_new_billing=jsonb_set(v_new_billing,ARRAY[v_new_key],v_old_billing->v_old_key,true);
+   END IF;
+  END LOOP;
+  v_sh=jsonb_set(v_sh,'{abilityRuntime,billing}',v_new_billing,true);
+ END IF;
  v_sh=jsonb_set(v_sh,'{abilities}',v_result,true);
  v_doc=jsonb_set(v_doc,ARRAY['sheets',v_sheet_index::text],v_sh,true);
  UPDATE public.ae_document SET data=v_doc,revision=revision+1,changed_at=now()
