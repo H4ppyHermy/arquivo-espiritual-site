@@ -7,7 +7,7 @@
  const esc=api.esc,labels={summary:'Resumo',skills:'Perícias',abilities:'Habilidades',bonds:'Vínculos',conditions:'Condições',inventory:'Inventário',notes:'Notas',guide:'Guia rápido'};
  const symbols={summary:'◇',skills:'▦',abilities:'✦',bonds:'∞',conditions:'◈',inventory:'▣',notes:'≡',guide:'▤'};
  const TYPES={active:'ATIVA',passive:'PASSIVA',mechanic:'MECÂNICA',release:'LIBERAÇÃO',transformation:'TRANSFORMAÇÃO',ultimate:'SUPREMA',item:'ITEM'};
- let editorStep='';
+ let editorStep='',abilityKind='Todas',lastAbilitySheet='';
  const resourceDefs=[['vida','VIDA'],['estabilidade','ESTABILIDADE'],['alma','ALMA']];
  const text=(x)=>String(x??'');
  function portrait(value){
@@ -24,13 +24,15 @@
    '</nav>';
  }
  function header(s){
-  const name=esc(s.name||'Personagem'),race=String(s.race||'').trim(),level=esc(s.level||1);
+  const name=esc(s.name||'Personagem'),race=String(s.race||'').trim(),kind=String(s.className||'').trim(),level=esc(s.level||1);
   return '<header class="ae-ficha-hero">'+
    '<div class="ae-ficha-hero-top"><span>ARQUIVO ESPIRITUAL</span></div>'+
    '<div class="ae-ficha-hero-copy">'+
     '<h1>'+name+'</h1>'+
     (s.subtitle?'<p class="ae-ficha-subtitle">'+esc(s.subtitle)+'</p>':'')+
-    '<div class="ae-ficha-hero-tags">'+(race?'<span class="ae-ficha-race">'+esc(race)+'</span>':'')+'<span class="ae-ficha-level">NÍVEL '+level+'</span></div>'+
+    '<div class="ae-ficha-hero-tags">'+(race?'<span class="ae-ficha-race">'+esc(race)+'</span>':'')+
+    (kind?'<span class="ae-ficha-class">'+esc(kind)+'</span>':'')+
+    '<span class="ae-ficha-level">NÍVEL '+level+'</span></div>'+
    '</div><div class="ae-ficha-hero-art" aria-label="Retrato">'+
     (portrait(s.image)||'<span class="ae-ficha-art-glyph" aria-hidden="true">魂</span>')+
     '</div>'+
@@ -114,32 +116,45 @@
   const name=esc(ab.name||'Habilidade sem nome'),type=abilityCategory(ab),description=text(ab.description||'Sem descrição.');
   const teaser=plain(description),expand=teaser.length>175||description.includes('\n')||!!ab.image;
   const image=ab.image&&api.dataUrlOk(ab.image)?api.mediaSrc(ab.image):'';
-  return '<article class="ae-ficha-ability-card" id="ability-'+index+'">'+
+  const origin=ab.origin?.auto?ab.origin:null;
+  const kind=ab.libraryType==='tecnica'?'Técnica':'Habilidade';
+  return '<article class="ae-ficha-ability-card'+(origin?' ae-ficha-ability-inherited ae-ficha-ability-inherited--'+(origin.kind==='race'?'race':'class'):'')+
+   '" data-ability-kind="'+(kind==='Técnica'?'Técnicas':'Habilidades')+'" id="ability-'+index+'">'+
     '<div class="ae-ficha-ability-tag">'+name+'</div>'+
-    '<div class="ae-ficha-ability-meta"><span>'+esc(TYPES[type])+'</span>'+
+    '<div class="ae-ficha-ability-meta"><span>'+esc(kind.toUpperCase())+' · '+esc(TYPES[type])+'</span>'+
      (Number(ab.cost)>0?'<span>CUSTO INDICADO · '+esc(ab.cost)+' ALMA</span>':'')+'</div>'+
+    (origin?'<div class="ae-ficha-ability-origin"><strong>'+esc(origin.kind==='race'?'HABILIDADE RACIAL':'HABILIDADE DE CLASSE')+
+     '</strong><span>'+esc(origin.name||'')+'</span></div>':'')+
     (expand?'<p class="ae-ficha-ability-teaser">'+esc(teaser.slice(0,215))+(teaser.length>215?'…':'')+'</p>':
      '<div class="ae-ficha-ability-short sheet-rich">'+api.sheetRich(description)+'</div>')+
     (expand?'<details class="ae-ficha-ability-details"><summary>LER DESCRIÇÃO COMPLETA <span aria-hidden="true">+</span></summary>'+
       '<div class="ae-ficha-ability-full sheet-rich">'+
       (image?'<img alt="Ilustração da habilidade '+name+'" src="'+esc(image)+'" loading="lazy">':'')+
       api.sheetRich(description)+'</div></details>':'')+
-    (ctx.canEdit?'<div class="ae-ficha-ability-tools">'+api.btn('EDITAR','editAbilityDirect:'+index,'small')+'</div>':'')+
+    (ctx.canEdit&&!origin?'<div class="ae-ficha-ability-tools">'+api.btn('EDITAR','editAbilityDirect:'+index,'small')+'</div>':'')+
    '</article>';
  }
  function abilities(s,ctx){
+  if(lastAbilitySheet!==s.id){abilityKind='Todas';lastAbilitySheet=s.id}
   const list=s.abilities||[],sections=[['active','ATIVAS'],['passive','PASSIVAS'],['other','OUTRAS HABILIDADES']];
-  return '<div class="ae-ficha-abilities"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Habilidades</h2></div>'+
+  return '<div class="ae-ficha-abilities" data-ability-filter="'+abilityKind+'"><div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Habilidades & Técnicas</h2></div>'+
    (ctx.canEdit?'<div class="ae-ficha-ability-create-actions">'+
     api.btn('+ HABILIDADE','newAbilityDirect','main')+
     api.btn('EXPORTAR','exportAbilities','small')+'</div>':'')+'</div>'+
+   '<div class="ae-ficha-ability-filters" role="group" aria-label="Filtrar registros por tipo">'+
+   [['Todas','TODAS'],['Técnicas','TÉCNICAS'],['Habilidades','HABILIDADES']].map(([type,label])=>
+    '<button type="button" data-ability-filter="'+type+'" aria-pressed="'+(abilityKind===type)+'" class="'+
+    (abilityKind===type?'is-active':'')+'">'+label+'</button>').join('')+'</div>'+
    sections.map(([section,label])=>{
     const entries=list.map((x,i)=>({ab:x,index:i})).filter(({ab})=>{
       const t=abilityCategory(ab);return section==='other'?!['active','passive'].includes(t):t===section;
     });
     if(!entries.length)return '';
-    return '<section class="ae-ficha-ability-group"><div class="ae-ficha-ability-group-head"><h3>'+label+'</h3><span>'+entries.length+'</span></div>'+
-      '<div class="ae-ficha-ability-grid">'+entries.map(({ab,index})=>abilityCard(ab,index,ctx)).join('')+'</div></section>';
+    const available=entries.some(({ab})=>abilityKind==='Todas'||(ab.libraryType==='tecnica'?'Técnicas':'Habilidades')===abilityKind);
+    return '<section class="ae-ficha-ability-group"'+(available?'':' hidden')+'><div class="ae-ficha-ability-group-head"><h3>'+label+'</h3><span>'+entries.length+'</span></div>'+
+      '<div class="ae-ficha-ability-grid">'+entries.map(({ab,index})=>
+       '<div class="ae-ficha-ability-entry"'+(abilityKind==='Todas'||(ab.libraryType==='tecnica'?'Técnicas':'Habilidades')===abilityKind?'':' hidden')+'>'+
+       abilityCard(ab,index,ctx)+'</div>').join('')+'</div></section>';
    }).join('')+
    (!list.length?'<div class="ae-ficha-empty">Nenhuma habilidade registrada nesta ficha.'+
       (ctx.canEdit?'<p>Use + Habilidade para adicionar um registro.</p>':'')+'</div>':'')+
@@ -257,6 +272,29 @@
   if(focus)choice.querySelector('input,select,textarea')?.focus({preventScroll:true});
  }
  document.addEventListener('click',event=>{
+  const typeBtn=event.target.closest?.('[data-ability-filter]');
+  if(typeBtn){
+   event.preventDefault();
+   const type=typeBtn.dataset.abilityFilter;
+   if(!['Todas','Técnicas','Habilidades'].includes(type))return;
+   abilityKind=type;
+   const root=typeBtn.closest('.ae-ficha-abilities');
+   if(!root)return;
+   root.dataset.abilityFilter=type;
+   for(const button of root.querySelectorAll('[data-ability-filter]')){
+    const active=button.dataset.abilityFilter===type;
+    button.classList.toggle('is-active',active);
+    button.setAttribute('aria-pressed',String(active));
+   }
+   for(const entry of root.querySelectorAll('.ae-ficha-ability-entry')){
+    const card=entry.querySelector('[data-ability-kind]');
+    entry.hidden=!!card&&type!=='Todas'&&card.dataset.abilityKind!==type;
+   }
+   for(const group of root.querySelectorAll('.ae-ficha-ability-group')){
+    group.hidden=![...group.querySelectorAll('.ae-ficha-ability-entry')].some(node=>!node.hidden);
+   }
+   return;
+  }
   const step=event.target.closest?.('[data-ficha-step]');
   if(step){event.preventDefault();selectStep(step.dataset.fichaStep);return}
   const library=event.target.closest?.('[data-ficha-library]');
