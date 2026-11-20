@@ -1,34 +1,31 @@
-/* Concessão dinâmica de habilidades por raça e classe.
-   Regras são lidas do Armazém: metadados grants e seções de classes.
-   Sem execução automática de efeitos ou cálculos de combate. */
+/* Identificação dinâmica de raças/classes e medidores manuais da ficha.
+   Conteúdo de origem vem do Armazém; não automatiza regras de combate. */
 (function(){
  'use strict';
  const fold=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLocaleLowerCase('pt-BR');
  const text=value=>String(value??'');
  const builtInRaces=['Shinigami','Visored','Hollow','Arrancar','Quincy','Humano','Fullbringer'];
- function posts(){
-  const catalog=window.ARQUIVO_SECOES?.warehouse?.().posts||[];
-  const defaults=Array.isArray(window.ARQUIVO_HABILIDADES_CBB)?window.ARQUIVO_HABILIDADES_CBB:[];
-  const byId=new Map(defaults.filter(x=>x?.id&&x?.grants).map(x=>[x.id,x.grants]));
-  // Cópias anteriores ao campo grants podem estar salvas no documento online.
-  // Herdam somente campos ausentes; escolhas explícitas (inclusive vazias) prevalecem.
-  return catalog.map(post=>{
-   const original=byId.get(post?.id);
-   if(!original)return post;
-   const own=post?.grants&&typeof post.grants==='object'?post.grants:{};
-   if(Object.hasOwn(own,'race')&&Object.hasOwn(own,'class'))return post;
-   return {...post,grants:{...original,...own}};
-  });
- }
+ const TYPES=['barra','marca','contador','sequencia'];
  function values(raw){
   if(Array.isArray(raw))return raw.map(x=>text(x).trim()).filter(Boolean);
   return text(raw).split(/[,;\n]+/g).map(x=>x.trim()).filter(Boolean);
  }
+ function posts(){
+  const catalog=window.ARQUIVO_SECOES?.warehouse?.().posts||[];
+  const defaults=Array.isArray(window.ARQUIVO_HABILIDADES_CBB)?window.ARQUIVO_HABILIDADES_CBB:[];
+  const byId=new Map(defaults.filter(x=>x?.id&&x?.grants).map(x=>[x.id,x.grants]));
+  return catalog.filter(p=>p&&p.published!==false&&typeof p.title==='string').map(post=>{
+   const original=byId.get(post.id);
+   if(!original)return post;
+   const own=post.grants&&typeof post.grants==='object'?post.grants:{};
+   if(Object.hasOwn(own,'race')&&Object.hasOwn(own,'class'))return post;
+   return {...post,grants:{...original,...own}};
+  });
+ }
  function requirements(post){
   const grants=post.grants&&typeof post.grants==='object'?post.grants:{};
   const race=values(grants.race),kind=values(grants.class);
-  // Acervos anteriores a grants ainda podem sinalizar "Racial, Arrancar" por tags.
-  if(!Object.prototype.hasOwnProperty.call(grants,'race')&&(post.category==='Habilidades'||post.category==='Técnicas')){
+  if(!Object.hasOwn(grants,'race')&&(post.category==='Habilidades'||post.category==='Técnicas')){
    const tags=values(post.tags),racial=tags.some(t=>fold(t)==='racial');
    if(racial)for(const tag of tags){
     if(['racial','livre','habilidade','tecnica'].includes(fold(tag)))continue;
@@ -39,16 +36,17 @@
  }
  function races(){
   const result=new Map(builtInRaces.map(x=>[fold(x),x]));
-  for(const post of posts())if(post?.published!==false){
+  for(const post of posts()){
+   if(post.category==='Raças'&&!result.has(fold(post.title)))result.set(fold(post.title),post.title);
    for(const race of requirements(post).race)if(!result.has(fold(race)))result.set(fold(race),race);
   }
   return [...result.values()];
  }
  function classes(){
   const result=new Map();
-  for(const post of posts())if(post?.published!==false&&post?.title){
+  for(const post of posts()){
    if(post.category==='Classes'&&!result.has(fold(post.title)))result.set(fold(post.title),post.title);
-   for(const kind of requirements(post).class)if(!result.has(fold(kind)))result.set(fold(kind),kind);
+   for(const name of requirements(post).class)if(!result.has(fold(name)))result.set(fold(name),name);
   }
   return [...result.values()];
  }
@@ -56,78 +54,87 @@
   const match=text(value).match(/(?:^|[^\d])(\d{1,5})\s*ALMA\b/i);
   return match?Number(match[1]):0;
  }
- function abilityFrom(post,origin){
-  return {
-   name:text(post.title).trim().slice(0,100),
-   description:text(post.content).trim().slice(0,20000),
-   cost:costNumber(post.cost),
-   category:'active',
-   libraryType:post.category==='Técnicas'?'tecnica':'habilidade',
-   origin
-  };
- }
  function coreFeatures(post){
-  const body=text(post.content);
-  const blocks=body.split(/(?=^#{2}\s+)/m).map(x=>x.trim()).filter(Boolean);
-  const sections=[];
+  const body=text(post?.content);
+  const blocks=body.split(/(?=^#{2}\s+)/m).map(x=>x.trim()).filter(Boolean),sections=[];
   for(const block of blocks){
    const heading=/^#{2}\s+([^\n]+)(?:\n|$)/.exec(block);
    if(!heading)continue;
    const title=heading[1].replace(/\*\*/g,'').trim();
    if(!title||fold(title)==='identidade')continue;
    const description=block.slice(heading[0].length).trim();
-   if(!description)continue;
-   sections.push({title,description});
+   if(description)sections.push({title,description});
   }
-  // Uma classe personalizada sem seções ainda fornece sua identidade mecânica.
   if(!sections.length&&body.trim())sections.push({title:post.title,description:body.trim()});
   return sections;
  }
- function desired(sheet){
-  const race=fold(sheet?.race),kind=fold(sheet?.className);
-  const available=posts().filter(p=>p&&p.published!==false&&p.id&&p.title);
+ function identity(sheet){
+  const catalog=posts();
+  const raceName=text(sheet?.race).trim(),className=text(sheet?.className).trim();
+  const race=catalog.find(p=>p.category==='Raças'&&fold(p.title)===fold(raceName));
+  const kind=catalog.find(p=>p.category==='Classes'&&fold(p.title)===fold(className));
+  const traits=catalog.filter(p=>p.category==='Habilidades'||p.category==='Técnicas');
+  return {
+   race:raceName?{title:raceName,content:text(race?.content).trim(),
+    traits:traits.filter(p=>requirements(p).race.some(x=>fold(x)===fold(raceName)))}:null,
+   class:className?{title:className,content:text(kind?.content).trim(),
+    traits:traits.filter(p=>requirements(p).class.some(x=>fold(x)===fold(className)))}:null
+  };
+ }
+ function meters(sheet){
+  const catalog=posts(),chosen=[['race',sheet?.race,'Raças'],['class',sheet?.className,'Classes']];
   const result=[];
-  for(const post of available){
-   if(post.category==='Classes'){
-    if(!kind||fold(post.title)!==kind)continue;
+  for(const [kind,name,category] of chosen){
+   if(!text(name).trim())continue;
+   const post=catalog.find(p=>p.category===category&&fold(p.title)===fold(name));
+   if(!post)continue;
+   let definitions=[];
+   if(Array.isArray(post.bars)&&post.bars.length){
+    definitions=post.bars.filter(b=>b&&typeof b==='object').map((b,i)=>({
+     id:text(b.id||'recurso-'+i),label:text(b.label||b.id||'Recurso'),
+     max:Number(b.max),initial:Number(b.initial??0),visual:TYPES.includes(b.visual)?b.visual:'barra',
+     description:text(b.description||'')
+    }));
+   }else{
     for(const feature of coreFeatures(post)){
-     result.push({
-      name:feature.title.slice(0,100),description:feature.description.slice(0,20000),
-      cost:0,category:'active',libraryType:'habilidade',
-      origin:{auto:true,kind:'class',name:post.title,sourceId:post.id,feature:feature.title}
-     });
+     const matches=[...feature.description.matchAll(/\[(sequencia|barra|marca|contador)(?::\s*(\d+)(?:\s*\/\s*(\d+))?)?\s*\]/gi)];
+     if(!matches.length)continue;
+     const type=matches[0][1].toLowerCase();
+     const valid=matches.filter(x=>x[1].toLowerCase()===type);
+     const max=Math.max(...valid.map(x=>x[3]!==undefined?Number(x[3]):x[2]!==undefined?Number(x[2]):type==='sequencia'?3:1));
+     if(!Number.isInteger(max)||max<1||max>100)continue;
+     definitions.push({id:fold(feature.title).replace(/[^a-z0-9]+/g,'-'),label:feature.title,
+      max,initial:0,visual:type,description:feature.description.slice(0,400)});
     }
-   }else if(post.category==='Habilidades'||post.category==='Técnicas'){
-    const req=requirements(post);
-    const raceHit=race&&req.race.some(x=>fold(x)===race);
-    const classHit=kind&&req.class.some(x=>fold(x)===kind);
-    if(raceHit)result.push(abilityFrom(post,{auto:true,kind:'race',name:sheet.race,sourceId:post.id}));
-    else if(classHit)result.push(abilityFrom(post,{auto:true,kind:'class',name:sheet.className,sourceId:post.id}));
+   }
+   for(const bar of definitions){
+    if(!Number.isInteger(bar.max)||bar.max<1||bar.max>100)continue;
+    const key=kind+':'+post.id+':'+bar.id;
+    const initial=Math.min(bar.max,Math.max(0,Number.isFinite(bar.initial)?Math.trunc(bar.initial):0));
+    const saved=sheet?.abilityRuntime?.originMeters?.[key];
+    const current=Number.isInteger(saved)?Math.min(bar.max,Math.max(0,saved)):initial;
+    result.push({key,label:bar.label,max:bar.max,current,initial,visual:bar.visual,
+     kind,source:post.title,description:bar.description});
    }
   }
   return result;
  }
+ // Limpa somente concessões antigas geradas pelo sistema anterior.
+ // Habilidades manuais nunca são apagadas nem modificadas.
  function reconcile(sheet){
   if(!sheet||typeof sheet!=='object')return false;
-  const before=Array.isArray(sheet.abilities)?sheet.abilities:[];
-  const manual=before.filter(x=>!x?.origin?.auto);
-  const already=new Set(manual.map(a=>fold(a.name)).filter(Boolean));
-  const automatic=[];
-  for(const grant of desired(sheet)){
-   const key=fold(grant.name);
-   if(!key||already.has(key))continue;
-   already.add(key);
-   automatic.push(grant);
-  }
-  const next=[...manual,...automatic];
-  const changed=JSON.stringify(before)!==JSON.stringify(next);
-  if(changed||!Array.isArray(sheet.abilities))sheet.abilities=next;
-  return changed;
+  const old=Array.isArray(sheet.abilities)?sheet.abilities:[];
+  const next=old.filter(ab=>!ab?.origin?.auto);
+  if(next.length===old.length)return false;
+  sheet.abilities=next;
+  return true;
  }
  function project(sheet){
   const copy={...sheet,abilities:[...(sheet?.abilities||[])]};
   reconcile(copy);
   return copy;
  }
- window.ARQUIVO_ORIGENS=Object.freeze({races,classes,requirements,coreFeatures,desired,reconcile,project,costNumber});
+ window.ARQUIVO_ORIGENS=Object.freeze({
+  races,classes,requirements,coreFeatures,identity,meters,reconcile,project,costNumber
+ });
 })();
