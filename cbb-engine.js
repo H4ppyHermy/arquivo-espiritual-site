@@ -32,13 +32,13 @@
  };
  const activeDamageBonus=sheet=>activeDamageEffects(sheet).reduce((n,item)=>n+item.amount,0);
  const abilityPhase=ab=>{
-  const raw=String(ab?.costConfig?.phase||ab?.phase||'').toLocaleLowerCase('pt-BR');
-  const text=String(ab?.usage||'')+' '+String(ab?.description||'');
-  const combined=raw+' '+text.toLocaleLowerCase('pt-BR');
-  for(const [pattern,label] of [[/prepara[cç][aã]o/,'Preparação'],[/dist[aâ]ncia/,'Distância'],[/duelo/,'Duelo'],[/desfecho/,'Desfecho']]){
-   if(pattern.test(raw)||/fase (?:de |da |do )?/.test(combined)&&pattern.test(combined))return label;
-  }
-  return 'Livre';
+  const simplify=str=>String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const labels={preparacao:'Preparação',distancia:'Distância',duelo:'Duelo',desfecho:'Desfecho'};
+  const explicit=simplify(ab?.costConfig?.phase||ab?.phase);
+  if(labels[explicit])return labels[explicit];
+  const prose=simplify(String(ab?.usage||'')+' '+String(ab?.description||''));
+  const match=prose.match(/\b(?:fase(?:\s+(?:de|da|do))?\s*:\s*|fase(?:\s+(?:de|da|do))?\s+|ataque\s+de\s+)(preparacao|distancia|duelo|desfecho)\b/);
+  return match?labels[match[1]]:'Livre';
  };
  const abilityPool=ab=>{
   const damage=dieFormula(ab?.description,'dano');
