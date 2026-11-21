@@ -1,0 +1,73 @@
+/* Ajustes universais de acessibilidade e combate após o playtest. */
+#page .ae-ficha-ability-group[data-group-collapse]{display:block;min-width:0;margin:11px 0 0}
+#page .ae-ficha-ability-group[data-group-collapse]>summary{
+ display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;
+ gap:12px;padding:11px 13px;border:1px solid var(--ae-ficha-line);
+ background:color-mix(in srgb,var(--theme-raised) 63%,transparent);min-height:48px
+}
+#page .ae-ficha-ability-group[data-group-collapse]>summary::-webkit-details-marker{display:none}
+#page .ae-ficha-ability-group[data-group-collapse]>summary::marker{content:""}
+#page .ae-ficha-ability-group[data-group-collapse]>summary b{display:inline-block;margin-left:9px;transition:transform .16s ease}
+#page .ae-ficha-ability-group[data-group-collapse]:not([open])>summary b{transform:rotate(-90deg)}
+#page .ae-ficha-ability-group[data-group-collapse]:not([open])>:not(summary){display:none!important}
+#page .ae-ficha-ability-group[data-group-collapse]>.ae-ficha-ability-grid{margin-top:12px}
+#page .ae-ficha-ability-group[data-group-collapse]>.ae-ficha-ability-group-empty{margin-top:12px}
+#page .ae-ficha-ability-card{padding-right:15px;gap:12px}
+#page .ae-ficha-ability-card .ae-ficha-ability-tag{max-width:100%;width:100%;align-self:stretch}
+#page .ae-ficha-ability-full{margin:0!important;padding:12px 0 2px;font-size:inherit;line-height:1.65;border-top:1px solid var(--ae-ficha-line)}
+#page .ae-ficha-ability-meta{align-items:center;gap:7px 8px}
+#page .ae-ficha-ability-meta .ae-ability-cost{
+ display:inline-flex;align-items:center;min-height:30px;padding:6px 10px;font-size:12px;
+ font-weight:900;letter-spacing:.05em;border:1px solid var(--theme-accent);
+ color:var(--sheet-ink,#000);background:var(--theme-accent)
+}
+#page .ae-ficha-ability-meta .ae-ability-phase{
+ display:inline-flex;align-items:center;min-height:30px;padding:5px 9px;
+ border:1px solid var(--ae-ficha-line);font-size:11px;font-weight:800;color:var(--theme-text)
+}
+#page .ae-ability-roll-note{
+ display:flex;align-items:center;flex-wrap:wrap;gap:7px 10px;
+ border:1px solid color-mix(in srgb,var(--theme-cold) 35%,transparent);
+ background:color-mix(in srgb,var(--theme-cold) 7%,var(--theme-panel));
+ padding:8px 11px;min-height:42px
+}
+#page .ae-ability-roll-note>span{font-size:21px;color:var(--theme-cold)}
+#page .ae-ability-roll-note>strong{font-size:clamp(14px,1.5vw,18px);font-weight:900;letter-spacing:.04em}
+#page .ae-ability-roll-note>small{font-size:11px;color:var(--ae-ficha-muted);flex-basis:100%}
+#page .ae-ficha-quick-description{display:block;line-height:1.6;margin:9px 0}
+#page .ae-ficha-skill-row .ae-ficha-skill-name{flex:1 1 auto;min-width:70px}
+#page .ae-ficha-skill-roll{
+ flex:0 0 auto;min-width:52px;min-height:31px;padding:5px 8px;
+ background:color-mix(in srgb,var(--theme-cold) 13%,var(--theme-panel));
+ color:var(--theme-text);border:1px solid var(--theme-cold);
+ font:900 10px/1.1 system-ui,sans-serif;letter-spacing:.05em
+}
+#page .ae-ficha-skill-roll:hover{background:color-mix(in srgb,var(--theme-cold) 32%,var(--theme-panel))}
+#page .ae-cbb-quick{
+ display:block;margin-top:21px;padding:clamp(12px,2vw,19px);
+ border:1px solid var(--ae-ficha-line);border-left:3px solid var(--theme-cold);
+ background:var(--theme-panel)
+}
+#page .ae-cbb-quick-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+#page .ae-cbb-quick-head h3{font:900 25px/1 'Barlow Condensed',Impact,sans-serif;margin:0;text-transform:uppercase}
+#page .ae-cbb-quick-head>span{font-size:11px;color:var(--ae-ficha-muted)}
+#page .ae-cbb-quick .ae-cbb-step-row{margin-top:10px}
+#page .ae-cbb-quick .ae-cbb-action{margin:12px 0;min-height:44px;width:100%}
+#page .ae-cbb-quick .ae-cbb-result:not(:empty){padding:10px 0}
+#page .ae-cbb-quick .ae-cbb-status{font-size:12px}
+#page .ae-cbb-quick .ae-cbb-live-preview{margin:12px 0}
+#page .ae-cbb-quick select,#page .ae-cbb-quick input{max-width:100%}
+#page .inventory-list .ae-item-bonus{font-weight:900}
+#page .inventory-list .ae-item-bonus.is-active{
+ border:1px solid var(--theme-cold);background:color-mix(in srgb,var(--theme-cold) 19%,transparent)
+}
+.ae-inventory-effects{padding:12px;margin:13px 0;border:1px solid var(--theme-cold);background:color-mix(in srgb,var(--theme-cold) 5%,var(--theme-panel))}
+.ae-inventory-effects h3{font-size:12px;letter-spacing:.06em;margin:0 0 12px}
+.ae-item-equip-check{display:flex;align-items:center;gap:8px;font-size:13px;margin:10px 0}
+.ae-item-equip-check input{width:18px;height:18px}
+@media(max-width:760px){
+ #page .ae-ficha-skill-row{flex-wrap:wrap;gap:6px}
+ #page .ae-ficha-skill-row .ae-ficha-skill-dice{flex:1 1 auto}
+ #page .ae-ficha-skill-row .ae-ficha-skill-roll{min-height:36px}
+ #page .ae-ficha-ability-meta .ae-ability-cost{font-size:11px}
+}
