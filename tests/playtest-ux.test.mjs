@@ -60,3 +60,24 @@ test('perícia e dano usam o mesmo motor no painel rápido e na Mesa',()=>{
  assert.match(app,/damageBonus:/);
  assert.ok(app.includes("const items=db.sheets.filter(s=>!!s.masterOnly===onlyMaster&&(master()||"));
 });
+
+test('rolagem verificada espera terminar a sincronização da ficha antes de consultar o servidor',async()=>{
+ const window={};
+ vm.runInNewContext(read('online.js'),{window});
+ const sync=window.ARQUIVO_SYNC,st=sync.state;
+ st.enabled=true;st.identity={id:'jogador'};
+ let calls=0;
+ st.client={rpc:async()=>{calls++;return {data:{id:12,dice:[],ra:1},error:null}}};
+ let release;
+ st.pending=new Promise(resolve=>{release=resolve});
+ const rolling=sync.cbbRoll({p_sheet_id:'demo'});
+ await Promise.resolve();
+ assert.equal(calls,0,'não consulta o servidor antes do salvamento');
+ release();
+ const confirmed=await rolling;
+ assert.equal(calls,1);
+ assert.equal(confirmed.id,12);
+ st.lastPushError='Falha ao gravar condição';
+ await assert.rejects(()=>sync.cbbRoll({p_sheet_id:'demo'}),/não foi sincronizada/);
+ assert.equal(calls,1,'não registra rolagem em estado inconsistente');
+});
