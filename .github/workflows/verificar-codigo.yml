@@ -3,6 +3,9 @@ on:
   push:
     branches: [main]
   pull_request:
+concurrency:
+  group: integrity-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   testar:
     runs-on: ubuntu-latest
@@ -11,22 +14,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verificar sintaxe JavaScript
+      - name: Verificar sintaxe de todos os módulos JavaScript
         run: |
-          node --check arquivo-app.js
-          node --check ficha-visual.js
-          node --check biblioteca-secoes.js
-          node --check biblioteca-editor.js
-          node --check barras-inline.js
-          node --check cbb-engine.js
-          node --check cbb-interativo.js
-          node --check vinculos-simples.js
-          node --check classes-armazem.js
-          node --check easter-egg-larp.js
-          node --check online.js
-          node --check dados.js
-          node --check leitor-acessivel.js
-          for f in discord-bot/*.mjs; do node --check "$f"; done
+          for f in ./*.js ./discord-bot/*.mjs ./scripts/*.mjs; do
+            node --check "$f"
+          done
+      - name: Auditar estrutura de recursos publicados
+        run: node scripts/audit-static.mjs --report
       - name: Testar dados e segurança do bot
         run: node --test discord-bot/test.mjs
       - name: Testar interface e recursos
