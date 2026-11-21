@@ -1,0 +1,43 @@
+/* Mesa de dados: expressão, calculadora e atalhos específicos deste navegador. */
+.ae-free-panel{display:flex;flex-direction:column;gap:0}
+.ae-free-expression-label{display:block;font-weight:900;font-size:12px;letter-spacing:.08em;margin:5px 0 9px}
+.ae-free-expression{font:800 clamp(21px,2.6vw,29px)/1.25 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.025em;min-height:62px;border:1px solid var(--theme-cold);background:var(--theme-bg);color:var(--theme-text);padding:12px 15px}
+.ae-free-expression[aria-invalid="true"]{border-color:#db6363}
+.ae-free-help{font-size:12px;color:var(--theme-text);opacity:.82;line-height:1.7;margin:11px 0 17px}
+.ae-free-calculator{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:7px}
+.ae-free-key{background:var(--theme-raised);border:1px solid var(--theme-structure);color:var(--theme-text);font:800 21px/1 'Barlow Condensed',system-ui,sans-serif;min-height:49px;transition:background .15s,border-color .15s}
+.ae-free-key:hover,.ae-free-key:focus-visible{border-color:var(--theme-cold);background:color-mix(in srgb,var(--theme-raised) 70%,var(--theme-accent))}
+.ae-free-key:active{transform:scale(.97)}
+.ae-free-preview{margin:12px 0 16px;min-height:62px;flex-wrap:wrap}
+.ae-free-preview strong{font-size:clamp(17px,2vw,24px);overflow-wrap:anywhere;max-width:100%;line-height:1.25}
+.ae-free-submit{min-height:48px;width:100%}
+.ae-free-shortcut-title{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.ae-free-shortcut-note{font-size:11px;color:var(--theme-text);opacity:.75}
+.ae-free-quick{margin:24px 0 12px;border-top:1px solid var(--theme-structure);padding-top:17px}
+.ae-free-chips{margin:12px 0}
+.ae-free-shortcut{display:inline-flex;min-height:44px;align-items:stretch;min-width:0}
+.ae-free-shortcut .ae-free-chip{min-width:49px;padding:9px 12px}
+.ae-free-shortcut-edit{min-width:38px;min-height:44px;border:1px solid var(--theme-structure);border-left:0;background:var(--theme-panel);color:var(--theme-cold);font-size:20px}
+.ae-free-shortcut-edit:hover{border-color:var(--theme-cold);color:var(--theme-text)}
+.ae-free-add{border-style:dashed}
+.ae-free-shortcut-editor{padding:16px;background:var(--theme-raised);border:1px solid var(--theme-structure);margin:12px 0}
+.ae-free-shortcut-editor[hidden]{display:none!important}
+.ae-free-shortcut-editor h3{font:800 22px 'Barlow Condensed',sans-serif;margin:0 0 12px}
+.ae-free-shortcut-fields{display:grid;grid-template-columns:minmax(110px,.75fr) minmax(0,1.25fr);gap:10px}
+.ae-free-shortcut-fields label{font-weight:800;font-size:12px;display:grid;gap:5px}
+.ae-free-shortcut-fields input{width:100%;max-width:100%}
+#freeShortcutError:not(:empty){color:#ffa1a1;font-size:12px;font-weight:800}
+.ae-free-composites{border-bottom:1px solid var(--theme-structure);padding-bottom:14px;margin-bottom:18px}
+.ae-free-composites .eyebrow{display:block;margin:0 0 10px}
+#freeCompositeList{display:grid;gap:10px;max-height:500px;overflow-y:auto}
+.history-formula{font-size:clamp(13px,1.4vw,17px);font-weight:800;color:var(--theme-text);overflow-wrap:anywhere}
+.history-dice-list{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding-top:4px}
+.history-dice-list>span:first-child{font-size:10px;font-weight:900;letter-spacing:.09em;color:var(--theme-cold);margin-right:5px}
+.ae-free-history .history-card .history-equation{flex-wrap:wrap}
+@media(max-width:540px){
+ .ae-free-key{min-height:47px}
+ .ae-free-shortcut-fields{grid-template-columns:1fr}
+ .ae-free-calculator{gap:5px}
+ .ae-free-expression{min-height:55px}
+}
+@media(prefers-reduced-motion:reduce){.ae-free-key{transition:none}.ae-free-key:active{transform:none}}

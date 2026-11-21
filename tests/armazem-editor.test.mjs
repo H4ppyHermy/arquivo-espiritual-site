@@ -125,7 +125,7 @@ test('editor textual continua com modelos, prévia e atalhos, sem controles de a
  assert.match(html,/aeWarehouseEditorPreview/);
  assert.doesNotMatch(html,/aeCatalogBarRows|aeCatalogDieKind|ENVIAR À FICHA/);
  ctx.elements.warehouseContentInput={value:'**Texto**'};
- ctx.elements.aeWarehouseEditorPreview={innerHTML:''};
+ ctx.elements.aeWarehouseEditorPreview={innerHTML:'',classList:{add(){}}};
  ctx.elements.warehouseEditorStats={textContent:''};
  ctx.dispatch('input','warehouseContentInput');
  assert.equal(ctx.elements.aeWarehouseEditorPreview.innerHTML,'<p>**Texto**</p>');
