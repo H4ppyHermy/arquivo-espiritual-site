@@ -40,8 +40,8 @@ test('Biblioteca para jogador: consulta manual vazia, guia de combate, livros e 
   return {
    tabs:document.querySelectorAll('.ae-library-mode').length,
    guide:!!document.querySelector('.ae-guide-root'),
-   lesson:document.querySelector('.ae-guide-lesson h3')?.textContent?.trim(),
-   steps:document.querySelectorAll('.ae-guide-step').length,
+   lesson:document.querySelector('.ae-field-answer h3')?.textContent?.trim(),
+   steps:document.querySelectorAll('.ae-field-card').length,
    chapterSearch:!!document.querySelector('#ruleSearch'),
    glossarySearch:!!document.querySelector('#grimorioSearch'),
    width:Math.round(document.querySelector('.shell').getBoundingClientRect().width)
@@ -49,15 +49,34 @@ test('Biblioteca para jogador: consulta manual vazia, guia de combate, livros e 
  });
  assert.equal(initial.tabs,3,'Biblioteca precisa ter três caminhos');
  assert.equal(initial.guide,true,'guia de combate deve ser o acesso inicial enquanto consulta está vazia');
- assert.equal(initial.steps,8);
- assert.match(initial.lesson,/Ganhe a cena/);
+ assert.equal(initial.steps,16);
+ assert.match(initial.lesson,/Em que fase eu ajo/);
  assert.equal(initial.chapterSearch,false);
  assert.equal(initial.glossarySearch,false);
  assert.ok(initial.width>=1020);
- await page.click('[data-guide-action="next"]');
- assert.match(await page.$eval('.ae-guide-lesson h3',el=>el.textContent),/Aja na fase certa/);
- assert.ok(await page.$('.ae-guide-reference [data-guide-action^="chapter:"]'));
- await page.click('.ae-guide-reference [data-guide-action^="chapter:"]');
+ await page.keyboard.press('/');
+ assert.equal(await page.evaluate(()=>document.activeElement?.id),'aeGuideSearch','atalho / foca a busca da guia');
+ await page.$eval('#aeGuideSearch',el=>{
+  el.value='acao completa';el.dispatchEvent(new Event('input',{bubbles:true}));
+ });
+ const searchState=await page.evaluate(()=>({
+  matches:document.querySelectorAll('.ae-field-card').length,
+  selected:document.querySelector('.ae-field-answer h3')?.textContent,
+  focus:document.activeElement?.id
+ }));
+ assert.equal(searchState.matches,1,'busca deve filtrar enquanto digita');
+ assert.match(searchState.selected,/Ação Completa/);
+ assert.equal(searchState.focus,'aeGuideSearch','digitar não deve tirar foco');
+ await page.$eval('#aeGuideSearch',el=>{
+  el.value='';el.dispatchEvent(new Event('input',{bubbles:true}));
+ });
+ await page.click('[data-guide-action="group:Defender"]');
+ assert.equal((await page.$$('.ae-field-card')).length,3);
+ await page.click('[data-guide-action="group:Tudo"]');
+ await page.click('[data-guide-action="step:completa"]');
+ assert.match(await page.$eval('.ae-field-answer-lead',el=>el.textContent),/Gaste a principal normal/);
+ assert.ok(await page.$('.ae-field-answer-actions [data-guide-action^="chapter:"]'));
+ await page.click('.ae-field-answer-actions [data-guide-action^="chapter:"]');
  assert.ok(await page.$('.ae-library-chapter.is-open'),'referência deve abrir o capítulo oficial');
 
  await page.click('[data-action="libraryMode:glossary"]');
@@ -97,14 +116,14 @@ test('Biblioteca para jogador: consulta manual vazia, guia de combate, livros e 
 
  await page.setViewport({width:390,height:780});
  const mobile=await page.evaluate(()=>{
-  const guide=document.querySelector('.ae-guide-root'),lesson=document.querySelector('.ae-guide-lesson');
-  return {guide:!!guide,lesson:!!lesson,stepCount:document.querySelectorAll('.ae-guide-step').length,
+  const guide=document.querySelector('.ae-field-guide'),lesson=document.querySelector('.ae-field-answer');
+  return {guide:!!guide,lesson:!!lesson,stepCount:document.querySelectorAll('.ae-field-card').length,
    noOverflow:document.documentElement.scrollWidth<=document.documentElement.clientWidth+3,
-   columns:getComputedStyle(document.querySelector('.ae-guide-layout')).gridTemplateColumns.split(/\s+/).length};
+   columns:getComputedStyle(document.querySelector('.ae-field-layout')).gridTemplateColumns.split(/\s+/).length};
  });
  assert.equal(mobile.guide,true);
  assert.equal(mobile.lesson,true);
- assert.equal(mobile.stepCount,8);
+ assert.equal(mobile.stepCount,16);
  assert.equal(mobile.noOverflow,true,'guia não pode causar rolagem horizontal');
  assert.equal(mobile.columns,1,'guia deve empilhar a navegação no celular');
 

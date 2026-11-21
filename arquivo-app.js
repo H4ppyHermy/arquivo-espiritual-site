@@ -669,7 +669,7 @@ function libraryModeSwitcher(){
   '<button type="button" data-action="libraryMode:chapters" class="ae-library-mode'+(libraryMode==='chapters'?' is-active':'')+'" aria-pressed="'+(libraryMode==='chapters')+'">'+
   '<span class="ae-library-mode-symbol" aria-hidden="true">☰</span><span><strong>LER CAPÍTULOS</strong><small>Regras completas do Livro 1 ou 2</small></span></button>'+ 
   '<button type="button" data-action="libraryMode:guide" class="ae-library-mode'+(libraryMode==='guide'?' is-active':'')+'" aria-pressed="'+(libraryMode==='guide')+'">'+
-  '<span class="ae-library-mode-symbol" aria-hidden="true">⚔</span><span><strong>GUIA DE COMBATE</strong><small>Táticas, escolhas e exemplos práticos</small></span></button></div>';
+  '<span class="ae-library-mode-symbol" aria-hidden="true">⚔</span><span><strong>GUIA DE COMBATE</strong><small>Resposta rápida para usar na mesa</small></span></button></div>';
 }
 function setLibraryMode(mode){
  if(!['glossary','chapters','guide'].includes(mode)||libraryMode===mode)return;
@@ -683,7 +683,7 @@ function library(){
  const second=libraryVolume()==='book2';
  if(libraryMode==='glossary'&&grimorioSettings().visible===false&&!master())libraryMode='chapters';
  const modeToolbar=libraryModeSwitcher();
- if(libraryMode==='guide')return headline('APRENDIZADO','GUIA DE COMBATE', 'Aprenda a agir com eficiência dentro das regras do CBB.')+
+ if(libraryMode==='guide')return headline('CONSULTA DE MESA','GUIA DE COMBATE', 'Procure uma dúvida e resolva a regra sem interromper a luta.')+
   modeToolbar+'<div class="ae-library-guide-layout"><div class="ae-library-guide-content">'+(window.ARQUIVO_GUIA_COMBATE?.render?.()||'<p>Guia indisponível.</p>')+'</div>'+(window.ARQUIVO_SECOES?.shelf()||'')+'</div>';
  if(libraryMode==='glossary')return headline('CONHECIMENTO','CONSULTA RÁPIDA', 'Somente verbetes cadastrados pelo mestre; sem catalogação automática.',master()?btn('GERENCIAR CONSULTA','manageGrimorio','small'):'')+
   modeToolbar+'<div class="ae-library-reference-layout"><div class="ae-library-reference-main" id="libraryGrimorioMount">'+grimorioPanel()+'</div>'+
@@ -2588,7 +2588,7 @@ function bindEvents(){document.addEventListener('keydown',event=>{
  }
  if(page!=='library'||event.altKey||event.ctrlKey||event.metaKey)return;
  if(event.key==='/'&&!event.target.closest('input,textarea,select,[contenteditable="true"],[role="dialog"]')){
-  const search=page==='library'&&libraryMode==='glossary'&&libraryVolume()!=='warehouse'&&el('grimorioSearch')?el('grimorioSearch'):(el('ruleSearch')||el('warehouseSearch'));if(search){event.preventDefault();search.focus();search.select()}
+  const search=page==='library'&&libraryMode==='guide'&&el('aeGuideSearch')?el('aeGuideSearch'):(page==='library'&&libraryMode==='glossary'&&libraryVolume()!=='warehouse'&&el('grimorioSearch')?el('grimorioSearch'):(el('ruleSearch')||el('warehouseSearch')));if(search){event.preventDefault();search.focus();search.select()}
  }
  if(event.key==='Escape'&&document.activeElement?.id==='grimorioSearch'&&grimorioQuery){
   event.preventDefault();grimorioQuery='';document.activeElement.value='';grimorioRefreshResults();
