@@ -3,6 +3,10 @@ on:
   push:
     branches: [main]
     paths:
+      - 'arquivo-app.js'
+      - 'online.js'
+      - 'index.html'
+      - 'e2e/performance-browser.test.mjs'
       - 'cbb-engine.js'
       - 'cbb-interativo.js'
       - 'cbb-interativo.css'
@@ -23,4 +27,4 @@ jobs:
       - name: Testar interface com Chrome
         env:
           CHROME_PATH: /usr/bin/google-chrome
-        run: node --test e2e/mesa-browser.test.mjs
+        run: node --test --test-concurrency=1 e2e/mesa-browser.test.mjs e2e/performance-browser.test.mjs
