@@ -73,7 +73,16 @@
   const capitalize=t=>String(t||'').trim().replace(/^([a-zà-ÿ])/u,ch=>ch.toLocaleUpperCase('pt-BR'));
   const push=(type,text)=>{
    const value=capitalize(text);
-   if(value)segments.push(type+' — '+value);
+   if(!value)return;
+   // Somente uma duração terminal inequívoca vira linha própria; durações
+   // múltiplas ou cláusulas encadeadas permanecem junto à regra original.
+   const duration=/(.+?)\s+(até (?:o término da fase|o fim da fase|o próximo Desfecho|o segundo Desfecho após (?:o ataque|o confronto|a utilização|o acerto)|o fim da cena|o término da cena|o fim da sessão|o término da sessão|o Desfecho da rodada seguinte|a próxima rodada|a próxima fase))\.$/i.exec(value);
+   if(duration&&['Efeito','Ativação','Condição','Consequência'].includes(type)){
+    segments.push(type+' — '+duration[1].replace(/[.,;:]$/,'')+'.');
+    segments.push('Duração — '+capitalize(duration[2])+'.');
+    return;
+   }
+   segments.push(type+' — '+value);
   };
   function process(text,depth=0,first=false){
    let s=String(text||'').trim();
