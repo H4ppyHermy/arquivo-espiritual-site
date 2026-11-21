@@ -680,6 +680,7 @@ function library(){
  const visible=libraryVisibleRules();
  const number=libraryRules().length;
  const second=libraryVolume()==='book2';
+ if(libraryMode==='glossary'&&grimorioSettings().visible===false&&!master())libraryMode='chapters';
  const modeToolbar=libraryModeSwitcher();
  if(libraryMode==='glossary')return headline('CONHECIMENTO','GLOSSÁRIO', 'Encontre a definição de um conceito sem percorrer capítulos.',master()?btn('GERENCIAR GLOSSÁRIO','manageGrimorio','small'):'')+
   modeToolbar+'<div class="ae-library-reference-layout"><div class="ae-library-reference-main" id="libraryGrimorioMount">'+grimorioPanel()+'</div>'+
@@ -950,16 +951,17 @@ function grimorioPanel(){
   '<div class="ae-grimorio-toolbar"><div><span class="ae-grimorio-kicker">GLOSSÁRIO DO SISTEMA · GUIAS E DEFINIÇÕES</span>'+
   '<h3>ENCONTRE A REGRA QUE PROCURA</h3><p>'+count+' '+(count===1?'verbete':'verbetes')+' para consultar · '+favoriteCount+' salvo(s) neste navegador</p></div>'+
   (master()?'<div class="actions ae-grimorio-quick-actions">'+btn('+ NOVA PÁGINA','editGlossary:new','small')+btn('GERENCIAR PÁGINAS','manageGrimorio','small')+'</div>':'')+'</div>'+
-  '<div class="ae-glossary-onboarding"><span aria-hidden="true">⌕</span><p><strong>Como usar:</strong> pesquise uma palavra ou um trecho da explicação, escolha um assunto ou percorra o índice. Abra o verbete para ler a regra completa, suas conexões e o capítulo de origem.</p></div>'+
+  '<p class="ae-library-search-hint">Escolha um termo na lista para ler a definição inteira; use os filtros quando quiser explorar por assunto.</p>'+
   '<div class="ae-grimorio-search" role="search" aria-label="Buscar verbetes">'+
-  '<label for="grimorioSearch">O que você quer entender?</label><label for="grimorioCategory">Filtrar categoria</label>'+
-  '<input id="grimorioSearch" type="search" autocomplete="off" spellcheck="false" value="'+esc(grimorioQuery)+'" placeholder="Ex.: reação, ALMA, dano-base, condições..." aria-describedby="grimorioCount">'+
-  '<select id="grimorioCategory">'+['Todos',...GRIMORIO_CATEGORIES].map(v=>'<option value="'+esc(v)+'"'+(grimorioCategory===v?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select></div>'+
+  '<label for="grimorioSearch">Pesquise uma palavra ou regra</label>'+
+  '<input id="grimorioSearch" type="search" autocomplete="off" spellcheck="false" value="'+esc(grimorioQuery)+'" placeholder="Ex.: reação, ALMA, dano-base, condições..." aria-describedby="grimorioCount"></div>'+
   '<div class="ae-glossary-suggestions" aria-label="Buscas rápidas"><span>CONSULTAR:</span>'+
   [['Alma','ALMA'],['Resistência','RESISTÊNCIA'],['Ação','AÇÕES'],['Condições','CONDIÇÕES']].map(([term,label])=>
    '<button type="button" data-action="grimorioQuick:'+encodeURIComponent(term)+'">'+label+'</button>').join('')+'</div>'+
+  '<details class="ae-glossary-advanced"><summary>FILTROS AVANÇADOS <span>Assunto, categoria e índice A–Z</span></summary><div class="ae-glossary-advanced-body">'+
+  '<label for="grimorioCategory">Categoria</label><select id="grimorioCategory">'+['Todos',...GRIMORIO_CATEGORIES].map(v=>'<option value="'+esc(v)+'"'+(grimorioCategory===v?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select>'+
   '<div id="grimorioFilters">'+grimorioFilterChips(catalog)+'</div>'+
-  '<div id="grimorioLetters">'+grimorioLettersMarkup(catalog)+'</div>'+
+  '<div id="grimorioLetters">'+grimorioLettersMarkup(catalog)+'</div></div></details>'+
   '<div class="ae-glossary-result-heading"><p class="ae-grimorio-count" id="grimorioCount" aria-live="polite">'+grimorioFilteredEntries(catalog).length+' resultado(s)</p>'+
   '<button type="button" class="ae-glossary-fav-filter'+(grimorioFavoritesOnly?' is-active':'')+'" data-action="grimorioOnlyFavorites" aria-pressed="'+grimorioFavoritesOnly+'">'+
   '☆ '+(grimorioFavoritesOnly?'MOSTRANDO FAVORITOS':'SOMENTE FAVORITOS')+'</button></div>'+
