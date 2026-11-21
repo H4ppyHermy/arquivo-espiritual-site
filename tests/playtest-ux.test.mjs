@@ -44,6 +44,7 @@ test('fases e expressões de dano são deduzidas de metadados genéricos',()=>{
  const e=engine(),s=sheet();
  assert.equal(e.abilityPhase(s.abilities[0]),'Duelo');
  assert.equal(e.abilityPhase({description:'Na fase de preparação, faça um teste.'}),'Preparação');
+ assert.equal(e.abilityPhase({description:'Ao realizar um ataque de Duelo, avance.'}),'Duelo');
  assert.equal(e.abilityPhase({description:'Uma técnica sem fase específica'}),'Livre');
  assert.deepEqual(JSON.parse(JSON.stringify(e.abilityPool(s.abilities[1]))),{kind:'dano',count:1,faces:8});
 });
@@ -57,5 +58,5 @@ test('perícia e dano usam o mesmo motor no painel rápido e na Mesa',()=>{
  assert.match(cbb,/refreshDamageSummaries/);
  assert.match(app,/invLinkedAbility/);
  assert.match(app,/damageBonus:/);
- assert.match(app,/const items=db\.sheets\.filter\(s=>!!s\.masterOnly===onlyMaster&&\(!s\.locked/);
+ assert.match(app,/const items=db\\.sheets\\.filter\\(s=>!!s\\.masterOnly===onlyMaster&&\\(master\\(\\)\\|\\|/);
 });
