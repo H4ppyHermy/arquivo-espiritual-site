@@ -95,18 +95,13 @@ test('fragmentos inseguros ficam escapados no conteúdo e nos atalhos',()=>{
  assert.doesNotMatch(html,/id="[^"]*<script/);
 });
 
-test('termos do Grimório compartilham índice e invalidam cache após edição',()=>{
- const {helper}=setup(),map=new Map([['ALMA',{}],['Dano-base',{}]]);
- const one=helper.glossaryIndex(map),two=helper.glossaryIndex(map);
- assert.equal(one,two,'capítulos abertos reaproveitam o mesmo índice');
- assert.ok(one.byInitial.has('A'));
- assert.ok(one.byInitial.has('D'));
- map.set('RT',{});
- const three=helper.glossaryIndex(map);
- assert.notEqual(three,one);
- assert.ok(three.names.includes('RT'));
- const fresh=helper.glossaryIndex(new Map([['Vida',{}]]));
- assert.deepEqual(Array.from(fresh.names),['Vida']);
+test('capítulos não possuem indexação nem vínculos automáticos de palavras',()=>{
+ const {helper,format}=setup();
+ assert.equal('glossaryIndex' in helper,false,'índice automático foi removido');
+ const html=format('A ALMA sustenta técnicas. O Dano-base depende do ataque.');
+ assert.match(html,/A ALMA sustenta técnicas/);
+ assert.doesNotMatch(html,/data-action="explainRule:/);
+ assert.doesNotMatch(read('arquivo-app.js'),/insertGlossaryReferences/);
 });
 
 test('renderização sob demanda, escala de leitura e paleta permanecem conectadas',()=>{
@@ -119,5 +114,5 @@ test('renderização sob demanda, escala de leitura e paleta permanecem conectad
  assert.match(css,/--ae-reading-scale/);
  assert.match(css,/@media\(max-width:680px\)/);
  assert.match(index,/biblioteca-leitura\.css\?v=\d+/);
- assert.ok(index.indexOf('biblioteca-leitura.js?v=3')<index.indexOf('arquivo-app.js?'));
+ assert.ok(index.indexOf('biblioteca-leitura.js?v=4')<index.indexOf('arquivo-app.js?'));
 });
