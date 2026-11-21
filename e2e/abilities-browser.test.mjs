@@ -100,4 +100,55 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
  assert.doesNotMatch(sheet.body,/> Dano: \+1d8/);
  assert.match(sheet.bonus,/\+4 DANO-BASE/);
  assert.match(sheet.status,/BÔNUS ATIVO/);
+
+ const resource=await page.evaluate(()=>{
+  window.ARQUIVO_INTERNAL.db.sheets.find(x=>x.id==='e2e-universal-card').abilities.push({
+   name:'Têmpera',cost:0,libraryType:'habilidade',
+   description:'Recurso — Possui [barra:3/3] de **Têmpera**.\n'+
+    'Gatilho — Ao sofrer dano de um ataque inimigo.\n'+
+    'Efeito — Ganhe 1 marca, até o máximo de 3.\n'+
+    'Efeito — Gaste as marcas indicadas para ativar um efeito.\n\n'+
+    '[barra:1/3] **Resistência —** Ao sofrer um ataque, reduza o dano recebido em 1d4.\n\n'+
+    '[barra:2/3] **Interposição —** Ao proteger um aliado, receba o golpe em seu lugar.\n'+
+    'Condição — Se sofrer dano, ganhe 1 marca normalmente.\n\n'+
+    '[barra:3/3] **Persistência —** Quando seria incapacitado, continue lutando até o próximo Desfecho.'
+  });
+  window.ARQUIVO_INTERNAL.setPage('sheets');
+  document.querySelector('[data-sheet="e2e-universal-card"]')?.click();
+  document.querySelector('[data-tab="abilities"]')?.click();
+  const card=[...document.querySelectorAll('.ae-ficha-ability-card')].find(el=>el.textContent.includes('TÊMPERA'));
+  const details=card?.querySelector('.ae-cbb-extras'),button=details?.querySelector('summary');
+  const before=details?.open;
+  button?.click();
+  return {found:!!card,resource:card?.querySelector('.ae-cbb-resource')?.textContent,
+   main:card?.querySelector('.ae-ficha-ability-full')?.textContent,
+   extraCount:card?.querySelectorAll('.ae-cbb-extra-row')?.length,
+   expanded:details?.open,collapsedBefore:before,
+   titles:[...(card?.querySelectorAll('.ae-cbb-extra-title')||[])].map(e=>e.textContent),
+   firstValue:card?.querySelector('.ae-cbb-extra-amount')?.textContent,
+   summaryVisible:!!button&&getComputedStyle(button).display!=='none'&&button.getBoundingClientRect().height>=40};
+ });
+ assert.equal(resource.found,true,'Têmpera deve aparecer na mesma ficha');
+ assert.match(resource.resource,/Têmpera/);
+ assert.match(resource.resource,/3 marcas/);
+ assert.equal(resource.extraCount,3);
+ assert.equal(resource.collapsedBefore,false,'Extras começa recolhida para reduzir confusão');
+ assert.equal(resource.expanded,true,'Extras deve abrir ao clicar');
+ assert.equal(resource.summaryVisible,true);
+ assert.equal(resource.firstValue,'1 MARCA');
+ assert.deepEqual(resource.titles,['Resistência','Interposição','Persistência']);
+ assert.doesNotMatch(resource.main,/\[barra:1\/3\]|Resistência —/);
+
+ const classEntry=await page.evaluate(()=>{
+  window.ARQUIVO_INTERNAL.setPage('library');
+  window.ARQUIVO_SECOES.select('warehouse');
+  const card=document.getElementById('warehousePost-classe-coracao-de-aco');
+  card?.querySelector('[data-warehouse-action^="open:"]')?.click();
+  const expanded=document.getElementById('warehouseBody-classe-coracao-de-aco');
+  return {opened:!!expanded&&!expanded.hidden,resource:expanded?.querySelector('.ae-cbb-resource')?.textContent,
+   extras:expanded?.querySelectorAll('.ae-cbb-extra-row')?.length};
+ });
+ assert.equal(classEntry.opened,true);
+ assert.match(classEntry.resource,/3 marcas/);
+ assert.equal(classEntry.extras,3);
 });
