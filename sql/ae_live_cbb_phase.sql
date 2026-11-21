@@ -83,6 +83,7 @@ BEGIN
  RETURN jsonb_build_object('ok',true,'revision',v_revision,'liveCombat',v_live,'combat',v_sheet,'syncedSheets',cardinality(v_ids));
 END $ae_live_phase$;
 REVOKE ALL ON FUNCTION public.ae_live_cbb_phase(text,text,text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.ae_live_cbb_phase(text,text,text) FROM anon;
 GRANT EXECUTE ON FUNCTION public.ae_live_cbb_phase(text,text,text) TO authenticated;
 
 -- Atualizações pontuais das RPCs existentes, preservando toda a lógica consolidada.
