@@ -59,7 +59,7 @@ test('Teste-Clash aplica RA ou RT e prioridade de críticos e iniciador',()=>{
 test('painel inclui Pressão, Desfecho, comprometimentos, dados e recursos',()=>{
  const x=fixture(),ui=x.window.ARQUIVO_CBB_UI;
  const html=ui.render(x.s,{canEdit:true,master:true});
- for(const label of ['ROLAR TESTE','ROLAR DADOS','REGISTRAR ACERTO SOFRIDO','COMPROMETER','CONTENÇÃO','APLICAR À MINHA FICHA','PRÓXIMA FASE','NOVA CENA'])
+ for(const label of ['ROLAR TESTE','ROLAR DADOS','REGISTRAR ACERTO SOFRIDO','COMPROMETER','CONTENÇÃO','APLICAR À MINHA FICHA','AVANÇAR FASE','NOVA CENA'])
   assert.ok(html.includes(label),label);
  const controls=ui.abilityActions(x.s.abilities[0],0,{canEdit:true,master:false});
  assert.match(controls,/data-cbb-command="ability"/);
