@@ -1221,7 +1221,7 @@ function formatBook(source,chapterTitle='',options={}){
   if(!line){closeBlocks();continue}
   if(firstNonEmpty){
    firstNonEmpty=false;
-   if((reader?String(line).replace(/^#{1,6}\s+/,'').replace(/^[✱✦✧❖]\s*/,''):line).toLocaleUpperCase('pt-BR')===
+   if((reader?String(line).replace(/^#{1,6}\s+/,'').replace(/^[✱✦✧❖▸▹►]\s*/,''):line).toLocaleUpperCase('pt-BR')===
       String(chapterTitle).trim().toLocaleUpperCase('pt-BR'))continue;
   }
   if(/^\|/.test(line)&&line.includes('|',1)){
@@ -1230,7 +1230,7 @@ function formatBook(source,chapterTitle='',options={}){
    table.push(line.replace(/^\||\|$/g,'').split('|'));continue;
   }
   flushTable();
-  const namedSection=line.match(/^[✱✦✧❖]\s*(.{2,110})$/);
+  const namedSection=line.match(/^[✱✦✧❖▸▹►]\s*(.{2,110})$/);
   const upper=line.length<70&&/^[\p{Lu}\p{N}\s&/–—'.-]+$/u.test(line)&&/[\p{Lu}]/u.test(line);
   if(heading||namedSection||upper){
    closeBlocks();
@@ -1252,7 +1252,8 @@ function formatBook(source,chapterTitle='',options={}){
   flushList();
   const definition=line.match(/^([^—\n]{2,65})\s+—\s+(.{12,})$/)||
    line.match(/^\*\*([^*:\n]{2,65})(?::\*\*|\*\*:)\s+(.{8,})$/)||
-   line.match(/^(Gatilho|Recurso|Custo|Consumo|Ativação|Efeito|Condição|Duração|Limite|Restrição|Requisito|Observação|Fase|Consequência|Exemplo):\s+(.{8,})$/i);
+   line.match(/^(Gatilho|Recurso|Custo|Consumo|Ativação|Efeito|Condição|Duração|Limite|Restrição|Requisito|Observação|Fase|Consequência|Exemplo):\s+(.{8,})$/i)||
+   line.match(/^(Nível\s+(?:I{1,3}|Ⅰ|Ⅱ|Ⅲ)):\s+(.{8,})$/i);
   if(definition){flushPara();defs.push([definition[1].trim(),definition[2].trim()]);continue}
   flushDefs();paragraph.push(line);
  }
