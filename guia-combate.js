@@ -104,9 +104,15 @@
   });
  }
  function filtered(items=current()){
+  const candidates=items.filter(item=>group==='Tudo'||item.group===group);
   const words=fold(term).split(/\s+/).filter(Boolean);
-  return items.filter(item=>(group==='Tudo'||item.group===group)&&
-   words.every(word=>fold([item.title,item.lead,item.text,item.tip,item.risk,item.group,item.keywords].join(' ')).includes(word)));
+  if(!words.length)return candidates;
+  // Primeiro o nome da regra e os sinônimos; texto longo apenas como fallback.
+  const main=candidates.filter(item=>words.every(w=>
+   fold([item.title,item.lead,item.keywords].join(' ')).includes(w)));
+  if(main.length)return main;
+  return candidates.filter(item=>words.every(w=>
+   fold([item.text,item.tip,item.risk].join(' ')).includes(w)));
  }
  function sourceFor(item){
   const match=item.topic==='dano'?/dano|resist[eê]ncia/i:item.topic==='testes'?/testes|dados/i:/combate|movimenta[cç][aã]o/i;
