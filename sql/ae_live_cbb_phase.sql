@@ -51,8 +51,7 @@ BEGIN
  IF p_action='advance' THEN
   -- Reaproveita ae_cbb_action para as regras reais de fase, exposição e rodada.
   SELECT jsonb_agg(CASE WHEN x.value->>'id'=ANY(v_ids) THEN
-   jsonb_set(jsonb_set(jsonb_set(x.value,'{combat,phase}',to_jsonb(v_phase),true),
-    '{combat,round}',to_jsonb(v_round),true),'{combat,scene}',to_jsonb(v_scene),true)
+   jsonb_set(x.value,'{combat}',coalesce(x.value->'combat','{}'::jsonb)||jsonb_build_object('phase',v_phase,'round',v_round,'scene',v_scene),true)
    ELSE x.value END ORDER BY x.ord)
   INTO v_sheets FROM jsonb_array_elements(coalesce(v_doc->'sheets','[]'::jsonb)) WITH ORDINALITY x(value,ord);
   UPDATE public.ae_document SET data=jsonb_set(v_doc,'{sheets}',coalesce(v_sheets,'[]'::jsonb)),
@@ -70,8 +69,7 @@ BEGIN
   SELECT data INTO v_doc FROM public.ae_document WHERE id=1 FOR UPDATE;
  ELSE
   SELECT jsonb_agg(CASE WHEN x.value->>'id'=ANY(v_ids) THEN
-    jsonb_set(jsonb_set(jsonb_set(x.value,'{combat,phase}',to_jsonb(v_phase),true),
-     '{combat,round}',to_jsonb(v_round),true),'{combat,scene}',to_jsonb(v_scene),true)
+    jsonb_set(x.value,'{combat}',coalesce(x.value->'combat','{}'::jsonb)||jsonb_build_object('phase',v_phase,'round',v_round,'scene',v_scene),true)
     ELSE x.value END ORDER BY x.ord)
    INTO v_sheets FROM jsonb_array_elements(coalesce(v_doc->'sheets','[]'::jsonb)) WITH ORDINALITY x(value,ord);
   v_doc=jsonb_set(v_doc,'{sheets}',coalesce(v_sheets,'[]'::jsonb),true);
@@ -126,9 +124,7 @@ BEGIN
      UPDATE public.ae_document d SET
       data=jsonb_set(d.data,''{sheets}'',(
        SELECT jsonb_agg(CASE WHEN x.value->>''id''=p_character_id THEN
-        jsonb_set(jsonb_set(jsonb_set(x.value,''{combat,phase}'',d.data#>''{site,liveCombat,phase}'',true),
-          ''{combat,round}'',d.data#>''{site,liveCombat,round}'',true),
-          ''{combat,scene}'',d.data#>''{site,liveCombat,scene}'',true)
+        jsonb_set(x.value,''{combat}'',coalesce(x.value->''combat'',''{}''::jsonb)||jsonb_build_object(''phase'',d.data#>''{site,liveCombat,phase}'',''round'',d.data#>''{site,liveCombat,round}'',''scene'',d.data#>''{site,liveCombat,scene}''),true)
         ELSE x.value END ORDER BY x.ord)
        FROM jsonb_array_elements(coalesce(d.data->''sheets'',''[]''::jsonb)) WITH ORDINALITY x(value,ord)),true),
       revision=d.revision+1,changed_at=now()
