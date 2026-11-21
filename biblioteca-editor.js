@@ -128,7 +128,11 @@
     const model=present.model(entry,{warehouse:true});
     preview.innerHTML='<div class="ae-wh-preview-ability">'+present.meta(model,{warehouse:true})+
      present.dice(model)+api.formatBook(model.description)+'</div>';
-   }else preview.innerHTML=api.formatBook(area.value||'');
+   }else{
+    const body=category==='Classes'||category==='Raças'?present?.standardizeRuleSections?.(area.value||''):
+     category==='Itens'?present?.standardizeItem?.(area.value||''):(area.value||'');
+    preview.innerHTML=api.formatBook(body||area.value||'');
+   }
   }
   const stats=document.getElementById('warehouseEditorStats');
   if(stats)stats.textContent=area.value.length+' caracteres · '+area.value.trim().split(/\s+/).filter(Boolean).length+' palavras';
