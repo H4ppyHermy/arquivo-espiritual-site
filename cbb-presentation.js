@@ -278,8 +278,7 @@
    '<strong class="ae-cbb-resource-name">'+escape(r.name)+'</strong>'+
    '<div class="ae-cbb-resource-capacity"><small>CAPACIDADE</small>'+
     '<span class="ae-cbb-resource-glyph" title="Representação visual de referência, não saldo atual">'+
-     resourceSymbol(r.kind,r.initial,r.capacity)+'</span>'+
-    '<b>'+escape(r.label)+'</b></div>'+
+     resourceSymbol(r.kind,r.initial,r.capacity)+'</span></div>'+
    '</div>';
  }
  function extrasPanel(m,format){
@@ -294,8 +293,7 @@
     const title=entry.title?'<strong class="ae-cbb-extra-title">'+escape(entry.title)+'</strong>':'';
     return '<div class="ae-cbb-extra-row" role="group" aria-label="'+escape(label+(entry.title?' · '+entry.title:''))+'">'+
      '<div class="ae-cbb-extra-markers">'+
-      '<span class="ae-cbb-extra-glyph">'+resourceSymbol(entry.kind,entry.amount,entry.total)+'</span>'+
-      '<span class="ae-cbb-extra-amount">'+escape(label)+'</span></div>'+
+      '<span class="ae-cbb-extra-glyph">'+resourceSymbol(entry.kind,entry.amount,entry.total)+'</span></div>'+
      '<div class="ae-cbb-extra-rule">'+title+
       (entry.description?'<div class="ae-cbb-extra-effect">'+format(entry.description)+'</div>':'')+
      '</div></div>';
