@@ -37,6 +37,43 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
  await page.setRequestInterception(true);
  page.on('request',request=>request.url().startsWith('http://127.0.0.1:')?request.continue():request.abort());
  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
+ const library=await page.evaluate(()=>{
+  window.ARQUIVO_SECOES.select('book1');
+  window.ARQUIVO_INTERNAL.setPage('library');
+  const first=document.querySelector('.ae-library-chapter');
+  const toggle=first?.querySelector('.chapter-toggle');
+  if(toggle?.getAttribute('aria-expanded')!=='true')toggle?.click();
+  const body=first?.querySelector('.ae-library-reading');
+  const outline=body?.querySelector('.ae-book-outline');
+  if(outline)outline.open=true;
+  const links=[...(outline?.querySelectorAll('.ae-book-outline-link')||[])];
+  const headings=[...(body?.querySelectorAll('.ae-book-heading')||[])];
+  const definitions=[...(body?.querySelectorAll('.ae-book-definition')||[])];
+  const firstTarget=links[0]?.getAttribute('href')||'';
+  const glyph=body?.querySelector('.ae-book-heading-symbol');
+  const legend=document.querySelector('.ae-book-key');
+  const headingBg=headings[0]?getComputedStyle(headings[0]).backgroundImage:'';
+  return {opened:!body?.hidden,
+   outline:!!outline,outlineCount:links.length,headingCount:headings.length,
+   idMatch:!!firstTarget&&!!document.getElementById(firstTarget.slice(1)),
+   glyph:!!glyph&&glyph.getAttribute('aria-hidden')==='true',
+   styledHeading:headingBg.includes('linear-gradient'),
+   themedDefs:definitions.some(d=>d.className.includes('ae-book-definition--')),
+   readableContent:body?.textContent.includes('Vida')&&body?.textContent.includes('Alma'),
+   legend:!!legend&&!!legend.querySelector('summary'),
+   allLinksSafe:links.every(a=>(a.getAttribute('href')||'').startsWith('#ae-read-'))};
+ });
+ assert.equal(library.opened,true);
+ assert.equal(library.outline,true,'cada capítulo longo deve possuir um sumário recolhível');
+ assert.ok(library.outlineCount>=2,'os tópicos reais devem alimentar o índice');
+ assert.equal(library.idMatch,true,'links devem apontar para os títulos existentes');
+ assert.equal(library.glyph,true);
+ assert.equal(library.styledHeading,true);
+ assert.equal(library.themedDefs,true);
+ assert.equal(library.readableContent,true);
+ assert.equal(library.legend,true);
+ assert.equal(library.allLinksSafe,true);
+
  const warehouse=await page.evaluate(()=>{
   window.ARQUIVO_INTERNAL.setPage('library');
   window.ARQUIVO_SECOES.select('warehouse');
