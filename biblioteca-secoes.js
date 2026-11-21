@@ -164,7 +164,7 @@
   const category=text(post.category)==='Técnicas'?'TÉCNICA':'HABILIDADE';
   return '<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-'+esc(id)+'"'+dragPostAttrs(post)+'>'+
    '<div class="ae-wh-ability-main">'+
-    '<div class="ae-ficha-ability-tag ae-wh-ability-header"><h3 class="ae-ficha-ability-title ae-wh-ability-title">'+esc(title)+'</h3></div>'+
+    '<div class="ae-wh-ability-header"><h3 class="ae-wh-ability-title">'+esc(title)+'</h3></div>'+
     (display?presenter.meta(display,{warehouse:true}):
      '<div class="ae-ficha-ability-meta ae-unified-ability-meta"><span>'+category+'</span>'+
      '<strong class="ae-ability-cost">'+esc(fallbackCost)+'</strong>'+
