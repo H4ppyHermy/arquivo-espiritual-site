@@ -16,7 +16,7 @@ const records=()=>{
  return JSON.parse(src.slice(src.indexOf('['),src.lastIndexOf(']')+1));
 };
 
-test('Têmpera: capacidade numérica de 3 marcas, efeitos em Extras e gatilho separado',()=>{
+test('Têmpera: três símbolos visíveis, efeitos em Extras e gatilho separado',()=>{
  const ui=create();
  const entry={name:'Têmpera',cost:0,description:
   'Recurso — Possui [barra:3/3] de **Têmpera**.\n'+
@@ -40,7 +40,9 @@ test('Têmpera: capacidade numérica de 3 marcas, efeitos em Extras e gatilho se
  assert.match(model.extras[2].description,/Desfecho da rodada seguinte/);
  const overview=ui.resourceInfo(model),extras=ui.extrasPanel(model,body=>'<p>'+body+'</p>');
  assert.match(overview,/CAPACIDADE/);
- assert.match(overview,/3 marcas/);
+ assert.match(overview,/ae-cbb-resource-glyph/);
+ assert.doesNotMatch(overview,/<b>3 marcas<\/b>/);
+ assert.doesNotMatch(overview,/<b>\d+ marcas?<\/b>/);
  assert.match(extras,/<details class="ae-cbb-extras">/);
  assert.match(extras,/1 MARCA/);
  assert.match(extras,/2 MARCAS/);
@@ -124,7 +126,7 @@ test('componentes compartilhados entregam Extras na ficha completa, no acesso r�
  assert.match(sheet,/presentation\.resourceInfo\(details\)/);
  assert.match(store,/presenter\.extrasPanel\(display,body=>api\.formatBook\(body,title\)\)/);
  assert.match(store,/renderRuleSections\(post\.content/);
- assert.match(read('playtest-ux.css'),/ae-cbb-extra-amount/);
+ assert.match(read('playtest-ux.css'),/ae-cbb-extra-glyph/);
 });
 
 
@@ -137,9 +139,12 @@ test('símbolos originais continuam visíveis junto da capacidade e em cada Extr
   '[barra:3/3] Persistência — Continue lutando.'});
  const header=ui.resourceInfo(m),extras=ui.extrasPanel(m,x=>x);
  assert.match(header,/ae-inline-resource-bar ae-inline-resource--barra/);
- assert.match(header,/3 marcas/);
+ assert.doesNotMatch(header,/<b>3 marcas<\/b>/);
+ assert.match(header,/aria-label="3 marcas de recurso"/);
  assert.equal((header.match(/ae-inline-resource-segment is-filled/g)||[]).length,3);
  assert.equal((extras.match(/ae-inline-resource-bar ae-inline-resource--barra/g)||[]).length,3);
+ assert.doesNotMatch(extras,/ae-cbb-extra-amount/);
+ assert.match(extras,/role="group" aria-label="1 MARCA"/);
  const rows=extras.split('<div class="ae-cbb-extra-row"').slice(1);
  assert.deepEqual(rows.map(row=>(row.match(/ae-inline-resource-segment is-filled/g)||[]).length),[1,2,3]);
  assert.deepEqual(rows.map(row=>(row.match(/ae-inline-resource-segment(?: is-filled)?/g)||[]).length),[3,3,3]);
