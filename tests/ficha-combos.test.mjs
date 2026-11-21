@@ -49,7 +49,7 @@ test('a seção aparece abaixo das notas e antes do histórico no Resumo',()=>{
  const atCombo=visual.indexOf("window.ARQUIVO_COMBOS?.render?.(s,ctx)");
  const atHistory=visual.indexOf("ctx.history?'<section");
  assert.ok(atNotes>0 && atCombo>atNotes && atHistory>atCombo);
- assert.match(read('index.html'),/ficha-combos\.js\?v=1/);
+ assert.match(read('index.html'),/ficha-combos\.js\?v=2/);
  assert.match(read('index.html'),/ficha-combos\.css\?v=1/);
 });
 test('os custos do combo são derivados das habilidades atuais e avisam de pré-requisitos',()=>{
