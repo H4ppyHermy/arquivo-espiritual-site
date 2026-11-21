@@ -38,6 +38,9 @@ if(/site-update\.js|site-version\.json|ae-site-update-overlay/i.test(html))fail.
 const jsCss=fs.readdirSync(root).filter(n=>/\.(?:js|css)$/.test(n));
 const orphans=jsCss.filter(n=>!references.some(ref=>ref.local===n));
 const total=references.filter(r=>r.local).reduce((a,r)=>a+r.bytes,0);
+// Limite de revisão: scripts e estilos referenciados não devem crescer silenciosamente.
+const assetBudgetBytes=1_200_000;
+if(total>assetBudgetBytes)fail.push('Orçamento bruto de JS/CSS excedido: '+total+' bytes (limite '+assetBudgetBytes+').');
 const lines=[
  'Arquivos JS/CSS carregados: '+references.filter(r=>r.local).length,
  'Tamanho bruto dos arquivos carregados (sem compressão): '+(total/1024).toFixed(1)+' KiB',
