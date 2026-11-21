@@ -73,6 +73,19 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
  assert.equal(library.readableContent,true);
  assert.equal(library.legend,true);
  assert.equal(library.allLinksSafe,true);
+ await page.setViewport({width:390,height:780,deviceScaleFactor:1});
+ const mobileLibrary=await page.evaluate(()=>{
+  const reading=document.querySelector('.ae-library-chapter.is-open .ae-library-reading');
+  const outline=reading?.querySelector('.ae-book-outline-links');
+  const heading=reading?.querySelector('.ae-book-heading');
+  return {outlineColumns:getComputedStyle(outline).gridTemplateColumns.trim().split(/\s+/).length,
+   headingNoOverflow:!!heading&&heading.scrollWidth<=heading.clientWidth+3,
+   outlineNoOverflow:!!outline&&outline.scrollWidth<=outline.clientWidth+3};
+ });
+ assert.equal(mobileLibrary.outlineColumns,1,'índice de tópicos deve ocupar uma coluna no celular');
+ assert.equal(mobileLibrary.headingNoOverflow,true,'títulos devem permanecer legíveis sem cortar texto');
+ assert.equal(mobileLibrary.outlineNoOverflow,true);
+ await page.setViewport({width:1280,height:800,deviceScaleFactor:1});
 
  const warehouse=await page.evaluate(()=>{
   window.ARQUIVO_INTERNAL.setPage('library');
