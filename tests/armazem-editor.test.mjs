@@ -370,7 +370,9 @@ test('habilidades longas exibem a regra completa sem teaser ou controle individu
  assert.doesNotMatch(html,/LER TÉCNICA COMPLETA|RECOLHER DESCRIÇÃO|ae-wh-ability-teaser/);
  assert.doesNotMatch(html,/Uma investida silenciosa/);
  assert.doesNotMatch(html,/id="warehouseBody-tecnica-longa"/);
- const card=html.match(/<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-tecnica-longa">[\\s\\S]*?<\\/article>/)?.[0];
+ const begin=html.indexOf('<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-tecnica-longa">');
+ const finish=begin<0?-1:html.indexOf('</article>',begin);
+ const card=finish<0?'':html.slice(begin,finish+10);
  assert.ok(card);
  assert.doesNotMatch(card,/ae-wh-emblem|ae-warehouse-image/);
 });
