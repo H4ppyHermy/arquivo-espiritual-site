@@ -302,7 +302,8 @@
    if(split<0){output+=format(section);cursor=end;continue;}
    const head=section.slice(0,split),details=section.slice(split+1);
    const model=resourceSections(details,head.replace(/^#{2,3}\s+/,''));
-   output+=format(head+'\n'+model.description)+resourceInfo(model)+extrasPanel(model,format);
+   output+=model.resource?(format(head)+resourceInfo(model)+
+    (model.description?format(model.description):'')+extrasPanel(model,format)):format(section);
    cursor=end;
   }
   if(cursor<source.length)output+=format(source.slice(cursor));
