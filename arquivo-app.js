@@ -2376,6 +2376,12 @@ async function saveSheetForm(){
    raw.abilities.forEach((ab,i)=>{ab.description=originals[i].description||'';ab.usage=originals[i].usage||''});
    raw.abilityGroups=clone(old.abilityGroups||[]);
   }
+  // Escrita consistente também ao editar diretamente uma habilidade da ficha.
+  // Jogadores não alteram os textos do mestre.
+  if(master())for(const ab of raw.abilities||[]){
+   if(typeof ab.description==='string'&&ab.description.trim())
+    ab.description=window.ARQUIVO_CBB_PRESENTATION?.standardize?.(ab.description)||ab.description;
+  }
   const queued=editorDraft.abilities.map((ab,i)=>({i,file:pendingAbilityImages.get(ab)})).filter(x=>x.file);
   const hasUploads=!!pendingSheetImage||queued.length>0;
   for(const k of ['vida','estabilidade','alma'])raw.resources[k].current=old?old.resources[k].current:raw.resources[k].max;
