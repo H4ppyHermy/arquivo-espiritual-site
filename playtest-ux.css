@@ -76,3 +76,15 @@
  border:1px solid var(--theme-cold);background:color-mix(in srgb,var(--theme-cold) 6%,var(--theme-panel))}
 .ae-ability-mechanics-editor label{min-width:0}
 .ae-ability-mechanics-editor .color-hint{margin:2px 0 0}
+
+/* Marcadores e ações novas também acompanham 50–200% do tamanho de leitura. */
+#page .ae-ficha-ability-meta .ae-ability-cost{font-size:calc(12px * var(--ae-reading-scale,1))}
+#page .ae-ficha-ability-meta .ae-ability-phase{font-size:calc(11px * var(--ae-reading-scale,1))}
+#page .ae-ability-roll-note>strong{font-size:calc(17px * var(--ae-reading-scale,1))}
+#page .ae-ability-roll-note>small{font-size:calc(11px * var(--ae-reading-scale,1))}
+#page .ae-ficha-skill-roll{font-size:calc(10px * var(--ae-reading-scale,1))}
+#page .ae-cbb-quick-head>span,#page .ae-cbb-quick .ae-cbb-status{font-size:calc(12px * var(--ae-reading-scale,1))}
+@media(max-width:760px){
+ #page .ae-ficha-ability-meta .ae-ability-cost{font-size:calc(12px * var(--ae-reading-scale,1))}
+ #page .ae-ficha-skill-roll{min-width:calc(52px * var(--ae-reading-scale,1))}
+}
