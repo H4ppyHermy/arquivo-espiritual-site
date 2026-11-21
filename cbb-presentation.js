@@ -224,7 +224,7 @@
   const header=lines[firstIndex];
   const after=header.slice(header.indexOf(item[0])+item[0].length);
   const named=after.match(/^\s+de\s+(?:\*\*)?([^\n.;]+?)(?:\*\*)?(?:[.;]|$)/i);
-  const name=(named?named[1].replace(/\*\*/g,'').replace(/\s+por\s+(?:cena|rodada)$/i,'').trim():String(fallbackName||'').trim())||'Recurso';
+  const name=(named?named[1].replace(/\*\*/g,'').replace(/\s+e\s+(?:começa|inicia|ganha|recebe|permite)\b.*$/i,'').replace(/\s+por\s+(?:cena|rodada)$/i,'').trim():String(fallbackName||'').trim())||'Recurso';
   const resource={name,kind,capacity:max,label:max+' '+resourceUnit(kind,max)};
   const main=[],extras=[];
   let current=null;
@@ -243,7 +243,7 @@
      continue;
     }
    }
-   if(current&&/^\s*(?:#{2,3}\s+|(?:Corpo|Mente|Espírito)\s+—\s+)/i.test(line))current=null;
+   if(current&&/^\s*(?:#{2,3}\s+|(?:Corpo|Mente|Espírito|Recurso|Gatilho|Limite|Restrição|Observação)\s+—\s+)/i.test(line))current=null;
    if(current){
     current.description+=(current.description?'\n':'')+line;
    }else if(i===firstIndex){
