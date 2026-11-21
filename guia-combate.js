@@ -77,7 +77,7 @@
    risk:'Auxílio consome a sua ação principal, não é uma ação gratuita.',
    topic:'testes',keywords:'auxiliar ajudar aliado equipe pericia aumento passo'},
   {id:'critico',group:'Agir',tag:'15 · DADOS',title:'Deu crítico. O que acontece?',lead:'Crítico máximo: dois dados iguais em 6 ou mais. Duplique só esses resultados.',
-   text:'- Crítico máximo garante sucesso, salvo impossibilidade ou regra específica.\\n- Num Teste-Clash, um crítico máximo supera resultados comuns.\\n- Falha crítica: dois ou mais dados com 1; RT, RA e RB viram 1.\\n- Se ambos tiverem crítico máximo, compare o valor usado no Clash.',
+   text:'- Crítico máximo garante sucesso, salvo impossibilidade ou regra específica.\n- Num Teste-Clash, um crítico máximo supera resultados comuns.\n- Falha crítica: dois ou mais dados com 1; RT, RA e RB viram 1.\n- Se ambos tiverem crítico máximo, compare o valor usado no Clash.',
    tip:'Rolou 6 e 6? Os dois viram 12. Rolou 1 e 1? Todos os resultados do teste viram 1.',
    risk:'Se vários críticos ocorrerem, prevalece o dos dados maiores; em igualdade, o resultado repetido mais alto.',
    topic:'testes',keywords:'critico critica crítico máximo falha sucesso dados 6 1 clash'},
