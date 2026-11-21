@@ -75,7 +75,7 @@
    if(/^(?:>|[-*]\s|\[(?:barra|contador|marca|sequencia):|[IVX]{1,4}\s+[—-])/i.test(s)){
     segments.push(s);return;
    }
-   const existing=s.match(/^(?:\*\*)?(Amplificação|Encantamento|Comando de liberação|Arte escolhida)(?:\*\*)?\s*:\s*(.+)$/i);
+   const existing=s.match(/^(?:\*\*)?(Amplificação|Encantamento|Comando de liberação|Arte escolhida)(?::\*\*|\*\*:|:)\s*(.+)$/i);
    if(existing){
     push(existing[1],existing[2]);return;
    }
@@ -92,7 +92,7 @@
    if(/^(?:Caso|Se|Em caso)\b/i.test(s)){push('Condição',s);return}
    if(/^(?:Após|Depois|Ao término|Ao fim|Ao final|Quando terminar)\b/i.test(s)){push('Consequência',s);return}
    if(/^(?:Limite de|No máximo|Máximo de|Não gaste mais)\b/i.test(s)){push('Limite',s);return}
-   if(/^(?:Não pode|Não causa|Bloquead[oa]|Recurso narrativo indisponível|Somente o mestre|Não impede|Não ignora)\b/i.test(s)){push('Restrição',s);return}
+   if(/^(?:Não pode|Não causa|Esse deslocamento não|Bloquead[oa]|Recurso narrativo indisponível|Somente o mestre|Não impede|Não ignora)\b/i.test(s)){push('Restrição',s);return}
    if(/^(?:Esse dado|Esses valores|As relações|A sequência|Os benefícios|Isso não)\b/i.test(s)){push('Observação',s);return}
    if(/^(?:Possui\s+\[(?:barra|contador|marca|sequencia):|Cada adversário pode acumular)\b/i.test(s)){
     push('Recurso',s);return;
@@ -100,7 +100,7 @@
    if(/^(?:Ao|Quando|Sempre que|No início|No começo|Na abertura)\b/i.test(s)){
     // Uma lista de recursos pode conter vírgulas: dividir apenas quando
     // a parte seguinte começa por um verbo de efeito, não no primeiro item.
-    const matches=[...s.matchAll(/,\s*(?=(?:aumente|reduza|role|ignore|imponha|receba|preencha|utilize|permita|escolha|realize|desloque|restaure|ganhe|perca|aplique|conceda|prolongue|encerre|dobre|acrescente|faça|sofra|mantenha|continue|pode|interrompa|consuma|marque|apague|torne|o alvo|os alvos)\b)/giu)];
+    const matches=[...s.matchAll(/,\s*(?=(?:aumente|reduza|role|ignore|imponha|receba|preencha|utilize|permita|escolha|realize|desloque|restaure|ganhe|perca|aplique|conceda|prolongue|encerre|dobre|acrescente|faça|sofra|mantenha|continue|pode|interrompa|consuma|marque|apague|torne|concentre|amplifique|atravesse|diminua|interponha|manifeste|libere|o alvo|os alvos)\b)/giu)];
     const comma=matches.length?matches[matches.length-1].index:-1;
     if(comma>8&&comma<210&&s.length-comma>10){
      push('Gatilho',s.slice(0,comma).replace(/[.,;:]$/,'')+'.');
@@ -119,7 +119,9 @@
    const lines=paragraph.split('\n').map(l=>l.trim()).filter(Boolean);
    if(i&&segments.length&&segments[segments.length-1]!=='')segments.push('');
    for(const line of lines){
-    const parts=line.split(sentenceSplit);
+    // Encantamentos, falas e dados entre aspas não devem ser segmentados.
+    const quoted=/^>|^(?:\*\*)?Encantamento\s*:/i.test(line);
+    const parts=quoted?[line]:line.split(sentenceSplit);
     for(const part of parts)process(part,0,i===0);
    }
   }
