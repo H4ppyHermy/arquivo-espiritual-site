@@ -338,6 +338,28 @@ function updateDock(){
  }
  setVideo(document.getElementById('ae-live-dock-video'),stream,true);
 }
+function phasePanel(){
+ if(!state.joined)return '';
+ const current=api()?.db?.site?.liveCombat||null,master=!!state.local?.is_master;
+ const linked=current?.enabled===true;
+ const phases=[['preparacao','PREPARAÇÃO'],['distancia','DISTÂNCIA'],['duelo','DUELO'],['desfecho','DESFECHO']];
+ const currentPhase=phases.find(p=>p[0]===(current?.phase||'preparacao'))?.[1]||'PREPARAÇÃO';
+ return '<section class="ae-live-phase-panel" data-live-phase-panel aria-label="Fase do combate">'+
+  '<div><span>COMBATE · FASE ATUAL</span><strong>'+esc(linked?currentPhase:'CONTROLE INDIVIDUAL')+'</strong>'+
+   '<small>'+(linked?'Cena '+Number(current?.scene||1)+' · Rodada '+Number(current?.round||1)+' · fichas sincronizadas':
+    'Cada jogador avança sua própria ficha')+'</small></div>'+
+  (master?(linked?'<div class="ae-live-phase-actions"><label>Definir fase<select id="ae-live-phase-select">'+
+     phases.map(([id,label])=>'<option value="'+id+'"'+(current?.phase===id?' selected':'')+'>'+label+'</option>').join('')+
+     '</select></label>'+button('APLICAR FASE','phaseSet')+button('AVANÇAR','phaseAdvance')+
+     button('DESVINCULAR','phaseDisable')+'</div>':
+    '<div class="ae-live-phase-actions">'+button('SINCRONIZAR FASES','phaseEnable')+'</div>'):
+   (linked?'<span class="ae-live-phase-auto">O mestre define a fase para todos</span>':''))+
+  '</section>';
+}
+function renderPhasePanel(){
+ const panel=document.querySelector?.('[data-live-phase-panel]');
+ if(panel)panel.outerHTML=phasePanel();
+}
 function render(){
  const node=root();if(!node)return;
  if(!sync()?.state?.enabled||!sync()?.state?.identity?.id){
@@ -371,6 +393,7 @@ function render(){
   '<div class="ae-live-session-bar"><div><span class="ae-live-session-pulse"></span><strong>'+esc(room?.title||'Sessão')+
    '</strong><small class="ae-live-count">1 NA SALA</small></div>'+
    '<div class="ae-live-session-actions">'+(master?button('ENCERRAR SESSÃO','end','class="ae-live-danger"'):'')+button('SAIR DA SALA','leave')+'</div></div>'+
+  phasePanel()+
   '<div class="ae-live-toolbar">'+button(state.camera?'DESLIGAR CÂMERA':'LIGAR CÂMERA','camera')+
    button(state.microphone?'SILENCIAR MICROFONE':'ATIVAR MICROFONE','microphone')+
    button(state.screen?'PARAR TELA':'COMPARTILHAR TELA','screen')+
@@ -865,6 +888,19 @@ async function run(name,el){
   else if(name==='leave')await leave();
   else if(name==='end')await endSession();
   else if(name==='kick')await removeAccount(el?.dataset?.liveAccount);
+  else if(['phaseEnable','phaseDisable','phaseAdvance','phaseSet'].includes(name)){
+   if(!state.local?.is_master)throw Error('Somente o mestre controla as fases.');
+   const source=state.participants.find(p=>p.sheet_id&&!p.left_at&&!p.removed_at)?.sheet_id||
+    api()?.currentSheet||api()?.db?.sheets?.find(s=>!s.masterOnly)?.id;
+   if(!source)throw Error('Vincule uma ficha de jogador à sessão para ativar o controle.');
+   const actions={phaseEnable:'enable',phaseDisable:'disable',phaseAdvance:'advance',phaseSet:'set'};
+   const phase=name==='phaseSet'?document.getElementById('ae-live-phase-select')?.value:null;
+   const result=await sync().liveCombatPhase(actions[name],source,phase);
+   if(result.liveCombat)api().db.site.liveCombat=result.liveCombat;
+   else if(api()?.db?.site)delete api().db.site.liveCombat;
+   await sync().refresh(true);
+   status('Fase da sessão atualizada e enviada às fichas.');
+  }
   else if(name==='camera')await toggleCamera();
   else if(name==='microphone')await toggleMic();
   else if(name==='screen')await toggleScreen();
@@ -896,7 +932,7 @@ document.addEventListener('change',event=>{
  }
 });
 global.addEventListener('arquivo-logged-out',()=>{leave(false).catch(()=>{})});
-global.addEventListener('arquivo-online-snapshot',()=>{if(state.joined)renderOverlays()});
+global.addEventListener('arquivo-online-snapshot',()=>{if(state.joined){renderOverlays();renderPhasePanel()}});
 global.addEventListener('pagehide',()=>{if(state.joined){stopStream(state.camera);stopStream(state.microphone);stopStream(state.screen)}});
 
 function pageChanged(page){
