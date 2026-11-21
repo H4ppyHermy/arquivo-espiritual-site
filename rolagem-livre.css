@@ -12,6 +12,7 @@
 .ae-free-preview strong{font-size:clamp(17px,2vw,24px);overflow-wrap:anywhere;max-width:100%;line-height:1.25}
 .ae-free-submit{min-height:48px;width:100%}
 .ae-free-shortcut-title{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.ae-free-shortcut-note{font-size:11px;color:var(--theme-text);opacity:.75}
 .ae-free-quick{margin:24px 0 12px;border-top:1px solid var(--theme-structure);padding-top:17px}
 .ae-free-chips{margin:12px 0}
 .ae-free-shortcut{display:inline-flex;min-height:44px;align-items:stretch;min-width:0}
