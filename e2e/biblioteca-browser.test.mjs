@@ -54,6 +54,48 @@ test('Biblioteca para jogador: consulta manual vazia, guia de combate, livros e 
  assert.equal(initial.chapterSearch,false);
  assert.equal(initial.glossarySearch,false);
  assert.ok(initial.width>=1020);
+ const paletteCheck=await page.evaluate(()=>{
+  const guide=document.querySelector('.ae-field-guide');
+  const toolbar=guide.querySelector('.ae-field-toolbar');
+  const badge=guide.querySelector('.ae-field-badge');
+  const answer=guide.querySelector('.ae-field-answer');
+  const before={
+   guide:getComputedStyle(guide).backgroundColor,
+   toolbar:getComputedStyle(toolbar).backgroundColor,
+   text:getComputedStyle(answer).color
+  };
+  const palette={
+   '--theme-accent':'#b75ce4',
+   '--theme-cold':'#4cc1a3',
+   '--theme-bg':'#0d1021',
+   '--theme-panel':'#242139',
+   '--theme-raised':'#372c50',
+   '--theme-text':'#f4efff',
+   '--theme-structure':'#7a5c9b'
+  };
+  const old={};
+  for(const [key,value] of Object.entries(palette)){
+   old[key]=document.body.style.getPropertyValue(key);
+   document.body.style.setProperty(key,value);
+  }
+  const after={
+   guide:getComputedStyle(guide).backgroundColor,
+   toolbar:getComputedStyle(toolbar).backgroundColor,
+   badge:getComputedStyle(badge).backgroundColor,
+   text:getComputedStyle(answer).color
+  };
+  for(const [key,value] of Object.entries(old)){
+   if(value)document.body.style.setProperty(key,value);
+   else document.body.style.removeProperty(key);
+  }
+  return {before,after};
+ });
+ assert.notEqual(paletteCheck.before.toolbar,paletteCheck.after.toolbar);
+ assert.notEqual(paletteCheck.before.guide,paletteCheck.after.guide);
+ assert.equal(paletteCheck.after.guide,'rgb(36, 33, 57)','painel deve adotar o tema');
+ assert.equal(paletteCheck.after.toolbar,'rgb(183, 92, 228)','barra deve usar o acento escolhido');
+ assert.equal(paletteCheck.after.badge,'rgb(183, 92, 228)','selo deve usar o acento escolhido');
+ assert.equal(paletteCheck.after.text,'rgb(244, 239, 255)','texto deve usar a cor da paleta');
  await page.keyboard.press('/');
  assert.equal(await page.evaluate(()=>document.activeElement?.id),'aeGuideSearch','atalho / foca a busca da guia');
  await page.$eval('#aeGuideSearch',el=>{
