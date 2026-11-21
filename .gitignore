@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+dist/
+tmp/
+*.log
+.env
+.env.*
+!.env.example
+CODIGO_INICIAL_PRIVADO.txt
+.DS_Store
+Thumbs.db
