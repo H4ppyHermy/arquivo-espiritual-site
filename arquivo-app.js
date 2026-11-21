@@ -1250,7 +1250,9 @@ function formatBook(source,chapterTitle='',options={}){
   const list=line.match(/^(\s*)([-*+]|[0-9]+[.)])\s+(.+)$/);
   if(list){flushPara();flushDefs();const type=/^\d/.test(list[2])?'ol':'ul';if(listType!==type){flushList();html+='<'+type+' class="book-readable-list">';listType=type}html+='<li>'+inline(list[3])+'</li>';continue}
   flushList();
-  const definition=line.match(/^([^—\n]{2,65})\s+—\s+(.{12,})$/);
+  const definition=line.match(/^([^—\n]{2,65})\s+—\s+(.{12,})$/)||
+   line.match(/^\*\*([^*:\n]{2,65})(?::\*\*|\**:)\s+(.{8,})$/)||
+   line.match(/^(Gatilho|Recurso|Custo|Consumo|Ativação|Efeito|Condição|Duração|Limite|Restrição|Requisito|Observação|Fase|Consequência|Exemplo):\s+(.{8,})$/i);
   if(definition){flushPara();defs.push([definition[1].trim(),definition[2].trim()]);continue}
   flushDefs();paragraph.push(line);
  }
