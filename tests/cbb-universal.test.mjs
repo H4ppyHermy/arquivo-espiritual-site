@@ -101,7 +101,7 @@ test('teste de perícia envia um pedido ao servidor e mostra RT RA RB',async()=>
 
 test('scripts e duas RPCs universais estão ligados sem reativar código por personagem',()=>{
  const html=read('index.html'),online=read('online.js'),visual=read('ficha-visual.js');
- for(const file of ['cbb-engine.js?v=2','cbb-interativo.js?v=10','cbb-interativo.css?v=6'])
+ for(const file of ['cbb-engine.js?v=2','cbb-interativo.js?v=11','cbb-interativo.css?v=7'])
   assert.ok(html.includes(file),file);
  assert.ok(visual.includes("mesa:'Mesa'"));
  assert.match(visual,/ARQUIVO_CBB_UI\?\.render/);
@@ -389,4 +389,30 @@ test('Condição alterada invalida cache de resistência da fase para rolagem at
  x.s.conditions=['Fragilizado'];
  await click();
  assert.equal(x.calls.roll.length,2,'Nova condição invalida a resistência cacheada');
+});
+
+
+test('chefe em formato de duelo 1v1 não oferece escalonamento de 6, 7 ou 8 jogadores',()=>{
+ const x=fixture();
+ x.s.boss={encounterType:'duel',title:'O Duelo dos Dois Reis',
+  party:{min:1,max:1,base:1,current:1},tempo:{extraMain:0},
+  scenario:{name:'Recolhimento de Zabimaru',trigger:'Ataque de Distância na Shikai',description:'Abertura defensiva.'}};
+ const html=x.window.ARQUIVO_CBB_UI.render(x.s,{canEdit:true,master:true});
+ assert.match(html,/DUELO 1V1/);
+ assert.match(html,/O Duelo dos Dois Reis/);
+ assert.match(html,/1 × 1/);
+ assert.doesNotMatch(html,/data-cbb-party="/);
+ assert.doesNotMatch(html,/ANDAR \?/);
+ const sql=read('sql/ae_cbb_universal_action.sql');
+ assert.match(sql,/Duelo 1v1 não permite alterar o número de participantes/);
+});
+
+test('chefes normais conservam o seletor de participantes e o escalonamento anterior',()=>{
+ const x=fixture();
+ x.s.boss={floor:1,party:{min:6,max:8,base:7,current:7},
+  tempo:{extraMain:1},scenario:{}};
+ const html=x.window.ARQUIVO_CBB_UI.render(x.s,{canEdit:true,master:true});
+ assert.match(html,/ANDAR 1 · CONFRONTO/);
+ for(const n of [6,7,8])assert.match(html,new RegExp('data-cbb-party="'+n+'"'));
+ assert.doesNotMatch(html,/ae-cbb-duel-indicator/);
 });
