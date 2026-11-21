@@ -9,7 +9,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "",
     "cost": "2 ALMA",
-    "content": "Ao realizar um ataque à distância sem ter se movimentado na rodada, aumente em 1 passo o dado da perícia utilizada no ataque.",
+    "content": "Gatilho — Ao realizar um ataque à distância sem ter se movimentado na rodada.\nEfeito — Aumente em 1 passo o dado da perícia utilizada no ataque.",
     "published": true,
     "grants": {
       "race": [],
@@ -24,7 +24,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "",
     "cost": "2 ALMA",
-    "content": "Ao acertar um ataque à distância, reduza a movimentação do alvo pela metade até o próximo Desfecho.",
+    "content": "Gatilho — Ao acertar um ataque à distância.\nEfeito — Reduza a movimentação do alvo pela metade.\nDuração — Até o próximo Desfecho.",
     "published": true,
     "grants": {
       "race": [],
@@ -39,7 +39,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "",
     "cost": "3 ALMA",
-    "content": "Quando um aliado dentro do alcance de seus disparos for alvo de um ataque, utilize sua reação para realizar um Teste-Clash de Precisão contra o agressor. Caso vença, interrompe o ataque inimigo.",
+    "content": "Gatilho — Quando um aliado dentro do alcance de seus disparos for alvo de um ataque.\nAtivação — Utilize sua reação para realizar um Teste-Clash de Precisão contra o agressor.\nCondição — Caso vença, interrompe o ataque inimigo.",
     "published": true,
     "grants": {
       "race": [],
@@ -54,7 +54,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "",
     "cost": "2 ALMA",
-    "content": "Ao realizar um ataque de Duelo contra um adversário que tenha lhe causado dano desde sua última ação, amplifique a força do golpe.\n\n> Dano: +1d8",
+    "content": "Gatilho — Ao realizar um ataque de Duelo contra um adversário que tenha lhe causado dano desde sua última ação.\nEfeito — Amplifique a força do golpe.\n\n> Dano: +1d8",
     "published": true,
     "grants": {
       "race": [],
@@ -69,7 +69,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "",
     "cost": "2 ALMA",
-    "content": "Ao sofrer um ataque, ignore seus efeitos de deslocamento forçado e a condição Derrubado. Caso o ataque cause dano, reduza-o em 1d4.",
+    "content": "Gatilho — Ao sofrer um ataque.\nEfeito — Ignore seus efeitos de deslocamento forçado e a condição Derrubado.\nCondição — Caso o ataque cause dano, reduza-o em 1d4.",
     "published": true,
     "grants": {
       "race": [],
@@ -84,7 +84,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "",
     "cost": "3 ALMA",
-    "content": "Ao falhar em um ataque de Duelo, role novamente o dado da perícia utilizada, mantendo o novo resultado. Caso o alvo tenha sofrido dano por você nesta rodada, aumente esse dado em 1 passo antes da nova rolagem.",
+    "content": "Gatilho — Ao falhar em um ataque de Duelo.\nEfeito — Role novamente o dado da perícia utilizada, mantendo o novo resultado.\nCondição — Caso o alvo tenha sofrido dano por você nesta rodada, aumente esse dado em 1 passo antes da nova rolagem.",
     "published": true,
     "grants": {
       "race": [],
@@ -99,7 +99,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "Racial, Arrancar",
     "cost": "2 ALMA",
-    "content": "Sua perícia Instinto passa a ser d10. Durante a criação da ficha, escolha três perícias que poderão ser substituídas por Instinto. Ao obter uma Falha Crítica em um teste de Instinto, perde sua reação da rodada. Caso já tenha utilizado sua reação, perde a da rodada seguinte.",
+    "content": "Efeito — Sua perícia Instinto passa a ser d10.\nEfeito — Durante a criação da ficha, escolha três perícias que poderão ser substituídas por Instinto.\nGatilho — Ao obter uma Falha Crítica em um teste de Instinto, perde sua reação da rodada.\nCondição — Caso já tenha utilizado sua reação, perde a da rodada seguinte.",
     "published": true,
     "grants": {
       "race": [
@@ -116,7 +116,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "Racial, Arrancar",
     "cost": "2 ALMA",
-    "content": "Ao sofrer um ataque que afete sua Vida, acrescente 1d6 à resistência de Vida até o término da fase. Esse dado é considerado uma proteção adicional.",
+    "content": "Gatilho — Ao sofrer um ataque que afete sua Vida.\nEfeito — Acrescente 1d6 à resistência de Vida.\nDuração — Até o término da fase.\nObservação — Esse dado é considerado uma proteção adicional.",
     "published": true,
     "grants": {
       "race": [
@@ -133,7 +133,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "Racial, Arrancar",
     "cost": "2 ALMA",
-    "content": "Ao se movimentar, dobre a distância percorrida e ignore bloqueios formados por criaturas durante o deslocamento.",
+    "content": "Gatilho — Ao se movimentar.\nEfeito — Dobre a distância percorrida e ignore bloqueios formados por criaturas durante o deslocamento.",
     "published": true,
     "grants": {
       "race": [
@@ -150,7 +150,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "Racial, Arrancar",
     "cost": "3 ALMA",
-    "content": "Utilize sua ação principal na fase de Distância para realizar um ataque de Liberação, concentrando sua energia espiritual em um disparo. Ao acertar, acrescente 1d8 ao dano-base.",
+    "content": "Ativação — Utilize sua ação principal na fase de Distância para realizar um ataque de Liberação, concentrando sua energia espiritual em um disparo.\nGatilho — Ao acertar.\nEfeito — Acrescente 1d8 ao dano-base.",
     "published": true,
     "grants": {
       "race": [
@@ -167,7 +167,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "",
     "cost": "2 ALMA",
-    "content": "Ao receber um ataque que afete sua Vida, aumente em 1 passo sua resistência natural até o término da fase.",
+    "content": "Gatilho — Ao receber um ataque que afete sua Vida.\nEfeito — Aumente em 1 passo sua resistência natural.\nDuração — Até o término da fase.",
     "published": true,
     "grants": {
       "race": [],
@@ -182,7 +182,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "",
     "cost": "2 ALMA",
-    "content": "Ao realizar um ataque de Duelo, aumente seu alcance em 3 metros. Caso acerte, pode aproximar o alvo em até 2 metros.",
+    "content": "Gatilho — Ao realizar um ataque de Duelo.\nEfeito — Aumente seu alcance em 3 metros.\nCondição — Caso acerte, pode aproximar o alvo em até 2 metros.",
     "published": true,
     "grants": {
       "race": [],
@@ -197,7 +197,7 @@ window.ARQUIVO_HABILIDADES_CBB = [
     "image": "",
     "tags": "",
     "cost": "3 ALMA",
-    "content": "Ao acertar um ataque de Duelo, amplifique o impacto.\n\n> Dano: +1d6\n\nCaso o alvo esteja em contato com uma superfície sólida, também fica Derrubado.",
+    "content": "Gatilho — Ao acertar um ataque de Duelo.\nEfeito — Amplifique o impacto.\n\n> Dano: +1d6\n\nCondição — Caso o alvo esteja em contato com uma superfície sólida, também fica Derrubado.",
     "published": true,
     "grants": {
       "race": [],
