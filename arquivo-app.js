@@ -1135,9 +1135,10 @@ function libraryTermTone(name){
 function formatBook(source,chapterTitle='',options={}){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
  const searchText=options.highlight===false?'':query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
- const names=[...libraryGlossary.keys()].filter(Boolean).sort((a,b)=>b.length-a.length);
- const namesByInitial=new Map();
- for(const name of names){
+ const sharedIndex=window.ARQUIVO_BIBLIOTECA_LEITURA?.glossaryIndex?.(libraryGlossary);
+ const names=sharedIndex?.names||[...libraryGlossary.keys()].filter(Boolean).sort((a,b)=>b.length-a.length);
+ const namesByInitial=sharedIndex?.byInitial||new Map();
+ if(!sharedIndex)for(const name of names){
   const initial=name[0];
   if(!namesByInitial.has(initial))namesByInitial.set(initial,[]);
   namesByInitial.get(initial).push(name);
