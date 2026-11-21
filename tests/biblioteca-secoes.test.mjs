@@ -64,11 +64,15 @@ test('integração mantém os capítulos originais e carrega recursos em ordem',
  assert.match(app,/r\.book!=='book2'/);
  assert.match(app,/book:libraryVolume\(\)==='book2'\?'book2':'book1'/);
  assert.match(html,/biblioteca-secoes\.css\?v=10/);
+ assert.match(html,/biblioteca-leitura\.css\?v=1/);
+ assert.match(html,/biblioteca-leitura\.js\?v=1/);
+ assert.ok(html.indexOf('biblioteca-leitura.js?v=1')<html.indexOf('arquivo-app.js?v=24&ux=8'));
+ assert.match(app,/chapterReadingMarkup\(r\)/);
  assert.match(html,/habilidades-armazem\.js\?v=5/);
  assert.match(html,/racas-armazem\.js\?v=1/);
  assert.ok(html.indexOf('racas-armazem.js?v=1')<html.indexOf('biblioteca-secoes.js?v=23'));
  assert.ok(html.indexOf('classes-armazem.js?v=6')<html.indexOf('habilidades-armazem.js?v=5'));
  assert.ok(html.indexOf('habilidades-armazem.js?v=5')<html.indexOf('biblioteca-secoes.js?v=23'));
 
- assert.ok(html.indexOf('arquivo-app.js?v=24&ux=7')<html.indexOf('biblioteca-secoes.js?v=23'));
+ assert.ok(html.indexOf('arquivo-app.js?v=24&ux=8')<html.indexOf('biblioteca-secoes.js?v=23'));
 });
