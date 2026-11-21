@@ -40,6 +40,7 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
  const library=await page.evaluate(()=>{
   window.ARQUIVO_SECOES.select('book1');
   window.ARQUIVO_INTERNAL.setPage('library');
+  document.querySelector('[data-action="libraryMode:chapters"]')?.click();
   const first=document.querySelector('.ae-library-chapter');
   const toggle=first?.querySelector('.chapter-toggle');
   if(toggle?.getAttribute('aria-expanded')!=='true')toggle?.click();
