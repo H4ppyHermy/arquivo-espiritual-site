@@ -102,7 +102,10 @@
   return '<div class="ae-wh-detail-text">'+
    '<div class="ae-wh-detail-eyebrow">DESCRIÇÃO & FUNCIONAMENTO</div>'+
    '<div class="book-text ae-library-reading ae-warehouse-reading">'+
-   api.formatBook(['Classes','Raças'].includes(post.category)?(window.ARQUIVO_CBB_PRESENTATION?.standardizeRuleSections?.(post.content||'')||post.content||''):(post.category==='Itens'?(window.ARQUIVO_CBB_PRESENTATION?.standardizeItem?.(post.content||'')||post.content||''):(post.content||'')),post.title||'Registro')+'</div></div>';
+   (['Classes','Raças'].includes(post.category)&&window.ARQUIVO_CBB_PRESENTATION?.renderRuleSections?
+    window.ARQUIVO_CBB_PRESENTATION.renderRuleSections(post.content||'',body=>api.formatBook(body,post.title||'Registro')):
+    api.formatBook(post.category==='Itens'?(window.ARQUIVO_CBB_PRESENTATION?.standardizeItem?.(post.content||'')||post.content||''):(post.content||''),post.title||'Registro'))+
+   '</div></div>';
  }
  function visible(){
   const terms=fold(search).split(/\s+/).filter(Boolean);
@@ -170,7 +173,9 @@
      '<strong class="ae-ability-cost">'+esc(fallbackCost)+'</strong>'+
      '<span class="ae-ability-phase">Fase: Conforme efeito</span></div>')+
     (display?presenter.dice(display):'')+
+    (display?presenter.resourceInfo(display):'')+
     '<div class="book-text ae-library-reading ae-wh-ability-description">'+api.formatBook(effect,title)+'</div>'+
+    (display?presenter.extrasPanel(display,body=>api.formatBook(body,title)):'')+
    '</div>'+
    (tags.length?'<div class="ae-warehouse-tags ae-wh-ability-tags" aria-label="Tags">'+tags.map(tag=>
     '<button type="button" class="'+(tagIsHidden(post,tag)?'is-hidden-tag':'')+'" data-warehouse-action="tag:'+encodeURIComponent(tag)+'" title="'+(tagIsHidden(post,tag)?'Tag oculta para jogadores: ':'Filtrar por ')+esc(tag)+'">#'+esc(tag)+(tagIsHidden(post,tag)?'<small> · SÓ MESTRE</small>':'')+'</button>').join('')+'</div>':'')+
