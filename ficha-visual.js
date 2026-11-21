@@ -157,7 +157,9 @@
      pinButton(ab,index,ctx,true)+'</div>'+
      (m?presenter.meta(m):'<div class="ae-ficha-ability-meta"><span>'+esc(ab.libraryType==='tecnica'?'TÉCNICA':'HABILIDADE')+'</span></div>')+
      (window.ARQUIVO_CBB_UI?.abilitySummary?.(s,ab,index)||'')+
+     (m?presenter.resourceInfo(m):'')+
      '<div class="ae-ficha-quick-description sheet-rich">'+api.sheetRich(m?.description||text(ab.description||''))+'</div>'+
+     (m?presenter.extrasPanel(m,body=>api.sheetRich(body)):'')+
      (window.ARQUIVO_CBB_UI?.abilityActions?.(ab,index,ctx)||'')+'</article>';
    }).join('')+'</div>':
     '<p class="ae-ficha-quick-empty">Use o pin ao lado de uma habilidade para deixá-la aqui.</p>')+
@@ -235,9 +237,11 @@
      '<span class="ae-ability-phase">Fase: '+esc(window.ARQUIVO_CBB_ENGINE?.abilityPhase?.(ab)||'Conforme efeito')+'</span>'+
      (ab.usage?'<span class="ae-ability-usage">Uso: '+esc(ab.usage)+'</span>':'')+'</div>')+
     (window.ARQUIVO_CBB_UI?.abilitySummary?.(api.db?.sheets?.find(x=>x.id===sheetId)||{},ab,index)||'')+
+    (details?presentation.resourceInfo(details):'')+
     '<div class="ae-ficha-ability-full sheet-rich">'+
        (image?'<img alt="Ilustração da habilidade '+name+'" src="'+esc(image)+'" loading="lazy">':'')+
        api.sheetRich(description)+'</div>'+
+    (details?presentation.extrasPanel(details,body=>api.sheetRich(body)):'')+
     (ctx.canEdit?'<div class="ae-ficha-ability-tools">'+api.btn('EDITAR','editAbilityDirect:'+index,'small')+'</div>':'')+
     (window.ARQUIVO_CBB_UI?.abilityActions?.(ab,index,ctx)||'')+
    '</article>';
