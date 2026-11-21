@@ -684,7 +684,12 @@ function library(){
  ' autocomplete="off" spellcheck="false" placeholder="Buscar no sistema" aria-keyshortcuts="/ Escape" aria-describedby="ruleMatches">'+
  '<button class="ae-library-clear" id="libraryClearSearch" data-action="clearLibrarySearch" type="button" aria-label="Limpar pesquisa"'+(!query?' hidden':'')+'>LIMPAR</button></div>'+
  '<p id="ruleMatches" class="ae-library-search-count" role="status" aria-live="polite">'+librarySearchSummary(visible)+'</p>'+
- '<div class="ae-library-toolbar"><span>Clique em palavras do glossário para consultar sua definição.</span>'+
+ '<div class="ae-library-toolbar"><span>Clique nas palavras do glossário para ver a definição. Os símbolos distinguem os tipos de regra.</span>'+
+ '<details class="ae-book-key"><summary>LEGENDA VISUAL</summary>'+
+ '<div class="ae-book-key-items"><span><b aria-hidden="true">◆</b> Conceito</span><span><b aria-hidden="true">▸</b> Ação</span>'+
+ '<span><b aria-hidden="true">◈</b> Recurso</span><span><b aria-hidden="true">◇</b> Teste</span>'+
+ '<span><b aria-hidden="true">✦</b> Efeito</span><span><b aria-hidden="true">⚑</b> Risco</span>'+
+ '<span><b aria-hidden="true">!</b> Limite</span></div></details>'+
  '<div class="actions">'+btn('FECHAR TODOS','closeAllChapters','small')+btn('ABRIR TODOS','openAllChapters','small')+(master()?btn('GERENCIAR GLOSSÁRIO','manageGrimorio','small'):'')+'</div></div>'+
  '<div class="mobile-chapter"><label for="chapterJump">Ir ao capítulo</label>'+
  '<select id="chapterJump"><option value="">Selecione um capítulo</option>'+libraryMobileOptions()+'</select></div>'+
@@ -1044,6 +1049,11 @@ function goLibraryMechanicChapter(code){
  closeModal();openLibraryChapter(id);
 }
 /* Capítulos são renderizados sob demanda; o texto original permanece intocado. */
+function chapterReadingMarkup(rule){
+ const helper=window.ARQUIVO_BIBLIOTECA_LEITURA;
+ return (helper?.outline?.(rule.text,rule.title,rule.id)||'')+
+  formatBook(rule.text,rule.title,{headingPrefix:rule.id});
+}
 function ruleItems(rules){
  if(!rules.length)return query.trim()?
   '<div class="ae-library-empty" role="status"><strong>Nenhum capítulo encontrado</strong><p>Experimente outro termo de pesquisa ou limpe a busca.</p><button type="button" class="btn small" data-action="clearLibrarySearch">LIMPAR BUSCA</button></div>':
@@ -1063,7 +1073,7 @@ function ruleItems(rules){
    (master()?btn('EDITAR','editRule:'+r.id,'small'):'')+'</div>'+
    '<div id="'+esc(bodyId)+'" class="book-text ae-library-reading" role="region"'+
    ' aria-labelledby="'+esc(headingId)+'"'+(opened?'':' hidden')+'>'+
-   (opened?formatBook(r.text,r.title):'')+'</div></article>';
+   (opened?chapterReadingMarkup(r):'')+'</div></article>';
  }).join('');
 }
 function toggleLibraryChapter(id){
@@ -1073,7 +1083,7 @@ function toggleLibraryChapter(id){
  if(open){
   libraryExpandedChapters.add(id);
   libraryActiveChapterId=id;
-  if(content){content.innerHTML=formatBook(rule.text,rule.title);content.hidden=false}
+  if(content){content.innerHTML=chapterReadingMarkup(rule);content.hidden=false}
  }else{
   libraryExpandedChapters.delete(id);
   if(libraryActiveChapterId===id)libraryActiveChapterId=null;
@@ -1180,6 +1190,9 @@ function formatBook(source,chapterTitle='',options={}){
    return '<span class="ae-glossary-link" role="link" tabindex="0" data-action="explainRule:'+encodeURIComponent(marker.name)+'" aria-label="Consultar '+esc(marker.name)+' no glossário">'+esc(marker.display)+'</span>';
   });
  }
+ const reader=window.ARQUIVO_BIBLIOTECA_LEITURA;
+ const headingPrefix=options.headingPrefix||'';
+ let headingIndex=0;
  let html='',paragraph=[],listType=null,code=[],table=[],quote=[],defs=[];
  function flushPara(){if(paragraph.length){html+='<p class="book-paragraph">'+paragraph.map(inline).join(' ')+'</p>';paragraph=[]}}
  function flushList(){if(listType){html+='</'+listType+'>';listType=null}}
@@ -1188,7 +1201,17 @@ function formatBook(source,chapterTitle='',options={}){
   table.forEach((cells,i)=>{const tag=i===0&&table.length>1?'th':'td';html+='<tr>'+cells.map(c=>'<'+tag+'>'+inline(c.trim())+'</'+tag+'>').join('')+'</tr>'});
   html+='</table></div>';table=[]}
  function flushQuote(){if(quote.length){html+='<blockquote class="book-quote">'+quote.map(x=>'<p>'+inline(x)+'</p>').join('')+'</blockquote>';quote=[]}}
- function flushDefs(){if(!defs.length)return;html+='<dl class="ae-book-definitions">'+defs.map(([key,desc])=>'<div class="ae-book-definition"><dt class="ae-def-'+libraryTermTone(key)+'">'+inline(key)+'</dt><dd>'+inline(desc)+'</dd></div>').join('')+'</dl>';defs=[]}
+ function flushDefs(){
+  if(!defs.length)return;
+  html+='<dl class="ae-book-definitions">'+defs.map(([key,desc])=>{
+   const visual=reader?.marker?.(key,'definition')||{tone:'neutral',symbol:'·'};
+   return '<div class="ae-book-definition ae-book-definition--'+visual.tone+'">'+
+    '<dt class="ae-def-'+libraryTermTone(key)+'">'+
+    '<span class="ae-book-def-symbol" aria-hidden="true">'+visual.symbol+'</span>'+
+    '<span class="ae-book-def-label">'+inline(key)+'</span></dt>'+
+    '<dd>'+inline(desc)+'</dd></div>';
+  }).join('')+'</dl>';defs=[];
+ }
  function closeBlocks(){flushPara();flushList();flushTable();flushQuote();flushDefs()}
  let inCode=false,firstNonEmpty=true;
  for(const row of rows){
@@ -1198,7 +1221,8 @@ function formatBook(source,chapterTitle='',options={}){
   if(!line){closeBlocks();continue}
   if(firstNonEmpty){
    firstNonEmpty=false;
-   if(line.toLocaleUpperCase('pt-BR')===String(chapterTitle).trim().toLocaleUpperCase('pt-BR'))continue;
+   if((reader?String(line).replace(/^#{1,6}\s+/,'').replace(/^[✱✦✧❖]\s*/,''):line).toLocaleUpperCase('pt-BR')===
+      String(chapterTitle).trim().toLocaleUpperCase('pt-BR'))continue;
   }
   if(/^\|/.test(line)&&line.includes('|',1)){
    flushPara();flushList();flushQuote();flushDefs();
@@ -1212,7 +1236,12 @@ function formatBook(source,chapterTitle='',options={}){
    closeBlocks();
    const level=heading?Math.min(6,Math.max(2,heading[1].length+1)):3;
    const title=heading?heading[2]:namedSection?namedSection[1]:line;
-   html+='<h'+level+' class="ae-book-heading">'+inline(title)+'</h'+level+'>';
+   const visual=reader?.marker?.(title)||{tone:'neutral',symbol:'·'};
+   const anchor=headingPrefix&&reader?.headingId?' id="'+esc(reader.headingId(headingPrefix,headingIndex))+'"':'';
+   headingIndex++;
+   html+='<h'+level+' class="ae-book-heading ae-book-heading--'+visual.tone+'"'+anchor+'>'+
+    '<span class="ae-book-heading-symbol" aria-hidden="true">'+visual.symbol+'</span>'+
+    '<span class="ae-book-heading-label">'+inline(title)+'</span></h'+level+'>';
    continue;
   }
   if(/^[-=_]{3,}$/.test(line)){closeBlocks();html+='<hr class="book-divider">';continue}
