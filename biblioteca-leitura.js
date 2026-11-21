@@ -9,14 +9,14 @@
   core:'◆',action:'▸',resource:'◈',test:'◇',effect:'✦',risk:'⚑',limit:'!',neutral:'·'
  });
  function category(title,kind='heading'){
-  const x=clean(title).replace(/^[✱✦✧❖]\s*/,'');
+  const x=clean(title).replace(/^[✱✦✧❖▸▹►]\s*/,'');
   if(/^(?:gatilho|ativacao|efeito|resultado|beneficio|consequencia|ao usar|ao sofrer|quando usar)\b/.test(x))
    return kind==='definition'?'effect':'action';
   if(/^(?:custo|consumo|recurso|alma|vida|estabilidade|recuperacao|descanso|meditacao|tratamento|recomposicao)\b/.test(x))
    return 'resource';
   if(/^(?:requisito|limite|restricao|excecao|observacao|duracao)\b/.test(x))
    return 'limit';
-  if(/^(?:exposicao|condicao|debuff|penalidade|desgaste|falha|pavor|critico|morte|desmaiado|acorrentado|pressionado|risco|hollowficacao)\b/.test(x))
+  if(/^(?:nivel|exposicao|condicao|debuff|penalidade|desgaste|falha|pavor|critico|morte|desmaiado|acorrentado|pressionado|risco|hollowficacao)\b/.test(x))
    return 'risk';
   if(/^(?:teste|testes|dados|dado|ra\b|rt\b|rb\b|dt\b|dificuldade|rolagem|teste-clash|resistencia|dano-base|dano\b|acerto)\b/.test(x))
    return 'test';
@@ -32,7 +32,7 @@
  }
  const safePrefix=prefix=>String(prefix||'').replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,85);
  const headingId=(prefix,index)=>'ae-read-'+safePrefix(prefix)+'-'+Number(index);
- const removeMarkdownHeading=x=>String(x||'').replace(/^#{1,6}\s+/,'').replace(/^[✱✦✧❖]\s*/,'').trim();
+ const removeMarkdownHeading=x=>String(x||'').replace(/^#{1,6}\s+/,'').replace(/^[✱✦✧❖▸▹►]\s*/,'').trim();
  function headings(source,chapterTitle=''){
   const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
   const results=[];let inCode=false,firstNonEmpty=true;
@@ -44,7 +44,7 @@
     firstNonEmpty=false;
     if(clean(removeMarkdownHeading(line))===clean(chapterTitle))continue;
    }
-   const named=line.match(/^[✱✦✧❖]\s*(.{2,110})$/);
+   const named=line.match(/^[✱✦✧❖▸▹►]\s*(.{2,110})$/);
    const upper=line.length<70&&/^[\p{Lu}\p{N}\s&/–—'.-]+$/u.test(line)&&/[\p{Lu}]/u.test(line);
    if(!heading&&!named&&!upper)continue;
    const title=heading?heading[2]:named?named[1]:line;
