@@ -12,7 +12,7 @@ test('Armazém renderiza a descrição sem o Registro Técnico removido',()=>{
  assert.doesNotMatch(sections,/function diceReference\(/);
  assert.doesNotMatch(sections,/diceReference\(post\)/);
  assert.match(sections,/function postDetail\(/);
- assert.match(sections,/api\.formatBook\(post\.content/);
+ assert.match(sections,/api\.formatBook\(\['Classes','Raças'\]/);
  assert.doesNotMatch(sections,/function resourceBars\(|RECURSOS VISUAIS|ae-wh-detail-hud/);
  assert.match(sections,/delete entry\.bars/);
 });
