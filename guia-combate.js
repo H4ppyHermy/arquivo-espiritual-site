@@ -1,212 +1,212 @@
-/* Guia de Combate do CBB: tutorial editorial, separado do motor e dos capítulos.
-   As edições opcionais do mestre residem em site.combatGuide.overrides. */
+/* Cola de combate do CBB. Texto editorial; as regras continuam nos capítulos.
+   Edições do mestre: site.combatGuide.overrides (mesmo formato anterior). */
 (function(global){
  'use strict';
  const api=global.ARQUIVO_INTERNAL;
  if(!api)return;
- const sections=[
-  {id:'objetivo',tag:'01 · PLANEJAMENTO',title:'Ganhe a cena antes de ganhar o duelo',
-   lead:'A melhor ação não é sempre a que causa mais dano. Primeiro, entenda o que precisa acontecer para vencer.',
-   text:[
-    '**Identifique a condição de vitória.** A luta pede derrotar todos, proteger alguém, escapar ou resistir até um evento? O livro admite objetivos diferentes de incapacitar inimigos.',
-    '**Escolha uma prioridade.** Descubra quem ameaça seu plano e quem precisa de ajuda. Evite gastar sua ação principal apenas porque há um inimigo ao alcance.',
-    '**Combine responsabilidades.** Quem vai proteger, quem vai preparar o campo e quem realmente precisa atacar? Evite que dois aliados gastem recursos para resolver o mesmo problema.',
-    '**Observe o custo.** ALMA, reação e oportunidade de ação principal são recursos da rodada. Um golpe impressionante que deixe o grupo exposto pode não ser eficiente.'
-   ].join('\n\n'),
-   tip:'Antes de declarar: “Se eu acertar, o que muda na cena?” Se a resposta for “quase nada”, procure uma ação mais útil.',
-   risk:'Não confunda vencer a cena com maximizar dano. Proteção, fuga e controle também podem ser objetivos válidos.',
-   topic:'combate'},
-  {id:'fases',tag:'02 · LEITURA DE RITMO',title:'Aja na fase certa',
-   lead:'Preparação, Distância, Duelo e Desfecho organizam quando sua intervenção acontece.',
-   text:[
-    '**Preparação:** fortaleça aliados, libere poderes, organize defesa ou execute suporte quando o efeito permitir.',
-    '**Distância:** use ataques de longo alcance e habilidades apropriadas para alcançar alvos antes dos confrontos próximos.',
-    '**Duelo:** resolva investidas, ataques corporais, armas e outras disputas de curta distância.',
-    '**Desfecho:** observe condições, danos contínuos, recuperações e efeitos que terminam; não é uma fase livre para gastar uma nova ação principal.',
-    '**Economia básica:** sua ação principal normal é escolhida entre as três primeiras fases; normalmente há também uma reação por rodada. Declarações na mesma fase são simultâneas conforme as regras.'
-   ].join('\n\n'),
-   tip:'Decida primeiro a fase e só depois a habilidade. Se você usar sua principal para preparar, não conte com outra principal normal para atacar no Duelo.',
-   risk:'Não espere uma fase já encerrada para tentar agir nela. Ações adicionais seguem as limitações de fase e das próprias habilidades.',
-   topic:'combate'},
-  {id:'ataque',tag:'03 · CONSTRUÇÃO DO GOLPE',title:'Ataque com vantagem, não por impulso',
-   lead:'Concentre acertos nos alvos relevantes e conheça a diferença entre acertar, causar dano e superar resistência.',
-   text:[
-    '**Teste de acerto:** em ações diretamente opostas, o Teste-Clash usa normalmente a RA de cada lado. Não confunda o resultado para acertar com o cálculo posterior do dano.',
-    '**Dano-base comum:** RA do ataque mais o dano da arma, técnica ou habilidade. A resistência reduz o dano recebido; ela não cancela retroativamente o acerto.',
-    '**Resistência natural:** Corpo contra dano à Vida, Mente contra Estabilidade e Espírito contra ALMA. Para cada recurso atingido, há uma rolagem de resistência por fase, aplicada separadamente aos ataques daquela fase.',
-    '**Selecione a ferramenta certa:** se uma técnica causa uma condição, desloca o inimigo ou pressiona uma defesa, avalie o benefício além dos pontos de dano.',
-    '**Concentre esforços:** um adversário já comprometido pode ser um alvo taticamente melhor, mas confirme distância, alcance, fase e gatilhos de cada técnica antes de usar ALMA.'
-   ].join('\n\n'),
-   tip:'Confirme três coisas: chance de acertar, benefício real caso acerte e custo de ALMA por esse benefício.',
-   risk:'Acerto bem-sucedido não garante dano à Vida: a resistência pode reduzir o dano a zero, embora efeitos que dependam apenas do acerto ainda possam ocorrer.',
-   topic:'dano'},
-  {id:'defesa',tag:'04 · SOBREVIVÊNCIA',title:'Sua reação vale uma escolha',
-   lead:'Defender sem reação e defender gastando reação não são a mesma coisa no CBB.',
-   text:[
-    '**Defesa comum:** ao receber um ataque, faça o teste defensivo apropriado. O Teste-Clash defensivo utiliza normalmente a RA.',
-    '**Com reação disponível:** você pode gastá-la para usar o RT no lugar da RA do seu teste defensivo. Se vencer o Clash, evita o ataque; caso contrário, sofre seus efeitos.',
-    '**Pressionado:** um ataque bem-sucedido pode iniciar Pressionado. Acertos posteriores agravam a Exposição Defensiva, com os limites previstos por rodada, aplicados ao fim da fase.',
-    '**Proteções e resistência:** mesmo sem reação, a resistência natural funciona. Proteções adicionais aplicáveis obedecem à regra de escolher a mais vantajosa, não somar todas.',
-    '**Escolha o momento:** avalie se vale gastar sua reação agora ou preservá-la para uma ameaça ainda maior. Ação Completa também consome a reação normal.'
-   ].join('\n\n'),
-   tip:'Guarde reação quando houver ameaça realmente relevante, mas não a preserve automaticamente se isso colocar seu objetivo em risco.',
-   risk:'Pressionado e as Exposições Defensivas acumuladas são diferentes. Uma rodada sem acertos encerra Pressionado no Desfecho, mas as Exposições exigem suas regras de redução.',
-   topic:'combate'},
-  {id:'completa',tag:'05 · ALTO RISCO / ALTO IMPACTO',title:'Quando usar a Ação Completa',
-   lead:'Trocar defesa por dano pode decidir a luta — se você tiver uma boa oportunidade de acerto.',
-   text:[
-    '**Declare antes do ataque.** A Ação Completa gasta sua ação principal normal E sua reação normal da rodada. Ambas são consumidas mesmo em falha.',
-    '**Acerto não muda:** o Teste-Clash permanece o mesmo. Se acertar, use o RT do teste de acerto no lugar da RA apenas na primeira rolagem de dano-base daquele ataque.',
-    '**O restante é preservado:** dados da arma, técnica, habilidade e outros bônus de dano continuam valendo normalmente.',
-    '**Restrições:** você precisa ter ambas as oportunidades disponíveis e não pode usar uma segunda Ação Completa na mesma rodada. A conversão não vale para ataques posteriores.',
-    '**Uso inteligente:** escolha um alvo com boa chance de acerto e um momento em que perder sua reação não comprometa a sobrevivência nem a proteção de aliados.'
-   ].join('\n\n'),
-   tip:'Pense nela como “uma aposta em um golpe decisivo”, não como um ataque gratuito ou um bônus permanente.',
-   risk:'Se a chance de acertar for pequena ou você precisar reagir a uma ameaça, preservar a reação pode ser mais eficiente.',
-   topic:'combate'},
-  {id:'exposicoes',tag:'06 · GESTÃO DE RISCO',title:'Acelere sem destruir a próxima rodada',
-   lead:'Ação Comprometedora oferece uma oportunidade adicional, mas deixa consequências.',
-   text:[
-    '**Comprometimento:** você pode realizar uma ação principal ou reação adicional assumindo uma Exposição, respeitando o limite de um comprometimento por rodada e as demais condições de uso.',
-    '**Defensiva:** piora defesas conforme seus níveis; **Ofensiva:** reduz passos dos ataques imediatamente; **Rítmica:** sacrifica movimentação, reação e, no nível mais grave, ação principal da próxima rodada.',
-    '**Espiritual:** ao escolher esta Exposição para um comprometimento, recupere até 2 ALMA sem exceder o máximo, mas receba reduções de passo nos testes do grupo Espírito. Não pode ser escolhida com ALMA cheia.',
-    '**Contenção:** complete uma rodada sem Ações Comprometedoras para reduzir uma Exposição em um nível no Desfecho. A Exposição Defensiva não pode ser reduzida por Contenção enquanto estiver Pressionado.',
-    '**Escolha conforme seu objetivo:** uma ação adicional hoje pode valer muito; repetir comprometimentos sem controlar os níveis pode enfraquecer profundamente seu próximo turno.'
-   ].join('\n\n'),
-   tip:'Compare o ganho da ação extra ao custo na rodada seguinte. Se a ameaça passou, considere uma rodada de Contenção.',
-   risk:'A Exposição Ofensiva e a Espiritual afetam imediatamente a ação que as provocou. A Rítmica aplica as perdas de oportunidade na rodada seguinte.',
-   topic:'combate'},
-  {id:'equipe',tag:'07 · COOPERAÇÃO',title:'Multiplique o valor do grupo',
-   lead:'Cooperação eficiente pode superar uma sequência de ações isoladas.',
-   text:[
-    '**Auxílio:** um personagem pode gastar uma ação principal para auxiliar um teste com perícia coerente de pelo menos d6. Uma perícia d6 ou d8 aumenta em 1 passo a perícia do aliado; d10 ou superior aumenta em 2 passos.',
-    '**Limite importante:** apenas um Auxílio pode beneficiar cada teste, respeitando os limites normais de aumento de passos.',
-    '**Planeje as fases:** um aliado pode estabelecer proteção na Preparação enquanto outro se posiciona para atacar na fase apropriada — cada um respeitando suas ações disponíveis.',
-    '**Não desperdice gatilhos:** antes de ativar uma Habilidade ou Técnica, veja se precisa de acerto, dano à Vida, condição anterior, distância, fase ou custo de ALMA.',
-    '**Proteja a função de cada um:** se uma pessoa precisa manter a reação para defender o grupo, não force essa pessoa a usar Ação Completa apenas por aumentar o dano.'
-   ].join('\n\n'),
-   tip:'Uma boa comunicação simples é “eu preparo”, “eu ataco”, “eu guardo reação”. Isso reduz decisões incompatíveis.',
-   risk:'Auxiliar não cria uma ação adicional. Quem auxilia gasta sua própria ação principal.',
-   topic:'testes'},
-  {id:'exemplo',tag:'08 · TREINO ORIENTADO',title:'Uma rodada bem planejada',
-   lead:'Exemplo tático ilustrativo com três personagens. Não é um combo automático nem concede ações extras.',
-   text:[
-    '**Situação:** um aliado está vulnerável, um inimigo ameaça a linha de frente e o grupo precisa afastá-lo sem abandonar quem está ferido.',
-    '**Preparação:** a personagem de suporte usa sua ação principal para aplicar uma proteção permitida por sua ficha. Ela já gastou a principal normal da rodada.',
-    '**Distância:** a combatente de alcance tenta atingir o inimigo com sua ação principal, verificando alcance, acerto e custo da técnica.',
-    '**Duelo:** o combatente corpo a corpo escolhe sua ação principal para um ataque de curta distância; se o inimigo já foi acertado, verifique os efeitos de Pressionado de acordo com as regras da fase.',
-    '**Defesa:** cada personagem decide se gastará sua reação para trocar RA por RT no próprio teste defensivo quando houver ataque contra ele.',
-    '**Desfecho:** resolvam condições e efeitos periódicos, verifiquem quem pode receber Contenção e se novas oportunidades de ação serão restauradas.',
-    '**Avaliação:** o grupo distribuiu pressão, suporte e ofensiva. Se faltasse apenas um golpe decisivo, um atacante com sua principal e reação ainda disponíveis poderia considerar uma Ação Completa.'
-   ].join('\n\n'),
-   tip:'Refaça este exemplo trocando o objetivo: sobreviver, escoltar um aliado ou fugir. A melhor ação muda quando a vitória muda.',
-   risk:'As ações do exemplo pertencem a personagens diferentes. Um personagem isolado não pode copiar todas elas usando apenas sua ação principal normal.',
-   topic:'combate'}
+
+ const entries=[
+  {id:'fases',group:'Agir',tag:'01 · RODADA',title:'Em que fase eu ajo?',lead:'Escolha uma das três primeiras fases para usar sua ação principal.',
+   text:'- Preparação: liberar poderes, fortalecer, proteger ou dar suporte.\n- Distância: disparos, projéteis e ataques de longe.\n- Duelo: golpes próximos, investidas, agarrões e disputas corporais.\n- Desfecho: resolva condições e efeitos; não é outra chance de agir.',
+   tip:'Se preparou uma proteção com sua principal, não tem outra principal normal para atacar no Duelo.',
+   risk:'Ações declaradas na mesma fase são simultâneas. Não dá para voltar a uma fase que já passou.',
+   topic:'combate',keywords:'preparacao distancia duelo desfecho rodada simultaneo ordem'},
+  {id:'objetivo',group:'Agir',tag:'02 · OPORTUNIDADES',title:'Quantas ações eu tenho?',lead:'1 ação principal e 1 reação normal por rodada.',
+   text:'- A principal pode ser usada em Preparação, Distância ou Duelo.\n- A reação pode melhorar uma defesa ou ser usada por efeitos que a exijam.\n- Ações menores, como falar, dependem da situação; não substituem as oportunidades principais.\n- No Desfecho, as oportunidades normais voltam, salvo impedimento.',
+   tip:'Antes de usar uma técnica, olhe o custo: ALMA, ação, reação e fase.',
+   risk:'Ação Completa gasta as duas oportunidades normais. Uma Ação Comprometedora tem regras próprias.',
+   topic:'combate',keywords:'acao principal reacao quantidade economia rodada menor'},
+  {id:'dados',group:'Agir',tag:'03 · TESTES',title:'RA, RT ou RB?',lead:'RT é a soma. RA é o maior dado. RB é o menor.',
+   text:'- Teste comum: use o RT, salvo indicação diferente.\n- Teste-Clash: normalmente vence a maior RA; no empate, vence quem iniciou a ação.\n- Para dano-base normal: use a RA do ataque.\n- Quando a regra mandar usar RT ou RB no lugar da RA, siga essa exceção.',
+   tip:'Rolou 5 e 3? RT = 8, RA = 5 e RB = 3.',
+   risk:'Não use o RT para acertar num Clash comum só porque o RT é maior.',
+   topic:'testes',keywords:'clash duelo resultado rolagem total alta baixa dados pericias teste'},
+  {id:'movimento',group:'Agir',tag:'04 · POSIÇÃO',title:'Quanto posso andar?',lead:'Sua movimentação é igual ao valor máximo do dado de Destreza.',
+   text:'- Com uma ação principal, você pode andar até sua movimentação antes ou depois de agir.\n- Se gastar a principal só para se deslocar, anda até o dobro.\n- Uma ação principal adicional traz sua própria oportunidade de movimento.',
+   tip:'Destreza d6: até 6 m ao agir; até 12 m se gastar a principal apenas para correr.',
+   risk:'O deslocamento não permite atravessar obstáculos ou ignorar condições que o impeçam.',
+   topic:'combate',keywords:'movimento movimentacao correr metros deslocar destreza'},
+  {id:'ataque',group:'Atacar',tag:'05 · ACERTO',title:'Como sei se acertei?',lead:'Num confronto direto, atacante e defensor fazem um Teste-Clash.',
+   text:'- Compare a RA dos testes, salvo habilidade que diga o contrário.\n- A maior RA vence. Se empatar, vence quem iniciou a ação.\n- Se o defensor vencer, evita o ataque. Se não, o ataque acerta.\n- Depois do acerto, calcule o dano e aplique a resistência.',
+   tip:'Atingir o alvo e causar dano são duas coisas diferentes.',
+   risk:'Confira se há crítico ou alguma técnica que altere a regra do teste.',
+   topic:'testes',keywords:'ataque acertar acerto clash evasao esquiva disputa rolagem'},
+  {id:'defesa',group:'Defender',tag:'06 · REAÇÃO',title:'Preciso gastar reação para defender?',lead:'Não. A defesa comum usa RA; gastar reação permite usar RT.',
+   text:'- Quando receber um ataque, faça um teste defensivo com a perícia apropriada.\n- Sem gastar reação: use a RA no Teste-Clash defensivo.\n- Com reação disponível e gasta: use o RT no lugar da RA.\n- Se vencer o Clash, evita o ataque.',
+   tip:'Você pode guardar a reação para um ataque mais perigoso, mas corre o risco de não se defender bem agora.',
+   risk:'Gastar a reação não garante sucesso. Se ela já foi usada ou está bloqueada, não pode gastá-la novamente.',
+   topic:'combate',keywords:'defender bloqueio esquiva rt sem reacao defesa reação'},
+  {id:'dano',group:'Atacar',tag:'07 · DANO',title:'Como calculo o dano?',lead:'Dano-base normal = RA do ataque + dados e bônus de dano.',
+   text:'- Primeiro confirme o acerto.\n- Some à RA o dano da arma, Habilidade ou Técnica, conforme o efeito.\n- Subtraia a resistência correspondente ao recurso atingido.\n- Desconte o restante de Vida, Estabilidade ou ALMA.',
+   tip:'RA 7 + 1d6 que rolou 4 = 11 de dano-base. Resistência 5: o alvo perde 6.',
+   risk:'Na Ação Completa, a primeira rolagem de dano-base troca RA por RT. O teste de acerto não muda.',
+   topic:'dano',keywords:'dano base vida alma estabilidade arma resistencia calcular'},
+  {id:'resistencia',group:'Defender',tag:'08 · RESISTIR',title:'Como funciona a resistência?',lead:'Rola uma vez por recurso afetado, por fase. O resultado vale contra cada ataque dessa fase.',
+   text:'- Contra dano à Vida: use Corpo. À Estabilidade: Mente. À ALMA: Espírito.\n- Subtraia o resultado da resistência de cada dano-base recebido.\n- Resistência natural não gasta ação nem reação.\n- Some no máximo uma proteção adicional compatível, a de maior benefício.',
+   tip:'Dois ataques na mesma fase, ambos contra Vida: role a resistência de Vida uma vez e aplique o valor a cada ataque.',
+   risk:'Resistência reduz dano; não faz um ataque acertado deixar de ser um acerto.',
+   topic:'dano',keywords:'protecao resistir dano corpo mente espirito natural coletiva'},
+  {id:'completa',group:'Atacar',tag:'09 · APOSTA',title:'Como funciona a Ação Completa?',lead:'Gaste a principal normal + a reação normal para causar mais dano se acertar.',
+   text:'- Declare antes do teste. Precisa ter as duas oportunidades disponíveis.\n- O Teste-Clash do acerto continua igual.\n- Se acertar, troque RA por RT na primeira rolagem de dano-base do ataque.\n- Dados e bônus de dano continuam. Só vale para esse ataque e essa rolagem.',
+   tip:'Boa para um golpe decisivo quando você não precisa guardar a reação.',
+   risk:'Gastou ambas mesmo se errar. Não pode repetir outra Ação Completa na rodada.',
+   topic:'combate',keywords:'acao completa rt dano golpe principal reacao decisivo'},
+  {id:'pressao',group:'Defender',tag:'10 · PRESSÃO',title:'Fui atingido. Fiquei Pressionado?',lead:'Sim. Um ataque bem-sucedido já deixa você Pressionado.',
+   text:'- Cada novo acerto pode agravar sua Exposição Defensiva, no máximo uma vez por rodada.\n- O agravamento entra ao término da fase.\n- Mesmo um acerto com dano totalmente resistido conta para Pressão.\n- Sem sofrer acertos durante uma rodada, Pressionado termina no Desfecho.',
+   tip:'Se recebeu mais de um acerto, confira se sua Exposição Defensiva deve subir.',
+   risk:'Sair de Pressionado não apaga os níveis de Exposição Defensiva acumulados.',
+   topic:'combate',keywords:'pressionado pressao defesa acertos exposicao'},
+  {id:'exposicoes',group:'Arriscar',tag:'11 · AÇÃO EXTRA',title:'Posso fazer mais uma ação?',lead:'Pode: use uma Ação Comprometedora e assuma uma Exposição.',
+   text:'- Ela concede uma ação principal OU reação adicional.\n- Só é permitido um comprometimento por rodada.\n- Você precisa poder realizar sua ação principal normal.\n- A principal extra pode ocorrer na mesma fase ou em uma posterior.',
+   tip:'Use quando essa oportunidade extra realmente mudar a situação.',
+   risk:'As penalidades da Exposição escolhida passam a valer conforme sua própria regra.',
+   topic:'combate',keywords:'comprometimento comprometedora acao extra reacao adicional'},
+  {id:'escolha',group:'Arriscar',tag:'12 · EXPOSIÇÕES',title:'Qual Exposição eu escolho?',lead:'Escolha o preço que consegue pagar: defesa, ataque, próxima rodada ou Espírito.',
+   text:'- Defensiva: prejudica suas defesas conforme o nível.\n- Ofensiva: reduz o dado de perícia dos ataques imediatamente.\n- Rítmica: perde movimento, reação e, no nível III, principal na próxima rodada.\n- Espiritual: recupera até 2 ALMA imediatamente, mas reduz passos das perícias de Espírito.',
+   tip:'Precisa recuperar ALMA? A Espiritual ajuda, mas não pode ser escolhida com ALMA cheia.',
+   risk:'Cada Exposição vai até o nível III. Ao reduzir perícia d4, a redução passa para o dado do grupo.',
+   topic:'combate',keywords:'exposicao defensiva ofensiva ritmica espiritual alma nivel'},
+  {id:'contencao',group:'Arriscar',tag:'13 · RECUPERAR',title:'Como diminuo uma Exposição?',lead:'Passe uma rodada sem Ação Comprometedora: reduza 1 nível de uma Exposição no Desfecho.',
+   text:'- Contenção não gasta sua ação principal nem exige teste.\n- Você escolhe qual Exposição reduzir.\n- Enquanto estiver Pressionado, não pode reduzir a Defensiva por Contenção.',
+   tip:'Se você não precisa forçar outra ação, aproveite a rodada para diminuir o risco.',
+   risk:'Oportunidades já perdidas pela Exposição Rítmica não são devolvidas retroativamente.',
+   topic:'combate',keywords:'contencao tirar penalidade reduzir exposicao pressionado'},
+  {id:'equipe',group:'Equipe',tag:'14 · AUXÍLIO',title:'Como ajudo um aliado?',lead:'Gaste sua principal para dar um aumento de passo à perícia dele.',
+   text:'- Use uma perícia coerente com a ajuda e de pelo menos d6.\n- Se sua perícia é d6 ou d8: o aliado ganha 1 passo.\n- Se é d10 ou maior: ganha 2 passos.\n- Cada teste aceita apenas um Auxílio, respeitando os limites de passos.',
+   tip:'Se o ataque do aliado é a jogada-chave da rodada, talvez seja melhor ajudá-lo.',
+   risk:'Auxílio consome a sua ação principal, não é uma ação gratuita.',
+   topic:'testes',keywords:'auxiliar ajudar aliado equipe pericia aumento passo'},
+  {id:'exemplo',group:'Equipe',tag:'15 · NA PRÁTICA',title:'O que fazer numa rodada difícil?',lead:'Escolha uma prioridade e deixe cada aliado cumprir sua parte.',
+   text:'- O suporte usa sua principal na Preparação para proteger alguém.\n- Quem ataca de longe usa a sua principal na Distância.\n- Quem luta perto usa a sua principal no Duelo.\n- Cada um decide quando vale gastar a reação para usar RT na defesa.',
+   tip:'Antes de jogar: “Qual é meu alvo? Qual fase? Quanto custa? E minha reação?”',
+   risk:'Essas ações são de personagens diferentes. Não são quatro ações normais de uma pessoa.',
+   topic:'combate',keywords:'exemplo estrategia time taticas rodada suporte ataque'}
  ];
- let active='objetivo';
+ const groups=['Tudo','Agir','Atacar','Defender','Arriscar','Equipe'];
  const safe=x=>api.esc(String(x??''));
- const normalize=val=>typeof val==='string'?val:'';
+ const fold=x=>String(x??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR').trim();
+ let selected='fases',group='Tudo',term='';
  const overrides=()=>api.db.site?.combatGuide?.overrides||{};
  function current(){
-  const customized=overrides();
-  return sections.map(s=>{
-   const o=customized[s.id];
-   if(!o||typeof o!=='object'||Array.isArray(o))return {...s};
-   return {...s,title:normalize(o.title)||s.title,lead:normalize(o.lead)||s.lead,
-    text:normalize(o.text)||s.text,tip:normalize(o.tip)||s.tip,risk:normalize(o.risk)||s.risk};
+  const opts=overrides();
+  return entries.map(entry=>{
+   const value=opts[entry.id];
+   if(!value||typeof value!=='object'||Array.isArray(value))return {...entry};
+   const result={...entry};
+   for(const key of ['title','lead','text','tip','risk'])
+    if(typeof value[key]==='string'&&value[key].trim())result[key]=value[key].trim();
+   return result;
   });
  }
- const lookup={
-  combate:/combate|fases de combate/i,
-  dano:/dano|resist[eê]ncia/i,
-  testes:/teste|dados/i
- };
- function sourceFor(step){
-  const regex=lookup[step.topic]||lookup.combate;
-  return api.db.rules.find(rule=>regex.test(String(rule.title||'')))||null;
+ function filtered(items=current()){
+  const words=fold(term).split(/\s+/).filter(Boolean);
+  return items.filter(item=>(group==='Tudo'||item.group===group)&&
+   words.every(word=>fold([item.title,item.lead,item.text,item.tip,item.risk,item.group,item.keywords].join(' ')).includes(word)));
+ }
+ function sourceFor(item){
+  const match=item.topic==='dano'?/dano|resist[eê]ncia/i:item.topic==='testes'?/testes|dados/i:/combate|movimenta[cç][aã]o/i;
+  return api.db.rules.find(rule=>rule.book!=='book2'&&match.test(String(rule.title||'')))||null;
+ }
+ function cards(items){
+  if(!items.length)return '<div class="ae-field-no-results" role="status"><strong>Nada com esse nome.</strong><span>Tente “reação”, “dano”, “exposição” ou limpe os filtros.</span><button type="button" data-guide-action="clear">LIMPAR BUSCA</button></div>';
+  return items.map((item,i)=>
+   '<button type="button" class="ae-field-card'+(item.id===selected?' is-active':'')+'" data-guide-action="step:'+safe(item.id)+'" aria-pressed="'+(item.id===selected)+'">'+
+    '<span class="ae-field-card-index">'+String(entries.indexOf(entries.find(e=>e.id===item.id))+1).padStart(2,'0')+'</span>'+
+    '<span class="ae-field-card-copy"><strong>'+safe(item.title)+'</strong><small>'+safe(item.lead)+'</small></span>'+
+    '<span class="ae-field-card-mark" aria-hidden="true">↗</span></button>').join('');
+ }
+ function answer(item){
+  if(!item)return '<div class="ae-field-no-answer" role="status">Escolha uma pergunta para ver a resposta.</div>';
+  const source=sourceFor(item);
+  return '<article class="ae-guide-lesson ae-field-answer" id="aeGuideLesson" tabindex="-1" aria-live="polite">'+
+   '<div class="ae-field-answer-top"><span>'+safe(item.tag)+'</span><span>RESPOSTA RÁPIDA</span></div>'+
+   '<h3>'+safe(item.title)+'</h3>'+
+   '<p class="ae-field-answer-lead">'+safe(item.lead)+'</p>'+
+   '<div class="ae-field-answer-instructions book-text ae-library-reading">'+api.formatBook(item.text,'',{highlight:false})+'</div>'+
+   '<div class="ae-field-example"><span>EXEMPLO / QUANDO USAR</span><p>'+safe(item.tip)+'</p></div>'+
+   '<div class="ae-field-warning"><span>ATENÇÃO</span><p>'+safe(item.risk)+'</p></div>'+
+   '<div class="ae-field-answer-actions">'+
+    (source?'<button type="button" data-guide-action="chapter:'+encodeURIComponent(source.id)+'">REGRA COMPLETA: '+safe(source.title)+' ↗</button>':'')+
+    (api.master()?'<button type="button" data-guide-action="edit:'+safe(item.id)+'">EDITAR RESPOSTA</button>':'')+
+   '</div></article>';
  }
  function render(){
-  const items=current(),index=Math.max(0,items.findIndex(s=>s.id===active)),step=items[index]||items[0];
-  if(!step)return '';
-  const chapter=sourceFor(step);
-  return '<section class="ae-guide-root" aria-label="Guia de Combate do CBB">'+
-   '<div class="ae-guide-hero"><div><span class="ae-library-kicker">TREINAMENTO PRÁTICO · CBB</span>'+
-    '<h2>DA PRIMEIRA DECISÃO AO GOLPE FINAL</h2>'+
-    '<p>Oito aulas curtas para tomar boas decisões, entender riscos e combater em equipe. Orientações práticas baseadas nas regras atuais, não regras adicionais.</p></div>'+
-    '<div class="ae-guide-metrics"><strong>08</strong><span>ETAPAS DE APRENDIZADO</span></div></div>'+
-   '<div class="ae-guide-layout"><nav class="ae-guide-index" aria-label="Etapas do tutorial">'+
-    '<span class="ae-guide-index-label">ROTEIRO DE COMBATE</span>'+
-    items.map((entry,i)=>'<button type="button" class="ae-guide-step'+(entry.id===step.id?' is-active':'')+'" data-guide-action="step:'+safe(entry.id)+'" aria-current="'+(entry.id===step.id?'step':'false')+'">'+
-      '<span>'+String(i+1).padStart(2,'0')+'</span><strong>'+safe(entry.title)+'</strong></button>').join('')+'</nav>'+
-   '<article class="ae-guide-lesson" id="aeGuideLesson" tabindex="-1" aria-live="polite">'+
-    '<header class="ae-guide-lesson-header"><span>'+safe(step.tag)+'</span><span>ETAPA '+String(index+1).padStart(2,'0')+' / '+String(items.length).padStart(2,'0')+'</span></header>'+
-    '<h3>'+safe(step.title)+'</h3><p class="ae-guide-lead">'+safe(step.lead)+'</p>'+
-    '<div class="ae-guide-lesson-copy book-text ae-library-reading">'+api.formatBook(step.text,'',{highlight:false})+'</div>'+
-    '<div class="ae-guide-tactic"><span>DECISÃO EFICIENTE</span><p>'+safe(step.tip)+'</p></div>'+
-    '<div class="ae-guide-caution"><span>EVITE ESTE ERRO</span><p>'+safe(step.risk)+'</p></div>'+
-    '<div class="ae-guide-reference">'+
-     (chapter?'<button type="button" data-guide-action="chapter:'+encodeURIComponent(chapter.id)+'">LER REGRA ORIGINAL: '+safe(chapter.title)+' ↗</button>':'<span>Consulte os capítulos originais para confirmar a redação vigente.</span>')+
-     (api.master()?'<button type="button" class="ae-guide-edit" data-guide-action="edit:'+safe(step.id)+'">EDITAR ESTA ETAPA</button>':'')+'</div>'+
-    '<footer class="ae-guide-lesson-footer">'+
-     '<button type="button" data-guide-action="previous"'+(index===0?' disabled':'')+'>← ANTERIOR</button>'+
-     '<span>'+String(index+1)+' de '+String(items.length)+'</span>'+
-     '<button type="button" data-guide-action="next"'+(index===items.length-1?' disabled':'')+'>PRÓXIMA ETAPA →</button></footer>'+
-   '</article></div>'+
-   '<div class="ae-guide-checklist"><div><span class="ae-library-kicker">ANTES DE DECLARAR SUA AÇÃO</span><h3>LISTA TÁTICA DE CONFERÊNCIA</h3></div>'+
-    '<ul><li>Qual é o objetivo real desta cena?</li><li>Qual fase permite executar minha ação?</li>'+
-    '<li>Preciso da reação para me defender?</li><li>Meu custo de ALMA e meus gatilhos são válidos?</li>'+
-    '<li>Uma Ação Completa ou um comprometimento valem o risco?</li></ul></div>'+
-   '</section>';
+  const items=current(),matches=filtered(items),choice=matches.find(item=>item.id===selected)||matches[0]||null;
+  if(choice)selected=choice.id;
+  return '<section class="ae-guide-root ae-field-guide" aria-label="Guia de Combate — referência rápida">'+
+   '<div class="ae-field-banner"><div class="ae-field-banner-copy"><span class="ae-field-stamp">CBB <b>/</b> CONSULTA DE MESA</span>'+
+    '<h2>COLA DE<br>COMBATE<span class="ae-field-period">.</span></h2>'+
+    '<p>Travou numa regra? Ache a resposta e volte pra luta.</p></div>'+
+    '<div class="ae-field-badge" aria-hidden="true"><span>15</span><small>RESPOSTAS<br>DE BOLSO</small></div></div>'+
+   '<div class="ae-field-toolbar"><div class="ae-field-search"><label for="aeGuideSearch">QUAL É A DÚVIDA?</label>'+
+    '<input id="aeGuideSearch" type="search" autocomplete="off" spellcheck="false" value="'+safe(term)+'" placeholder="Reação, dano, Ação Completa, Pressionado…" aria-controls="aeGuideResults">'+
+    '<span class="ae-field-search-symbol" aria-hidden="true">/</span></div>'+
+   '<div class="ae-field-filters" id="aeGuideFilters" aria-label="Filtrar dúvidas por assunto">'+groups.map(g=>
+    '<button type="button" data-guide-action="group:'+safe(g)+'" aria-pressed="'+(g===group)+'" class="'+(g===group?'is-active':'')+'">'+safe(g)+'</button>').join('')+'</div></div>'+
+   '<div class="ae-field-layout"><div class="ae-field-questions"><div class="ae-field-list-heading"><strong>ESCOLHA UMA DÚVIDA</strong><span id="aeGuideCount" role="status">'+matches.length+' de '+entries.length+'</span></div>'+
+    '<div class="ae-field-results" id="aeGuideResults">'+cards(matches)+'</div></div>'+
+    '<div class="ae-field-answer-wrap" id="aeGuideAnswer">'+answer(choice)+'</div></div>'+
+   '<p class="ae-field-disclaimer">Resumo para consulta rápida. Se uma Habilidade, Técnica ou regra específica disser algo diferente, siga o texto oficial.</p>'+
+  '</section>';
  }
- function select(id){
-  if(!sections.some(s=>s.id===id))return;
-  active=id;api.render();
-  const lesson=document.getElementById('aeGuideLesson');
-  if(lesson&&matchMedia('(max-width:850px)').matches)lesson.scrollIntoView({behavior:'auto',block:'start'});
+ function refresh(){
+  const items=current(),matches=filtered(items),choice=matches.find(item=>item.id===selected)||matches[0]||null;
+  if(choice)selected=choice.id;
+  const list=document.getElementById('aeGuideResults');if(list)list.innerHTML=cards(matches);
+  const box=document.getElementById('aeGuideAnswer');if(box)box.innerHTML=answer(choice);
+  const count=document.getElementById('aeGuideCount');if(count)count.textContent=matches.length+' de '+entries.length;
+  const filters=document.getElementById('aeGuideFilters');if(filters)filters.querySelectorAll('[data-guide-action^="group:"]').forEach(b=>{
+   const yes=b.dataset.guideAction.slice(6)===group;b.classList.toggle('is-active',yes);b.setAttribute('aria-pressed',String(yes));
+  });
+ }
+ function select(id,focus=false){
+  if(!current().some(item=>item.id===id))return;
+  selected=id;refresh();
+  if(focus){
+   const panel=document.getElementById('aeGuideLesson');
+   if(panel){
+    panel.focus?.({preventScroll:true});
+    if(global.matchMedia?.('(max-width:900px)').matches)panel.scrollIntoView?.({behavior:'auto',block:'start'});
+   }
+  }
  }
  function editor(id){
   if(!api.master())return;
-  const step=current().find(s=>s.id===id);if(!step)return;
-  const field=(field,label,max,rows)=>'<label>'+label+(rows?'<textarea id="aeGuideEdit'+field+'" maxlength="'+max+'" rows="'+rows+'">'+safe(step[field])+'</textarea>':
-   '<input id="aeGuideEdit'+field+'" maxlength="'+max+'" value="'+safe(step[field])+'">')+'</label>';
-  api.modal('EDITAR · '+step.title,'<div class="ae-guide-editor">'+
-   '<p>Edite esta etapa sem alterar as regras originais dos livros. O conteúdo será sincronizado como parte das configurações do mestre.</p>'+
-   field('title','Título',100)+field('lead','Introdução',420,3)+
-   field('text','Texto completo da aula',6000,13)+
-   field('tip','Decisão eficiente',600,3)+field('risk','Erro a evitar',600,3)+
-   '<div class="ae-guide-editor-actions"><button type="button" data-guide-action="save:'+safe(id)+'">SALVAR ETAPA</button>'+
+  const item=current().find(x=>x.id===id);if(!item)return;
+  const field=(name,label,max,rows)=>'<label>'+label+(rows?'<textarea id="aeGuideEdit'+name+'" maxlength="'+max+'" rows="'+rows+'">'+safe(item[name])+'</textarea>':
+   '<input id="aeGuideEdit'+name+'" maxlength="'+max+'" value="'+safe(item[name])+'">')+'</label>';
+  api.modal('EDITAR RESPOSTA','<div class="ae-guide-editor"><p>Respostas curtas funcionam melhor durante a sessão. Use uma linha por passo; este texto não altera as regras.</p>'+
+   field('title','Pergunta',100)+field('lead','Resposta em uma frase',420,2)+
+   field('text','Passos (lista curta)',6000,7)+field('tip','Exemplo prático',600,2)+field('risk','Aviso importante',600,2)+
+   '<div class="ae-guide-editor-actions"><button type="button" data-guide-action="save:'+safe(id)+'">SALVAR RESPOSTA</button>'+
    '<button type="button" class="quiet" data-guide-action="restore:'+safe(id)+'">RESTAURAR TEXTO PADRÃO</button></div></div>',
    [['FECHAR','closeModal','small']]);
  }
  function save(id){
-  if(!api.master()||!sections.some(s=>s.id===id))return;
-  const read=(field,max)=>String(document.getElementById('aeGuideEdit'+field)?.value||'').trim().slice(0,max);
-  const entry={title:read('title',100),lead:read('lead',420),text:read('text',6000),tip:read('tip',600),risk:read('risk',600)};
-  if(!entry.title||!entry.lead||!entry.text){api.toast('Campos obrigatórios','Preencha título, introdução e conteúdo.',true);return}
-  api.db.site??={};api.db.site.combatGuide??={version:1,overrides:{}};
+  if(!api.master()||!entries.some(s=>s.id===id))return;
+  const value=(name,max)=>String(document.getElementById('aeGuideEdit'+name)?.value||'').trim().slice(0,max);
+  const data={title:value('title',100),lead:value('lead',420),text:value('text',6000),tip:value('tip',600),risk:value('risk',600)};
+  if(!data.title||!data.lead||!data.text){api.toast('Campos obrigatórios','Preencha pergunta, resposta e passos.',true);return}
+  api.db.site??={};api.db.site.combatGuide??={version:2,overrides:{}};
   api.db.site.combatGuide.overrides??={};
-  api.db.site.combatGuide.overrides[id]=entry;
-  api.save();api.closeModal();api.render();api.toast('Guia de Combate atualizado');
+  api.db.site.combatGuide.overrides[id]=data;
+  api.save();api.closeModal();refresh();api.toast('Resposta atualizada');
  }
  function restore(id){
-  if(!api.master()||!sections.some(s=>s.id===id))return;
-  api.confirmSite('RESTAURAR ETAPA','Substituir a edição desta aula pelo conteúdo inicial do Guia de Combate?',()=>{
-   const conf=api.db.site?.combatGuide;
-   if(conf?.overrides)delete conf.overrides[id];
-   api.save();api.closeModal();api.render();api.toast('Texto padrão restaurado');
+  if(!api.master()||!entries.some(s=>s.id===id))return;
+  api.confirmSite('RESTAURAR RESPOSTA','Voltar ao texto padrão desta consulta?',()=>{
+   const cfg=api.db.site?.combatGuide;
+   if(cfg?.overrides)delete cfg.overrides[id];
+   api.save();api.closeModal();refresh();api.toast('Texto padrão restaurado');
   });
  }
  document.addEventListener('click',event=>{
-  const button=event.target.closest?.('[data-guide-action]');
-  if(!button)return;
-  const instruction=button.dataset.guideAction||'';
-  const split=instruction.indexOf(':'),action=split<0?instruction:instruction.slice(0,split),arg=split<0?'':instruction.slice(split+1);
-  if(action==='step'){select(arg);return}
-  if(action==='previous'||action==='next'){
-   const i=sections.findIndex(s=>s.id===active),to=i+(action==='next'?1:-1);
-   if(to>=0&&to<sections.length)select(sections[to].id);
-   return;
-  }
+  const button=event.target.closest?.('[data-guide-action]');if(!button)return;
+  const value=button.dataset.guideAction||'',cut=value.indexOf(':');
+  const action=cut<0?value:value.slice(0,cut),arg=cut<0?'':value.slice(cut+1);
+  if(action==='step'){select(arg,true);return}
+  if(action==='group'){group=groups.includes(arg)?arg:'Tudo';refresh();return}
+  if(action==='clear'){group='Tudo';term='';const field=document.getElementById('aeGuideSearch');if(field){field.value='';field.focus()}refresh();return}
   if(action==='chapter'){
    let id='';try{id=decodeURIComponent(arg)}catch(e){return}
    api.openGuideChapter?.(id);return;
@@ -215,5 +215,14 @@
   if(action==='save'){save(arg);return}
   if(action==='restore'){restore(arg)}
  });
- global.ARQUIVO_GUIA_COMBATE=Object.freeze({render,sections:()=>current(),select});
+ document.addEventListener('input',event=>{
+  if(event.target?.id!=='aeGuideSearch')return;
+  term=String(event.target.value||'').slice(0,140);refresh();
+ });
+ document.addEventListener('keydown',event=>{
+  if(event.target?.id==='aeGuideSearch'&&event.key==='Escape'&&term){
+   term='';event.target.value='';refresh();event.preventDefault();
+  }
+ });
+ global.ARQUIVO_GUIA_COMBATE=Object.freeze({render,sections:current,select,focusSearch:()=>document.getElementById('aeGuideSearch')?.focus()});
 })(window);
