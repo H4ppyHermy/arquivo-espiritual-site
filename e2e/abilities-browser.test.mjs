@@ -53,11 +53,13 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
   });
   return {count:cards.length,first:cards[0]?.innerText||'',phase:cards[0]?.querySelector('.ae-ability-phase')?.textContent||'',
    cost:!!cards[0]?.querySelector('.ae-ability-cost'),heads,
+   structured:cards[0]?.querySelector('.ae-wh-ability-description .ae-book-definition dt')?.textContent?.trim()||'',
    hasPerAbilityExpand:cards.some(c=>!!c.querySelector('[data-warehouse-action^="open:"]'))};
  });
  assert.ok(warehouse.count>=10,'o acervo oficial deve ser renderizado');
  assert.ok(warehouse.phase.startsWith('Fase: '));
  assert.ok(warehouse.cost);
+ assert.match(warehouse.structured,/Gatilho|Ativação|Efeito|Recurso/i);
  assert.ok(warehouse.heads.every(h=>h.hasHeader&&h.hasTitle&&h.hasGradient&&h.titleVisible&&!h.hasLegacyClass),
   'os nomes precisam aparecer sobre cabeçalhos de gradiente da paleta em todos os cartões');
  assert.equal(warehouse.hasPerAbilityExpand,false);
@@ -81,7 +83,8 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
   const record={found:!!card,phase:card?.querySelector('.ae-ability-phase')?.textContent,
    cost:card?.querySelector('.ae-ability-cost')?.textContent,
    limit:card?.querySelector('.ae-ability-usage')?.textContent,
-   body,cardCount:document.querySelectorAll('.ae-ficha-ability-card').length};
+   body,cardCount:document.querySelectorAll('.ae-ficha-ability-card').length,
+   structure:card?.querySelector('.ae-ficha-ability-full .ae-book-definition dt')?.textContent?.trim()||''};
   document.querySelector('[data-tab="inventory"]')?.click();
   record.bonus=document.querySelector('.ae-item-effect strong')?.textContent||'';
   record.status=document.querySelector('.ae-item-state')?.textContent||'';
@@ -89,6 +92,7 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
  });
  assert.equal(sheet.found,true);
  assert.equal(sheet.cardCount,1);
+ assert.match(sheet.structure,/Ativação|Gatilho|Efeito/i);
  assert.equal(sheet.phase,'Fase: Duelo');
  assert.equal(sheet.cost,'2 ALMA');
  assert.match(sheet.limit,/Uma vez por cena/);
