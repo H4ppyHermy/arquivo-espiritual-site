@@ -38,7 +38,7 @@ function fixture(){
  vm.runInNewContext(read('ficha-combos.js'),{window,document,Promise,console});
  function click(action){
   const button={dataset:{comboAction:action},disabled:false};
-  const event={target:{closest:()=>button},preventDefault(){}};
+  const event={target:{closest:selector=>selector==='[data-combo-action]'?button:null},preventDefault(){}};
   for(const fn of handlers.click)fn(event);
  }
  return {sheet,api,window,document,elements,state,click,combo:window.ARQUIVO_COMBOS};
