@@ -253,6 +253,8 @@ function master(){return ownerIsMaster()&&!playerPreviewActive}
 function player(){return role==='player'||ownerIsMaster()}
 function save(){
  if(isPlayerPreview()){toast('Modo de teste','Gravações de fichas e conteúdo não são permitidas nesta prévia.',true);return false}
+ // Se existe gravação remota agendada, a edição local mais recente tem prioridade.
+ if(onlineCacheTimer){clearTimeout(onlineCacheTimer);onlineCacheTimer=null}
  DATASTORE.save(db);
  if(window.ARQUIVO_SYNC?.state.enabled){
   window.ARQUIVO_SYNC.push(db,role,currentSheet||db.sheets.find(s=>s.id===currentSheet)?.id||'');
@@ -494,7 +496,17 @@ async function onlineBootstrapSave(){const st=window.ARQUIVO_SYNC;if(!st?.state.
  try{const identity=await st.bootstrap(el('bootstrapToken').value,el('bootstrapCode').value,el('bootstrapName').value);
   onlineApplyIdentity(identity);closeModal();render();toast('Mestre inicial criado','Salvando o conteúdo atual no servidor.');save();
  }catch(e){toast('Não foi possível ativar',e.message,true)}}
-let pendingOnlineSnapshot=null,appliedOnlineRevision=-1;
+let pendingOnlineSnapshot=null,appliedOnlineRevision=-1,onlineCacheTimer=null;
+function flushOnlineCache(){
+ if(onlineCacheTimer){clearTimeout(onlineCacheTimer);onlineCacheTimer=null;DATASTORE.save(db)}
+}
+function scheduleOnlineCache(){
+ // LocalStorage é síncrono; em combate não serializar o livro inteiro a cada evento.
+ if(onlineCacheTimer)return;
+ onlineCacheTimer=setTimeout(()=>{onlineCacheTimer=null;DATASTORE.save(db)},450);
+}
+window.addEventListener('pagehide',flushOnlineCache);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)flushOnlineCache()});
 function onlineSnapshotIsBlocked(){
  const active=document.activeElement;
  return !!(active&&['INPUT','TEXTAREA','SELECT'].includes(active.tagName)&&active.closest('#page'))
@@ -515,10 +527,22 @@ function applyOnlineSnapshot(detail){
   return;
  }
  pendingOnlineSnapshot=null;appliedOnlineRevision=revision;
+ // Uma alteração de outra ficha não deve destruir e reconstruir a ficha visível.
+ const sameIdentity=role===(detail.identity?.kind||'guest')&&keyOwnerId===(detail.identity?.id||'');
+ const activeSheet=page==='sheets'&&currentSheet?
+  db.sheets.find(s=>s.id===currentSheet):null;
+ const incomingSheet=activeSheet?snap.sheets.find(s=>s.id===currentSheet):null;
+ const sameVisibleSheet=!!activeSheet&&!!incomingSheet&&sameIdentity&&
+  JSON.stringify(activeSheet)===JSON.stringify(incomingSheet)&&
+  JSON.stringify(db.site)===JSON.stringify(snap.site)&&
+  JSON.stringify(db.rules)===JSON.stringify(snap.rules)&&
+  JSON.stringify(db.keys)===JSON.stringify(window.ARQUIVO_SYNC.state.keys);
  const oldPrefs=prefs;
- db={...clone(snap),keys:window.ARQUIVO_SYNC.state.keys};
+ // Supabase já entrega uma árvore JSON nova. Evitar uma segunda clonagem integral.
+ db={...snap,keys:window.ARQUIVO_SYNC.state.keys};
  onlineApplyIdentity(detail.identity);prefs=oldPrefs;
- DATASTORE.save(db);
+ scheduleOnlineCache();
+ if(sameVisibleSheet){onlineStatus();return}
  render();
 }
 document.addEventListener('focusout',()=>queueMicrotask(flushPendingOnlineSnapshot),true);
