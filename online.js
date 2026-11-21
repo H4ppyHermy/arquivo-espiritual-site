@@ -69,13 +69,21 @@ document.addEventListener('visibilitychange',()=>{
 let refreshInFlight=null;
 async function refresh(force=false){
  if(!state.enabled)return;
- // Qualquer chamada concorrente compartilha a mesma consulta e o mesmo processamento
- // da revisão. Mesmo refresh(true) não deve duplicar leituras grandes.
- if(refreshInFlight)return refreshInFlight;
+ const identityId=state.identity?.id||null;
+ if(refreshInFlight){
+  const running=refreshInFlight;
+  // A mesma leitura é reutilizada só para a mesma identidade. Uma nova chave
+  // ou um refresh obrigatório após login deve receber outro snapshot.
+  try{await running.task}catch(e){if(!force)throw e}
+  if(!force||(running.force&&running.identityId===identityId))return;
+ }
  if(!force&&(state.saving||Date.now()<state.busyUntil))return;
  const task=(async()=>{
   const data=await rpc('ae_read_document');
   if(!data)return;
+  // O resultado pode pertencer à chave anterior caso o login tenha mudado
+  // enquanto a requisição estava no ar. Não publicar nem cachear esse resultado.
+  if((state.identity?.id||null)!==identityId)return;
   if(state.error){state.error='';window.dispatchEvent(new Event('arquivo-online-state'))}
   if(Number(data.revision)<Number(state.revision))return;
   if(!force&&Number(data.revision)===Number(state.revision))return;
@@ -84,9 +92,10 @@ async function refresh(force=false){
   window.dispatchEvent(new CustomEvent('arquivo-online-snapshot',{detail:{data:data.data,identity:state.identity,keys:state.keys,revision:state.revision}}));
   state.appliedOnce=true;
  })();
- refreshInFlight=task;
+ const running={task,force,identityId};
+ refreshInFlight=running;
  try{return await task}
- finally{if(refreshInFlight===task)refreshInFlight=null}
+ finally{if(refreshInFlight===running)refreshInFlight=null}
 }
 async function login(name,code){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_login',{p_name:name,p_code:code});await keys();await refresh(true);connectDocumentChannel();return state.identity}
 async function bootstrap(token,code,name){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_bootstrap_master',{p_token:token,p_code:code,p_name:name});await keys();connectDocumentChannel();return state.identity}
