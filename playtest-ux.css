@@ -211,3 +211,33 @@
  #page .ae-inventory-panel .ae-item-actions{width:100%}
  #page .ae-inventory-panel .ae-item-actions button{flex:1}
 }
+
+/* Padrão editorial CBB: gatilho > ativação > efeito > desdobramentos.
+   A mesma grade de leitura serve para qualquer ficha e para o Armazém. */
+#page :is(.ae-ficha-ability-full,.ae-ficha-quick-description,.ae-wh-ability-description) .ae-book-definitions{
+ display:grid;gap:0;max-width:none;width:100%;margin:8px 0 14px;
+ border-block:1px solid color-mix(in srgb,var(--theme-cold) 25%,var(--theme-structure))
+}
+#page :is(.ae-ficha-ability-full,.ae-ficha-quick-description,.ae-wh-ability-description) .ae-book-definition{
+ display:grid;grid-template-columns:minmax(86px,118px) minmax(0,1fr);
+ gap:10px;align-items:start;margin:0;padding:9px 4px;
+ border:0;border-bottom:1px solid color-mix(in srgb,var(--theme-cold) 18%,var(--theme-structure));
+ background:transparent;min-width:0
+}
+#page :is(.ae-ficha-ability-full,.ae-ficha-quick-description,.ae-wh-ability-description) .ae-book-definition:last-child{border-bottom:0}
+#page :is(.ae-ficha-ability-full,.ae-ficha-quick-description,.ae-wh-ability-description) .ae-book-definition dt{
+ margin:0;padding:2px 0;min-width:0;color:var(--theme-cold);
+ font:900 calc(11px * var(--ae-reading-scale,1))/1.55 Manrope,system-ui,sans-serif;
+ letter-spacing:.035em;text-transform:uppercase;overflow-wrap:anywhere
+}
+#page :is(.ae-ficha-ability-full,.ae-ficha-quick-description,.ae-wh-ability-description) .ae-book-definition dd{
+ margin:0;min-width:0;padding:0;color:var(--theme-text);
+ font:500 calc(13px * var(--ae-reading-scale,1))/1.67 Manrope,system-ui,sans-serif;
+ overflow-wrap:anywhere
+}
+#page :is(.ae-ficha-ability-full,.ae-ficha-quick-description,.ae-wh-ability-description) .ae-book-definition:has(dt:first-child){border-left:0}
+@media(max-width:575px){
+ #page :is(.ae-ficha-ability-full,.ae-ficha-quick-description,.ae-wh-ability-description) .ae-book-definition{
+  grid-template-columns:minmax(0,1fr);gap:1px;padding:9px 3px
+ }
+}
