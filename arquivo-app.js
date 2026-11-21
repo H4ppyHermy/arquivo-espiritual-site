@@ -675,7 +675,6 @@ function setLibraryMode(mode){
  if(mode==='glossary')requestAnimationFrame(()=>el('grimorioSearch')?.focus({preventScroll:true}));
 }
 function library(){
- rebuildLibraryGlossary();
  if(libraryVolume()==='warehouse')return window.ARQUIVO_SECOES.warehousePage();
  const visible=libraryVisibleRules();
  const number=libraryRules().length;
@@ -740,18 +739,17 @@ function librarySyncActiveIndex(){
 }
 /* GRIMÓRIO: dados editáveis persistidos em db.site e sincronizados pelo documento do mestre. */
 const GRIMORIO_CATEGORIES=['Recursos','Testes','Combate','Condições','Recuperação','Outros'];
-const GRIMORIO_DEFAULTS={visible:true,title:'CONSULTAR GRIMÓRIO',subtitle:'Explore as mecânicas e encontre rapidamente o que procura.',autoGlossary:true,glossary:[],disabledTerms:[]};
+const GRIMORIO_DEFAULTS={schemaVersion:2,visible:true,title:'CONSULTA RÁPIDA',subtitle:'Verbetes criados e revisados pelo mestre.',glossary:[]};
 function grimorioSettings(){
  const saved=db.site?.grimorio;
- if(!saved||typeof saved!=='object'||Array.isArray(saved))return {...GRIMORIO_DEFAULTS};
- const {showIcons,showDiceIcons,diceEmoji,...rest}=saved;
- return {...GRIMORIO_DEFAULTS,...rest,
-  glossary:Array.isArray(saved.glossary)?saved.glossary.map(item=>{
-   if(!item||typeof item!=='object'||Array.isArray(item))return item;
-   const {icon,...clean}=item;
-   return clean;
-  }):[],
-  disabledTerms:Array.isArray(saved.disabledTerms)?saved.disabledTerms:[]};
+ if(!saved||typeof saved!=='object'||Array.isArray(saved))return {...GRIMORIO_DEFAULTS,glossary:[]};
+ const {autoGlossary,disabledTerms,showIcons,showDiceIcons,diceEmoji,glossary,schemaVersion,...rest}=saved;
+ // Os verbetes anteriores ao acervo manual são descontinuados; o scanner não os recria.
+ const manual=Number(schemaVersion)===2&&Array.isArray(glossary)?
+  glossary.filter(item=>item&&typeof item==='object'&&!Array.isArray(item)).map(item=>{
+   const {icon,...clean}=item;return clean;
+  }):[];
+ return {...GRIMORIO_DEFAULTS,...rest,schemaVersion:2,glossary:manual};
 }
 function grimorioStored(){
  db.site??={};
@@ -770,73 +768,21 @@ function glossaryCategory(name){
  if(/acao|reacao|combate|movimenta|dano|resistencia|cobertura|posicionamento|terreno/.test(term))return 'Combate';
  return 'Outros';
 }
-function glossarySuggestions(){
- const results=new Map();
- for(const chapter of db.rules||[]){
-  for(const line of String(chapter.text||'').split(/\r?\n/)){
-   const found=line.trim().match(/^([^—\n]{2,55})\s+—\s+(.{15,})$/);
-   if(!found)continue;
-   const name=found[1].trim(),key=glossaryKey(name);
-   if(!key||results.has(key))continue;
-   results.set(key,{name,description:found[2].trim(),chapterId:chapter.id,chapterTitle:chapter.title,category:glossaryCategory(name),icon:'',source:'automatic'});
-  }
- }
- return results;
-}
-function glossaryAllEntries(){
- const options=grimorioSettings(),disabled=new Set(options.disabledTerms.map(glossaryKey));
- const suggestions=glossarySuggestions(),entries=new Map();
- if(options.autoGlossary!==false){
-  for(const [key,item] of suggestions){
-   if(LIBRARY_HELP_TERMS.some(term=>glossaryKey(term)===key)&&!disabled.has(key)){
-    const canonical=LIBRARY_HELP_TERMS.find(term=>glossaryKey(term)===key);
-    entries.set(key,{...item,name:canonical||item.name});
-   }
-  }
- }
- for(const item of options.glossary){
-  if(!item||typeof item!=='object')continue;
-  const name=String(item.name||'').trim(),key=glossaryKey(name);
-  if(!key)continue;
-  if(item.enabled===false){entries.delete(key);continue}
-  const chapter=db.rules.find(r=>r.id===item.chapterId);
-  entries.set(key,{
-   id:String(item.id||''),name:name.slice(0,75),description:String(item.description||'').slice(0,6000),related:Array.isArray(item.related)?item.related:[],
-   chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',
-   category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:glossaryCategory(name),
-   source:'manual'
-  });
- }
- for(const key of disabled)if(!options.glossary.some(i=>glossaryKey(i.name)===key&&i.enabled!==false))entries.delete(key);
- return [...entries.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
-}
-/* O catálogo mostra definições detectadas e verbetes ativos criam links discretos. */
+/* Consulta Rápida: catálogo exclusivamente manual, sem varrer capítulos. */
 function grimorioCatalogEntries(){
- const cfg=grimorioSettings(),hidden=new Set(cfg.disabledTerms.map(glossaryKey)),items=new Map();
- for(const item of cfg.autoGlossary!==false?glossarySuggestions().values():[]){
-  const key=glossaryKey(item.name);
-  if(!hidden.has(key)){
-   const canonical=LIBRARY_HELP_TERMS.find(term=>glossaryKey(term)===key);
-   items.set(key,{...item,name:canonical||item.name});
-  }
- }
- for(const item of cfg.glossary){
-  if(!item||typeof item!=='object')continue;
-  const key=glossaryKey(item.name);if(!key)continue;
-  if(item.enabled===false){items.delete(key);continue}
+ const cfg=grimorioSettings();
+ return cfg.glossary.filter(item=>item&&item.enabled!==false&&String(item.name||'').trim()).map(item=>{
   const chapter=db.rules.find(r=>r.id===item.chapterId);
-  items.set(key,{
-   id:item.id,name:String(item.name||'').slice(0,75),related:Array.isArray(item.related)?item.related:[],
+  return {id:String(item.id||''),name:String(item.name||'').slice(0,75),
+   related:Array.isArray(item.related)?item.related:[],
    description:String(item.description||'').slice(0,6000),
-   category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:glossaryCategory(item.name),
-   chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',
-   source:'manual'
-  });
- }
- return [...items.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+   category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:'Outros',
+   chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',source:'manual'};
+ }).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
 }
 /* Navegação do glossário: filtros combináveis e favoritos exclusivamente locais. */
-const GRIMORIO_FAVORITES_KEY='ae_grimorio_favoritos_v1';
+const GRIMORIO_FAVORITES_KEY='ae_consulta_favoritos_v2';
+try{DATASTORE.local?.removeItem('ae_grimorio_favoritos_v1')}catch(e){}
 function grimorioFavoritesLoad(){
  try{
   const saved=JSON.parse(DATASTORE.local?.getItem(GRIMORIO_FAVORITES_KEY)||'[]');
@@ -1074,8 +1020,7 @@ function editGlossaryEntry(key){
  if(!requireMaster())return;
  let name='';try{name=key==='new'?'':decodeURIComponent(key)}catch(e){return}
  const settings=grimorioSettings(),previous=settings.glossary.find(i=>glossaryKey(i.name)===glossaryKey(name));
- const auto=glossarySuggestions().get(glossaryKey(name));
- const item=previous||auto||{name:'',description:'',chapterId:'',category:'Outros',enabled:true};
+ const item=previous||{name:'',description:'',chapterId:'',category:'Outros',enabled:true};
  const options=db.rules.map(r=>'<option value="'+esc(r.id)+'"'+(r.id===item.chapterId?' selected':'')+'>'+esc(r.title)+'</option>').join('');
  const category=GRIMORIO_CATEGORIES.map(c=>'<option value="'+esc(c)+'"'+(c===item.category?' selected':'')+'>'+esc(c)+'</option>').join('');
  const relatedTitles=Array.isArray(item.related)?item.related.filter(x=>typeof x==='string'):[];
@@ -1117,8 +1062,7 @@ function saveGlossaryEntry(){
  };
  opts.glossary=opts.glossary.filter(i=>glossaryKey(i.name)!==glossaryKey(old));
  opts.glossary.push(item);
- opts.disabledTerms=opts.disabledTerms.filter(t=>glossaryKey(t)!==glossaryKey(name));
- save();rebuildLibraryGlossary();closeModal();render();toast('Verbete salvo',name);
+ save();closeModal();render();toast('Verbete salvo',name);
 }
 function toggleGlossaryTerm(key){
  if(!requireMaster())return;
@@ -1148,29 +1092,22 @@ function toggleGlossaryTerm(key){
 function deleteGlossaryEntry(){
  if(!requireMaster())return;
  const name=el('dialogRoot').dataset.glossaryOldName||'';
- confirmSite('APAGAR VERBETE','Remover a explicação personalizada? Uma definição automática poderá voltar a aparecer.',()=>{
+ confirmSite('APAGAR VERBETE','Remover esta página personalizada da Consulta Rápida? Ela não será recriada automaticamente.',()=>{
   const opts=grimorioStored();
   opts.glossary=opts.glossary.filter(item=>glossaryKey(item.name)!==glossaryKey(name));
-  save();rebuildLibraryGlossary();render();manageGrimorio();
+  save();render();manageGrimorio();
  });
 }
 
-const LIBRARY_HELP_TERMS=['Vida','Estabilidade','Alma','Desmaiado','Acorrentado','Morto','Pressionado','Grupos','Perícias','Dificuldade','Modificadores','Rodada','Fases','Ação Principal','Reação','Movimentação','Dano-base','Resistência','Estados','Condições','Recuperação Natural','Recuperação Especializada','Descanso Breve','Descanso Completo','Tratamento','Recomposição','Meditação','Cobertura','Ocultação','Posicionamento','Terreno','Conjuração Completa','Conjuração Abreviada','Ruptura da Máscara','Resistência Hollow','Domínio'];
-let libraryGlossary=new Map();
-function rebuildLibraryGlossary(){
- libraryGlossary=new Map();
- for(const entry of glossaryAllEntries())if(entry.enabled!==false)libraryGlossary.set(entry.name,entry);
-}
 function showLibraryMechanic(key){
  let decoded='';try{decoded=decodeURIComponent(key)}catch(e){return}
- rebuildLibraryGlossary();
- const item=libraryGlossary.get(decoded)||grimorioCatalogEntries().find(entry=>entry.name===decoded);
+ const item=grimorioCatalogEntries().find(entry=>entry.name===decoded);
  if(!item)return;
- const source=item.source==='manual'?'Guia personalizado pelo mestre.':'Definição extraída das próprias regras do sistema.';
+ const source='Verbete escrito manualmente pelo mestre.';
  const chapter=db.rules.find(r=>r.id===item.chapterId);
  const linked=(item.related||[]).map(name=>grimorioCatalogEntries().find(entry=>entry.name===name)).filter(Boolean);
  modal('O QUE É '+item.name.toLocaleUpperCase('pt-BR')+'?',
-  '<div class="ae-mechanic-explanation"><div class="eyebrow">GLOSSÁRIO · '+esc(chapter?.title||item.category||'GRIMÓRIO')+'</div>'+
+  '<div class="ae-mechanic-explanation"><div class="eyebrow">CONSULTA RÁPIDA · '+esc(chapter?.title||item.category||'VERBETE')+'</div>'+
   '<p>'+esc(item.description)+'</p>'+(linked.length?'<div class="ae-glossary-related"><strong>PÁGINAS RELACIONADAS</strong><div>'+linked.map(entry=>'<button type="button" data-action="explainRule:'+encodeURIComponent(entry.name)+'">'+esc(entry.name)+'</button>').join('')+'</div></div>':'')+'<p class="subtitle">'+source+'</p></div>',
   [...(chapter?[['VER CAPÍTULO','goMechanicChapter:'+encodeURIComponent(chapter.id),'main']]:[]),
    ...(master()?[['EDITAR VERBETE','editGlossary:'+encodeURIComponent(item.name),'small']]:[]),
