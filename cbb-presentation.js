@@ -40,6 +40,13 @@
     output=output.replace(/^[a-zà-ÿ]/,letter=>letter.toLocaleUpperCase('pt-BR'));
    }
   }
+  // O limite já aparece no cartão em um indicador separado. Uma linha
+  // editorial idêntica não precisa aparecer novamente na leitura.
+  if(limit){
+   const escaped=regexEscape(limit.replace(/\.$/,''));
+   const duplicate=new RegExp('(?:^|\\n)Limite\\s+—\\s*'+escaped+'\\.?\\s*(?=\\n|$)','i');
+   output=output.replace(duplicate,'').replace(/^\s*\n/,'').trim();
+  }
   // Somente linhas que não dizem nada além do mesmo dado destacado no cabeçalho.
   if(pool?.kind==='dano'){
    const lines=output.split(/\r?\n/);
