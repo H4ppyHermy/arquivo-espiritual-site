@@ -13,7 +13,7 @@ Aplicação web estática do sistema CBB, publicada pelo GitHub Pages. O código
 | Calculadora de rolagens livres e atalhos do navegador | `rolagem-livre.js` e `rolagem-livre.css`; integração em `arquivo-app.js` |
 | Sincronização, autenticação e RPC | `online.js` |
 | Sessão de voz, vídeo, HUD e fases | `sala-ao-vivo.js` |
-| Biblioteca | `biblioteca-secoes.js`, `biblioteca-editor.js` |
+| Biblioteca, manutenção em lote e glossário | `biblioteca-secoes.js`, `biblioteca-editor.js`, `arquivo-app.js`, `armazem-lote.css`, `glossario-ux.css` |
 | Conteúdo público de referência | `dados.js` |
 | Fonte de migrações da base | `sql/` e `migracao_*.sql` |
 | Testes | `tests/` e `e2e/` |
@@ -46,6 +46,12 @@ Em **Ficha → Resumo → Combos**, o jogador vinculado ou mestre pode criar at�
 **Iniciar sequência** apenas abre o acompanhamento da ordem. **UTILIZAR** usa a RPC oficial do CBB e só marca a etapa como concluída após confirmação do servidor; uma etapa sem cobrança deve ser concluída manualmente. Isso não dispensa os requisitos de fase, limite de ações ou custos condicionais. Combos são presets, não novas habilidades ou recursos de personagem.
 
 `ficha-combos.js` / `ficha-combos.css` controlam a interface. A RPC `public.ae_sheet_set_combos(text,jsonb)` (migração `sql/ae_sheet_combo_presets.sql`) atualiza exclusivamente o campo `combos` na ficha autorizada; não substitui a ficha completa nem modifica recursos/combate. Os jogadores devem estar autenticados com uma chave vinculada. Alterações offline ficam enfileiradas no navegador para sincronização quando a conexão retornar. Progresso de execução é temporário e não faz parte do modelo persistente.
+
+## Manutenção do Armazém e glossário
+
+Na Biblioteca → Armazém, **somente o mestre** pode ativar **Selecionar / Gerenciar em lote**. Selecione um ou vários registros, inclusive de categorias diferentes, ou use **Selecionar visíveis** após filtrar a lista. Antes de gravar, confirme a ação para publicar, transformar em rascunho ou excluir. Seleções continuam marcadas ao trocar filtros, são apagadas após cada operação e não afetam fichas ou habilidades já cadastradas nelas. Itens de origem do sistema excluídos entram em `site.warehouse.hiddenPosts` para não reaparecer; rascunhos continuam visíveis ao mestre e ocultos para jogadores. Todas as operações continuam pelo fluxo de gravação do documento do mestre já existente.
+
+No glossário (Grimório) do Livro 1 ou 2, a entrada fica acima dos capítulos. Além de buscar por nome e texto, há categorias com contagem, índice por letra, atalhos de busca e cartões com prévia da definição e referência ao capítulo. O botão estrela salva favoritos no `localStorage` do navegador (`ae_grimorio_favoritos_v1`); favoritos **não** mudam os dados globais. Edição de verbetes, conexões e configuração do mestre permanecem nos controles existentes.
 
 ## Fluxo seguro de alterações
 
