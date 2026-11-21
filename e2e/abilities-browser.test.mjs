@@ -113,10 +113,10 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
     'Condição — Se sofrer dano, ganhe 1 marca normalmente.\n\n'+
     '[barra:3/3] **Persistência —** Quando seria incapacitado, continue lutando até o próximo Desfecho.'
   });
-  window.ARQUIVO_INTERNAL.setPage('sheets');
-  document.querySelector('[data-sheet="e2e-universal-card"]')?.click();
+  // A ficha permanece aberta no inventário: apenas retorne à aba Habilidades.
   document.querySelector('[data-tab="abilities"]')?.click();
-  const card=[...document.querySelectorAll('.ae-ficha-ability-card')].find(el=>el.textContent.includes('TÊMPERA'));
+  const card=[...document.querySelectorAll('.ae-ficha-ability-card')].find(el=>
+   el.textContent.toLocaleLowerCase('pt-BR').includes('têmpera'));
   const details=card?.querySelector('.ae-cbb-extras'),button=details?.querySelector('summary');
   const before=details?.open;
   button?.click();
