@@ -194,19 +194,136 @@
   }).join('\n').trim();
  }
 
+
+ // Recursos de classe: o cabeçalho comunica capacidade, enquanto as opções
+ // identificadas por marcadores continuam como regras independentes em Extras.
+ // A transformação ocorre somente na apresentação; o texto original não muda.
+ const RESOURCE_TOKEN=/\[(barra|marca|contador|sequencia)\s*:\s*(\d{1,2})(?:\s*\/\s*(\d{1,2}))?\s*\]/i;
+ const RESOURCE_OPTION=/^\s*\[(barra|marca|contador|sequencia)\s*:\s*(\d{1,2})(?:\s*\/\s*(\d{1,2}))?\s*\]\s*(.*)$/i;
+ const resourceUnit=(kind,amount)=>{
+  if(kind==='contador')return amount===1?'contador':'contadores';
+  if(kind==='sequencia')return amount===1?'nível':'níveis';
+  return amount===1?'marca':'marcas';
+ };
+ function resourceSections(content,fallbackName=''){
+  const original=String(content||'').replace(/\r\n?/g,'\n');
+  // A representação numérica deve substituir SOMENTE os marcadores que
+  // descrevem o recurso. Marcadores dentro de efeitos preservam seu significado.
+  const lines=original.replace(/([.!?])\s+(?=\[(?:barra|marca|contador|sequencia)\s*:\s*\d)/gi,'$1\n').split('\n');
+  const firstIndex=lines.findIndex(line=>{
+   const m=line.match(RESOURCE_TOKEN);
+   return !!m&&!RESOURCE_OPTION.test(line)&&
+    /^(?:\s*(?:Recurso|Efeito)\s+—\s*)?(?:Possui|Cada adversário pode acumular|Você possui|O personagem possui)/i.test(line);
+  });
+  const item=firstIndex>=0?lines[firstIndex].match(RESOURCE_TOKEN):null;
+  if(!item){
+   return {description:original.trim(),resource:null,extras:[]};
+  }
+  const kind=item[1].toLowerCase(),max=Number(item[3]||item[2]);
+  if(!Number.isInteger(max)||max<1||max>20)return {description:original.trim(),resource:null,extras:[]};
+  const header=lines[firstIndex];
+  const after=header.slice(header.indexOf(item[0])+item[0].length);
+  const named=after.match(/^\s+de\s+(?:\*\*)?([^\n.;]+?)(?:\*\*)?(?:[.;]|$)/i);
+  const name=(named?named[1].replace(/\*\*/g,'').replace(/\s+por\s+(?:cena|rodada)$/i,'').trim():String(fallbackName||'').trim())||'Recurso';
+  const resource={name,kind,capacity:max,label:max+' '+resourceUnit(kind,max)};
+  const main=[],extras=[];
+  let current=null;
+  for(let i=0;i<lines.length;i++){
+   const line=lines[i];
+   const option=line.match(RESOURCE_OPTION);
+   if(option){
+    const optionKind=option[1].toLowerCase(),amount=Number(option[2]),total=Number(option[3]||max);
+    // Não confundir marcadores de outra regra com as opções do recurso.
+    if(optionKind===kind&&amount>=1&&amount<=20&&total>=amount&&total<=20){
+     const body=option[4].trim();
+     const namedOption=body.match(/^\*\*([^*]+?)\s+—\*\*\s*(.*)$/);
+     const title=namedOption?namedOption[1].trim():'';
+     current={kind,amount,total,title,description:namedOption?namedOption[2].trim():body};
+     extras.push(current);
+     continue;
+    }
+   }
+   if(current&&/^\s*(?:#{2,3}\s+|(?:Corpo|Mente|Espírito)\s+—\s+)/i.test(line))current=null;
+   if(current){
+    current.description+=(current.description?'\n':'')+line;
+   }else if(i===firstIndex){
+    // Linha introdutória pura (Possui [barra:3/3] de Têmpera) já está
+    // representada no quadro de capacidade. Conservar qualquer outra regra.
+    const simple=/^\s*(?:Recurso\s+—\s*)?Possui\s+\[(?:barra|marca|contador|sequencia):\s*\d+(?:\s*\/\s*\d+)?\]\s+de\s+(?:\*\*)?[^.;\n]+(?:\*\*)?\.?\s*$/i.test(line);
+    if(!simple){
+     main.push(line.replace(item[0],'**'+resource.label+'**'));
+    }
+   }else{
+    main.push(line);
+   }
+  }
+  // Por segurança, não segmentar quando não existe nenhuma opção.
+  const clean=main.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  return {description:clean||(!extras.length?original.trim():''),resource,extras:extras.map(o=>({
+    ...o,description:o.description.replace(/\n{3,}/g,'\n\n').trim()
+  }))};
+ }
+ function resourceInfo(m){
+  const r=m?.resource;
+  if(!r)return '';
+  return '<div class="ae-cbb-resource" role="group" aria-label="Capacidade do recurso">'+
+   '<span class="ae-cbb-resource-label">RECURSO</span>'+
+   '<strong class="ae-cbb-resource-name">'+escape(r.name)+'</strong>'+
+   '<span class="ae-cbb-resource-capacity"><small>CAPACIDADE</small><b>'+escape(r.label)+'</b></span>'+
+   '</div>';
+ }
+ function extrasPanel(m,format){
+  const list=m?.extras||[];
+  if(!list.length||typeof format!=='function')return '';
+  return '<details class="ae-cbb-extras">'+
+   '<summary><strong>EXTRAS</strong><small>'+list.length+' '+(list.length===1?'opção':'opções')+' de recurso</small>'+
+   '<span class="ae-cbb-extras-arrow" aria-hidden="true">⌄</span></summary>'+
+   '<div class="ae-cbb-extra-list">'+list.map((entry,i)=>{
+    const label=entry.kind==='sequencia'?'NÍVEL '+entry.amount:
+     entry.amount+' '+resourceUnit(entry.kind,entry.amount).toLocaleUpperCase('pt-BR');
+    const title=entry.title?'<strong class="ae-cbb-extra-title">'+escape(entry.title)+'</strong>':'';
+    return '<div class="ae-cbb-extra-row" role="group" aria-label="'+escape(label+(entry.title?' · '+entry.title:''))+'">'+
+     '<span class="ae-cbb-extra-amount">'+escape(label)+'</span>'+
+     '<div class="ae-cbb-extra-rule">'+title+
+      (entry.description?'<div class="ae-cbb-extra-effect">'+format(entry.description)+'</div>':'')+
+     '</div></div>';
+   }).join('')+'</div></details>';
+ }
+ function renderRuleSections(content,format){
+  if(typeof format!=='function')return '';
+  const source=standardizeRuleSections(content);
+  const matches=[...source.matchAll(/^#{2,3}\s+[^\n]+/gm)];
+  if(!matches.length)return format(source);
+  let output='',cursor=0;
+  for(let i=0;i<matches.length;i++){
+   const start=matches[i].index,end=i+1<matches.length?matches[i+1].index:source.length;
+   if(start>cursor)output+=format(source.slice(cursor,start));
+   const section=source.slice(start,end),split=section.indexOf('\n');
+   if(split<0){output+=format(section);cursor=end;continue;}
+   const head=section.slice(0,split),details=section.slice(split+1);
+   const model=resourceSections(details,head.replace(/^#{2,3}\s+/,''));
+   output+=format(head+'\n'+model.description)+resourceInfo(model)+extrasPanel(model,format);
+   cursor=end;
+  }
+  if(cursor<source.length)output+=format(source.slice(cursor));
+  return output;
+ }
+
  function model(entry,{warehouse=false}={}){
   const body=String((warehouse?entry?.content:entry?.description)||'');
   const pool=poolOf(body);
   const phase=phaseOf(entry,body);
   const usage=String(entry?.usage||'').trim();
+  const arranged=resourceSections(standardize(compact(body,usage,pool)),entry?.name||entry?.title||'');
   return {
+   ...arranged,
    kind:kindOf(entry,warehouse),
    cost:costOf(entry,warehouse),
    phase:phase.label,phaseSource:phase.source,
    usage, pool,
    dice:pool?(pool.kind==='dano'?'RA + ':'')+
     (pool.count===1?'1':pool.count)+'d'+pool.faces:'',
-   description:standardize(compact(body,usage,pool))
+   description:arranged.description
   };
  }
  function meta(m,{warehouse=false}={}){
@@ -223,5 +340,5 @@
    '<span aria-hidden="true">⚄</span><strong>'+escape(m.dice)+'</strong>'+
    '<small>'+label+(m.pool.kind==='dano'?' adicional':'')+'</small></div>';
  }
- global.ARQUIVO_CBB_PRESENTATION=Object.freeze({model,meta,dice,compact,standardize,standardizeRuleSections,standardizeItem,phaseOf});
+ global.ARQUIVO_CBB_PRESENTATION=Object.freeze({model,meta,dice,compact,standardize,standardizeRuleSections,standardizeItem,resourceSections,resourceInfo,extrasPanel,renderRuleSections,phaseOf});
 })(typeof window!=='undefined'?window:globalThis);
