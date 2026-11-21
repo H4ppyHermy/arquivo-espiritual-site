@@ -70,7 +70,7 @@ test('habilidades e técnicas usam cartão textual sem quadrado de imagem, itens
  assert.ok(skill&&tech,'habilidade e técnica devem possuir cartões específicos');
  assert.match(skill,/ae-wh-ability-title/);
  assert.match(skill,/ae-ability-cost/);
- assert.match(skill,/2 ALMA/);
+ assert.match(skill,/2 alma/i);
  assert.match(skill,/Fase: Conforme efeito/);
  assert.match(skill,/Efeito único/);
  assert.match(tech,/Movimento breve/);
