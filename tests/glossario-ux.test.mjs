@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const read=name=>fs.readFileSync(new URL('../'+name,import.meta.url),'utf8');
 const app=read('arquivo-app.js');
-const start=app.indexOf('/* Navegação do glossário: filtros combináveis');
+const start=app.indexOf('/* Consulta manual: filtros combináveis');
 const end=app.indexOf('function grimorioRefreshResults(){',start);
 const snippet=app.slice(start,end);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -122,7 +122,7 @@ test('Conteúdo do glossário é escapado na leitura detalhada',()=>{
 });
 
 test('acervo manual ignora termos e configuração herdados da extração automática',()=>{
- const from=app.indexOf('const GRIMORIO_DEFAULTS='),to=app.indexOf('/* Navegação do glossário: filtros combináveis',from);
+ const from=app.indexOf('const GRIMORIO_DEFAULTS='),to=app.indexOf('/* Consulta manual: filtros combináveis',from);
  assert.ok(from>0&&to>from);
  const db={site:{grimorio:{autoGlossary:true,disabledTerms:[],
   title:'CONSULTAR GRIMÓRIO',glossary:[{name:'RA',description:'Termo antigo',enabled:true}]}},
