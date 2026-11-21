@@ -27,6 +27,7 @@ function setup(){
  };
  const ctx=vm.createContext(sandbox);
  vm.runInContext(read('barras-inline.js'),ctx);
+ vm.runInContext(read('biblioteca-leitura.js'),ctx);
  vm.runInContext(app.slice(bookStart,bookEnd)+'\n'+app.slice(richStart,richEnd),ctx);
  return {book:value=>ctx.formatBook(value),sheet:(value,inline=false)=>ctx.sheetRich(value,inline)};
 }
@@ -45,7 +46,7 @@ test('listas, títulos, divisores e código seguem o mesmo padrão',()=>{
  const source='## Objetivo\n\n- Primeiro item\n- Segundo item\n\n---\n\n'+
   fence+'\n> exemplo literal\n'+fence+'\n';
  for(const html of [a.book(source),a.sheet(source)]){
-  assert.match(html,/class="ae-book-heading"/);
+  assert.match(html,/class="ae-book-heading(?:\s|\")/);
   assert.match(html,/<ul class="book-readable-list">/);
   assert.match(html,/<li>Primeiro item<\/li>/);
   assert.match(html,/class="book-divider"/);
