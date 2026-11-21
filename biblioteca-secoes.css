@@ -248,63 +248,80 @@ html.reduce-motion #page .ae-warehouse-post,html.performance-mode #page .ae-ware
 #page .ae-warehouse-image{aspect-ratio:1;flex:none}
 #page .ae-warehouse-image img{width:100%;height:100%;object-fit:cover;display:block}
 
-/* Habilidades e técnicas usam o cartão textual de habilidade da ficha.
-   Sem ilustração ou emblema: uma publicação equivale a uma habilidade. */
+/* Cartões de habilidades: mesmo vocabulário visual da ficha, sem barra branca
+   e sem botão de expandir a descrição individual. */
 #page .ae-warehouse-post.ae-wh-ability-post{
  display:flex;flex-direction:column;gap:0;overflow:hidden;
- background:linear-gradient(145deg,color-mix(in srgb,var(--theme-raised) 60%,var(--theme-panel)),var(--theme-panel));
- box-shadow:inset 0 0 0 5px color-mix(in srgb,var(--theme-bg) 25%,transparent)
-}
-#page .ae-wh-ability-post::before{
- content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
- background:linear-gradient(var(--theme-cold),transparent 80%);pointer-events:none
+ border:1px solid var(--theme-structure);
+ background:linear-gradient(145deg,color-mix(in srgb,var(--theme-raised) 40%,var(--theme-panel)),var(--theme-panel));
 }
 #page .ae-wh-ability-main{
- display:grid;gap:11px;min-width:0;padding:19px 17px 13px
+ display:grid;align-content:start;gap:12px;min-width:0;padding:13px 14px
+}
+#page .ae-wh-ability-header{
+ display:flex;align-items:center;box-sizing:border-box;width:100%;min-height:51px;
+ padding:11px 14px;border:1px solid color-mix(in srgb,var(--theme-cold) 38%,var(--theme-structure));
+ border-left:4px solid var(--theme-accent);border-radius:9px;
+ color:var(--theme-text);
+ background:linear-gradient(115deg,
+  color-mix(in srgb,var(--theme-raised) 78%,var(--theme-accent) 22%),
+  color-mix(in srgb,var(--theme-panel) 85%,var(--theme-cold) 15%));
+ box-shadow:inset 0 1px color-mix(in srgb,var(--theme-text) 8%,transparent)
 }
 #page .ae-wh-ability-post .ae-wh-ability-title{
- display:inline-flex;justify-self:start;align-items:center;
- max-width:calc(100% + 12px);padding:7px 13px;margin:-2px 0 0 -22px;
- background:var(--theme-text);color:var(--theme-bg);
- font:900 19px/1.15 'Barlow Condensed',Impact,sans-serif;
- text-transform:uppercase;letter-spacing:.03em;overflow-wrap:anywhere
+ flex:1;min-width:0;margin:0;padding:0;background:none;color:var(--theme-text);
+ font:900 clamp(19px,2vw,25px)/1.13 'Barlow Condensed',Impact,sans-serif;
+ letter-spacing:.03em;text-transform:uppercase;overflow-wrap:anywhere
 }
-#page .ae-wh-ability-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-#page .ae-wh-ability-meta>span{
- color:var(--theme-cold);font-size:10px;letter-spacing:.06em;font-weight:900
+#page .ae-wh-ability-post .ae-unified-ability-meta{
+ display:flex;gap:7px;align-items:center;flex-wrap:wrap
 }
-#page .ae-wh-ability-meta>span+span{
- color:var(--theme-text);opacity:.78;
- padding-left:8px;border-left:1px solid var(--theme-structure)
+#page .ae-wh-ability-post .ae-unified-ability-meta>*{max-width:100%}
+#page .ae-wh-ability-post .ae-unified-ability-meta .ae-ability-cost{
+ display:inline-flex;align-items:center;min-height:31px;padding:6px 10px;
+ border:1px solid var(--theme-accent);background:var(--theme-accent);
+ color:var(--accent-ink,#000);font:900 calc(12px * var(--ae-reading-scale,1))/1.3 Manrope,system-ui,sans-serif
 }
-#page .ae-wh-ability-teaser,#page .ae-wh-ability-description{
- min-width:0;justify-self:stretch;color:var(--theme-text);
- font-size:12px;line-height:1.8;overflow-wrap:anywhere
+#page .ae-wh-ability-post .ae-unified-ability-meta .ae-ability-cost.is-unspecified{
+ border-color:var(--theme-structure);
+ background:var(--theme-raised);color:var(--theme-text)
 }
-#page .ae-wh-ability-teaser{margin:0;white-space:pre-wrap;opacity:.9}
-#page .ae-wh-ability-description{padding:0;margin:0}
+#page .ae-wh-ability-post .ae-unified-ability-meta .ae-ability-phase,
+#page .ae-wh-ability-post .ae-unified-ability-meta .ae-ability-usage,
+#page .ae-wh-ability-post .ae-unified-ability-meta .ae-unified-kind{
+ display:inline-flex;align-items:center;min-height:29px;padding:5px 9px;
+ background:color-mix(in srgb,var(--theme-panel) 78%,var(--theme-cold) 22%);
+ border:1px solid var(--theme-structure);color:var(--theme-text);
+ font:850 calc(11px * var(--ae-reading-scale,1))/1.45 Manrope,system-ui,sans-serif
+}
+#page .ae-wh-ability-post .ae-unified-ability-dice{
+ display:flex;align-items:center;flex-wrap:wrap;gap:7px 10px;min-height:38px;
+ padding:8px 10px;border:1px solid color-mix(in srgb,var(--theme-cold) 45%,var(--theme-structure));
+ background:color-mix(in srgb,var(--theme-cold) 8%,var(--theme-panel))
+}
+#page .ae-wh-ability-post .ae-unified-ability-dice>span{font-size:20px;color:var(--theme-cold)}
+#page .ae-wh-ability-post .ae-unified-ability-dice>strong{
+ color:var(--theme-text);font-size:calc(16px * var(--ae-reading-scale,1));font-weight:900
+}
+#page .ae-wh-ability-post .ae-unified-ability-dice>small{
+ color:var(--theme-text);opacity:.8;font-size:calc(10px * var(--ae-reading-scale,1))
+}
+#page .ae-wh-ability-post .ae-wh-ability-description{
+ min-width:0;margin:0;padding:11px 0 3px;border:0;border-top:1px solid var(--theme-structure);
+ background:transparent;color:var(--theme-text);
+ font-size:calc(13px * var(--ae-reading-scale,1));line-height:1.75;overflow-wrap:anywhere
+}
 #page .ae-wh-ability-description .book-paragraph{font-size:inherit;line-height:inherit}
-#page .ae-wh-ability-description > :first-child{margin-top:0}
-#page .ae-wh-ability-description > :last-child{margin-bottom:0}
-#page .ae-wh-ability-tags{padding:1px 17px 10px}
+#page .ae-wh-ability-description :first-child{margin-top:0}
+#page .ae-wh-ability-description :last-child{margin-bottom:0}
+#page .ae-wh-ability-tags{padding:4px 14px 11px}
 #page .ae-wh-ability-actions{
- display:flex;align-items:center;flex-wrap:wrap;gap:8px;
- margin-top:auto;padding:9px 17px 11px;
- border-top:1px solid var(--theme-structure);background:transparent
+ display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+ margin-top:auto;padding:10px 14px;border-top:1px solid var(--theme-structure)
 }
-#page .ae-wh-ability-post .ae-wh-ability-read{
- display:flex;justify-content:space-between;align-items:center;gap:14px;
- flex:1 1 180px;min-height:36px;padding:8px 2px;
- background:transparent;border:0;color:var(--theme-cold);
- font-size:10px;letter-spacing:.06em;font-weight:900;text-align:left;cursor:pointer
-}
-#page .ae-wh-ability-read>span{font-size:17px;line-height:1}
-#page .ae-wh-ability-read:is(:hover,:focus-visible){color:var(--theme-accent)}
-#page .ae-wh-ability-read:focus-visible{outline:2px solid var(--theme-cold);outline-offset:2px}
-#page .ae-wh-ability-actions .btn{font-size:10px}
+#page .ae-wh-ability-actions .btn{font-size:calc(10px * var(--ae-reading-scale,1))}
 @media(max-width:680px){
- #page .ae-wh-ability-main{padding:16px 13px 11px}
- #page .ae-wh-ability-post .ae-wh-ability-title{margin-left:-18px}
- #page .ae-wh-ability-tags{padding:1px 13px 10px}
- #page .ae-wh-ability-actions{padding:8px 13px 10px}
+ #page .ae-wh-ability-main{padding:11px}
+ #page .ae-wh-ability-tags{padding:4px 11px 11px}
+ #page .ae-wh-ability-actions{padding:9px 11px}
 }
