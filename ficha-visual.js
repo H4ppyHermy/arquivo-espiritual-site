@@ -158,7 +158,7 @@
      (m?presenter.meta(m):'<div class="ae-ficha-ability-meta"><span>'+esc(ab.libraryType==='tecnica'?'TÉCNICA':'HABILIDADE')+'</span></div>')+
      (window.ARQUIVO_CBB_UI?.abilitySummary?.(s,ab,index)||'')+
      (m?presenter.resourceInfo(m):'')+
-     '<div class="ae-ficha-quick-description sheet-rich">'+api.sheetRich(m?.description||text(ab.description||''))+'</div>'+
+     '<div class="ae-ficha-quick-description sheet-rich">'+(m?(m.description?api.sheetRich(m.description):''):api.sheetRich(text(ab.description||'')))+'</div>'+
      (m?presenter.extrasPanel(m,body=>api.sheetRich(body)):'')+
      (window.ARQUIVO_CBB_UI?.abilityActions?.(ab,index,ctx)||'')+'</article>';
    }).join('')+'</div>':
@@ -226,7 +226,7 @@
   const name=esc(ab.name||'Habilidade sem nome');
   const presentation=window.ARQUIVO_CBB_PRESENTATION;
   const details=presentation?.model?.(ab);
-  const description=details?.description||text(ab.description||'Sem descrição.');
+  const description=details?details.description:text(ab.description||'Sem descrição.');
   const image=ab.image&&api.dataUrlOk(ab.image)?api.mediaSrc(ab.image):'';
   const kind=ab.libraryType==='tecnica'?'Técnica':'Habilidade';
   return '<article class="ae-ficha-ability-card" data-ability-kind="'+(kind==='Técnica'?'Técnicas':'Habilidades')+'" id="ability-'+index+'">'+
@@ -240,7 +240,7 @@
     (details?presentation.resourceInfo(details):'')+
     '<div class="ae-ficha-ability-full sheet-rich">'+
        (image?'<img alt="Ilustração da habilidade '+name+'" src="'+esc(image)+'" loading="lazy">':'')+
-       api.sheetRich(description)+'</div>'+
+       (description?api.sheetRich(description):'')+'</div>'+
     (details?presentation.extrasPanel(details,body=>api.sheetRich(body)):'')+
     (ctx.canEdit?'<div class="ae-ficha-ability-tools">'+api.btn('EDITAR','editAbilityDirect:'+index,'small')+'</div>':'')+
     (window.ARQUIVO_CBB_UI?.abilityActions?.(ab,index,ctx)||'')+
