@@ -141,7 +141,7 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
  assert.equal(resource.collapsedBefore,false,'Extras começa recolhida para reduzir confusão');
  assert.equal(resource.expanded,true,'Extras deve abrir ao clicar');
  assert.equal(resource.summaryVisible,true);
- assert.equal(resource.firstLabel,'1 MARCA','a quantidade continua acessível por descrição');
+ assert.equal(resource.firstLabel,'1 MARCA · Resistência','a quantidade e o efeito continuam acessíveis por descrição');
  assert.equal(resource.visibleQuantityLabels,0,'os rótulos numéricos não devem duplicar os símbolos');
  assert.equal(resource.resourceSymbols,3,'as três barras originais continuam visíveis no cabeçalho');
  assert.deepEqual(resource.extraSymbols,[{total:3,active:1},{total:3,active:2},{total:3,active:3}],
