@@ -107,7 +107,7 @@
    '<div class="ae-free-preview" id="freeDicePreview" role="status" aria-live="polite"></div>'+
    '<button type="button" class="btn main ae-free-submit" data-action="freeRoll">ROLAR EXPRESSÃO</button>'+
    '<div id="freeResult" aria-live="polite">'+(options.result||'')+'</div>'+
-   '<div class="ae-free-quick"><div class="ae-free-shortcut-title"><span class="eyebrow">ATALHOS DESTE NAVEGADOR</span><button type="button" class="btn small quiet" data-free-action="manage">GERENCIAR</button></div><div id="freeShortcutChips" class="ae-free-chips">'+chips()+'</div></div>'+
+   '<div class="ae-free-quick"><div class="ae-free-shortcut-title"><span class="eyebrow">ATALHOS DESTE NAVEGADOR</span><span class="ae-free-shortcut-note">Clique para rolar · ✎ para editar</span></div><div id="freeShortcutChips" class="ae-free-chips">'+chips()+'</div></div>'+
    '<div id="freeShortcutEditor" class="ae-free-shortcut-editor" hidden><h3 id="freeShortcutHeading">EDITAR ATALHO</h3><div class="ae-free-shortcut-fields"><label>NOME<input type="text" id="freeShortcutName" maxlength="24" placeholder="Ex.: Ataque"></label><label>FÓRMULA<input type="text" id="freeShortcutFormula" maxlength="'+MAX_LENGTH+'" placeholder="2d8 + 4"></label></div><p id="freeShortcutError" role="alert"></p><div class="actions"><button type="button" class="btn main small" data-free-action="save">SALVAR</button><button type="button" class="btn danger small" data-free-action="delete" id="freeShortcutDelete">EXCLUIR</button><button type="button" class="btn small" data-free-action="cancel">CANCELAR</button></div></div>'+
    '<p class="subtitle">'+(online?'Os dados são verificados e registrados no servidor; a conta matemática da fórmula é calculada neste navegador.':'Sem conexão, resultados são locais e não verificados.')+' Os atalhos ficam salvos apenas neste navegador.</p></section>'+
    '<section class="panel ae-free-history"><div class="sectionhead"><h2>HISTÓRICO DE ROLAGENS</h2></div>'+(options.composites||'')+(options.history||'')+'</section></div>';
@@ -151,7 +151,6 @@
   const b=e.target.closest?.('[data-free-action]');if(!b)return;
   const [name,arg]=b.dataset.freeAction.split(':');
   if(name==='shortcut')choose(Number(arg));else if(name==='edit')edit(Number(arg));else if(name==='new')edit(-1);
-  else if(name==='manage')edit(shortcuts.length?0:-1);
   else if(name==='save')save();else if(name==='delete')remove();else if(name==='cancel')closeEditor();
   else if(name==='backspace')insert('backspace');else if(name==='clear')insert('clear');else if(name==='key')insert(decodeURIComponent(arg||''));
  }
