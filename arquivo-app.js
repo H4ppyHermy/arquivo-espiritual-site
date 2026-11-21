@@ -2462,7 +2462,33 @@ function bindEvents(){document.addEventListener('keydown',event=>{
  const max=e.target.value==='marca'?1:3;
  if(count)count.value=String(max);
  if(filled&&Number(filled.value)>max)filled.value=String(max);
-}if(e.target.id==='invImageFile')inventoryChooseImage(e.target);if(e.target.id==='globalGradient')changeCustomGradient('toggle',e.target.checked);if(e.target.dataset.sheetGradient==='toggle')setSheetGradient('gradient',e.target.checked);if(['presetChoice','sizeChoice','interfaceScaleChoice','speechRateChoice'].includes(e.target.id))changeSetting(e.target.id,e.target.value);if(['settingsMuteMaster','settingsMuteMusic','settingsMuteEffects'].includes(e.target.id))changeSetting(e.target.id,e.target.checked);if(e.target.dataset.setting)changeSetting(e.target.dataset.setting,e.target.checked);if(e.target.id==='chapterJump'&&e.target.value)openLibraryChapter(e.target.value);if(e.target.id==='grimorioCategory'){grimorioCategory=e.target.value;grimorioRefreshResults()}if(e.target.id==='formImage')imageForForm(e.target);if(e.target.dataset.abilityImage!==undefined)abilityImageUpload(e.target);if(e.target.id==='noteImagesInput')noteImageUpload(e.target);if(e.target.id==='coverFile')imageFile(e.target,'cover');if(e.target.id==='sheetImageFile')imageFile(e.target,'sheet');if(e.target.id==='sharedUpload'&&e.target.files[0])uploadSharedAudio(e.target.files[0])});document.addEventListener('keydown',e=>{const dialog=el('dialogRoot').querySelector('[role=dialog]');if(!dialog)return;if(e.key==='Escape'){if(!el('firstPlayerKey')){if(modalGuard)returnModal();else requestModalClose()}e.preventDefault()}if(e.key==='Tab'){const fs=[...dialog.querySelectorAll('button,input,textarea,select,[tabindex]')].filter(x=>!x.disabled&&x.tabIndex!==-1);if(!fs.length)return;const first=fs[0],last=fs[fs.length-1];if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault()}else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault()}}});document.addEventListener('pointermove',e=>{const hero=e.target.closest('#character');if(!hero||sheetMotionOff())return;const rect=hero.getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width-.5,y=(e.clientY-rect.top)/rect.height-.5;hero.style.setProperty('--tilty',x*7+'deg');hero.style.setProperty('--tiltx',-y*6+'deg')},{passive:true});document.addEventListener('pointerout',e=>{const hero=e.target.closest('#character');if(hero&&!hero.contains(e.relatedTarget)){hero.style.setProperty('--tilty','0deg');hero.style.setProperty('--tiltx','0deg')}})}
+}if(e.target.id==='invImageFile')inventoryChooseImage(e.target);if(e.target.id==='globalGradient')changeCustomGradient('toggle',e.target.checked);if(e.target.dataset.sheetGradient==='toggle')setSheetGradient('gradient',e.target.checked);if(['presetChoice','sizeChoice','interfaceScaleChoice','speechRateChoice'].includes(e.target.id))changeSetting(e.target.id,e.target.value);if(['settingsMuteMaster','settingsMuteMusic','settingsMuteEffects'].includes(e.target.id))changeSetting(e.target.id,e.target.checked);if(e.target.dataset.setting)changeSetting(e.target.dataset.setting,e.target.checked);if(e.target.id==='chapterJump'&&e.target.value)openLibraryChapter(e.target.value);if(e.target.id==='grimorioCategory'){grimorioCategory=e.target.value;grimorioRefreshResults()}if(e.target.id==='formImage')imageForForm(e.target);if(e.target.dataset.abilityImage!==undefined)abilityImageUpload(e.target);if(e.target.id==='noteImagesInput')noteImageUpload(e.target);if(e.target.id==='coverFile')imageFile(e.target,'cover');if(e.target.id==='sheetImageFile')imageFile(e.target,'sheet');if(e.target.id==='sharedUpload'&&e.target.files[0])uploadSharedAudio(e.target.files[0])});document.addEventListener('keydown',e=>{const dialog=el('dialogRoot').querySelector('[role=dialog]');if(!dialog)return;if(e.key==='Escape'){if(!el('firstPlayerKey')){if(modalGuard)returnModal();else requestModalClose()}e.preventDefault()}if(e.key==='Tab'){const fs=[...dialog.querySelectorAll('button,input,textarea,select,[tabindex]')].filter(x=>!x.disabled&&x.tabIndex!==-1);if(!fs.length)return;const first=fs[0],last=fs[fs.length-1];if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault()}else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault()}}});let heroMotionFrame=0,heroMotionInput=null;
+document.addEventListener('pointermove',e=>{
+ const hero=e.target.closest?.('#character');
+ if(!hero||sheetMotionOff())return;
+ heroMotionInput={hero,x:e.clientX,y:e.clientY};
+ // Leia o layout e escreva as variáveis uma só vez por frame, mesmo com mouse de 240 Hz.
+ if(heroMotionFrame)return;
+ heroMotionFrame=requestAnimationFrame(()=>{
+  heroMotionFrame=0;
+  const state=heroMotionInput;
+  if(!state?.hero?.isConnected||sheetMotionOff())return;
+  const rect=state.hero.getBoundingClientRect();
+  if(!rect.width||!rect.height)return;
+  const dx=(state.x-rect.left)/rect.width-.5,dy=(state.y-rect.top)/rect.height-.5;
+  state.hero.style.setProperty('--tilty',dx*7+'deg');
+  state.hero.style.setProperty('--tiltx',-dy*6+'deg');
+ });
+},{passive:true});
+document.addEventListener('pointerout',e=>{
+ const hero=e.target.closest?.('#character');
+ if(hero&&!hero.contains(e.relatedTarget)){
+  if(heroMotionFrame){cancelAnimationFrame(heroMotionFrame);heroMotionFrame=0}
+  heroMotionInput=null;
+  hero.style.setProperty('--tilty','0deg');
+  hero.style.setProperty('--tiltx','0deg');
+ }
+})}
 function background(){
  const canvas=el('energy');if(!canvas)return;
  const ctx=canvas.getContext('2d');if(!ctx)return;
