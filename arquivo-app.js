@@ -528,21 +528,29 @@ function applyOnlineSnapshot(detail){
  }
  pendingOnlineSnapshot=null;appliedOnlineRevision=revision;
  // Uma alteração de outra ficha não deve destruir e reconstruir a ficha visível.
- const sameIdentity=role===(detail.identity?.kind||'guest')&&keyOwnerId===(detail.identity?.id||'');
+ const sameIdentity=role===(detail.identity?.kind||'guest')&&keyOwnerId===(detail.identity?.id||'')&&
+  JSON.stringify(db.keys)===JSON.stringify(window.ARQUIVO_SYNC.state.keys);
  const activeSheet=page==='sheets'&&currentSheet?
   db.sheets.find(s=>s.id===currentSheet):null;
  const incomingSheet=activeSheet?snap.sheets.find(s=>s.id===currentSheet):null;
- const sameVisibleSheet=!!activeSheet&&!!incomingSheet&&sameIdentity&&
-  JSON.stringify(activeSheet)===JSON.stringify(incomingSheet)&&
-  JSON.stringify(db.site)===JSON.stringify(snap.site)&&
-  JSON.stringify(db.rules)===JSON.stringify(snap.rules)&&
-  JSON.stringify(db.keys)===JSON.stringify(window.ARQUIVO_SYNC.state.keys);
+ // Só comparar partes usadas pela área visível. Nunca reconstruir Biblioteca,
+ // Visão Geral ou Rolagens por dano de outra ficha que ninguém está vendo.
+ const sameSite=sameIdentity&&JSON.stringify(db.site)===JSON.stringify(snap.site);
+ const sameRules=()=>JSON.stringify(db.rules)===JSON.stringify(snap.rules);
+ const sameVisibleSheet=!!activeSheet&&!!incomingSheet&&sameSite&&
+  JSON.stringify(activeSheet)===JSON.stringify(incomingSheet)&&sameRules();
+ const sameVisiblePage=sameIdentity&&(
+  sameVisibleSheet||
+  (page==='library'&&sameSite&&sameRules())||
+  (page==='home'&&sameSite&&db.rules.length===snap.rules.length&&db.sheets.length===snap.sheets.length)||
+  (page==='rolls'&&sameSite)||
+  (page==='live'&&sameSite));
  const oldPrefs=prefs;
  // Supabase já entrega uma árvore JSON nova. Evitar uma segunda clonagem integral.
  db={...snap,keys:window.ARQUIVO_SYNC.state.keys};
  onlineApplyIdentity(detail.identity);prefs=oldPrefs;
  scheduleOnlineCache();
- if(sameVisibleSheet){onlineStatus();return}
+ if(sameVisiblePage){onlineStatus();return}
  render();
 }
 document.addEventListener('focusout',()=>queueMicrotask(flushPendingOnlineSnapshot),true);
