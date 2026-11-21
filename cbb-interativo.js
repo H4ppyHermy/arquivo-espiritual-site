@@ -384,7 +384,10 @@
   const result=await sync.cbbRoll(args);
   if(!result?.id||!Array.isArray(result.dice))throw Error('O servidor não confirmou a rolagem.');
   if(args.p_kind==='teste'){
-   if(args.p_context==='ataque'&&result.special!=='FALHA CRÍTICA')lastAttacks.set(s.id,{id:result.id,ra:result.ra});
+   if(args.p_context==='ataque'){
+    if(result.special==='FALHA CRÍTICA')lastAttacks.delete(s.id);
+    else lastAttacks.set(s.id,{id:result.id,ra:result.ra});
+   }
    const enemy=read(root,'opponentRa');
    if(enemy!==''){
     const enemyRA=normalize(enemy,0,200,'RA do oponente');
@@ -427,6 +430,7 @@
    'automationEnabled','conditions','restCount','desgaste']){
     if(Object.hasOwn(response,key))s[key]=response[key];
    }
+  if(['phase','round','scene'].includes(cmd))lastAttacks.delete(s.id);
   if(cmd==='reset'){
    lastResults.delete(s.id);lastAttacks.delete(s.id);modeBySheet.delete(s.id);
    for(const key of resistanceByPhase.keys()){
