@@ -69,24 +69,24 @@ document.addEventListener('visibilitychange',()=>{
 let refreshInFlight=null;
 async function refresh(force=false){
  if(!state.enabled)return;
+ // Qualquer chamada concorrente compartilha a mesma consulta e o mesmo processamento
+ // da revisão. Mesmo refresh(true) não deve duplicar leituras grandes.
+ if(refreshInFlight)return refreshInFlight;
  if(!force&&(state.saving||Date.now()<state.busyUntil))return;
- if(refreshInFlight){
-  await refreshInFlight;
-  if(!force)return;
- }
- const request=rpc('ae_read_document');
- refreshInFlight=request;
- let data;
- try{data=await request}
- finally{if(refreshInFlight===request)refreshInFlight=null}
- if(!data)return;
- if(state.error){state.error='';window.dispatchEvent(new Event('arquivo-online-state'))}
- if(Number(data.revision)<Number(state.revision))return;
- if(!force&&Number(data.revision)===Number(state.revision))return;
- state.revision=data.revision;
- if(Object.keys(data.data||{}).length===0){window.dispatchEvent(new CustomEvent('arquivo-online-empty'));return}
- window.dispatchEvent(new CustomEvent('arquivo-online-snapshot',{detail:{data:data.data,identity:state.identity,keys:state.keys,revision:state.revision}}));
- state.appliedOnce=true;
+ const task=(async()=>{
+  const data=await rpc('ae_read_document');
+  if(!data)return;
+  if(state.error){state.error='';window.dispatchEvent(new Event('arquivo-online-state'))}
+  if(Number(data.revision)<Number(state.revision))return;
+  if(!force&&Number(data.revision)===Number(state.revision))return;
+  state.revision=data.revision;
+  if(Object.keys(data.data||{}).length===0){window.dispatchEvent(new CustomEvent('arquivo-online-empty'));return}
+  window.dispatchEvent(new CustomEvent('arquivo-online-snapshot',{detail:{data:data.data,identity:state.identity,keys:state.keys,revision:state.revision}}));
+  state.appliedOnce=true;
+ })();
+ refreshInFlight=task;
+ try{return await task}
+ finally{if(refreshInFlight===task)refreshInFlight=null}
 }
 async function login(name,code){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_login',{p_name:name,p_code:code});await keys();await refresh(true);connectDocumentChannel();return state.identity}
 async function bootstrap(token,code,name){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_bootstrap_master',{p_token:token,p_code:code,p_name:name});await keys();connectDocumentChannel();return state.identity}
@@ -99,11 +99,17 @@ async function manageKey(id,action,name=null,sheetId=null){const result=await rp
 function push(db,role,sheetId){if(!state.enabled)return;
  state.lastPushError=null;
  state.busyUntil=Date.now()+1700;
- const snapshot=stripDoc(db), links=assignments(db), sheet=snapshot.sheets.find(s=>s.id===sheetId), payload=sheet?stateOnly(sheet):null;
+ // Jogadores gravam apenas sua ficha: não clonar os livros, outras fichas ou o armazém.
+ // O mestre continua enviando o documento completo quando altera o conteúdo global.
+ const isMaster=role==='master';
+ const snapshot=isMaster?stripDoc(db):null;
+ const links=isMaster?assignments(db):null;
+ const sheet=isMaster?null:db.sheets.find(s=>s.id===sheetId);
+ const payload=sheet?stateOnly(sheet):null;
  state.pending=state.pending.catch(()=>{}).then(async()=>{
   state.saving=true;
   try{
-   if(role==='master')state.revision=await rpc('ae_master_replace',{p_data:snapshot,p_assignments:links});
+   if(isMaster)state.revision=await rpc('ae_master_replace',{p_data:snapshot,p_assignments:links});
    else if(role==='player' && payload)state.revision=await rpc('ae_player_update',{p_sheet_id:sheetId,p_state:payload});
   }catch(e){state.lastPushError=e.message;state.error=e.message;window.dispatchEvent(new CustomEvent('arquivo-sync-error',{detail:'Alteração NÃO sincronizada: '+e.message}));}
   finally{state.saving=false;state.busyUntil=Date.now()+800}
