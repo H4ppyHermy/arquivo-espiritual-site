@@ -68,7 +68,10 @@ test('habilidades e técnicas usam cartão textual sem quadrado de imagem, itens
  const skill=html.match(/<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-skill"[^>]*>[\s\S]*?<\/article>/)?.[0];
  const tech=html.match(/<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-tech"[^>]*>[\s\S]*?<\/article>/)?.[0];
  assert.ok(skill&&tech,'habilidade e técnica devem possuir cartões específicos');
- assert.match(skill,/ae-wh-ability-title|CUSTO \/ USO · 2 Alma/);
+ assert.match(skill,/ae-wh-ability-title/);
+ assert.match(skill,/ae-ability-cost/);
+ assert.match(skill,/2 ALMA/);
+ assert.match(skill,/Fase: Conforme efeito/);
  assert.match(skill,/Efeito único/);
  assert.match(tech,/Movimento breve/);
  assert.doesNotMatch(skill+tech,/ae-wh-emblem|ae-warehouse-image|魂|src="https:\/\/example.com\/skill.gif"|ae-wh-read-btn/);
@@ -353,28 +356,23 @@ test('Porta-voz em cache ou documento online recebe termos atuais sem perder edi
  assert.equal(old.summary,'Versão personalizada pelo mestre');
 });
 
-test('efeito extenso abre sem duplicar a prévia; descrição é uma única habilidade',()=>{
+test('habilidades longas exibem a regra completa sem teaser ou controle individual de abrir',()=>{
  const ctx=setup(false);
  ctx.db.site.warehouse.posts.push({
   id:'tecnica-longa',title:'Passo da Sombra',category:'Técnicas',published:true,
-  summary:'Uma investida silenciosa',content:'## Ativação\nDeslocamento de 4 metros.\n\n## Efeito\nConcede +1d6 ao teste.'
+  summary:'Uma investida silenciosa',content:'## Ativação\\nDeslocamento de 4 metros.\\n\\n## Efeito\\nConcede +1d6 ao teste.'
  });
- ctx.elements.warehousePosts={innerHTML:''};
- let html=ctx.window.ARQUIVO_SECOES.warehousePage();
- assert.match(html,/LER TÉCNICA COMPLETA/);
- assert.match(html,/Uma investida silenciosa/);
- assert.match(html,/id="warehouseBody-tecnica-longa" hidden/);
- assert.doesNotMatch(html,/<p>## Ativação/);
- ctx.dispatch('click','','open:tecnica-longa',{kind:'warehouse'});
- html=ctx.elements.warehousePosts.innerHTML;
- assert.match(html,/RECOLHER DESCRIÇÃO/);
- assert.match(html,/id="warehouseBody-tecnica-longa"/);
+ const html=ctx.window.ARQUIVO_SECOES.warehousePage();
  assert.match(html,/<p>## Ativação/);
+ assert.match(html,/ae-wh-ability-title/);
+ assert.match(html,/ae-ability-cost/);
+ assert.match(html,/Fase: Conforme efeito/);
+ assert.doesNotMatch(html,/LER TÉCNICA COMPLETA|RECOLHER DESCRIÇÃO|ae-wh-ability-teaser/);
  assert.doesNotMatch(html,/Uma investida silenciosa/);
- assert.doesNotMatch(html,/DESCRIÇÃO & FUNCIONAMENTO/);
- const technique=html.match(/<article class="ae-warehouse-post ae-wh-ability-post is-open" id="warehousePost-tecnica-longa">[\s\S]*?<\/article>/)?.[0];
- assert.ok(technique);
- assert.doesNotMatch(technique,/ae-wh-emblem|ae-warehouse-image/);
+ assert.doesNotMatch(html,/id="warehouseBody-tecnica-longa"/);
+ const card=html.match(/<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-tecnica-longa">[\\s\\S]*?<\\/article>/)?.[0];
+ assert.ok(card);
+ assert.doesNotMatch(card,/ae-wh-emblem|ae-warehouse-image/);
 });
 
 test('editor atualiza campos e não salva imagem em habilidade ou técnica',()=>{
@@ -388,7 +386,7 @@ test('editor atualiza campos e não salva imagem em habilidade ou técnica',()=>
  ctx.dispatch('change','warehouseCategoryInput','',{value:'Habilidades'});
  assert.equal(ctx.elements.warehouseImageField.hidden,true);
  assert.equal(ctx.elements.warehouseContentLabel.textContent,'Descrição da habilidade');
- assert.equal(ctx.elements.warehouseAdvancedHint.textContent,'Opcional · custo');
+ assert.equal(ctx.elements.warehouseAdvancedHint.textContent,'Custo e fase');
  ctx.elements.warehouseCategoryInput.value='Técnicas';
  ctx.dispatch('change','warehouseCategoryInput','',{value:'Técnicas'});
  assert.equal(ctx.elements.warehouseContentLabel.textContent,'Descrição da técnica');
@@ -444,7 +442,7 @@ test('habilidades e técnicas oficiais constam do Armazém sem imagens',()=>{
   const card=start<0||end<0?'':markup.slice(start,end+10);
   assert.ok(card,'Cartão especial não encontrado: '+title);
   assert.doesNotMatch(card,/ae-wh-emblem|ae-warehouse-image|魂/);
-  assert.ok(card.includes('CUSTO / USO'));
+  assert.ok(card.includes('ae-ability-cost'));
  }
  assert.equal(ctx.db.sheets.length,1,'Não deve alterar fichas de jogadores');
 });
