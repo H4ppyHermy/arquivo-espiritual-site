@@ -61,7 +61,7 @@ test('edição de fichas, Armazém e prévias continuam usando a regra editorial
  assert.match(app,/standardizeItem\?\.\(it\.description\)/);
  assert.match(store,/entry\.content=window\.ARQUIVO_CBB_PRESENTATION\?\.standardize\?\./);
  assert.match(store,/standardizeRuleSections\?\.\(entry\.content\)/);
- assert.match(editor,/standardizeRuleSections\?\.\(area\.value/);
+ assert.match(editor,/renderRuleSections\(area\.value/);
  assert.match(read('playtest-ux.css'),/ae-book-definition dt/);
  assert.doesNotMatch(read('index.html'),/site-update\.js|site-version\.json/);
 });
