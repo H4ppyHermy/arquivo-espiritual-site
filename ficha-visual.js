@@ -154,9 +154,7 @@
      '<div class="ae-ficha-quick-name"><span>'+esc(ab.libraryType==='tecnica'?'TÉCNICA':'HABILIDADE')+
       (Number(ab.cost)>0?' · '+esc(ab.cost)+' ALMA':'')+'</span><strong>'+esc(ab.name||'Habilidade')+'</strong></div>'+
      pinButton(ab,index,ctx,true)+'</div>'+
-     '<details class="ae-ficha-quick-description"'+(expandedSet(s.id).has(abilityExpandedKey(ab))?' open':'')+
-     '><summary>DESCRIÇÃO</summary>'+rememberButton(ab,s.id)+
-     '<div class="sheet-rich">'+api.sheetRich(text(ab.description||''))+'</div></details>'+
+     '<div class="ae-ficha-quick-description sheet-rich">'+api.sheetRich(text(ab.description||''))+'</div>'+
      (window.ARQUIVO_CBB_UI?.abilityActions?.(ab,index,ctx)||'')+'</article>').join('')+'</div>':
     '<p class="ae-ficha-quick-empty">Use o pin ao lado de uma habilidade para deixá-la aqui.</p>')+
    '</section>';
@@ -190,36 +188,23 @@
   const row=({group,name})=>
    '<div class="ae-ficha-skill-row"><span class="ae-ficha-skill-name">'+esc(name)+'</span>'+
    '<span class="ae-ficha-skill-dice">'+numberDie(s.skills?.[name],'skill')+'<span aria-hidden="true" class="ae-ficha-skill-plus">+</span>'+numberDie(s.groups?.[group],'group')+
-   '<small>'+esc(group)+'</small></span></div>';
+   '<small>'+esc(group)+'</small></span>'+
+   (ctx.canEdit?'<button type="button" class="ae-ficha-skill-roll" data-cbb-pick-skill="'+esc(name)+'" aria-label="Rolar '+esc(name)+' diretamente na ficha">ROLAR</button>':'')+'</div>';
   return '<section class="ae-ficha-skills" aria-labelledby="aeFichaSkillsTitle">'+
    '<div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2 id="aeFichaSkillsTitle">Grupos & perícias</h2></div>'+
    (ctx.canEdit?api.btn('EDITAR DADOS','editSheetSection:skills','small'):'')+'</div>'+
    '<div class="ae-ficha-skills-grid">'+columns.map((list,index)=>
     '<div class="ae-ficha-skills-col" aria-label="Coluna de perícias '+(index+1)+'">'+list.map(row).join('')+'</div>'
-   ).join('')+'</div></section>';
+   ).join('')+'</div>'+(ctx.canEdit?(window.ARQUIVO_CBB_UI?.renderSkillQuick?.(s,ctx)||''):'')+'</section>';
  }
- const expandedCache=new Map();
- function expandedSet(sheetId){
-  if(expandedCache.has(sheetId))return expandedCache.get(sheetId);
-  let values=[];
-  try{values=JSON.parse(window.localStorage?.getItem('ae_ability_expanded_v1:'+sheetId)||'[]')}catch(e){}
-  const set=new Set(Array.isArray(values)?values.filter(x=>typeof x==='string').slice(0,150):[]);
-  expandedCache.set(sheetId,set);
-  return set;
- }
- function abilityExpandedKey(ab){
-  return encodeURIComponent(String(ab.abilityId||((ab.libraryType==='tecnica'?'t:':'h:')+
-   String(ab.name||''))).slice(0,180));
- }
- function rememberButton(ab,sheetId){
-  const key=abilityExpandedKey(ab),saved=expandedSet(sheetId).has(key),label=saved?'Desativar descrição fixa':'Manter descrição aberta';
-  return '<button type="button" class="ae-ficha-ability-remember'+(saved?' is-saved':'')+
-   '" data-ability-remember="'+esc(key)+'" data-ability-sheet="'+esc(sheetId)+
-   '" data-ability-name="'+esc(ab.name||'habilidade')+
-   '" aria-pressed="'+saved+'" aria-label="'+label+' para '+esc(ab.name||'habilidade')+
-   '" title="'+label+'">'+
-   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">'+
-   '<path d="M6 3h12v18l-6-4-6 4V3z"/></svg></button>';
+ const categoryCache=new Map();
+ function closedCategories(sheetId){
+  if(categoryCache.has(sheetId))return categoryCache.get(sheetId);
+  let saved=[];
+  try{saved=JSON.parse(window.localStorage?.getItem('ae_collapsed_categories_v1:'+sheetId)||'[]')}catch(e){}
+  const value=new Set(Array.isArray(saved)?saved.filter(x=>typeof x==='string').slice(0,100):[]);
+  categoryCache.set(sheetId,value);
+  return value;
  }
  function moveHandle(ab,index,ctx){
   if(!ctx.master)return '';
@@ -240,18 +225,13 @@
     '<div class="ae-ficha-ability-tag"><span class="ae-ficha-ability-title">'+name+'</span>'+
     pinButton(ab,index,ctx,pinned)+moveHandle(ab,index,ctx)+'</div>'+
     '<div class="ae-ficha-ability-meta"><span>'+esc(kind.toUpperCase())+'</span>'+
-     (Number(ab.cost)>0?'<span>'+esc(ab.cost)+' ALMA</span>':'')+
+     '<strong class="ae-ability-cost">'+(Number(ab.cost)>0?esc(ab.cost)+' ALMA':'SEM CUSTO')+'</strong>'+
+     '<span class="ae-ability-phase">Fase: '+esc(window.ARQUIVO_CBB_ENGINE?.abilityPhase?.(ab)||'Livre')+'</span>'+
      (ab.usage?'<span>'+esc(ab.usage)+'</span>':'')+'</div>'+
-
-    '<details class="ae-ficha-ability-details"'+(expandedSet(sheetId).has(abilityExpandedKey(ab))?' open':'')+'>'+
-     '<summary aria-label="Mostrar ou ocultar a descrição de '+name+'" title="Abrir ou fechar descrição">'+
-      '<span class="ae-ficha-ability-expand" aria-hidden="true">'+
-       '<span class="ae-ficha-expand-plus">+</span><span class="ae-ficha-expand-minus">−</span>'+
-      '</span></summary>'+rememberButton(ab,sheetId)+
-     '<div class="ae-ficha-ability-full sheet-rich">'+
+    (window.ARQUIVO_CBB_UI?.abilitySummary?.(api.db?.sheets?.find(x=>x.id===sheetId)||{},ab,index)||'')+
+    '<div class="ae-ficha-ability-full sheet-rich">'+
        (image?'<img alt="Ilustração da habilidade '+name+'" src="'+esc(image)+'" loading="lazy">':'')+
        api.sheetRich(description)+'</div>'+
-    '</details>'+
     (ctx.canEdit?'<div class="ae-ficha-ability-tools">'+api.btn('EDITAR','editAbilityDirect:'+index,'small')+'</div>':'')+
     (window.ARQUIVO_CBB_UI?.abilityActions?.(ab,index,ctx)||'')+
    '</article>';
@@ -286,16 +266,20 @@
     (abilityKind===type?'is-active':'')+'">'+label+'</button>').join('')+'</div>'+
    sections.map(section=>{
     const entries=section.items,available=entries.some(({ab})=>matches(ab));
+    const categoryId=section.custom?(groups.find(g=>g.name===section.name)?.id||''):'__general__';
+    const isOpen=!closedCategories(s.id).has(categoryId);
     if(!entries.length&&!ctx.master)return '';
-    return '<section class="ae-ficha-ability-group'+(section.custom?' ae-ficha-ability-group--custom':'')+
-     '" data-drop-ability-group="'+esc(section.custom?groups.find(g=>g.name===section.name)?.id||'':'')+'"'+
+    return '<details class="ae-ficha-ability-group'+(section.custom?' ae-ficha-ability-group--custom':'')+
+     '" data-group-collapse="'+esc(categoryId)+'" data-category-sheet="'+esc(s.id)+'"'+
+     (isOpen?' open':'')+
+     ' data-drop-ability-group="'+esc(section.custom?categoryId:'')+'"'+
      (available||(!entries.length&&ctx.master)?'':' hidden')+'>'+
-     '<div class="ae-ficha-ability-group-head"><h3>'+esc(section.name)+'</h3><span>'+entries.length+'</span></div>'+
+     '<summary class="ae-ficha-ability-group-head" aria-label="Expandir ou recolher '+esc(section.name)+'"><h3>'+esc(section.name)+'</h3><span>'+entries.length+' <b aria-hidden="true">⌄</b></span></summary>'+
      (entries.length?'<div class="ae-ficha-ability-grid">'+entries.map(({ab,index})=>
       '<div class="ae-ficha-ability-entry" data-drop-ability-index="'+index+'"'+(matches(ab)?'':' hidden')+'>'+
       abilityCard(ab,index,ctx,(s.pinnedAbilities||[]).includes(abilityPinKey(ab)),s.id)+'</div>').join('')+'</div>':
       '<p class="ae-ficha-ability-group-empty">Nenhuma habilidade vinculada. Arraste uma habilidade até aqui ou escolha esta categoria no editor.</p>')+
-     '</section>';
+     '</details>';
    }).join('')+
    (!list.length&&!groups.length?'<div class="ae-ficha-empty">Nenhuma habilidade registrada nesta ficha.'+
     (ctx.master?'<p>Use + Habilidade para adicionar um registro.</p>':'')+'</div>':'')+
@@ -415,23 +399,15 @@
   if(progress)progress.textContent='ETAPA '+(index+1)+' / '+steps.length;
   if(focus)choice.querySelector('input,select,textarea')?.focus({preventScroll:true});
  }
- document.addEventListener('click',event=>{
-  const btn=event.target.closest?.('[data-ability-remember]');
-  if(!btn)return;
-  event.preventDefault();
-  const sheetId=btn.dataset.abilitySheet,key=btn.dataset.abilityRemember;
-  if(!sheetId||!key)return;
-  const saved=expandedSet(sheetId),next=!saved.has(key);
-  if(next)saved.add(key);else saved.delete(key);
-  try{window.localStorage?.setItem('ae_ability_expanded_v1:'+sheetId,JSON.stringify([...saved]))}catch(e){}
-  document.querySelectorAll('[data-ability-remember]').forEach(b=>{
-   if(b.dataset.abilitySheet!==sheetId||b.dataset.abilityRemember!==key)return;
-   b.classList.toggle('is-saved',next);b.setAttribute('aria-pressed',String(next));
-   b.title=next?'Desativar descrição fixa':'Manter descrição aberta';
-   b.setAttribute('aria-label',b.title+' para '+(b.dataset.abilityName||'habilidade'));
-   b.closest('details')?.toggleAttribute('open',next);
-  });
- });
+ document.addEventListener('toggle',event=>{
+  const section=event.target;
+  if(!section?.matches?.('details[data-group-collapse][data-category-sheet]'))return;
+  const sheetId=section.dataset.categorySheet,category=section.dataset.groupCollapse;
+  if(!sheetId||!category)return;
+  const saved=closedCategories(sheetId);
+  if(section.open)saved.delete(category);else saved.add(category);
+  try{window.localStorage?.setItem('ae_collapsed_categories_v1:'+sheetId,JSON.stringify([...saved]))}catch(e){}
+ },true);
  document.addEventListener('click',event=>{
   const typeBtn=event.target.closest?.('[data-ability-filter]');
   if(typeBtn){
