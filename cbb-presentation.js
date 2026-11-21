@@ -56,7 +56,7 @@
 
  // O mesmo padrão editorial vale para conteúdos oficiais, personalizados e novos.
  // Não interpreta valores, não altera mecânicas e não remove ressalvas do texto.
- const STANDARD_LINE=/^(?:Requisito|Gatilho|Ativação|Efeito|Recurso|Consumo|Condição|Consequência|Limite|Restrição|Duração|Observação|Amplificação|Encantamento)\s+—\s+/im;
+ const STANDARD_LINE=/^(?:Requisito|Gatilho|Ativação|Efeito|Recurso|Consumo|Condição|Consequência|Limite|Restrição|Duração|Observação|Amplificação|Encantamento|Arte escolhida|Comando de liberação)\s+—\s+/im;
  function standardize(source){
   const original=String(source??'').replace(/\r\n?/g,'\n').trim();
   if(!original||STANDARD_LINE.test(original))return original;
@@ -77,7 +77,7 @@
    }
    const existing=s.match(/^(?:\*\*)?(Amplificação|Encantamento|Comando de liberação|Arte escolhida)(?:\*\*)?\s*:\s*(.+)$/i);
    if(existing){
-    push(existing[1]==='Amplificação'?'Amplificação':'Observação',existing[2]);return;
+    push(existing[1],existing[2]);return;
    }
    const limit=s.match(/^(Uma vez por (?:rodada|cena|sessão|turno|fase|Hollowficação)|Uma vez a cada [^,]{2,35})\s*,\s*(.+)$/i);
    if(limit){
@@ -98,7 +98,10 @@
     push('Recurso',s);return;
    }
    if(/^(?:Ao|Quando|Sempre que|No início|No começo|Na abertura)\b/i.test(s)){
-    const comma=s.indexOf(',');
+    // Uma lista de recursos pode conter vírgulas: dividir apenas quando
+    // a parte seguinte começa por um verbo de efeito, não no primeiro item.
+    const matches=[...s.matchAll(/,\s*(?=(?:aumente|reduza|role|ignore|imponha|receba|preencha|utilize|permita|escolha|realize|desloque|restaure|ganhe|perca|aplique|conceda|prolongue|encerre|dobre|acrescente|faça|sofra|mantenha|continue|pode|interrompa|consuma|marque|apague|torne|o alvo|os alvos)\b)/giu)];
+    const comma=matches.length?matches[matches.length-1].index:-1;
     if(comma>8&&comma<210&&s.length-comma>10){
      push('Gatilho',s.slice(0,comma).replace(/[.,;:]$/,'')+'.');
      process(s.slice(comma+1),depth+1,false);
