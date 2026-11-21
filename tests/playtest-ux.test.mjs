@@ -58,5 +58,5 @@ test('perícia e dano usam o mesmo motor no painel rápido e na Mesa',()=>{
  assert.match(cbb,/refreshDamageSummaries/);
  assert.match(app,/invLinkedAbility/);
  assert.match(app,/damageBonus:/);
- assert.match(app,/const items=db\\.sheets\\.filter\\(s=>!!s\\.masterOnly===onlyMaster&&\\(master\\(\\)\\|\\|/);
+ assert.ok(app.includes("const items=db.sheets.filter(s=>!!s.masterOnly===onlyMaster&&(master()||"));
 });
