@@ -41,15 +41,25 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
   window.ARQUIVO_INTERNAL.setPage('library');
   window.ARQUIVO_SECOES.select('warehouse');
   const cards=[...document.querySelectorAll('.ae-wh-ability-post')];
+  const heads=cards.map(card=>{
+   const header=card.querySelector('.ae-wh-ability-header');
+   const title=card.querySelector('.ae-wh-ability-title');
+   return {hasTitle:!!title?.textContent?.trim(),hasHeader:!!header,
+    hasGradient:!!header&&getComputedStyle(header).backgroundImage.includes('linear-gradient'),
+    titleVisible:!!title&&getComputedStyle(title).visibility==='visible'&&
+     getComputedStyle(title).display!=='none'&&title.getBoundingClientRect().height>0,
+    hasLegacyClass:!!header?.classList.contains('ae-ficha-ability-tag')||
+     !!title?.classList.contains('ae-ficha-ability-title')};
+  });
   return {count:cards.length,first:cards[0]?.innerText||'',phase:cards[0]?.querySelector('.ae-ability-phase')?.textContent||'',
-   cost:!!cards[0]?.querySelector('.ae-ability-cost'),
-   whiteBar:cards[0]&&getComputedStyle(cards[0].querySelector('.ae-wh-ability-title')).backgroundColor==='rgb(255, 255, 255)',
+   cost:!!cards[0]?.querySelector('.ae-ability-cost'),heads,
    hasPerAbilityExpand:cards.some(c=>!!c.querySelector('[data-warehouse-action^="open:"]'))};
  });
  assert.ok(warehouse.count>=10,'o acervo oficial deve ser renderizado');
  assert.ok(warehouse.phase.startsWith('Fase: '));
  assert.ok(warehouse.cost);
- assert.equal(warehouse.whiteBar,false);
+ assert.ok(warehouse.heads.every(h=>h.hasHeader&&h.hasTitle&&h.hasGradient&&h.titleVisible&&!h.hasLegacyClass),
+  'os nomes precisam aparecer sobre cabeçalhos de gradiente da paleta em todos os cartões');
  assert.equal(warehouse.hasPerAbilityExpand,false);
 
  const sheet=await page.evaluate(()=>{
