@@ -17,18 +17,22 @@
   const match=value.match(search);
   return match?{count:Number(match[1]),faces:Number(match[2])}:null;
  };
+ const isItemDamageActive=(sheet,item)=>{
+  if(!item||item.equipped===false||!Number.isInteger(Number(item.damageBonus))||
+      Number(item.damageBonus)===0)return false;
+  if(!item.linkedAbility)return true;
+  const abilities=Array.isArray(sheet?.abilities)?sheet.abilities:[];
+  const index=abilities.findIndex(ab=>String(ab?.abilityId||ab?.automation?.id||ab?.name)===String(item.linkedAbility));
+  if(index<0)return false;
+  const ab=abilities[index],key=String(ab.abilityId||ab.automation?.id||'legacy:'+index);
+  const scene=Number(sheet?.combat?.scene||1);
+  const entry=sheet?.abilityRuntime?.billing?.[key];
+  return ab.costConfig?.mode==='activation'&&entry?.active===true&&Number(entry.scene)===scene;
+ };
  const activeDamageEffects=sheet=>{
   const items=Array.isArray(sheet?.inventory?.items)?sheet.inventory.items:[];
-  const abilities=Array.isArray(sheet?.abilities)?sheet.abilities:[];
-  const runtime=sheet?.abilityRuntime?.billing||{},scene=Number(sheet?.combat?.scene||1);
-  return items.filter(item=>{
-   if(!item||item.equipped===false||!Number.isInteger(Number(item.damageBonus))||Number(item.damageBonus)===0)return false;
-   if(!item.linkedAbility)return true;
-   const index=abilities.findIndex(ab=>String(ab?.abilityId||ab?.automation?.id||ab?.name)===String(item.linkedAbility));
-   if(index<0)return false;
-   const ab=abilities[index],key=String(ab.abilityId||ab.automation?.id||'legacy:'+index),entry=runtime[key];
-   return ab.costConfig?.mode==='activation'&&entry?.active===true&&Number(entry.scene)===scene;
-  }).map(item=>({name:String(item.name||'Equipamento'),amount:Number(item.damageBonus)}));
+  return items.filter(item=>isItemDamageActive(sheet,item))
+   .map(item=>({name:String(item.name||'Equipamento'),amount:Number(item.damageBonus)}));
  };
  const activeDamageBonus=sheet=>activeDamageEffects(sheet).reduce((n,item)=>n+item.amount,0);
  const abilityPhase=ab=>{
@@ -129,5 +133,5 @@
   return {dice:die,rt:Number(result?.rt??result?.total??0),ra:Number(result?.ra??0),rb:Number(result?.rb??0),
    special:String(result?.special||'')};
  }
- global.ARQUIVO_CBB_ENGINE=Object.freeze({GROUPS,DIE_FACES,groupOf,positiveInt,dieFormula,abilityPool,activeDamageEffects,activeDamageBonus,abilityPhase,clash,rollSummary,previewSkill,stepDie,normalizedConditions});
+ global.ARQUIVO_CBB_ENGINE=Object.freeze({GROUPS,DIE_FACES,groupOf,positiveInt,dieFormula,abilityPool,isItemDamageActive,activeDamageEffects,activeDamageBonus,abilityPhase,clash,rollSummary,previewSkill,stepDie,normalizedConditions});
 })(window);
