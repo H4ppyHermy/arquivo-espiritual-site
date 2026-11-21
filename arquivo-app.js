@@ -704,7 +704,7 @@ function library(){
  ' autocomplete="off" spellcheck="false" placeholder="Buscar no sistema" aria-keyshortcuts="/ Escape" aria-describedby="ruleMatches">'+
  '<button class="ae-library-clear" id="libraryClearSearch" data-action="clearLibrarySearch" type="button" aria-label="Limpar pesquisa"'+(!query?' hidden':'')+'>LIMPAR</button></div>'+
  '<p id="ruleMatches" class="ae-library-search-count" role="status" aria-live="polite">'+librarySearchSummary(visible)+'</p>'+
- '<div class="ae-library-toolbar"><span>Clique nas palavras do glossário para ver a definição. Os símbolos distinguem os tipos de regra.</span>'+
+ '<div class="ae-library-toolbar"><span>Abra os capítulos para ler o texto completo. Os símbolos distinguem recursos, ações, testes, efeitos e riscos.</span>'+
  '<details class="ae-book-key"><summary>LEGENDA VISUAL</summary>'+
  '<div class="ae-book-key-items"><span><b aria-hidden="true">◆</b> Conceito</span><span><b aria-hidden="true">▸</b> Ação</span>'+
  '<span><b aria-hidden="true">◈</b> Recurso</span><span><b aria-hidden="true">◇</b> Teste</span>'+
@@ -741,7 +741,7 @@ function librarySyncActiveIndex(){
  });
  const jump=el('chapterJump');if(jump)jump.value=libraryActiveChapterId||'';
 }
-/* GRIMÓRIO: dados editáveis persistidos em db.site e sincronizados pelo documento do mestre. */
+/* CONSULTA RÁPIDA: apenas verbetes escritos pelo mestre, sem extração do livro. */
 const GRIMORIO_CATEGORIES=['Recursos','Testes','Combate','Condições','Recuperação','Outros'];
 const GRIMORIO_DEFAULTS={schemaVersion:2,visible:true,title:'CONSULTA RÁPIDA',subtitle:'Verbetes criados e revisados pelo mestre.',glossary:[]};
 function grimorioSettings(){
@@ -763,15 +763,6 @@ function grimorioStored(){
  return settings;
 }
 function glossaryKey(name){return String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLocaleLowerCase('pt-BR').replace(/\s+/g,' ')}
-function glossaryCategory(name){
- const term=glossaryKey(name);
- if(/vida|alma|estabilidade|energia/.test(term))return 'Recursos';
- if(/dado|pericia|grupo|teste|dificuldade|modificador/.test(term))return 'Testes';
- if(/recuper|descanso|tratamento|meditac|recompos/.test(term))return 'Recuperação';
- if(/estado|condic|morto|desmaiado|acorrentado|pressionado/.test(term))return 'Condições';
- if(/acao|reacao|combate|movimenta|dano|resistencia|cobertura|posicionamento|terreno/.test(term))return 'Combate';
- return 'Outros';
-}
 /* Consulta Rápida: catálogo exclusivamente manual, sem varrer capítulos. */
 function grimorioCatalogEntries(){
  const cfg=grimorioSettings();
@@ -784,7 +775,7 @@ function grimorioCatalogEntries(){
    chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',source:'manual'};
  }).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
 }
-/* Navegação do glossário: filtros combináveis e favoritos exclusivamente locais. */
+/* Consulta manual: filtros combináveis e favoritos exclusivamente locais. */
 const GRIMORIO_FAVORITES_KEY='ae_consulta_favoritos_v2';
 try{DATASTORE.local?.removeItem('ae_grimorio_favoritos_v1')}catch(e){}
 function grimorioFavoritesLoad(){
@@ -908,7 +899,7 @@ function grimorioPanel(){
   btn('LER CAPÍTULOS','libraryMode:chapters','small')+
   '</div></section>';
 
- return '<section class="ae-grimorio-panel ae-glossary-workspace" aria-label="Catálogo do Grimório">'+
+ return '<section class="ae-grimorio-panel ae-glossary-workspace" aria-label="Catálogo da Consulta Rápida">'+
   '<div class="ae-grimorio-toolbar"><div><span class="ae-grimorio-kicker">CONSULTA RÁPIDA · CATÁLOGO MANUAL</span>'+
   '<h3>ENCONTRE UM VERBETE</h3><p>'+count+' '+(count===1?'página criada':'páginas criadas')+' pelo mestre · '+favoriteCount+' favorito(s) neste navegador</p></div>'+
   (master()?'<div class="actions ae-grimorio-quick-actions">'+btn('+ NOVA PÁGINA','editGlossary:new','small')+btn('GERENCIAR CONSULTA','manageGrimorio','small')+'</div>':'')+'</div>'+
@@ -1005,7 +996,7 @@ function confirmGrimorioNavigationAction(){
 function cancelGrimorioNavigation(){pendingAction=null;returnModal()}
 function openGlossaryEditor(key){
  if(el('grimorioTitleInput')){
-  confirmGrimorioNavigation(()=>editGlossaryEntry(key),'As configurações do Grimório ainda não foram salvas.');
+  confirmGrimorioNavigation(()=>editGlossaryEntry(key),'As configurações da Consulta Rápida ainda não foram salvas.');
   return;
  }
  editGlossaryEntry(key);
@@ -1038,7 +1029,7 @@ function editGlossaryEntry(key){
  '<label>Categoria<select id="glossaryCategoryInput">'+category+'</select></label>'+ 
  '<section class="ae-glossary-relations" aria-label="Relacionar páginas"><div class="ae-glossary-relations-header"><strong>CONEXÕES DIRETAS</strong><small>Selecione as páginas relacionadas. Os títulos devem corresponder exatamente.</small></div>'+
  '<input type="search" id="glossaryConnectionsSearch" autocomplete="off" placeholder="Buscar página para conectar" aria-label="Buscar páginas para conectar">'+
- '<div class="ae-glossary-relations-list" id="glossaryConnectionList">'+(connectionsHtml||'<p class="subtitle">Crie mais páginas no Grimório para adicionar conexões.</p>')+'</div></section>'+
+ '<div class="ae-glossary-relations-list" id="glossaryConnectionList">'+(connectionsHtml||'<p class="subtitle">Crie mais verbetes na Consulta Rápida para adicionar conexões.</p>')+'</div></section>'+
  '<label>Capítulo vinculado<select id="glossaryChapterInput"><option value="">Sem capítulo vinculado</option>'+options+'</select></label>'+
  '<label class="ae-grimorio-editor-check"><input type="checkbox" id="glossaryEnabledInput"'+(item.enabled===false?'':' checked')+'> Verbete ativo</label>'+
  '</div>',
