@@ -7,6 +7,7 @@ const read=name=>fs.readFileSync(new URL('../'+name,import.meta.url),'utf8');
 const create=()=>{
  const window={};
  vm.runInNewContext(read('cbb-engine.js'),{window});
+ vm.runInNewContext(read('barras-inline.js'),{window});
  vm.runInNewContext(read('cbb-presentation.js'),{window});
  return window.ARQUIVO_CBB_PRESENTATION;
 };
@@ -124,4 +125,43 @@ test('componentes compartilhados entregam Extras na ficha completa, no acesso r�
  assert.match(store,/presenter\.extrasPanel\(display,body=>api\.formatBook\(body,title\)\)/);
  assert.match(store,/renderRuleSections\(post\.content/);
  assert.match(read('playtest-ux.css'),/ae-cbb-extra-amount/);
+});
+
+
+test('símbolos originais continuam visíveis junto da capacidade e em cada Extra',()=>{
+ const ui=create(),m=ui.model({name:'Têmpera',description:
+  'Recurso — Possui [barra:3/3] de Têmpera.\n'+
+  'Gatilho — Ao sofrer dano.\n\n'+
+  '[barra:1/3] Resistência — Reduza o dano em 1d4.\n'+
+  '[barra:2/3] Interposição — Receba o ataque no lugar do aliado.\n'+
+  '[barra:3/3] Persistência — Continue lutando.'});
+ const header=ui.resourceInfo(m),extras=ui.extrasPanel(m,x=>x);
+ assert.match(header,/ae-inline-resource-bar ae-inline-resource--barra/);
+ assert.match(header,/3 marcas/);
+ assert.equal((header.match(/ae-inline-resource-segment is-filled/g)||[]).length,3);
+ assert.equal((extras.match(/ae-inline-resource-bar ae-inline-resource--barra/g)||[]).length,3);
+ const rows=extras.split('<div class="ae-cbb-extra-row"').slice(1);
+ assert.deepEqual(rows.map(row=>(row.match(/ae-inline-resource-segment is-filled/g)||[]).length),[1,2,3]);
+ assert.deepEqual(rows.map(row=>(row.match(/ae-inline-resource-segment(?: is-filled)?/g)||[]).length),[3,3,3]);
+ assert.match(extras,/1 MARCA/);
+ assert.match(extras,/2 MARCAS/);
+ assert.match(extras,/3 MARCAS/);
+});
+
+test('marcas, contadores e sequências preservam seus símbolos próprios, não apenas números',()=>{
+ const ui=create();
+ for(const [type,token,expectedClass,filled,total] of [
+  ['Cerco','[marca:2/3]','ae-inline-resource--marca',2,3],
+  ['Armadilhas','[contador:1/5]','ae-inline-resource--contador',1,5],
+  ['Cadência','[sequencia:2/3]','ae-inline-resource--sequencia',2,3]
+ ]){
+  const markerType=token.slice(1,token.indexOf(':'));
+  const info=ui.model({name:type,description:
+   'Recurso — Possui '+token+' de '+type+'.\n'+
+   '['+markerType+':1/'+total+'] Efeito de recurso.'});
+  assert.equal(info.resource.initial,filled,type);
+  assert.equal(info.resource.capacity,total,type);
+  assert.match(ui.resourceInfo(info),new RegExp(expectedClass),type);
+  assert.match(ui.extrasPanel(info,x=>x),new RegExp(expectedClass),type);
+ }
 });
