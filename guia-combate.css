@@ -38,6 +38,9 @@
 #page .ae-field-guide button:focus-visible,#page .ae-field-guide input:focus-visible{
  outline:3px solid var(--field-accent);outline-offset:3px;
 }
+#page .ae-field-search input:focus-visible,#page .ae-field-filters button:focus-visible{
+ outline-color:var(--field-on-accent);
+}
 #page .ae-field-banner{
  min-height:174px;display:flex;align-items:stretch;justify-content:space-between;gap:18px;
  padding:clamp(19px,2vw,29px) clamp(20px,2.4vw,33px);
