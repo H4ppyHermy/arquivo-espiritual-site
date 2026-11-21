@@ -116,3 +116,10 @@ test('troca de chave em uma leitura pendente descarta snapshot antigo e força n
  assert.equal(api.state.revision,5);
  assert.equal(events.filter(x=>x==='arquivo-online-snapshot').length,1);
 });
+
+test('o retrato só lê o layout uma vez por frame de movimento',()=>{
+ const app=fs.readFileSync(new URL('../arquivo-app.js',import.meta.url),'utf8');
+ assert.match(app,/heroMotionFrame=requestAnimationFrame\(\(\)=>\{/);
+ assert.match(app,/if\(heroMotionFrame\)return/);
+ assert.match(app,/cancelAnimationFrame\(heroMotionFrame\)/);
+});
