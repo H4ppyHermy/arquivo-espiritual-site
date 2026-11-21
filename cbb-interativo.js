@@ -465,7 +465,7 @@
  }
  async function onClick(event){
   const selectSkill=event.target?.closest?.('[data-cbb-pick-skill]');
-  if(selectSkill){
+  if(selectSkill?.dataset?.cbbPickSkill){
    event.preventDefault();event.stopPropagation();
    const sh=sheet(),root=selectSkill.closest?.('.ae-ficha-skills')?.querySelector('.ae-cbb-quick');
    const input=field(root,'skill'),name=selectSkill.dataset.cbbPickSkill;
