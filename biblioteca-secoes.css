@@ -325,3 +325,22 @@ html.reduce-motion #page .ae-warehouse-post,html.performance-mode #page .ae-ware
  #page .ae-wh-ability-tags{padding:4px 11px 11px}
  #page .ae-wh-ability-actions{padding:9px 11px}
 }
+
+/* Prévia do editor usa os mesmos marcadores que serão publicados. */
+.ae-wh-preview-ability{display:grid;gap:10px;padding:8px 0}
+.ae-wh-preview-ability .ae-unified-ability-meta{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.ae-wh-preview-ability .ae-unified-ability-meta>*{
+ display:inline-flex;align-items:center;padding:6px 8px;
+ border:1px solid var(--theme-structure);background:var(--theme-raised);
+ font-size:calc(11px * var(--ae-reading-scale,1));font-weight:850;color:var(--theme-text)
+}
+.ae-wh-preview-ability .ae-ability-cost{background:var(--theme-accent);border-color:var(--theme-accent);color:var(--accent-ink,#000)}
+.ae-wh-preview-ability .ae-unified-ability-dice{
+ display:flex;align-items:center;gap:9px;
+ padding:8px 10px;border:1px solid var(--theme-cold);
+ background:color-mix(in srgb,var(--theme-cold) 10%,var(--theme-panel));
+ color:var(--theme-text)
+}
+.ae-wh-preview-ability .ae-unified-ability-dice>strong{font-size:calc(15px * var(--ae-reading-scale,1))}
+.ae-wh-preview-ability .ae-unified-ability-dice>small{opacity:.8}
+.ae-wh-editor-phase-hint{font-size:12px;line-height:1.6;opacity:.8;margin:0}
