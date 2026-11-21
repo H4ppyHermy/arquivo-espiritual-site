@@ -186,6 +186,20 @@ async function notifyDiscordRoll(result){
 function withDiscordRoll(promise){
  return promise.then(result=>{notifyDiscordRoll(result);return result});
 }
+async function saveCombos(sheetId,combos){
+ if(!state.enabled||!state.identity?.id)throw Error('Entre com sua chave antes de salvar combos.');
+ if(typeof sheetId!=='string'||!Array.isArray(combos))throw Error('Dados de combo inválidos.');
+ const task=state.pending.catch(()=>{}).then(async()=>{
+  state.saving=true;state.busyUntil=Date.now()+1200;
+  try{
+   const result=await rpc('ae_sheet_set_combos',{p_sheet_id:sheetId,p_combos:combos});
+   if(!result||!Array.isArray(result.combos))throw Error('O servidor não confirmou a atualização dos combos.');
+   state.revision=Math.max(Number(state.revision)||0,Number(result.revision)||0);
+   return result;
+  }finally{state.saving=false;state.busyUntil=Date.now()+500}
+ });
+ state.pending=task;return task;
+}
 async function rollFree(count,faces,hidden=false,colors=[]){
  if(!hidden&&Number.isInteger(faces)&&faces>=2&&faces<=1000&&Number.isInteger(count)&&count>=1&&count<=30)
   return withDiscordRoll(rpc('ae_roll_custom',{p_count:count,p_faces:faces,p_colors:Array.isArray(colors)?colors:[]}));
@@ -277,5 +291,5 @@ async function mediaSignedUrl(ref){
  return data.signedUrl;
 }
 
-window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,moveAbility,moveWarehousePost,rollFree,cbbRoll,cbbAction,liveCombatPhase,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
+window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,moveAbility,moveWarehousePost,saveCombos,rollFree,cbbRoll,cbbAction,liveCombatPhase,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
 })();
