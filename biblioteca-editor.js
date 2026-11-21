@@ -118,6 +118,8 @@
  function editorUpdatePreview(){
   const area=document.getElementById('warehouseContentInput');if(!area)return;
   const preview=document.getElementById('aeWarehouseEditorPreview');
+  // A prévia compartilha a tipografia semântica da biblioteca publicada.
+  if(preview)preview.classList.add('ae-library-reading');
   const category=document.getElementById('warehouseCategoryInput')?.value;
   const present=window.ARQUIVO_CBB_PRESENTATION;
   if(preview){
