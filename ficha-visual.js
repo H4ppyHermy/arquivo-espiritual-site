@@ -149,13 +149,17 @@
   return '<section class="ae-ficha-quick-access" aria-label="Acesso rápido">'+
    '<div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Acesso rápido</h2></div>'+
    '<button type="button" class="ae-ficha-quick-browse" data-tab="abilities">HABILIDADES</button></div>'+
-   (selected.length?'<div class="ae-ficha-quick-grid">'+selected.map(({ab,index})=>
-    '<article class="ae-ficha-quick-card"><div class="ae-ficha-quick-header">'+
-     '<div class="ae-ficha-quick-name"><span>'+esc(ab.libraryType==='tecnica'?'TÉCNICA':'HABILIDADE')+
-      (Number(ab.cost)>0?' · '+esc(ab.cost)+' ALMA':'')+'</span><strong>'+esc(ab.name||'Habilidade')+'</strong></div>'+
+   (selected.length?'<div class="ae-ficha-quick-grid">'+selected.map(({ab,index})=>{
+    const presenter=window.ARQUIVO_CBB_PRESENTATION;
+    const m=presenter?.model?.(ab);
+    return '<article class="ae-ficha-quick-card"><div class="ae-ficha-quick-header">'+
+     '<div class="ae-ficha-quick-name"><strong>'+esc(ab.name||'Habilidade')+'</strong></div>'+
      pinButton(ab,index,ctx,true)+'</div>'+
-     '<div class="ae-ficha-quick-description sheet-rich">'+api.sheetRich(text(ab.description||''))+'</div>'+
-     (window.ARQUIVO_CBB_UI?.abilityActions?.(ab,index,ctx)||'')+'</article>').join('')+'</div>':
+     (m?presenter.meta(m):'<div class="ae-ficha-ability-meta"><span>'+esc(ab.libraryType==='tecnica'?'TÉCNICA':'HABILIDADE')+'</span></div>')+
+     (window.ARQUIVO_CBB_UI?.abilitySummary?.(s,ab,index)||'')+
+     '<div class="ae-ficha-quick-description sheet-rich">'+api.sheetRich(m?.description||text(ab.description||''))+'</div>'+
+     (window.ARQUIVO_CBB_UI?.abilityActions?.(ab,index,ctx)||'')+'</article>';
+   }).join('')+'</div>':
     '<p class="ae-ficha-quick-empty">Use o pin ao lado de uma habilidade para deixá-la aqui.</p>')+
    '</section>';
  }
@@ -218,16 +222,17 @@
  }
  function abilityCard(ab,index,ctx,pinned=false,sheetId=''){
   const name=esc(ab.name||'Habilidade sem nome');
-  const description=text(ab.description||'Sem descrição.');
+  const presentation=window.ARQUIVO_CBB_PRESENTATION;
+  const details=presentation?.model?.(ab);
+  const description=details?.description||text(ab.description||'Sem descrição.');
   const image=ab.image&&api.dataUrlOk(ab.image)?api.mediaSrc(ab.image):'';
   const kind=ab.libraryType==='tecnica'?'Técnica':'Habilidade';
   return '<article class="ae-ficha-ability-card" data-ability-kind="'+(kind==='Técnica'?'Técnicas':'Habilidades')+'" id="ability-'+index+'">'+
     '<div class="ae-ficha-ability-tag"><span class="ae-ficha-ability-title">'+name+'</span>'+
     pinButton(ab,index,ctx,pinned)+moveHandle(ab,index,ctx)+'</div>'+
-    '<div class="ae-ficha-ability-meta"><span>'+esc(kind.toUpperCase())+'</span>'+
+    (details?presentation.meta(details):'<div class="ae-ficha-ability-meta"><span>'+esc(kind.toUpperCase())+'</span>'+
      '<strong class="ae-ability-cost">'+(Number(ab.cost)>0?esc(ab.cost)+' ALMA':'SEM CUSTO')+'</strong>'+
-     '<span class="ae-ability-phase">Fase: '+esc(window.ARQUIVO_CBB_ENGINE?.abilityPhase?.(ab)||'Livre')+'</span>'+
-     (ab.usage?'<span>'+esc(ab.usage)+'</span>':'')+'</div>'+
+     '<span class="ae-ability-phase">Fase: '+esc(window.ARQUIVO_CBB_ENGINE?.abilityPhase?.(ab)||'Conforme efeito')+'</span></div>')+
     (window.ARQUIVO_CBB_UI?.abilitySummary?.(api.db?.sheets?.find(x=>x.id===sheetId)||{},ab,index)||'')+
     '<div class="ae-ficha-ability-full sheet-rich">'+
        (image?'<img alt="Ilustração da habilidade '+name+'" src="'+esc(image)+'" loading="lazy">':'')+
