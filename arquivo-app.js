@@ -590,7 +590,7 @@ window.addEventListener('offline',onlineStatus);
 
 function render(){if(page==='masterSheets')page='sheets';document.body.classList.toggle('home-view',page==='home');navRender();applyTheme();if(page==='home')el('page').innerHTML=home();else if(page==='library')el('page').innerHTML=library();else if(page==='sheets')el('page').innerHTML=currentSheet?sheetPage():sheets();else if(page==='rolls')el('page').innerHTML=rolls();else if(page==='live'){
  if(!el('page').querySelector('.ae-live-root'))el('page').innerHTML='<section class="ae-live-root" aria-label="Sessão ao vivo"></section>';
-}else if(page==='settings')el('page').innerHTML=settings();else if(page==='admin')el('page').innerHTML=master()?admin():home();document.documentElement.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');const entries=el('page').children;for(let i=0;i<entries.length;i++){if(page!=='sheets'&&!motionOff()){entries[i].classList.add('fade-in');entries[i].style.animationDelay=(i*40)+'ms'}} applyTextOverrides();window.ARQUIVO_LIVE?.pageChanged(page);document.querySelectorAll('input[type=range]').forEach(updateRangeTrack);updateSettingsVolumeSliders();onlineStatus();if(window.ARQUIVO_SYNC?.state.enabled&&document.querySelector('[data-history-scope]'))Promise.resolve().then(()=>loadVerifiedHistory());}
+}else if(page==='settings')el('page').innerHTML=settings();else if(page==='admin')el('page').innerHTML=master()?admin():home();document.documentElement.classList.toggle('no-sheet-motion',!!prefs.noSheetMotion&&page==='sheets');const entries=el('page').children;for(let i=0;i<entries.length;i++){if(page!=='sheets'&&!motionOff()){entries[i].classList.add('fade-in');entries[i].style.animationDelay=(i*40)+'ms'}} applyTextOverrides();if(page==='rolls')window.ARQUIVO_FREE_ROLL?.preview();window.ARQUIVO_LIVE?.pageChanged(page);document.querySelectorAll('input[type=range]').forEach(updateRangeTrack);updateSettingsVolumeSliders();onlineStatus();if(window.ARQUIVO_SYNC?.state.enabled&&document.querySelector('[data-history-scope]'))Promise.resolve().then(()=>loadVerifiedHistory());}
 function headline(k,t,s,buttons=''){return `<div class="hrow"><div><div class="eyebrow">${esc(k)}</div><h1>${esc(t)}</h1><p class="subtitle">${esc(s)}</p></div><div class="actions">${buttons}</div></div>`}
 function btn(text,act,cls=''){return `<button type="button" class="btn ${cls}" data-action="${act}">${text}</button>`}
 function home(){
@@ -1284,7 +1284,8 @@ function historyRollCard(x,unverified=false){
  const date=x.created_at?`<time datetime="${esc(x.created_at)}">${new Date(x.created_at).toLocaleString('pt-BR')}</time>`:'';
  const badge=special?`<span class="history-special">${critical?'✦ ': '⚠ '}${esc(special)}</span>`:'';
  const rerolled=/^↻ RERROLOU #\d+ · /u.test(label),configured=/^⚙ CONFIGUROU #\d+ · /u.test(label);const title=esc(label||((kind==='shield')?'Escudo':'Rolagem'));
- const pieces=dice.map((d,i)=>historyDie(d,i,colors)).join('<span class="history-operator" aria-hidden="true">+</span>');
+ const pieces=dice.map((d,i)=>historyDie(d,i,colors)).join('<span class="history-operator" aria-hidden="true">'+(x.expression?'·':'+')+'</span>');
+ const visibleEquation=x.expression?'<span class="history-formula">'+esc(x.expression)+'</span>':pieces;
  const activeResults=dice.filter(d=>d.canceled!==true&&Number(d.effective??d.value)!==0)
   .map(d=>Number(d.effective??d.value)).filter(Number.isFinite);
  const ra=failure?1:activeResults.length?Math.max(...activeResults):0;
@@ -1294,9 +1295,9 @@ function historyRollCard(x,unverified=false){
 
  const allColors=colors.filter(Boolean),totalColor=allColors.length?(allColors[allColors.length-1]):null;
  return `<article class="history-card ${critical?'critical':failure?'failure':''}" ${totalColor&&!special?`style="--history-total:${totalColor}"`:''}>
- <div class="history-card-head"><span class="history-identity">${head}</span><span class="history-label">${title}</span>${rerolled?'<span class="history-rerolled">↻ RERROLOU</span>':''}${configured?'<span class="history-configured">⚙ CONFIGUROU</span>':''}${x.hidden?'<span class="history-hidden">OCULTA · MESTRE</span>':''}${unverified?'<span class="history-unverified">NÃO VERIFICADA</span>':''}</div>
- <div class="history-equation">${pieces}<span class="history-operator" aria-hidden="true">=</span>${special==='CRÍTICO'?`<span class="history-base">${base} × 2</span><span class="history-operator" aria-hidden="true">=</span>`:''}<strong class="history-total">${total}</strong>${badge}</div>
- ${resultDetails}${date?`<div class="history-date">${date}</div>`:''}</article>`;
+ <div class="history-card-head"><span class="history-identity">${head}</span><span class="history-label">${title}</span>${rerolled?'<span class="history-rerolled">↻ RERROLOU</span>':''}${configured?'<span class="history-configured">⚙ CONFIGUROU</span>':''}${x.hidden?'<span class="history-hidden">OCULTA · MESTRE</span>':''}${unverified?'<span class="history-unverified">'+(x.clientCalculated?'TOTAL LOCAL':'NÃO VERIFICADA')+'</span>':''}</div>
+ <div class="history-equation">${visibleEquation}<span class="history-operator" aria-hidden="true">=</span>${special==='CRÍTICO'?`<span class="history-base">${base} × 2</span><span class="history-operator" aria-hidden="true">=</span>`:''}<strong class="history-total">${total}</strong>${badge}</div>
+ ${x.expression&&dice.length?`<div class="history-dice-list"><span>DADOS ROLADOS</span>${pieces}</div>`:''}${resultDetails}${date?`<div class="history-date">${date}</div>`:''}</article>`;
 }
 function formatVerifiedRoll(x){return historyRollCard(x,false)}
 
@@ -1674,14 +1675,12 @@ function sheetPage(){if(tab==='catalog')tab='summary';const s=db.sheets.find(x=>
   });
 }
 
-function rolls(){return headline('MESA DE DADOS','ROLAGEM LIVRE','Escolha qualquer dado, sem depender da ficha. No modo online, cada tentativa é registrada e verificada.')+`<div class="ae-free-layout"><section class="panel ae-free-panel"><div class="sectionhead"><h2>CONFIGURAR DADOS</h2><span class="tag">LIVRE · INDEPENDENTE</span></div>
- <div class="ae-free-quick"><span class="eyebrow">ATALHOS DE FACES</span><div class="ae-free-chips">${[3,4,5,6,8,10,12,20,100].map(x=>`<button class="ae-free-chip" type="button" data-action="freeFaces:${x}">d${x}</button>`).join('')}</div></div>
- <div class="ae-free-fields"><div class="field"><label for="diceCount">QUANTIDADE DE DADOS</label><input id="diceCount" type="number" value="2" min="1" max="30" step="1" inputmode="numeric"><small>De 1 a 30 dados por rolagem</small></div>
- <div class="field"><label for="diceFaces">NÚMERO DE FACES</label><input id="diceFaces" type="number" value="8" min="2" max="1000" step="1" inputmode="numeric"><small>Qualquer número de 2 a 1.000 (d3, d5, d7...)</small></div></div>
- <div class="ae-free-preview" id="freeDicePreview" aria-live="polite"><span>PREPARADO PARA ROLAR</span><strong>2d8</strong></div>
- ${btn('ROLAR DADOS '+icon('dice','pill-icon'),'freeRoll','main')}<div id="freeResult" aria-live="polite">${lastRoll?rollStage(lastRoll):''}</div>
- <p class="subtitle">Rolagens online são auditáveis. Dados personalizados não modificam as perícias da ficha.</p></section>
- <section class="panel ae-free-history"><div class="sectionhead"><h2>HISTÓRICO DE ROLAGENS</h2></div>${historyHtml()}</section></div>`}
+function rolls(){
+ const online=!!window.ARQUIVO_SYNC?.state.enabled;
+ const composites=online?'<div class="ae-free-composites"><span class="eyebrow">FÓRMULAS DA SESSÃO · TOTAL CALCULADO LOCALMENTE</span><div id="freeCompositeList">'+rollHistory.slice(0,6).map(x=>historyRollCard(x,true)).join('')+'</div></div>':'';
+ const layout=window.ARQUIVO_FREE_ROLL?.markup({online,history:historyHtml(),composites,result:lastRoll?rollStage(lastRoll):''});
+ return headline('MESA DE DADOS','ROLAGEM LIVRE','Escreva expressões como 1d4 + 1d6*2, use a calculadora ou crie atalhos para este navegador.')+(layout||'<p class="panel">A calculadora não foi carregada. Atualize a página.</p>');
+}
 
 let activeRollImpact=null,rollImpactTimeout=null;
 function showRollImpact(special){
@@ -1910,13 +1909,44 @@ function avaliarResultadoDados(dice){
   rb:special==='FALHA CRÍTICA'?1:values.length?Math.min(...values):0,
   dice:result,special};
 }
-function updateFreeDicePreview(){
- const count=Number(el('diceCount')?.value),faces=Number(el('diceFaces')?.value),node=el('freeDicePreview');
- if(!node)return;
- const valid=Number.isInteger(count)&&count>=1&&count<=30&&Number.isInteger(faces)&&faces>=2&&faces<=1000;
- node.innerHTML=valid?'<span>PREPARADO PARA ROLAR</span><strong>'+count+'d'+faces+'</strong>':'<span>CONFIRA OS VALORES</span><strong>1 a 30 dados · 2 a 1000 faces</strong>';
-}
+function updateFreeDicePreview(){window.ARQUIVO_FREE_ROLL?.preview()}
 async function freeRoll(hidden=false){
+ if(!hidden){
+  if(rollingBusy)return;
+  const engine=window.ARQUIVO_FREE_ROLL;let plan;
+  try{
+   if(!engine)throw Error('O módulo da calculadora não foi carregado.');
+   plan=engine.parse(el('freeExpression')?.value||'');
+  }catch(e){toast('Fórmula inválida',e.message,true);finishRollFeedback();return}
+  const online=!!window.ARQUIVO_SYNC?.state.enabled,verified=online&&plan.count>0;
+  rollingBusy=true;
+  try{
+   const result=await engine.evaluate(plan,(count,faces)=>{
+    if(online)return window.ARQUIVO_SYNC.rollFree(count,faces,false,Array.from({length:count},()=>currentPalette().cold));
+    return Array.from({length:count},()=>({sides:faces,value:randomDie(faces)}));
+   });
+   const values=result.dice.map(d=>Number(d.value)),ra=values.length?Math.max(...values):0,rb=values.length?Math.min(...values):0;
+   const total=Number(result.total.toFixed(6));
+   const r={label:plan.source,expression:plan.source,total,special:'',ra,rb,dice:result.dice,
+    clientCalculated:online,summary:(verified?'DADOS VERIFICADOS · TOTAL CALCULADO LOCALMENTE':online?'CÁLCULO LOCAL':'NÃO VERIFICADA')+' · '+result.detail,
+    colors:result.dice.map(()=>currentPalette().cold)};
+   lastRoll=r;rollHistory.unshift(r);if(rollHistory.length>120)rollHistory.length=120;
+   localHistoryPage=1;
+   sound('dice');
+   const output=el('freeResult');if(output)output.innerHTML=rollStage(r);
+   const live=el('rollLive');if(live)live.textContent='Rolagem livre: '+plan.source+' = '+total+(verified?' (dados verificados, total local)':' (local)');
+   if(online){
+    refreshRollHistorySoon();
+    const list=el('freeCompositeList');if(list)list.innerHTML=rollHistory.slice(0,6).map(x=>historyRollCard(x,true)).join('');
+   }else{
+    const list=el('page')?.querySelector('[data-history-scope="local"]');
+    if(list)list.innerHTML=historyContents('local');
+   }
+  }catch(e){toast('Não foi possível calcular a rolagem',e.message,true)}
+  finally{rollingBusy=false;finishRollFeedback()}
+  return;
+ }
+
  const rawCount=Number(el(hidden?'shieldCount':'diceCount')?.value);
  const rawFaces=Number(el(hidden?'shieldFaces':'diceFaces')?.value);
  const valid=Number.isInteger(rawCount)&&rawCount>=1&&rawCount<=(hidden?12:30)&&Number.isInteger(rawFaces)&&
