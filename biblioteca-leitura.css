@@ -1,6 +1,6 @@
 /* Biblioteca CBB — leitura semântica universal.
    Zero alterações no texto persistido; apenas hierarquia, ícones e paleta. */
-#page .ae-library-reading{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading){
  --ae-book-core:var(--theme-accent);
  --ae-book-action:var(--theme-cold);
  --ae-book-resource:var(--theme-cold);
@@ -9,7 +9,7 @@
  --ae-book-risk:var(--theme-accent);
  --ae-book-limit:var(--theme-accent);
 }
-#page .ae-library-reading .ae-book-heading{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading{
  --ae-book-tone:var(--theme-structure);
  display:flex;align-items:center;gap:10px;
  min-width:0;max-width:82ch;scroll-margin-top:86px;
@@ -24,21 +24,21 @@
  font-weight:900;line-height:1.2;letter-spacing:.025em;
  overflow-wrap:anywhere
 }
-#page .ae-library-reading .ae-book-heading:first-child{margin-top:0}
-#page .ae-library-reading h2.ae-book-heading{font-size:clamp(22px,calc(27px * var(--ae-reading-scale,1)),37px)}
-#page .ae-library-reading h3.ae-book-heading{font-size:clamp(19px,calc(22px * var(--ae-reading-scale,1)),31px)}
-#page .ae-library-reading :is(h4,h5,h6).ae-book-heading{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading:first-child{margin-top:0}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) h2.ae-book-heading{font-size:clamp(22px,calc(27px * var(--ae-reading-scale,1)),37px)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) h3.ae-book-heading{font-size:clamp(19px,calc(22px * var(--ae-reading-scale,1)),31px)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) :is(h4,h5,h6).ae-book-heading{
  font-size:clamp(16px,calc(18px * var(--ae-reading-scale,1)),26px);
  padding:8px 10px;margin-top:18px;border-left-width:3px
 }
-#page .ae-library-reading .ae-book-heading--core{--ae-book-tone:var(--theme-accent)}
-#page .ae-library-reading .ae-book-heading--action{--ae-book-tone:var(--theme-cold)}
-#page .ae-library-reading .ae-book-heading--resource{--ae-book-tone:var(--theme-cold)}
-#page .ae-library-reading .ae-book-heading--test{--ae-book-tone:var(--theme-cold)}
-#page .ae-library-reading .ae-book-heading--effect{--ae-book-tone:var(--theme-accent)}
-#page .ae-library-reading .ae-book-heading--risk{--ae-book-tone:var(--theme-accent)}
-#page .ae-library-reading .ae-book-heading--limit{--ae-book-tone:var(--theme-accent)}
-#page .ae-library-reading .ae-book-heading-symbol{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading--core{--ae-book-tone:var(--theme-accent)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading--action{--ae-book-tone:var(--theme-cold)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading--resource{--ae-book-tone:var(--theme-cold)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading--test{--ae-book-tone:var(--theme-cold)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading--effect{--ae-book-tone:var(--theme-accent)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading--risk{--ae-book-tone:var(--theme-accent)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading--limit{--ae-book-tone:var(--theme-accent)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading-symbol{
  flex:0 0 29px;display:grid;place-items:center;
  box-sizing:border-box;width:29px;height:29px;min-height:29px;
  border:1px solid color-mix(in srgb,var(--ae-book-tone) 56%,var(--theme-structure));
@@ -46,11 +46,11 @@
  background:color-mix(in srgb,var(--ae-book-tone) 18%,var(--theme-panel));
  font:900 20px/1 Manrope,system-ui,sans-serif
 }
-#page .ae-library-reading .ae-book-heading-label{flex:1;min-width:0}
-#page .ae-library-reading .ae-book-definitions{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading-label{flex:1;min-width:0}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definitions{
  display:grid;gap:9px;margin:14px 0 23px;max-width:78ch
 }
-#page .ae-library-reading .ae-book-definition{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition{
  --ae-book-tone:var(--theme-structure);
  display:grid;gap:6px;min-width:0;box-sizing:border-box;
  border:1px solid var(--theme-structure);
@@ -59,20 +59,20 @@
  background:color-mix(in srgb,var(--ae-book-tone) 6%,var(--theme-panel));
  overflow-wrap:anywhere
 }
-#page .ae-library-reading .ae-book-definition--core{--ae-book-tone:var(--theme-accent)}
-#page .ae-library-reading .ae-book-definition--action{--ae-book-tone:var(--theme-cold)}
-#page .ae-library-reading .ae-book-definition--resource{--ae-book-tone:var(--theme-cold)}
-#page .ae-library-reading .ae-book-definition--test{--ae-book-tone:var(--theme-cold)}
-#page .ae-library-reading .ae-book-definition--effect{--ae-book-tone:var(--theme-accent)}
-#page .ae-library-reading .ae-book-definition--risk{--ae-book-tone:var(--theme-accent)}
-#page .ae-library-reading .ae-book-definition--limit{--ae-book-tone:var(--theme-accent)}
-#page .ae-library-reading .ae-book-definition dt{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition--core{--ae-book-tone:var(--theme-accent)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition--action{--ae-book-tone:var(--theme-cold)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition--resource{--ae-book-tone:var(--theme-cold)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition--test{--ae-book-tone:var(--theme-cold)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition--effect{--ae-book-tone:var(--theme-accent)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition--risk{--ae-book-tone:var(--theme-accent)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition--limit{--ae-book-tone:var(--theme-accent)}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition dt{
  display:flex;align-items:center;gap:9px;
  min-width:0;margin:0;color:var(--theme-text);
  font:900 calc(17px * var(--ae-reading-scale,1))/1.3 'Barlow Condensed',Impact,system-ui,sans-serif
 }
-#page .ae-library-reading .ae-book-def-label{min-width:0;overflow-wrap:anywhere}
-#page .ae-library-reading .ae-book-def-symbol{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-def-label{min-width:0;overflow-wrap:anywhere}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-def-symbol{
  flex:0 0 26px;display:grid;place-items:center;
  box-sizing:border-box;min-height:26px;width:26px;
  border:1px solid color-mix(in srgb,var(--ae-book-tone) 58%,var(--theme-structure));
@@ -80,12 +80,12 @@
  background:color-mix(in srgb,var(--ae-book-tone) 16%,var(--theme-panel));
  font:900 16px/1 Manrope,system-ui,sans-serif
 }
-#page .ae-library-reading .ae-book-definition dd{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition dd{
  margin:0 0 0 35px;max-width:72ch;
  color:var(--theme-text);font-size:calc(13px * var(--ae-reading-scale,1));
  line-height:1.8;overflow-wrap:anywhere
 }
-#page .ae-library-reading .ae-book-definition dd .ae-glossary-link{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition dd .ae-glossary-link{
  text-decoration:underline;text-decoration-style:dotted;text-underline-offset:.16em
 }
 /* Índice interno opcional: não congestiona a leitura até ser expandido. */
@@ -160,29 +160,29 @@
  border:1px solid var(--theme-structure);color:var(--theme-text);
  background:var(--theme-raised)
 }
-#page .ae-library-reading .book-quote{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .book-quote{
  border-left:3px solid var(--theme-cold);
  background:color-mix(in srgb,var(--theme-cold) 7%,var(--theme-panel));
  padding:12px 16px
 }
-#page .ae-library-reading .book-readable-list li::marker{color:var(--theme-cold);font-weight:850}
-#page .ae-library-reading mark{
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .book-readable-list li::marker{color:var(--theme-cold);font-weight:850}
+:is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) mark{
  border-radius:2px;background:color-mix(in srgb,var(--theme-accent) 35%,var(--theme-panel));
  color:var(--theme-text);padding-inline:2px
 }
 @media(max-width:680px){
- #page .ae-library-reading .ae-book-heading{padding:9px 10px;gap:8px}
- #page .ae-library-reading .ae-book-heading-symbol{width:26px;flex-basis:26px}
- #page .ae-library-reading .ae-book-definition{padding:10px}
- #page .ae-library-reading .ae-book-definition dd{margin-left:0}
+ :is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading{padding:9px 10px;gap:8px}
+ :is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading-symbol{width:26px;flex-basis:26px}
+ :is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition{padding:10px}
+ :is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition dd{margin-left:0}
  #page .ae-book-outline-links{grid-template-columns:minmax(0,1fr);max-height:260px}
  #page .ae-book-outline-link.is-nested{padding-left:13px}
  #page .ae-library-toolbar .ae-book-key{width:100%}
 }
 html.performance-mode #page .ae-book-outline,
 html.performance-mode #page .ae-book-outline-link,
-html.performance-mode #page .ae-library-reading .ae-book-definition,
-html.performance-mode #page .ae-library-reading .ae-book-heading{
+html.performance-mode :is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-definition,
+html.performance-mode :is(#page .ae-library-reading,#dialogRoot #aeWarehouseEditorPreview.ae-library-reading) .ae-book-heading{
  box-shadow:none;transition:none
 }
 @media(prefers-reduced-motion:reduce){
