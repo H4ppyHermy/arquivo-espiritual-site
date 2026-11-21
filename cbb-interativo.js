@@ -425,6 +425,16 @@
    if(args.p_context==='ataque'){
     if(result.special==='FALHA CRÍTICA')lastAttacks.delete(s.id);
     else lastAttacks.set(s.id,{id:result.id,ra:result.ra,rt:result.rt,complete:!!result.complete_attack});
+    // A área de dano já existe no DOM, mesmo quando está na aba escondida.
+    const link=document.querySelector?.('[data-cbb-field="useAttackRa"]');
+    if(link){
+     const hit=lastAttacks.get(s.id);
+     link.disabled=!hit;link.checked=!!hit?.complete;
+     const label=link.closest?.('label');
+     const copy=label&&[...label.childNodes].find(node=>node.nodeType===3);
+     if(copy)copy.textContent=' Somar '+(hit?.complete?'RT':'RA')+
+      ' do último ataque verificado '+(hit?'('+(hit.complete?hit.rt:hit.ra)+')':'(nenhum)');
+    }
    }
    const enemy=read(root,'opponentRa');
    if(enemy!==''){
@@ -445,6 +455,8 @@
   if(result.complete_damage){
    s.combat??={};s.combat.cbb??={};s.combat.cbb.completeDamageUsed=true;
    lastAttacks.delete(s.id);
+   const link=document.querySelector?.('[data-cbb-field="useAttackRa"]');
+   if(link){link.checked=false;link.disabled=true}
   }
   responseField(s,result,args.p_kind,dt,clash);
   refreshDamageSummaries(s);
@@ -482,6 +494,11 @@
    for(const key of resistanceByPhase.keys()){
     if(key.startsWith(s.id+':'))resistanceByPhase.delete(key);
    }
+  }
+  if(cmd==='complete'){
+   const current=testMemory(s);current.context='ataque';current.reaction=false;
+   testBySheet.set(s.id,current);modeBySheet.set(s.id,'teste');
+   lastAttacks.delete(s.id);
   }
   statusBySheet.set(s.id,cmd==='reset'?'Ficha reiniciada.':cmd==='toggleAutomation'?
    (s.automationEnabled===false?'Automação desativada.':'Automação reativada.'):
