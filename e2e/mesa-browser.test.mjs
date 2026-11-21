@@ -72,4 +72,44 @@ test('Mesa: passos e condições atualizam a rolagem sem recarregar a ficha',{ti
   window.dispatchEvent(new Event('arquivo-online-snapshot'))});
  assert.doesNotMatch(await preview(),/Confuso|Atordoado|Cego/);
  assert.deepEqual(await previewData(),['d6','d10'],'Cessada a condição, +1 passo manual permanece');
+
+ // Exposição Espiritual: redução automática nas perícias Espírito e nenhum efeito em Mente.
+ await page.evaluate(()=>{
+  window.__sheet.exposures.espiritual=2;
+  window.dispatchEvent(new Event('arquivo-online-snapshot'));
+ });
+ await page.select('[data-cbb-field="skill"]','Liberação');
+ assert.deepEqual(await previewData(),['d6','d4']);
+ assert.match(await preview(),/Exposição Espiritual/);
+ await page.evaluate(()=>{
+  window.__sheet.exposures={defensiva:0,ofensiva:0,ritmica:0,espiritual:0};
+  window.__sheet.resources.alma.current=5;
+  window.dispatchEvent(new Event('arquivo-online-snapshot'));
+ });
+ // Comprometimento recupera ALMA e registra a nova categoria na interface.
+ await page.click('[data-cbb-mode="turno"]');
+ await page.click('details.ae-cbb-optional-turn > summary');
+ await page.select('[data-cbb-field="exposure"]','espiritual');
+ await page.click('[data-cbb-command="commit"]');
+ await page.waitForFunction(()=>window.__sheet.resources.alma.current===7);
+ assert.equal(await page.$eval('.ae-cbb-status',x=>x.textContent.includes('+2 ALMA')),true);
+ // Ação Completa exige a ação principal e a reação normais antes de atacar.
+ await page.click('[data-cbb-command="complete"]');
+ await page.waitForFunction(()=>document.querySelector('[data-cbb-panel="teste"]')?.hidden===false);
+ assert.equal(await page.$eval('[data-cbb-field="context"]',x=>x.value),'ataque');
+ assert.equal(await page.evaluate(()=>window.__sheet.combat.mainUsed&&window.__sheet.combat.reactionUsed),true);
+ const beforeAttack=await page.evaluate(()=>window.__rolls.length);
+ await page.click('[data-cbb-command="skill"]');
+ await page.waitForFunction(n=>window.__rolls.length>n,{},beforeAttack);
+ await page.click('[data-cbb-mode="dano"]');
+ assert.equal(await page.$eval('[data-cbb-field="useAttackRa"]',x=>x.checked),true);
+ assert.match(await page.$eval('[data-cbb-field="useAttackRa"]',x=>x.closest('label').innerText),/Somar RT/);
+ const priorAttack=await page.evaluate(()=>window.__rolls.length);
+ await page.click('[data-cbb-command="pool"]');
+ await page.waitForFunction(n=>window.__rolls.length>n,{},priorAttack);
+ const damage=await page.evaluate(()=>window.__rolls.at(-1));
+ assert.equal(damage.p_kind,'dano');
+ assert.equal(damage.p_attack_id,priorAttack);
+ assert.match(await page.$eval('.ae-cbb-result',el=>el.textContent),/Ação Completa · RT/);
+ assert.equal(await page.$eval('[data-cbb-field="useAttackRa"]',x=>x.disabled),true);
 });
