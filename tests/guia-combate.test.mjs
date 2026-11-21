@@ -116,3 +116,23 @@ test('jogador não recebe edição, e conteúdo personalizado é escapado',()=>{
  assert.match(html,/&lt;img src=x onerror=1&gt;/);
  assert.doesNotMatch(html,/<script>|<img src=x/);
 });
+
+test('a cola de combate deriva todas as cores da paleta ativa, sem tons fixos',()=>{
+ const css=read('guia-combate.css');
+ const start=css.indexOf('/* Identidade da cola preservada');
+ const end=css.indexOf('/* Editor do mestre:',start);
+ assert.ok(start>=0&&end>start,'o CSS visual do guia deve ser localizado');
+ const guide=css.slice(start,end);
+ for(const token of [
+  '--field-ink:var(--theme-text)',
+  '--field-paper:var(--theme-panel)',
+  '--field-cream:var(--theme-raised)',
+  '--field-accent:var(--theme-accent)',
+  '--field-secondary:var(--theme-cold)',
+  '--field-line:var(--theme-structure)',
+  '--field-on-accent:var(--theme-bg)'
+ ])assert.ok(guide.includes(token), 'cor não vinculada à paleta: '+token);
+ assert.doesNotMatch(guide, /#[0-9a-fA-F]{3,8}\b|rgba?\(/,'nenhuma cor fixa na cola');
+ assert.match(guide, /ae-field-card\.is-active/,'a seleção precisa permanecer destacada');
+ assert.match(guide, /ae-field-search input:focus-visible/,'a pesquisa deve manter foco visível');
+});

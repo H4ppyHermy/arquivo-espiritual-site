@@ -43,7 +43,7 @@ test('Glossário abre como consulta principal, sem busca de capítulos duplicada
  const html=read('index.html');
  assert.match(html,/glossario-ux\.css\?v=1/);
  assert.match(html,/biblioteca-redesign\.css\?v=1/);
- assert.match(html,/guia-combate\.css\?v=2/);
+ assert.match(html,/guia-combate\.css\?v=3/);
  assert.ok(html.indexOf('glossario-ux.css')<html.indexOf('biblioteca-redesign.css'));
 });
 test('categorias e índice A-Z refinam os resultados sem alterar os verbetes',()=>{
