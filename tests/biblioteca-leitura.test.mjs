@@ -105,5 +105,5 @@ test('renderização sob demanda, escala de leitura e paleta permanecem conectad
  assert.match(css,/--ae-reading-scale/);
  assert.match(css,/@media\(max-width:680px\)/);
  assert.match(index,/biblioteca-leitura\.css\?v=1/);
- assert.ok(index.indexOf('biblioteca-leitura.js?v=1')<index.indexOf('arquivo-app.js?v=24&ux=8'));
+ assert.ok(index.indexOf('biblioteca-leitura.js?v=2')<index.indexOf('arquivo-app.js?v=24&ux=9'));
 });
