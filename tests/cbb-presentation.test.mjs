@@ -42,7 +42,7 @@ test('limite repetido no início não ocupa duas vezes a habilidade, sem mudar o
  const m=ui.model(entry);
  assert.equal(m.usage,'Uma vez por cena');
  assert.match(ui.meta(m),/Uso: Uma vez por cena/);
- assert.equal(m.description,'Utilize sua ação principal na fase de Preparação para proteger um aliado.');
+ assert.equal(m.description,'Ativação — Utilize sua ação principal na fase de Preparação para proteger um aliado.');
  assert.equal(JSON.stringify(entry),original,'não alterar dados, exportação ou regras de origem');
 });
 test('dano destacado não é repetido em uma linha idêntica, mas detalhes condicionais são preservados',()=>{
