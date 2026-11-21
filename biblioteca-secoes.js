@@ -386,6 +386,7 @@
    tags:joinedTags,hiddenTags,content:content.slice(0,20000),published};
   if(isAbilityPost(entry)){
    entry.phase=newPhase;
+   entry.content=window.ARQUIVO_CBB_PRESENTATION?.standardize?.(entry.content)||entry.content;
    const parseGrants=value=>value.split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean).slice(0,15);
    entry.grants={race:parseGrants(get('warehouseGrantRaces')),class:parseGrants(get('warehouseGrantClasses'))};
   }else{delete entry.grants;delete entry.phase;
