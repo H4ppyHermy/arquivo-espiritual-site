@@ -93,6 +93,52 @@
   }
   return p;
  }
+ function abilitySummary(s,ab,index){
+  const p=engine.abilityPool(ab);
+  if(!p)return '';
+  const bonus=p.kind==='dano'?engine.activeDamageBonus(s):0;
+  const ra=lastAttacks.get(s.id)?.ra;
+  const dice=(p.count>1?p.count:'')+'d'+p.faces;
+  const label=p.kind==='dano'?(ra==null?'RA':String(ra))+' + '+dice+
+   (bonus?(bonus>0?' + ':' − ')+Math.abs(bonus):''):(p.count>1?p.count:'')+'d'+p.faces;
+  return '<div class="ae-ability-roll-note" data-cbb-ability-summary="'+index+
+   '" aria-label="'+enc(p.kind==='dano'?'Dano base':'Recuperação')+'"><span aria-hidden="true">⚄</span><strong>'+
+   enc(label)+'</strong>'+(bonus?'<small>'+enc(engine.activeDamageEffects(s).map(x=>x.name).join(', '))+'</small>':'')+'</div>';
+ }
+ function renderSkillQuick(s,ctx={}){
+  if(!ctx.canEdit)return '';
+  const stored=testMemory(s),disabled=s.automationEnabled===false||!api.canEditSheet(s.id)||!on();
+  const disable=disabled?' disabled':'';
+  return '<section class="ae-cbb-mesa ae-cbb-quick" data-cbb-sheet="'+enc(s.id)+'" aria-label="Teste de perícia diretamente na ficha">'+
+   '<div class="ae-cbb-quick-head"><h3>Rolagem rápida</h3><span>Mesmo teste verificado da Mesa · efeitos automáticos</span></div>'+
+   '<div class="ae-cbb-pair"><label>Perícia<select data-cbb-field="skill">'+opts(skillNames.map(n=>[n,n]),stored.skill)+'</select></label>'+
+    '<label>Contexto<select data-cbb-field="context">'+opts([['geral','Geral'],['ataque','Ataque'],['defesa','Defesa']],stored.context)+'</select></label></div>'+
+   '<div class="ae-cbb-step-row">'+stepper('groupSteps','PASSOS DO GRUPO',stored.groupSteps,disabled)+
+    stepper('skillSteps','PASSOS DA PERÍCIA',stored.skillSteps,disabled)+'</div>'+
+   '<div class="ae-cbb-live-preview" data-cbb-preview aria-live="polite">'+previewMarkup(s,stored)+'</div>'+
+   '<div data-cbb-conditional-host>'+contextualFlags(s,{disabled})+'</div>'+
+   '<details class="ae-cbb-advanced"><summary>Dados bônus, DT e reação</summary><div class="ae-cbb-advanced-content">'+
+   '<div class="ae-cbb-pair"><label>Dado bônus<select data-cbb-field="bonusFaces">'+opts([['0','Nenhum'],...engine.DIE_FACES.map(n=>[n,'d'+n])],0)+'</select></label>'+
+    '<label>Quantidade<input data-cbb-field="bonusCount" type="number" min="0" max="4" value="0"></label></div>'+
+   '<label>DT (opcional)<input data-cbb-field="dt" type="number" min="1" max="200" placeholder="Sem DT"></label>'+
+   '<label class="ae-cbb-inline"><input data-cbb-field="reaction" type="checkbox"'+(stored.reaction?' checked':'')+
+   (stored.context!=='defesa'||engine.normalizedConditions(s).has('atordoado')||disabled?' disabled':'')+'> Usar reação na defesa (RT em vez de RA)</label>'+
+   '</div></details>'+
+   '<button type="button" class="btn main ae-cbb-action" data-cbb-command="skill"'+disable+'>ROLAR PERÍCIA</button>'+
+   '<div class="ae-cbb-result" aria-live="polite"></div><p class="ae-cbb-status" role="status">'+enc(stateText(s))+'</p>'+
+   '</section>';
+ }
+ function refreshDamageSummaries(s=sheet()){
+  if(!s)return;
+  document.querySelectorAll?.('[data-cbb-ability-summary]').forEach(node=>{
+   const ab=s.abilities?.[Number(node.dataset.cbbAbilitySummary)];
+   if(ab)node.outerHTML=abilitySummary(s,ab,Number(node.dataset.cbbAbilitySummary));
+  });
+  document.querySelectorAll?.('[data-cbb-item-bonus]').forEach(node=>{
+   const value=engine.activeDamageBonus(s);
+   node.textContent=value?((value>0?'+':'')+value+' de equipamento aplicado automaticamente'):'Nenhum bônus de equipamento ativo';
+  });
+ }
  function abilityActions(ab,index,ctx){
   if(!ctx?.canEdit || !ab || ab.origin?.auto)return '';
   const p=engine.abilityPool(ab),mode=ab.costConfig?.mode;
@@ -184,7 +230,8 @@
      '<div class="ae-cbb-pair"><label>Quantidade<input type="number" min="0" max="20" data-cbb-field="poolCount" value="1"></label>'+
        '<label>Faces<select data-cbb-field="poolFaces">'+opts(engine.DIE_FACES.map(n=>[n,'d'+n]),8)+'</select></label></div>'+
      '<div class="ae-cbb-pair"><label>Recurso<select data-cbb-field="poolResource">'+opts(resourceChoices,'vida')+'</select></label>'+
-       '<label>Ajuste fixo<input type="number" data-cbb-field="flat" value="0" min="-500" max="500"></label></div>'+
+       '<label>Ajuste fixo (manual)<input type="number" data-cbb-field="flat" value="0" min="-500" max="500"></label></div>'+
+     '<p class="ae-cbb-pool-hint" data-cbb-item-bonus>'+enc(engine.activeDamageBonus(s)?(engine.activeDamageBonus(s)>0?'+':'')+engine.activeDamageBonus(s)+' de equipamento aplicado automaticamente':'Nenhum bônus de equipamento ativo')+'</p>'+
      '<label class="ae-cbb-inline"><input type="checkbox" data-cbb-field="useAttackRa"'+(last?'':' disabled')+'> Somar RA do último ataque verificado '+(last?'('+enc(last.ra)+')':'(nenhum)')+'</label>'+
      '<label>RA manual (se necessário)<input type="number" data-cbb-field="manualRa" min="0" max="100" value="0"></label>'+
      '<div data-cbb-resist-controls'+(selectedMode==='resistencia'?'':' hidden')+'>'+
@@ -326,7 +373,7 @@
      return;
     }
    }else{
-    args.p_flat=normalize(number(root,'flat'),-500,500,'bônus fixo');
+    args.p_flat=normalize(number(root,'flat')+(mode==='dano'?engine.activeDamageBonus(s):0),-500,500,'bônus fixo e itens ativos');
     if(mode==='dano'&&field(root,'useAttackRa')?.checked){
      const previous=lastAttacks.get(s.id);if(!previous?.id)throw Error('Role primeiro um ataque.');
      args.p_attack_id=Number(previous.id);
@@ -351,6 +398,7 @@
    signature:JSON.stringify([s.groups?.[{vida:'Corpo',estabilidade:'Mente',alma:'Espírito'}[args.p_resource]],
     [...engine.normalizedConditions(s)].sort()])});
   responseField(s,result,args.p_kind,dt,clash);
+  refreshDamageSummaries(s);
   const hazard=s.boss?.scenario;
   if(hazard?.critical===result.special && hazard.skill===args.p_skill && args.p_kind==='teste'){
    statusBySheet.set(s.id,hazard.name+': crítico confirmado. Selecione os alvos no alcance e aplique '+(hazard.effect||'o efeito')+'.');
@@ -392,6 +440,7 @@
    cmd==='pin'?(response.info?.active?'Habilidade fixada no Resumo.':'Habilidade desafixada.'):
    'Ação registrada.');
   api.render();
+  refreshDamageSummaries(s);
  }
  function switchMode(s,mode,root){
   if(!['teste','dano','resistencia','recuperacao','turno','recursos'].includes(mode))return;
@@ -415,6 +464,18 @@
   }
  }
  async function onClick(event){
+  const selectSkill=event.target?.closest?.('[data-cbb-pick-skill]');
+  if(selectSkill){
+   event.preventDefault();event.stopPropagation();
+   const sh=sheet(),root=selectSkill.closest?.('.ae-ficha-skills')?.querySelector('.ae-cbb-quick');
+   const input=field(root,'skill'),name=selectSkill.dataset.cbbPickSkill;
+   if(!sh||!root||!input||!skillNames.includes(name))return;
+   input.value=name;
+   const current=testMemory(sh);current.skill=name;testBySheet.set(sh.id,current);
+   refreshPreview(root,sh);root.scrollIntoView?.({block:'nearest',behavior:'smooth'});
+   input.focus?.({preventScroll:true});
+   return;
+  }
   const step=event.target?.closest?.('[data-cbb-step]');
   if(step?.dataset?.cbbStep){
    event.preventDefault();event.stopPropagation();
@@ -546,6 +607,7 @@
  global.addEventListener?.('arquivo-online-snapshot',()=>{
   const root=document.querySelector?.('.ae-cbb-mesa');
   if(root?.dataset?.cbbSheet===api.currentSheet){refreshPreview(root);refreshResistance(root)}
+  refreshDamageSummaries();
  });
- global.ARQUIVO_CBB_UI=Object.freeze({render,abilityActions,engine,refreshPreview,refreshResistance});
+ global.ARQUIVO_CBB_UI=Object.freeze({render,renderSkillQuick,abilityActions,abilitySummary,engine,refreshPreview,refreshResistance,refreshDamageSummaries});
 })(window);
