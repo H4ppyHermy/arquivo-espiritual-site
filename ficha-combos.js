@@ -42,6 +42,20 @@
   if(ab.passive||ab.category==='passive')return '';
   return global.ARQUIVO_CBB_UI?.abilityActions?.(ab,index,ctx)||'';
  }
+ function activeRelease(sheet,entry){
+  const ab=entry?.ab;
+  if(!ab||ab.costConfig?.mode!=='activation')return false;
+  const key=String(ab.abilityId||ab.automation?.id||'legacy:'+entry.index);
+  const billing=sheet.abilityRuntime?.billing?.[key];
+  return billing?.active===true&&Number(billing.scene)===Number(sheet.combat?.scene||1);
+ }
+ function manualAllowed(sheet,step){
+  const entry=resolve(sheet,step);
+  if(!entry)return false;
+  if(activeRelease(sheet,entry))return true;
+  const ab=entry.ab;
+  return ab.passive||ab.category==='passive'||(cleanCost(ab)===0&&ab.costConfig?.mode!=='activation');
+ }
  function stepMarkup(s,ctx,combo,step,i,active){
   const found=resolve(s,step),ab=found?.ab;
   const state=progress.get(sessionKey(s.id,combo.id))||0;
@@ -49,7 +63,9 @@
   const type=ab?kind(ab):step.kind;
   const phase=ab?global.ARQUIVO_CBB_ENGINE?.abilityPhase?.(ab):null;
   const cost=ab?cleanCost(ab):0;
-  const activeActions=ab&&upcoming?buttonsForStep(s,ctx,found):'';
+  const releaseActive=!!(ab&&upcoming&&activeRelease(s,found));
+  const activeActions=ab&&upcoming&&!releaseActive?buttonsForStep(s,ctx,found):'';
+  const manual=ab&&upcoming&&manualAllowed(s,step);
   const note=typeof step.note==='string'?step.note:'';
   return '<li class="ae-combo-step'+(done?' is-done':'')+(upcoming?' is-current':'')+(locked?' is-queued':'')+(ab?'':' is-missing')+
    '" data-combo-card-step data-combo-id="'+esc(combo.id)+'" data-combo-step="'+i+'">'+
@@ -61,8 +77,12 @@
    (note?'<p class="ae-combo-step-note">'+esc(note)+'</p>':'')+
    (!ab?'<p class="ae-combo-step-warning">A habilidade foi alterada ou removida. Edite o combo para substituir esta etapa.</p>':'')+
    (active&&ctx.canEdit&&upcoming?
-    '<div class="ae-combo-step-actions">'+activeActions+
-    '<button type="button" class="btn small quiet" data-combo-action="advance:'+esc(combo.id)+':'+i+'">'+(activeActions?'CONCLUIR MANUALMENTE':'MARCAR ETAPA FEITA')+'</button></div>':'')+
+    '<div class="ae-combo-step-actions">'+
+    (releaseActive?'<span class="ae-combo-progress">LIBERAÇÃO JÁ ATIVA</span>':'')+
+    activeActions+
+    (manual?'<button type="button" class="btn small quiet" data-combo-action="advance:'+esc(combo.id)+':'+i+'">'+(releaseActive?'PRÓXIMA ETAPA':'MARCAR ETAPA FEITA')+'</button>':'')+
+    (!manual&&!activeActions?'<span class="ae-combo-step-warning">Ação indisponível; verifique pré-requisitos, automação e conexão.</span>':'')+
+    '</div>':'')+
    '</div></li>';
  }
  function card(sheet,ctx,combo){
@@ -250,7 +270,9 @@
    const key=sessionKey(s.id,id);opened.add(key);progress.set(key,0);api.render();return;
   }
   if(action==='advance'){
-   const index=Number(arg);completeStep(s.id,id,index);api.render();return;
+   const index=Number(arg),combo=list(s).find(c=>c.id===id);
+   if(!combo||!Number.isInteger(index)||!manualAllowed(s,combo.steps[index]))return;
+   completeStep(s.id,id,index);api.render();return;
   }
   if(!draft||draftSheetId!==s.id)return;
   capture();
