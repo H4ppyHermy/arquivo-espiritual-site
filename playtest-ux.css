@@ -57,10 +57,6 @@
 #page .ae-cbb-quick .ae-cbb-status{font-size:12px}
 #page .ae-cbb-quick .ae-cbb-live-preview{margin:12px 0}
 #page .ae-cbb-quick select,#page .ae-cbb-quick input{max-width:100%}
-#page .inventory-list .ae-item-bonus{font-weight:900}
-#page .inventory-list .ae-item-bonus.is-active{
- border:1px solid var(--theme-cold);background:color-mix(in srgb,var(--theme-cold) 19%,transparent)
-}
 .ae-inventory-effects{padding:12px;margin:13px 0;border:1px solid var(--theme-cold);background:color-mix(in srgb,var(--theme-cold) 5%,var(--theme-panel))}
 .ae-inventory-effects h3{font-size:12px;letter-spacing:.06em;margin:0 0 12px}
 .ae-item-equip-check{display:flex;align-items:center;gap:8px;font-size:13px;margin:10px 0}
@@ -141,4 +137,77 @@
 @media(prefers-reduced-motion:reduce){
  #page .ae-ficha-ability-tag .ae-ability-pin,
  #page .ae-ficha-ability-tag .ae-ability-drag-handle{transition:none}
+}
+
+/* Exibição universal de custo/fase/limite, compartilhada por toda ficha. */
+#page .ae-unified-ability-meta{display:flex;flex-wrap:wrap;align-items:center;gap:7px 8px;min-width:0}
+#page .ae-unified-ability-meta .ae-ability-cost{color:var(--accent-ink,#000)}
+#page .ae-unified-ability-meta .ae-ability-usage,
+#page .ae-unified-ability-meta .ae-unified-kind{
+ display:inline-flex;align-items:center;min-height:29px;padding:5px 9px;
+ color:var(--theme-text);background:color-mix(in srgb,var(--theme-cold) 11%,var(--theme-panel));
+ border:1px solid var(--ae-ficha-line);
+ font-size:calc(11px * var(--ae-reading-scale,1));line-height:1.4;font-weight:800
+}
+#page .ae-ficha-quick-card .ae-ficha-ability-meta{padding:8px 0;gap:6px}
+#page .ae-ficha-quick-card .ae-ability-roll-note{margin:5px 0}
+#page .ae-ficha-quick-card .ae-ficha-quick-header{gap:10px}
+#page .ae-ficha-quick-card .ae-ficha-quick-name{min-width:0;flex:1}
+#page .ae-ficha-quick-card .ae-ficha-quick-name strong{overflow-wrap:anywhere}
+#page .ae-ficha-ability-full .ae-unified-rich{font-size:calc(13px * var(--ae-reading-scale,1));line-height:1.75}
+
+/* Inventário: controles e efeito automático sem exigir abrir um editor. */
+#page .ae-inventory-panel .ae-inventory-group{margin-top:15px}
+#page .ae-inventory-panel .ae-inventory-group h3{
+ margin:0 0 10px;color:var(--theme-cold);font-size:calc(12px * var(--ae-reading-scale,1));
+ font-weight:900;letter-spacing:.06em
+}
+#page .ae-inventory-panel .inventory-item-card{
+ display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px;
+ background:color-mix(in srgb,var(--theme-raised) 18%,var(--theme-panel));
+ border:1px solid var(--theme-structure);border-left:3px solid var(--theme-cold);
+ padding:13px;border-radius:8px
+}
+#page .ae-inventory-panel .inventory-item-card.is-effect-active{
+ border-left-color:var(--theme-accent);background:color-mix(in srgb,var(--theme-accent) 8%,var(--theme-panel))
+}
+#page .ae-inventory-panel .inventory-item-body{flex:1 1 220px;min-width:0;display:grid;gap:9px}
+#page .ae-inventory-panel .inventory-item-title b{
+ display:block;font:900 clamp(19px,1.9vw,25px)/1.2 'Barlow Condensed',Impact,sans-serif;
+ color:var(--theme-text);overflow-wrap:anywhere
+}
+#page .ae-inventory-panel .ae-item-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+#page .ae-inventory-panel .ae-item-meta>span{
+ display:inline-flex;padding:5px 8px;border:1px solid var(--theme-structure);
+ background:var(--theme-raised);color:var(--theme-text);
+ font-size:calc(10px * var(--ae-reading-scale,1));line-height:1.3;font-weight:850
+}
+#page .ae-inventory-panel .ae-item-state.is-active{
+ border-color:var(--theme-accent);background:color-mix(in srgb,var(--theme-accent) 22%,var(--theme-panel))
+}
+#page .ae-inventory-panel .ae-item-effect{
+ display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;padding:9px 10px;
+ background:var(--theme-panel);border:1px solid var(--theme-structure);border-radius:5px
+}
+#page .ae-inventory-panel .ae-item-effect.is-active{border-color:var(--theme-accent)}
+#page .ae-inventory-panel .ae-item-effect>strong{
+ color:var(--theme-cold);font-size:calc(14px * var(--ae-reading-scale,1));font-weight:900
+}
+#page .ae-inventory-panel .ae-item-effect>span{
+ font-size:calc(11px * var(--ae-reading-scale,1));line-height:1.4;color:var(--theme-text)
+}
+#page .ae-inventory-panel .inventory-item-description{
+ padding-top:5px;border-top:1px solid var(--theme-structure);
+ font-size:calc(13px * var(--ae-reading-scale,1));line-height:1.72;
+ overflow-wrap:anywhere;color:var(--theme-text)
+}
+#page .ae-inventory-panel .inventory-item-description :first-child{margin-top:0}
+#page .ae-inventory-panel .inventory-item-description :last-child{margin-bottom:0}
+#page .ae-inventory-panel .ae-item-actions{
+ display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:0 1 auto;flex-wrap:wrap
+}
+#page .ae-inventory-panel .ae-item-actions button{min-height:35px;white-space:nowrap}
+@media(max-width:600px){
+ #page .ae-inventory-panel .ae-item-actions{width:100%}
+ #page .ae-inventory-panel .ae-item-actions button{flex:1}
 }
