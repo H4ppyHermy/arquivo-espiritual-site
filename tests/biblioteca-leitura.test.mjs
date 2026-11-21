@@ -53,7 +53,8 @@ test('índice reconhece títulos convencionais e ▸, nunca inclui código liter
  assert.match(html,/ae-book-definition--risk/);
  assert.match(html,/Nível Ⅰ/);
  assert.doesNotMatch(out,/Não é título/);
- assert.doesNotMatch(html,/<h\d[^>]*>.*Não é título/);
+ assert.doesNotMatch(html,/class="ae-book-heading-label">Não é título/);
+ assert.equal((html.match(/class="ae-book-heading ae-book-heading--/g)||[]).length,3);
  assert.equal(source,original);
 });
 
