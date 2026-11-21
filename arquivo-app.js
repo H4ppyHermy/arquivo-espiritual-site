@@ -885,6 +885,7 @@ function selectGrimorioEntry(raw){
   if(search)search.value='';if(category)category.value='Todos';
  }
  grimorioSelectedTerm=entry.name;grimorioRefreshResults();
+ requestAnimationFrame(()=>{const panel=el('grimorioDetail');if(!panel)return;panel.focus?.({preventScroll:true});if(matchMedia('(max-width:780px)').matches)panel.scrollIntoView?.({behavior:motionOff()?'auto':'smooth',block:'start'})});
 }
 function grimorioFilterChips(items=grimorioCatalogEntries()){
  const all=[['Todos','TODOS'],...GRIMORIO_CATEGORIES.map(c=>[c,c.toUpperCase()])];
@@ -966,7 +967,7 @@ function grimorioPanel(){
   '<button type="button" class="ae-glossary-fav-filter'+(grimorioFavoritesOnly?' is-active':'')+'" data-action="grimorioOnlyFavorites" aria-pressed="'+grimorioFavoritesOnly+'">'+
   '☆ '+(grimorioFavoritesOnly?'MOSTRANDO FAVORITOS':'SOMENTE FAVORITOS')+'</button></div>'+
   '<div class="ae-glossary-answer-layout"><div class="ae-grimorio-results" id="grimorioResults" aria-label="Resultados de verbetes">'+grimorioResultsMarkup(grimorioFilteredEntries(catalog))+'</div>'+ 
-  '<div class="ae-glossary-detail" id="grimorioDetail" role="region" aria-label="Definição selecionada" aria-live="polite">'+grimorioDetailMarkup(grimorioFilteredEntries(catalog))+'</div></div></section>';
+  '<div class="ae-glossary-detail" id="grimorioDetail" role="region" tabindex="-1" aria-label="Definição selecionada" aria-live="polite">'+grimorioDetailMarkup(grimorioFilteredEntries(catalog))+'</div></div></section>';
 }
 function grimorioBanner(){
  const opts=grimorioSettings(),total=grimorioCatalogEntries().length;
@@ -2700,7 +2701,7 @@ function bindEvents(){document.addEventListener('keydown',event=>{
  }
  if(page!=='library'||event.altKey||event.ctrlKey||event.metaKey)return;
  if(event.key==='/'&&!event.target.closest('input,textarea,select,[contenteditable="true"],[role="dialog"]')){
-  const search=grimorioOpen&&libraryVolume()!=='warehouse'&&el('grimorioSearch')?el('grimorioSearch'):(el('ruleSearch')||el('warehouseSearch'));if(search){event.preventDefault();search.focus();search.select()}
+  const search=page==='library'&&libraryMode==='glossary'&&libraryVolume()!=='warehouse'&&el('grimorioSearch')?el('grimorioSearch'):(el('ruleSearch')||el('warehouseSearch'));if(search){event.preventDefault();search.focus();search.select()}
  }
  if(event.key==='Escape'&&document.activeElement?.id==='grimorioSearch'&&grimorioQuery){
   event.preventDefault();grimorioQuery='';document.activeElement.value='';grimorioRefreshResults();
