@@ -27,7 +27,7 @@ test('editor de personagem mantém registros e não oferece automação antiga',
  assert.match(app,/function abilityDescriptionField\(ab,i\)/);
  assert.match(app,/textarea readonly aria-readonly="true"/);
  assert.match(app,/if\(\(key==='description'\|\|key==='usage'\)&&!master\(\)\)return/);
- assert.match(app,/Registros manuais: descreva o efeito/);
+ assert.match(app,/Descreva o efeito uma vez\. Custo, fase e limite aparecem automaticamente/);
  assert.match(app,/function saveSheetForm\(/);
  assert.match(app,/function newSheet\(/);
  assert.doesNotMatch(app,/data-ability="\$\{i\}:testMode"/);
