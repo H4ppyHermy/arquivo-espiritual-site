@@ -205,6 +205,9 @@
       '<button type="button" class="btn small ae-cbb-phase-next" data-cbb-command="'+
        (linked?'liveAdvance':phase==='desfecho'?'round':'phase')+'"'+lock+'>'+
        (phase==='desfecho'?'PRÓXIMA RODADA':'AVANÇAR FASE')+'</button>')+
+     (master&&linked?'<label class="ae-cbb-phase-pick">DEFINIR FASE<select data-cbb-field="livePhase">'+opts([
+      ['preparacao','Preparação'],['distancia','Distância'],['duelo','Duelo'],['desfecho','Desfecho']],phase)+
+      '</select></label><button type="button" class="ae-cbb-phase-set" data-cbb-command="liveSet"'+lock+'>APLICAR</button>':'')+
      (master&&on()?'<button type="button" class="ae-cbb-sync-toggle" data-cbb-command="'+
        (linked?'liveDisable':'liveEnable')+'" aria-pressed="'+linked+'">'+
        (linked?'DESVINCULAR SESSÃO':'SINCRONIZAR COM SESSÃO')+'</button>':'')+
@@ -499,10 +502,11 @@
   const sync=global.ARQUIVO_SYNC,s=sheet();
   if(!s||!sync?.liveCombatPhase||!api.master?.())throw Error('Somente o mestre controla a fase global.');
   if(!on())throw Error('Conecte-se para sincronizar a sessão.');
-  const mapping={liveEnable:'enable',liveDisable:'disable',liveAdvance:'advance'};
+  const mapping={liveEnable:'enable',liveDisable:'disable',liveAdvance:'advance',liveSet:'set'};
   const action=mapping[cmd];
   if(!action)throw Error('Ação de sessão inválida.');
-  const response=await sync.liveCombatPhase(action,s.id);
+  const chosen=action==='set'?read(root,'livePhase',sessionPhase(s)):null;
+  const response=await sync.liveCombatPhase(action,s.id,chosen);
   if(!response?.ok)throw Error('A sessão não confirmou a mudança de fase.');
   if(response.liveCombat)api.db.site.liveCombat=response.liveCombat;
   else if(api.db.site)delete api.db.site.liveCombat;
@@ -549,7 +553,7 @@
   event.preventDefault();event.stopPropagation();
   if(busy)return;
   const cmd=b.dataset.cbbCommand,sh=sheet();if(!sh)return;
-  if(sh.automationEnabled===false&&!['toggleAutomation','reset','pin','liveEnable','liveDisable','liveAdvance'].includes(cmd)){
+  if(sh.automationEnabled===false&&!['toggleAutomation','reset','pin','liveEnable','liveDisable','liveAdvance','liveSet'].includes(cmd)){
    api.toast('Automação desativada','Reative a automação no Resumo para usar a Mesa.',true);
    return;
   }
@@ -593,7 +597,7 @@
   }
   busy=true;lockResult(b,true);
   try{
-   if(['liveEnable','liveDisable','liveAdvance'].includes(cmd))await executeLivePhase(cmd,root);
+   if(['liveEnable','liveDisable','liveAdvance','liveSet'].includes(cmd))await executeLivePhase(cmd,root);
    else if(cmd==='skill'||cmd==='pool')await executeRoll(root,cmd);
    else await executeAction(root,b,cmd);
   }catch(error){api.toast('Ação não realizada',String(error?.message||error),true)}
