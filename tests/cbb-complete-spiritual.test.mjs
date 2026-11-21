@@ -54,7 +54,7 @@ test('o SQL autenticado exige principal e reação disponíveis e consome cada b
  assert.match(sql,/completeDamageUsed/);
  assert.match(sql,/complete_attack=true/);
  assert.match(sql,/attack_ra=prev\.total;complete_damage=true/);
- assert.match(sql,/completeDamageUsed'\)::boolean,false/);
+ assert.match(sql,/\{combat,cbb,completeDamageUsed\}'\)::boolean,false/);
  assert.match(sql,/prev\.label LIKE '% · COMPLETA'/);
  assert.match(sql,/p_sheet_id AND account_id=ac_id/);
  assert.match(sql,/IF complete_attack OR complete_damage THEN/);
