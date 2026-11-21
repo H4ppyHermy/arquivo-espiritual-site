@@ -119,3 +119,20 @@ test('sincronização envia só combos via RPC própria, não os recursos do per
  assert.match(read('cbb-interativo.js'),/completeStep\?\.\(s\.id,comboStep.dataset.comboId/);
  assert.equal(s.resources.alma.current,10);
 });
+
+test('etapa com custo nao pode ser marcada sem confirmar a cobrança, mas liberação ativa pode avançar',()=>{
+ const f=fixture();
+ f.click('start:combo-one');
+ f.click('advance:combo-one:0');
+ assert.match(f.combo.render(f.sheet,{canEdit:true}),/1 \/ 2 · PRÓXIMA ETAPA/);
+ f.combo.completeStep(f.sheet.id,'combo-one',0);
+ f.sheet.abilities[1].costConfig={mode:'activation'};
+ f.sheet.abilityRuntime={billing:{'id-lib':{active:true,scene:1}}};
+ f.sheet.combat={scene:1};
+ f.window.ARQUIVO_CBB_UI.abilityActions=()=>'<button data-cbb-command="deactivate">ENCERRAR LIBERAÇÃO</button>';
+ const html=f.combo.render(f.sheet,{canEdit:true});
+ assert.match(html,/LIBERAÇÃO JÁ ATIVA/);
+ assert.doesNotMatch(html,/ENCERRAR LIBERAÇÃO/);
+ f.click('advance:combo-one:1');
+ assert.match(f.combo.render(f.sheet,{canEdit:true}),/COMBO CONCLUÍDO/);
+});
