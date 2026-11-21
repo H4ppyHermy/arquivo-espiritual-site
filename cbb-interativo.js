@@ -509,6 +509,12 @@
    cmd==='party'?'Confronto ajustado para '+args.p_value+' jogadores.':
    cmd==='pin'?(response.info?.active?'Habilidade fixada no Resumo.':'Habilidade desafixada.'):
    'Ação registrada.');
+  // Somente uma ação validada pelo servidor conclui automaticamente a etapa do combo.
+  if(cmd==='ability'){
+   const comboStep=button.closest?.('[data-combo-card-step]');
+   if(comboStep&&Number(comboStep.dataset.comboStep)>=0)
+    global.ARQUIVO_COMBOS?.completeStep?.(s.id,comboStep.dataset.comboId,Number(comboStep.dataset.comboStep));
+  }
   api.render();
   refreshDamageSummaries(s);
  }

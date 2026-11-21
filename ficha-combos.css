@@ -1,0 +1,63 @@
+/* Combos no Resumo da ficha: respeita tokens da paleta e escala da ficha. */
+.ae-ficha-combos{min-width:0;border:1px solid var(--theme-structure);border-top:3px solid var(--theme-accent);padding:clamp(15px,2.4vw,24px);background:var(--theme-panel);margin-top:17px}
+.ae-ficha-combos .ae-ficha-section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.ae-ficha-combos .ae-ficha-section-title h2{font:800 clamp(23px,2.5vw,30px)/1 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;margin:0}
+.ae-combo-intro{font-size:13px;opacity:.88;max-width:760px;line-height:1.65;margin:9px 0 17px}
+.ae-combo-empty{font-size:13px;background:var(--theme-raised);border:1px dashed var(--theme-structure);padding:15px;line-height:1.6}
+.ae-combo-list{display:grid;gap:10px}
+.ae-combo-card{border:1px solid var(--theme-structure);background:var(--theme-bg);min-width:0}
+.ae-combo-card[aria-busy=true]{opacity:.7}
+.ae-combo-card summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;min-height:62px}
+.ae-combo-card summary::-webkit-details-marker{display:none}
+.ae-combo-card summary:focus-visible{outline:2px solid var(--theme-accent);outline-offset:2px}
+.ae-combo-card summary>span{font-size:21px;color:var(--theme-accent)}
+.ae-combo-card[open] summary>span,.ae-combo-card details[open] summary>span{transform:rotate(180deg)}
+.ae-combo-card-heading{min-width:0;display:grid;gap:4px}
+.ae-combo-card-heading strong{font:800 clamp(20px,2.25vw,26px)/1.15 'Barlow Condensed',system-ui,sans-serif;overflow-wrap:anywhere}
+.ae-combo-card-heading>span{font-size:11px;color:var(--theme-cold);font-weight:900;letter-spacing:.07em}
+.ae-combo-card-body{border-top:1px solid var(--theme-structure);padding:15px}
+.ae-combo-description{line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;margin:0 0 12px}
+.ae-combo-metrics{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:0 0 13px}
+.ae-combo-metrics>span{font-size:11px;padding:5px 8px;border:1px solid var(--theme-structure);background:var(--theme-raised)}
+.ae-combo-metrics .ae-combo-alert{color:#f4a4a4;border-color:#ba6d6d}
+.ae-combo-steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ae-combo-step{display:flex;align-items:flex-start;gap:12px;min-width:0;padding:11px;background:var(--theme-panel);border-left:3px solid var(--theme-structure)}
+.ae-combo-step.is-current{border-left-color:var(--theme-accent);background:var(--theme-raised)}
+.ae-combo-step.is-done{border-left-color:#70c8a1;opacity:.8}
+.ae-combo-step.is-missing{border-left-color:#c07b7b}
+.ae-combo-step.is-queued{opacity:.65}
+.ae-combo-step-number{display:grid;place-items:center;flex:none;width:27px;height:27px;background:var(--theme-raised);color:var(--theme-text);font:800 16px/1 'Barlow Condensed',system-ui,sans-serif;border:1px solid var(--theme-structure)}
+.ae-combo-step.is-current .ae-combo-step-number{background:var(--theme-accent);border-color:var(--theme-accent);color:var(--theme-bg)}
+.ae-combo-step-content{min-width:0;flex:1}
+.ae-combo-step-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ae-combo-step-head strong{font-size:13px;overflow-wrap:anywhere}
+.ae-combo-step-kind,.ae-combo-step-cost{font-size:10px;letter-spacing:.06em;font-weight:900;color:var(--theme-cold)}
+.ae-combo-step-cost{margin-left:auto;white-space:nowrap;color:var(--theme-text)}
+.ae-combo-step-phase{font-size:11px;color:var(--theme-cold);margin-top:4px}
+.ae-combo-step-note,.ae-combo-step-warning{font-size:12px;line-height:1.6;margin:5px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.ae-combo-step-warning{color:#f3aaaa}
+.ae-combo-step-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.ae-combo-step-actions .ae-cbb-card-actions{margin:0}
+.ae-combo-step-actions button{min-height:36px}
+.ae-combo-card-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--theme-structure);padding-top:13px;margin-top:14px}
+.ae-combo-progress{font-size:11px;letter-spacing:.05em;color:var(--theme-cold);font-weight:900;margin-right:auto}
+.ae-combo-editor{display:grid;gap:10px;min-width:0}
+.ae-combo-editor>p:first-child{font-size:13px;line-height:1.6;margin:0}
+.ae-combo-editor .field{margin:0}
+.ae-combo-editor label{font-size:12px;font-weight:800}
+.ae-combo-editor input,.ae-combo-editor textarea,.ae-combo-editor select{width:100%;min-width:0}
+.ae-combo-editor h3{font:800 22px/1.1 'Barlow Condensed',system-ui,sans-serif;margin:10px 0 2px}
+.ae-combo-editor-picker{display:grid;gap:6px}
+.ae-combo-editor-picker>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.ae-combo-editor-rows{display:grid;gap:8px;max-height:43vh;overflow-y:auto;min-height:0}
+.ae-combo-editor-step{display:flex;align-items:flex-start;gap:9px;border:1px solid var(--theme-structure);padding:10px;background:var(--theme-raised);min-width:0}
+.ae-combo-editor-step-body{display:grid;flex:1;min-width:0;gap:5px}
+.ae-combo-editor-step-body strong{font-size:13px;overflow-wrap:anywhere}
+.ae-combo-editor-step-body small{font-size:11px;color:var(--theme-cold)}
+.ae-combo-editor-step-body label{display:grid;gap:4px;font-size:11px}
+.ae-combo-editor-step-buttons{display:grid;gap:5px}
+.ae-combo-editor-step-buttons button{width:33px;height:33px;border:1px solid var(--theme-structure);background:var(--theme-panel);color:var(--theme-text);font-size:18px;cursor:pointer}
+.ae-combo-editor-step-buttons button:disabled{opacity:.35;cursor:not-allowed}
+.ae-combo-editor-total{font-size:12px;font-weight:900;padding:12px;border:1px solid var(--theme-structure);background:var(--theme-panel)}
+.ae-combo-editor-error{font-size:12px;color:#f6adad;min-height:1.25em;margin:0}
+@media(max-width:680px){.ae-ficha-combos{padding:13px}.ae-combo-card summary{padding:12px}.ae-combo-card-body{padding:11px}.ae-combo-step{padding:9px;gap:8px}.ae-combo-card-actions .btn{min-height:39px}.ae-combo-editor-picker>div{grid-template-columns:1fr}}

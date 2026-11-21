@@ -39,6 +39,14 @@ Na aba **Rolagens**, escreva fórmulas como `1d4 + 1d6*2`, `(2d8+4)/2` ou `3d6-2
 
 Quando conectado, os grupos de dados são rolados e registrados pelo servidor, agrupados por número de faces. A expressão matemática completa é avaliada no cliente, não é uma rolagem de teste do CBB, e seu resultado composto fica no histórico da sessão deste navegador, claramente identificado como **TOTAL LOCAL**. Sem conexão, tanto os dados quanto o total são locais. A rolagem de Escudo mantém seu fluxo separado, com regras próprias.
 
+## Combos personalizados na ficha
+
+Em **Ficha → Resumo → Combos**, o jogador vinculado ou mestre pode criar até 24 sequências por personagem, com até 12 etapas cada. Cada combo guarda nome, estratégia, referência de Habilidade/Técnica e observação por etapa. As etapas podem ser reordenadas; o custo base de ALMA é sempre recalculado a partir dos valores atuais das habilidades. Nomes/IDs de habilidades alterados aparecem como indisponíveis até a correção do combo.
+
+**Iniciar sequência** apenas abre o acompanhamento da ordem. **UTILIZAR** usa a RPC oficial do CBB e só marca a etapa como concluída após confirmação do servidor; uma etapa sem cobrança deve ser concluída manualmente. Isso não dispensa os requisitos de fase, limite de ações ou custos condicionais. Combos são presets, não novas habilidades ou recursos de personagem.
+
+`ficha-combos.js` / `ficha-combos.css` controlam a interface. A RPC `public.ae_sheet_set_combos(text,jsonb)` (migração `sql/ae_sheet_combo_presets.sql`) atualiza exclusivamente o campo `combos` na ficha autorizada; não substitui a ficha completa nem modifica recursos/combate. Os jogadores devem estar autenticados com uma chave vinculada. Alterações offline ficam enfileiradas no navegador para sincronização quando a conexão retornar. Progresso de execução é temporário e não faz parte do modelo persistente.
+
 ## Fluxo seguro de alterações
 
 1. Faça uma branch de desenvolvimento, modifique somente os módulos relevantes e abra um pull request. Não altere manualmente dados reais de personagens em migrações.
