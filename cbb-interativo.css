@@ -404,3 +404,6 @@ html.reduce-motion #page .ae-cbb-result-shell{
  padding:8px 10px;
  background:color-mix(in srgb,var(--theme-accent) 10%,var(--theme-panel))
 }
+
+/* Chefes de duelo único não exibem opções de escalonamento em grupo. */
+.ae-cbb-duel-indicator{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 15px;border:1px solid var(--sheet-accent,var(--theme-accent));border-radius:7px;background:var(--theme-panel);color:var(--theme-text);font:900 16px/1 'Barlow Condensed',Impact,sans-serif;letter-spacing:.12em}
