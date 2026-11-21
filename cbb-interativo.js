@@ -101,9 +101,10 @@
   const p=engine.abilityPool(ab);
   if(!p)return '';
   const bonus=p.kind==='dano'?engine.activeDamageBonus(s):0;
-  const ra=lastAttacks.get(s.id)?.ra;
+  const prior=lastAttacks.get(s.id),basis=prior?.complete?'RT':'RA';
+  const attackValue=prior?(prior.complete?prior.rt:prior.ra):null;
   const dice=(p.count>1?p.count:'')+'d'+p.faces;
-  const label=p.kind==='dano'?(ra==null?'RA':String(ra))+' + '+dice+
+  const label=p.kind==='dano'?(attackValue==null?basis:String(attackValue))+' + '+dice+
    (bonus?(bonus>0?' + ':' − ')+Math.abs(bonus):''):(p.count>1?p.count:'')+'d'+p.faces;
   return '<div class="ae-ability-roll-note" data-cbb-ability-summary="'+index+
    '" aria-label="'+enc(p.kind==='dano'?'Dano base':'Recuperação')+'"><span aria-hidden="true">⚄</span><strong>'+
@@ -258,8 +259,10 @@
      '<div class="ae-cbb-pair"><label>Recurso<select data-cbb-field="poolResource">'+opts(resourceChoices,'vida')+'</select></label>'+
        '<label>Ajuste fixo (manual)<input type="number" data-cbb-field="flat" value="0" min="-500" max="500"></label></div>'+
      '<p class="ae-cbb-pool-hint" data-cbb-item-bonus>'+enc(engine.activeDamageBonus(s)?(engine.activeDamageBonus(s)>0?'+':'')+engine.activeDamageBonus(s)+' de equipamento aplicado automaticamente':'Nenhum bônus de equipamento ativo')+'</p>'+
-     '<label class="ae-cbb-inline"><input type="checkbox" data-cbb-field="useAttackRa"'+(last?'':' disabled')+'> Somar RA do último ataque verificado '+(last?'('+enc(last.ra)+')':'(nenhum)')+'</label>'+
-     '<label>RA manual (se necessário)<input type="number" data-cbb-field="manualRa" min="0" max="100" value="0"></label>'+
+     '<label class="ae-cbb-inline"><input type="checkbox" data-cbb-field="useAttackRa"'+(last?.complete?' checked':'')+
+       (last?'':' disabled')+'> Somar '+(last?.complete?'RT':'RA')+' do último ataque verificado '+
+       (last?'('+(last.complete?enc(last.rt):enc(last.ra))+')':'(nenhum)')+'</label>'+
+     '<label>RA manual (sem ataque verificado)<input type="number" data-cbb-field="manualRa" min="0" max="100" value="0"></label>'+
      '<div data-cbb-resist-controls'+(selectedMode==='resistencia'?'':' hidden')+'>'+
       stepper('resistSteps','PASSOS DA RESISTÊNCIA',0,disabled)+
       '<div class="ae-cbb-pool-hint" data-cbb-resist-status aria-live="polite"></div></div>'+
@@ -270,22 +273,28 @@
      '<label class="ae-cbb-view-select">O que deseja gerenciar?<select data-cbb-field="manageMode">'+opts([['turno','Ações, reações e exposições'],['recursos','Vida, Estabilidade e Alma']],'turno')+'</select></label>'+
      '<div class="ae-cbb-pills">'+pill('PRINCIPAL',c.mainUsed?(c.cbb?.extraMain?'extra':'usada'):'livre')+pill('REAÇÃO',stunned?'bloqueada':c.reactionUsed?(c.cbb?.extraReaction?'extra':'usada'):'livre')+'</div>'+
      (c.cbb?.movementBlocked?'<p class="ae-cbb-hint">Exposição Rítmica: movimentação indisponível nesta rodada.</p>':'')+
+     (c.cbb?.completePending?'<p class="ae-cbb-hint ae-cbb-complete-hint">Ação Completa declarada: role seu próximo ataque. No dano, use o RT do teste.</p>':'')+
+     '<p class="ae-cbb-hint">Ação Completa consome a principal e a reação desta rodada para substituir RA por RT no dano-base de um ataque.</p>'+
      '<div class="ae-cbb-buttons">'+
        '<button class="btn small" type="button" data-cbb-command="main"'+(disabled||(c.mainUsed&&!c.cbb?.extraMain)?' disabled':'')+'>USAR PRINCIPAL</button>'+
        '<button class="btn small" type="button" data-cbb-command="reaction"'+(disabled||stunned||(c.reactionUsed&&!c.cbb?.extraReaction)?' disabled':'')+'>USAR REAÇÃO</button>'+
-
+       '<button class="btn small ae-cbb-complete" type="button" data-cbb-command="complete"'+
+        (disabled||stunned||c.mainUsed||c.reactionUsed?' disabled':'')+
+        ' title="Gasta ação principal e reação antes do ataque para usar RT em vez de RA no dano-base.">AÇÃO COMPLETA · RT</button>'+
        (ctx.master?'<button class="btn small quiet" type="button" data-cbb-command="scene"'+lock+'>NOVA CENA</button>':'')+
      '</div>'+
      '<details class="ae-cbb-advanced ae-cbb-optional-turn"><summary>PRESSÃO E EXPOSIÇÕES <small>· REGRAS AVANÇADAS</small></summary><div class="ae-cbb-advanced-content"><div class="ae-cbb-pills">'+
       pill('PRESSIONADO',c.cbb?.pressured?'sim':'não')+pill('ACERTOS',c.pressureHits||0)+'</div>'+
      '<div class="ae-cbb-buttons"><button class="btn small" data-cbb-command="hit" type="button"'+lock+'>REGISTRAR ACERTO SOFRIDO</button></div>'+
      '<div class="ae-cbb-pills">'+
-      ['defensiva','ofensiva','ritmica'].map(n=>pill(n.toUpperCase(),String(ex[n]||0)+'/3')).join('')+'</div>'+
-     '<div class="ae-cbb-pair"><label>Tipo<select data-cbb-field="exposure">'+opts([['defensiva','Defensiva'],['ofensiva','Ofensiva'],['ritmica','Rítmica']],'ofensiva')+'</select></label>'+
+      ['defensiva','ofensiva','ritmica','espiritual'].map(n=>pill(n.toUpperCase(),String(ex[n]||0)+'/3')).join('')+'</div>'+
+     '<div class="ae-cbb-pair"><label>Tipo<select data-cbb-field="exposure">'+opts([['defensiva','Defensiva'],['ofensiva','Ofensiva'],['ritmica','Rítmica'],['espiritual','Espiritual · até 2 ALMA']],'ofensiva')+'</select></label>'+
       '<label>Comprometer<select data-cbb-field="commitResource">'+opts([['main','Ação principal extra'],['reaction','Reação extra']],'main')+'</select></label></div>'+
      '<div class="ae-cbb-buttons"><button type="button" class="btn small" data-cbb-command="commit"'+lock+'>COMPROMETER</button>'+
       '<button type="button" class="btn small" data-cbb-command="expose" data-cbb-delta="1"'+lock+'>+ EXPOSIÇÃO</button>'+
-      '<button type="button" class="btn small" data-cbb-command="contain"'+lock+'>CONTENÇÃO</button></div></div></details>'+
+      '<button type="button" class="btn small" data-cbb-command="contain"'+lock+'>CONTENÇÃO</button></div>'+
+      '<p class="ae-cbb-hint">Exposição Espiritual: ao comprometer, recupera até 2 ALMA; cada nível reduz um passo em todos os testes de Espírito. Ajustes manuais não recuperam ALMA.</p>'+
+      '</div></details>'+
      ''+
     '</section>'+
     '<section class="ae-cbb-panel" data-cbb-panel="recursos"'+(selectedMode==='recursos'?'':' hidden')+'><h3>Vida, Estabilidade e Alma</h3>'+
@@ -330,7 +339,9 @@
     (r.autoSkillSteps?'perícia '+r.autoSkillSteps:''));
   if(data.dt!==null && kind==='teste')effect.push('DT '+data.dt+': '+(calc.special==='CRÍTICO MÁXIMO'||calc.rt>=data.dt?'sucesso':'falha'));
   if(data.clash)effect.push('Teste-Clash: '+(data.clash.win?'vitória':'derrota')+' · '+data.clash.reason);
-  if(kind==='dano')effect.push('RA incorporada ao dano: '+(r.attack_ra||0)+'. Confirme o acerto antes de aplicar.');
+  if(kind==='dano')effect.push((r.damage_basis==='RT'?'Ação Completa · RT':'RA')+
+   ' incorporada ao dano: '+(r.attack_ra||0)+'. Confirme o acerto antes de aplicar.');
+  if(kind==='teste'&&r.complete_attack)effect.push('Ação Completa: principal e reação gastas; use RT deste ataque no dano.');
   if(kind==='resistencia')effect.push('Reutilize esta resistência contra ataques ao mesmo recurso nesta fase.');
   return '<div class="ae-cbb-result-shell'+(critical?' is-critical':failure?' is-failure':'')+'">'+header+figures+
    '<div class="ae-cbb-dice">'+tokens+'</div>'+
@@ -413,7 +424,7 @@
   if(args.p_kind==='teste'){
    if(args.p_context==='ataque'){
     if(result.special==='FALHA CRÍTICA')lastAttacks.delete(s.id);
-    else lastAttacks.set(s.id,{id:result.id,ra:result.ra});
+    else lastAttacks.set(s.id,{id:result.id,ra:result.ra,rt:result.rt,complete:!!result.complete_attack});
    }
    const enemy=read(root,'opponentRa');
    if(enemy!==''){
@@ -427,6 +438,14 @@
    faces:number(root,'poolFaces'),
    signature:JSON.stringify([s.groups?.[{vida:'Corpo',estabilidade:'Mente',alma:'Espírito'}[args.p_resource]],
     [...engine.normalizedConditions(s)].sort()])});
+  if(result.complete_attack){
+   s.combat??={};s.combat.cbb??={};
+   s.combat.cbb.completePending=false;s.combat.cbb.completeAttackId=result.id;
+  }
+  if(result.complete_damage){
+   s.combat??={};s.combat.cbb??={};s.combat.cbb.completeDamageUsed=true;
+   lastAttacks.delete(s.id);
+  }
   responseField(s,result,args.p_kind,dt,clash);
   refreshDamageSummaries(s);
   const hazard=s.boss?.scenario;
@@ -466,7 +485,10 @@
   }
   statusBySheet.set(s.id,cmd==='reset'?'Ficha reiniciada.':cmd==='toggleAutomation'?
    (s.automationEnabled===false?'Automação desativada.':'Automação reativada.'):
-   response.info?.chargedCost!==undefined?'Custo: '+response.info.chargedCost+' ALMA':
+   cmd==='complete'?'Ação Completa registrada. Principal e reação consumidas; role um ataque.':
+    response.info?.recoveredAlma!==undefined?
+     'Exposição Espiritual: +'+response.info.recoveredAlma+' ALMA; penalidade de Espírito aplicada.':
+    response.info?.chargedCost!==undefined?'Custo: '+response.info.chargedCost+' ALMA':
    cmd==='party'?'Confronto ajustado para '+args.p_value+' jogadores.':
    cmd==='pin'?(response.info?.active?'Habilidade fixada no Resumo.':'Habilidade desafixada.'):
    'Ação registrada.');
