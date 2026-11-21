@@ -73,7 +73,7 @@ test('busca encontra termos no texto e nomes com e sem acento',()=>{
 test('favoritos são persistidos no navegador e não alteram as regras',()=>{
  const {run,storage,items}=setup(),before=JSON.stringify(items);
  run('toggleGrimorioFavorite("Alma")');
- assert.match(storage.get('ae_grimorio_favoritos_v1'),/alma/);
+ assert.match(storage.get('ae_consulta_favoritos_v2'),/alma/);
  run('grimorioFavoritesOnly=true');
  let html=run('grimorioResultsMarkup()');
  assert.match(html,/Alma/);
