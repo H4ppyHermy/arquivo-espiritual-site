@@ -1,4 +1,4 @@
-/* Guia de Combate: aulas interativas e biblioteca tripla. Todos os tons seguem a paleta. */
+/* Biblioteca: terceira opção e Consulta Rápida, respeitando paletas do restante do site. */
 #page .ae-library-mode-switch{grid-template-columns:repeat(3,minmax(0,1fr))}
 #page .ae-library-mode{padding:12px 13px;gap:10px}
 #page .ae-library-mode-symbol{width:39px;height:39px;font-size:23px}
@@ -13,86 +13,201 @@
 #page .ae-library-guide-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(184px,228px);gap:clamp(13px,1.35vw,22px);align-items:start;min-width:0}
 #page .ae-library-guide-layout>.ae-library-shelf{grid-column:2;grid-row:1}
 #page .ae-library-guide-content{min-width:0}
-#page .ae-guide-root{display:grid;gap:15px;min-width:0}
-#page .ae-guide-hero{display:flex;justify-content:space-between;gap:22px;align-items:center;padding:clamp(21px,2.9vw,35px);background:linear-gradient(135deg,color-mix(in srgb,var(--theme-accent) 8%,var(--theme-panel)),var(--theme-panel));border:1px solid var(--theme-structure);border-top:3px solid var(--theme-accent);min-width:0}
-#page .ae-guide-hero>div:first-child{min-width:0;display:grid;gap:7px}
-#page .ae-guide-hero h2{font:900 clamp(30px,3vw,43px)/1.02 'Barlow Condensed',sans-serif;margin:0;overflow-wrap:anywhere}
-#page .ae-guide-hero p{max-width:75ch;font-size:calc(12px * var(--ae-reading-scale,1));line-height:1.75;opacity:.85;margin:0}
-#page .ae-guide-metrics{display:grid;align-content:center;justify-items:center;min-width:93px;min-height:91px;padding:12px;border:1px solid var(--theme-structure);background:var(--theme-bg)}
-#page .ae-guide-metrics strong{font:900 42px/1 'Barlow Condensed',sans-serif;color:var(--theme-accent)}
-#page .ae-guide-metrics span{font:900 9px/1.25 Manrope,sans-serif;letter-spacing:.08em;text-align:center;opacity:.78}
-#page .ae-guide-layout{display:grid;grid-template-columns:minmax(195px,248px) minmax(0,1fr);gap:12px;align-items:start;min-width:0}
-#page .ae-guide-index{display:grid;gap:5px;padding:14px 11px;border:1px solid var(--theme-structure);background:var(--theme-panel);position:sticky;top:18px;max-height:calc(100dvh - 40px);overflow-y:auto}
-#page .ae-guide-index-label{font:900 11px/1.4 Manrope,system-ui,sans-serif;letter-spacing:.09em;color:var(--theme-cold);padding:5px 7px 12px}
-#page .ae-guide-step{display:flex;align-items:center;gap:10px;padding:11px 9px;min-height:48px;background:transparent;border:1px solid transparent;color:var(--theme-text);text-align:left;cursor:pointer}
-#page .ae-guide-step:hover{border-color:var(--theme-structure);background:var(--theme-raised)}
-#page .ae-guide-step.is-active{border-color:var(--theme-accent);border-left:3px solid var(--theme-accent);background:color-mix(in srgb,var(--theme-accent) 10%,var(--theme-bg))}
-#page .ae-guide-step>span{font:900 14px/1 'Barlow Condensed',sans-serif;color:var(--theme-cold);min-width:25px}
-#page .ae-guide-step strong{font-size:calc(11px * var(--ae-reading-scale,1));line-height:1.4;font-weight:800}
-#page .ae-guide-lesson{min-width:0;padding:clamp(18px,2.5vw,32px);background:var(--theme-panel);border:1px solid var(--theme-structure);border-top:3px solid var(--theme-cold);display:grid;gap:17px}
-#page .ae-guide-lesson-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;color:var(--theme-cold);font:900 10px/1.3 Manrope,sans-serif;letter-spacing:.09em}
-#page .ae-guide-lesson h3{margin:0;font:900 clamp(29px,2.6vw,43px)/1.04 'Barlow Condensed',sans-serif;letter-spacing:.01em;overflow-wrap:anywhere}
-#page .ae-guide-lead{margin:-3px 0 0;font-size:calc(14px * var(--ae-reading-scale,1));font-weight:650;line-height:1.7}
-#page .ae-guide-lesson-copy{min-width:0;padding:14px 0 0!important;border-top:1px solid var(--theme-structure);background:transparent!important}
-#page .ae-guide-lesson-copy .book-paragraph{max-width:75ch!important;font-size:calc(13px * var(--ae-reading-scale,1));line-height:1.9;margin:0 0 1.1em}
-#page .ae-guide-lesson-copy strong{color:var(--theme-cold)}
-#page .ae-guide-tactic,#page .ae-guide-caution{display:grid;gap:6px;padding:15px 17px;border:1px solid var(--theme-structure);background:var(--theme-raised)}
-#page .ae-guide-tactic{border-left:4px solid var(--theme-accent)}
-#page .ae-guide-caution{border-left:4px solid var(--theme-cold)}
-#page .ae-guide-tactic>span,#page .ae-guide-caution>span{font:900 11px/1.2 Manrope,system-ui,sans-serif;letter-spacing:.07em;color:var(--theme-cold)}
-#page .ae-guide-tactic>p,#page .ae-guide-caution>p{font-size:calc(12px * var(--ae-reading-scale,1));line-height:1.75;margin:0}
-#page .ae-guide-reference{display:flex;gap:9px;align-items:center;justify-content:flex-start;flex-wrap:wrap}
-#page .ae-guide-reference button{padding:11px 14px;min-height:44px;border:1px solid var(--theme-accent);color:var(--theme-text);background:var(--theme-bg);cursor:pointer;font:850 11px/1.3 Manrope,system-ui,sans-serif;text-align:left}
-#page .ae-guide-reference button:hover{background:var(--theme-raised)}
-#page .ae-guide-reference .ae-guide-edit{border-color:var(--theme-structure)}
-#page .ae-guide-reference>span{font-size:11px;opacity:.75}
-#page .ae-guide-lesson-footer{display:flex;justify-content:space-between;align-items:center;gap:7px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--theme-structure)}
-#page .ae-guide-lesson-footer button{min-height:44px;min-width:110px;padding:9px 12px;border:1px solid var(--theme-structure);background:var(--theme-bg);color:var(--theme-text);cursor:pointer;font:900 11px/1 Manrope,sans-serif}
-#page .ae-guide-lesson-footer button:not(:disabled):hover{border-color:var(--theme-accent)}
-#page .ae-guide-lesson-footer button:disabled{opacity:.36;cursor:default}
-#page .ae-guide-lesson-footer>span{font-size:11px;color:var(--theme-cold);font-weight:900}
-#page .ae-guide-checklist{border:1px solid var(--theme-structure);background:var(--theme-panel);padding:clamp(17px,2.5vw,29px);display:grid;gap:15px}
-#page .ae-guide-checklist h3{margin:5px 0 0;font:900 clamp(22px,2vw,30px)/1.1 'Barlow Condensed',sans-serif}
-#page .ae-guide-checklist ul{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0;padding:0}
-#page .ae-guide-checklist li{display:flex;align-items:flex-start;gap:8px;padding:11px 12px;background:var(--theme-raised);border:1px solid var(--theme-structure);font-size:calc(12px * var(--ae-reading-scale,1));line-height:1.55}
-#page .ae-guide-checklist li::before{content:'◇';font-size:16px;line-height:1.1;color:var(--theme-cold);flex:none}
-.ae-guide-editor{display:grid;gap:13px;min-width:0}
+
+/* A Cola de Combate é um artefato editorial diferente do restante dos cards do site. */
+#page .ae-field-guide{
+ --field-ink:#16252a;
+ --field-muted:#526068;
+ --field-paper:#fff6e4;
+ --field-cream:#f2e5c8;
+ --field-yellow:#f9cd58;
+ --field-orange:#d8502c;
+ --field-line:#c1b39b;
+ --field-shadow:rgba(0,0,0,.21);
+ display:grid;gap:0;min-width:0;color:var(--field-ink);
+ font-family:Manrope,system-ui,sans-serif;
+ font-size:calc(13px * var(--ae-reading-scale,1));
+ border:1px solid #c6af89;
+ box-shadow:7px 8px 0 var(--field-shadow);
+ background:var(--field-paper);
+}
+#page .ae-field-guide *{box-sizing:border-box}
+#page .ae-field-guide button{font-family:inherit;cursor:pointer}
+#page .ae-field-guide button:disabled{cursor:default}
+#page .ae-field-guide button:focus-visible,#page .ae-field-guide input:focus-visible{
+ outline:3px solid #185b9e;outline-offset:3px;
+}
+#page .ae-field-banner{
+ min-height:174px;display:flex;align-items:stretch;justify-content:space-between;gap:18px;
+ padding:clamp(19px,2vw,29px) clamp(20px,2.4vw,33px);
+ color:#fff5d8;background:
+ repeating-linear-gradient(128deg,transparent 0 19px,rgba(255,255,255,.025) 20px 21px),
+ #16252a;
+ position:relative;overflow:hidden;
+}
+#page .ae-field-banner::after{
+ content:"";position:absolute;right:120px;top:-60px;width:190px;height:280px;
+ transform:rotate(-22deg);border:1px solid rgba(249,205,88,.22);pointer-events:none;
+}
+#page .ae-field-banner-copy{position:relative;z-index:1;min-width:0}
+#page .ae-field-stamp{display:inline-block;padding:4px 7px;background:var(--field-yellow);color:var(--field-ink);font-size:10px;line-height:1.3;font-weight:1000;letter-spacing:.13em}
+#page .ae-field-stamp b{padding-inline:4px;color:var(--field-orange)}
+#page .ae-field-banner h2{color:#fff7e5;font:900 clamp(38px,4.1vw,66px)/.84 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.035em;margin:15px 0 11px;max-width:none}
+#page .ae-field-period{color:var(--field-yellow)}
+#page .ae-field-banner p{color:#efe1c5;font-size:calc(13px * var(--ae-reading-scale,1));line-height:1.5;margin:0;font-weight:600}
+#page .ae-field-badge{
+ position:relative;z-index:1;align-self:center;display:grid;align-content:center;justify-items:center;
+ flex:none;width:105px;height:105px;transform:rotate(9deg);
+ background:var(--field-yellow);border:4px solid #121f24;color:var(--field-ink);
+ box-shadow:0 0 0 2px var(--field-yellow);
+ clip-path:polygon(0 0,100% 0,100% 85%,85% 100%,0 100%);
+}
+#page .ae-field-badge span{font:900 57px/.9 'Barlow Condensed',system-ui,sans-serif}
+#page .ae-field-badge small{font-size:9px;line-height:1.3;font-weight:1000;letter-spacing:.08em;text-align:center}
+#page .ae-field-toolbar{display:grid;gap:12px;padding:16px clamp(14px,2vw,26px) 15px;background:var(--field-yellow);border-bottom:2px solid var(--field-ink)}
+#page .ae-field-search{display:grid;gap:6px;position:relative}
+#page .ae-field-search label{color:var(--field-ink);font:900 12px/1.4 Manrope,system-ui,sans-serif;letter-spacing:.07em}
+#page .ae-field-search input{
+ width:100%;min-height:51px;border:2px solid var(--field-ink);border-radius:0;
+ outline:none;background:#fff9eb;color:var(--field-ink);
+ padding:11px 45px 11px 14px;font-size:calc(15px * var(--ae-reading-scale,1));font-weight:650;
+}
+#page .ae-field-search input::placeholder{color:#607077;opacity:1}
+#page .ae-field-search-symbol{position:absolute;right:14px;bottom:13px;font-weight:1000;font-size:20px;color:var(--field-orange);pointer-events:none}
+#page .ae-field-filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+#page .ae-field-filters button{
+ min-height:35px;border:1.5px solid var(--field-ink);border-radius:0;background:transparent;
+ padding:6px 12px;color:var(--field-ink);font-size:calc(11px * var(--ae-reading-scale,1));font-weight:1000;
+}
+#page .ae-field-filters button:hover{background:rgba(22,37,42,.1)}
+#page .ae-field-filters button.is-active{background:var(--field-ink);color:#fff5df}
+#page .ae-field-layout{display:grid;grid-template-columns:minmax(230px,.81fr) minmax(0,1.19fr);gap:0;align-items:start;min-width:0;background:#efe1c3}
+#page .ae-field-questions{min-width:0;border-right:2px solid var(--field-ink);padding:14px}
+#page .ae-field-list-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 4px 12px}
+#page .ae-field-list-heading strong{font-size:11px;color:var(--field-ink);letter-spacing:.06em;font-weight:1000}
+#page .ae-field-list-heading span{font-size:11px;color:var(--field-muted);font-weight:850;white-space:nowrap}
+#page .ae-field-results{display:grid;gap:6px;max-height:min(74dvh,720px);overflow-y:auto;scrollbar-width:thin;align-content:start;overscroll-behavior:contain}
+#page .ae-field-card{
+ display:flex;gap:9px;align-items:flex-start;width:100%;min-width:0;min-height:70px;
+ padding:11px 10px 10px 11px;background:#fff7e8;border:1.5px solid #bda887;
+ text-align:left;color:var(--field-ink);
+}
+#page .ae-field-card:hover{border-color:var(--field-orange);background:#fff}
+#page .ae-field-card.is-active{background:#16252a;color:#fff5e4;border-color:#16252a}
+#page .ae-field-card-index{flex:none;font:900 20px/1 'Barlow Condensed',system-ui,sans-serif;color:var(--field-orange);min-width:24px}
+#page .ae-field-card.is-active .ae-field-card-index{color:var(--field-yellow)}
+#page .ae-field-card-copy{display:grid;gap:3px;min-width:0;flex:1}
+#page .ae-field-card-copy strong{font-size:calc(12px * var(--ae-reading-scale,1));font-weight:1000;line-height:1.25;overflow-wrap:anywhere}
+#page .ae-field-card-copy small{
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+ overflow:hidden;color:var(--field-muted);font-size:calc(10px * var(--ae-reading-scale,1));line-height:1.45;
+}
+#page .ae-field-card.is-active .ae-field-card-copy small{color:#f1debd}
+#page .ae-field-card-mark{flex:none;align-self:flex-start;font-size:18px;line-height:1;color:var(--field-orange)}
+#page .ae-field-card.is-active .ae-field-card-mark{color:var(--field-yellow)}
+#page .ae-field-no-results{display:grid;gap:9px;padding:18px;background:#fff7e6;border:1px dashed var(--field-line);font-size:13px;line-height:1.55}
+#page .ae-field-no-results strong{font-size:16px}
+#page .ae-field-no-results button{justify-self:start;border:1px solid var(--field-ink);background:var(--field-yellow);padding:9px;color:var(--field-ink);font-weight:900}
+#page .ae-field-answer-wrap{min-width:0;padding:15px}
+#page .ae-field-answer{
+ position:sticky;top:12px;display:grid;gap:14px;
+ padding:clamp(16px,2vw,27px);min-width:0;
+ color:var(--field-ink);background:#fffcf3;
+ border:1px solid #cbb99c;border-top:6px solid var(--field-orange);
+ box-shadow:4px 4px 0 rgba(22,37,42,.12);
+ max-height:calc(100dvh - 32px);overflow-y:auto;scrollbar-width:thin;
+}
+#page .ae-field-answer-top{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+#page .ae-field-answer-top span:first-child{color:var(--field-orange);font-size:10px;font-weight:1000;letter-spacing:.1em}
+#page .ae-field-answer-top span:last-child{border:1px solid var(--field-ink);padding:4px 6px;color:var(--field-ink);font-size:9px;font-weight:1000;letter-spacing:.06em}
+#page .ae-field-answer h3{font:900 clamp(27px,2.55vw,40px)/1.02 'Barlow Condensed',system-ui,sans-serif;letter-spacing:0;color:var(--field-ink);margin:0;overflow-wrap:anywhere}
+#page .ae-field-answer-lead{
+ color:var(--field-ink);font-size:calc(16px * var(--ae-reading-scale,1));
+ line-height:1.55;font-weight:900;max-width:68ch;margin:0;padding-bottom:13px;
+ border-bottom:2px solid var(--field-ink);
+}
+#page .ae-field-answer-instructions{padding:0!important;border:0!important;min-width:0;background:transparent!important;color:var(--field-ink)!important}
+#page .ae-field-answer-instructions *{color:var(--field-ink)!important}
+#page .ae-field-answer-instructions :is(ul,ol){display:grid;gap:9px;list-style:disc;padding-left:23px;margin:0}
+#page .ae-field-answer-instructions li{
+ color:var(--field-ink)!important;display:list-item!important;list-style:disc!important;
+ font-size:calc(13px * var(--ae-reading-scale,1));line-height:1.65;margin:0!important;padding:0!important;
+ border:none!important;background:none!important;max-width:72ch;
+}
+#page .ae-field-answer-instructions p{font-size:calc(13px * var(--ae-reading-scale,1));line-height:1.7;margin:0 0 8px}
+#page .ae-field-example,#page .ae-field-warning{display:grid;gap:6px;padding:12px 14px}
+#page .ae-field-example{background:#fff0bb;border-left:4px solid #b46e00}
+#page .ae-field-warning{background:#ffe7dc;border-left:4px solid var(--field-orange)}
+#page .ae-field-example span,#page .ae-field-warning span{font-weight:1000;letter-spacing:.08em;font-size:10px;color:var(--field-ink)}
+#page .ae-field-example p,#page .ae-field-warning p{font-size:calc(12px * var(--ae-reading-scale,1));line-height:1.65;margin:0;color:var(--field-ink)}
+#page .ae-field-answer-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:11px;border-top:1px solid var(--field-line)}
+#page .ae-field-answer-actions button{
+ min-height:41px;padding:8px 11px;background:var(--field-ink);
+ color:#fff7e6;border:1.5px solid var(--field-ink);
+ font-size:calc(10px * var(--ae-reading-scale,1));font-weight:1000;text-align:left;
+}
+#page .ae-field-answer-actions button:hover{background:var(--field-orange);border-color:var(--field-orange)}
+#page .ae-field-answer-actions button:nth-child(2){background:transparent;color:var(--field-ink)}
+#page .ae-field-disclaimer{
+ color:var(--field-ink);margin:0;padding:12px 18px;
+ font-size:calc(11px * var(--ae-reading-scale,1));line-height:1.55;
+ background:var(--field-paper);border-top:1px dashed var(--field-line);
+}
+
+/* Editor do mestre: continua temático com o restante do site. */
+.ae-guide-editor{display:grid;gap:12px;min-width:0}
 .ae-guide-editor>p{margin:0;line-height:1.65}
-.ae-guide-editor>label{display:grid;gap:6px;font-size:12px;font-weight:800}
+.ae-guide-editor>label{display:grid;gap:5px;font-size:12px;font-weight:800}
 .ae-guide-editor :is(input,textarea){display:block;width:100%;padding:10px 12px;border:1px solid var(--theme-structure);background:var(--theme-bg);color:var(--theme-text);font:inherit;font-size:13px}
 .ae-guide-editor textarea{resize:vertical;line-height:1.6}
 .ae-guide-editor-actions{display:flex;flex-wrap:wrap;gap:9px}
 .ae-guide-editor-actions button{min-height:44px;padding:10px 14px;border:1px solid var(--theme-accent);background:var(--theme-accent);color:var(--theme-bg);font-weight:900;cursor:pointer}
 .ae-guide-editor-actions button.quiet{background:var(--theme-raised);border-color:var(--theme-structure);color:var(--theme-text)}
-#page .ae-guide-root button:focus-visible,.ae-guide-editor button:focus-visible{outline:3px solid var(--theme-cold);outline-offset:2px}
+
 @media(max-width:1370px){
  #page .ae-library-guide-layout{grid-template-columns:minmax(0,1fr)}
  #page .ae-library-guide-layout>.ae-library-shelf{grid-row:1;grid-column:1;position:static;max-height:none}
  #page .ae-library-guide-content{grid-row:2;grid-column:1}
  #page .ae-library-guide-layout .ae-shelf-options{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
-@media(max-width:1010px){
- #page .ae-guide-layout{grid-template-columns:minmax(0,1fr)}
- #page .ae-guide-index{position:static;max-height:none;grid-template-columns:repeat(2,minmax(0,1fr))}
- #page .ae-guide-index-label{grid-column:1/-1}
+@media(max-width:950px){
+ #page .ae-field-layout{grid-template-columns:minmax(0,1fr)}
+ #page .ae-field-questions{border-right:0;border-bottom:2px solid var(--field-ink)}
+ #page .ae-field-results{grid-template-columns:repeat(2,minmax(0,1fr));max-height:230px}
+ #page .ae-field-answer{position:static;max-height:none}
 }
 @media(max-width:780px){
- #page .ae-library-mode-switch{grid-template-columns:minmax(0,1fr);gap:8px}
- #page .ae-guide-index{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
- #page .ae-guide-checklist ul{grid-template-columns:minmax(0,1fr)}
- #page .ae-guide-hero{gap:12px}
+ #page .ae-library-mode-switch{grid-template-columns:1fr;gap:8px}
+ #page .ae-field-badge{width:82px;height:82px}
+ #page .ae-field-badge span{font-size:46px}
+ #page .ae-field-badge small{font-size:8px}
+ #page .ae-field-banner{min-height:150px;padding:20px}
+ #page .ae-field-banner h2{font-size:48px}
+ #page .ae-field-toolbar{padding:13px}
+ #page .ae-field-filters{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;padding-bottom:3px}
+ #page .ae-field-filters button{white-space:nowrap;flex:none}
+ #page .ae-field-results{max-height:210px}
+ #page .ae-field-card{min-height:68px}
 }
 @media(max-width:560px){
- #page .ae-guide-metrics{display:none}
- #page .ae-guide-hero h2{font-size:30px}
  #page .ae-library-guide-layout .ae-shelf-options{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
  #page .ae-library-guide-layout .ae-shelf-option{padding:9px 6px;grid-template-columns:1fr;gap:4px}
  #page .ae-library-guide-layout :is(.ae-shelf-number,.ae-shelf-arrow,.ae-shelf-option em){display:none}
  #page .ae-library-guide-layout .ae-shelf-copy strong{font-size:14px}
  #page .ae-library-guide-layout .ae-shelf-copy small{font-size:10px}
- #page .ae-guide-step{padding:9px 6px;gap:6px}
- #page .ae-guide-step>span{min-width:19px}
- #page .ae-guide-step strong{font-size:calc(10px * var(--ae-reading-scale,1))}
- #page .ae-guide-lesson{padding:16px}
- #page .ae-guide-lesson-footer button{min-width:100px;padding:9px}
+ #page .ae-field-banner{padding:16px;min-height:125px}
+ #page .ae-field-banner h2{font-size:40px}
+ #page .ae-field-banner p{font-size:calc(11px * var(--ae-reading-scale,1))}
+ #page .ae-field-badge{width:64px;height:64px;transform:rotate(8deg);border-width:2px}
+ #page .ae-field-badge span{font-size:35px}
+ #page .ae-field-badge small{font-size:6px}
+ #page .ae-field-questions{padding:9px}
+ #page .ae-field-results{grid-template-columns:minmax(0,1fr);max-height:185px}
+ #page .ae-field-card{min-height:62px;padding:9px}
+ #page .ae-field-answer-wrap{padding:10px}
+ #page .ae-field-answer{padding:15px}
+ #page .ae-field-answer h3{font-size:31px}
+}
+@media(prefers-reduced-motion:reduce){
+ #page .ae-field-guide *{scroll-behavior:auto!important;transition:none!important}
 }
