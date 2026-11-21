@@ -40,8 +40,17 @@ test('uma alteração de outra ficha não reconstrói a ficha aberta e agrupa gr
  page.on('request',req=>req.url().startsWith('http://127.0.0.1:')?req.continue():req.abort());
  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
  await page.evaluate(()=>{
+  // O conteúdo público não inclui fichas pessoais; criar apenas uma ficha local
+  // para medir o comportamento do app sem acessar os jogadores de produção.
+  const db=window.ARQUIVO_INTERNAL.db;
+  db.sheets.push({
+   id:'performance-e2e',name:'Ficha do teste',subtitle:'Ambiente isolado',level:1,
+   image:'',resources:{vida:{current:20,max:20},estabilidade:{current:15,max:15},alma:{current:10,max:10}},
+   groups:{Corpo:6,Mente:6,Espírito:6},skills:{Vigor:6,Destreza:6,Precisão:6},
+   abilities:[],inventory:{items:[],currencies:[]},conditions:[],notes:'',combat:{scene:1,round:1,phase:'preparacao'}
+  });
   window.ARQUIVO_INTERNAL.setPage('sheets');
-  document.querySelector('.sheet-entry[data-sheet]')?.click();
+  document.querySelector('.sheet-entry[data-sheet="performance-e2e"]')?.click();
  });
  await page.waitForSelector('#sheetBody');
  const result=await page.evaluate(async()=>{
