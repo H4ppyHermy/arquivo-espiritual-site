@@ -72,7 +72,7 @@ test('Biblioteca para jogador: consulta manual vazia, guia de combate, livros e 
  });
  await page.click('[data-guide-action="group:Defender"]');
  assert.equal((await page.$('.ae-field-card')).length,3);
- await page.click('[data-guide-action="clear"]');
+ await page.click('[data-guide-action="group:Tudo"]');
  await page.click('[data-guide-action="step:completa"]');
  assert.match(await page.$eval('.ae-field-answer-lead',el=>el.textContent),/Gaste a principal normal/);
  assert.ok(await page.$('.ae-field-answer-actions [data-guide-action^="chapter:"]'));
