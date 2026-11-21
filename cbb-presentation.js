@@ -154,14 +154,13 @@
  function standardizeRuleSections(content){
   const source=String(content||'').replace(/\r\n?/g,'\n');
   const lines=source.split('\n'),out=[];
-  let i=0,insideIdentity=false;
+  let i=0;
   while(i<lines.length){
    const head=lines[i].match(/^(#{2,3})\s+(.+)$/);
    if(!head){out.push(lines[i++]);continue}
    const heading=head[2].trim();
    out.push(lines[i++]);
-   if(/^identidade$/i.test(heading)){insideIdentity=true;continue}
-   insideIdentity=false;
+   if(/^identidade$/i.test(heading))continue;
    const parts=[];
    while(i<lines.length&&!/^#{2,3}\s+/.test(lines[i])&&!/^(?:Corpo|Mente|Espírito)\s+—\s+/i.test(lines[i]))parts.push(lines[i++]);
    const raw=parts.join('\n').trim();
@@ -180,6 +179,7 @@
    const match=line.match(/^Efeito — (.*)$/);
    if(!match)return [line];
    const text=match[1];
+   if(/;\s*(?=(?:Shikai|Bankai)\b)/i.test(text))return text.split(/;\s*(?=(?:Shikai|Bankai)\b)/i).map(part=>/^(?:Shikai|Bankai)\b/i.test(part)?part.match(/^(Shikai|Bankai)/i)[1]+' — '+part:'Efeito — '+part);
    if(/^(?:Os bônus não|Esses bônus não|Bônus não|Não acumulam|Os bônus se substituem|Não se acumulam)/i.test(text))
     return ['Restrição — '+text];
    if(/^(?:Forma selada|Em (?:sua )?forma selada|Em estado selado|Espada selada|Espadas seladas|Lâminas seladas)/i.test(text))
