@@ -51,7 +51,7 @@ test('navegação entre etapas e capítulo fonte não modifica o documento',()=>
  const ctx=setup();
  ctx.click('step:completa');
  assert.match(ctx.guide.render(),/Quando usar a Ação Completa/);
- assert.match(ctx.guide.render(),/troque/i);
+ assert.match(ctx.guide.render(),/Trocar defesa por dano/i);
  ctx.click('chapter:cap5');
  assert.equal(ctx.opened(),'cap5');
  ctx.click('next');
