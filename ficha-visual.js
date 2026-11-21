@@ -182,6 +182,7 @@
     sessionControls(s,ctx)+
     '<button type="button" class="btn small ae-cbb-open" data-tab="mesa">ABRIR MESA DE COMBATE</button>'+
     originMeters(s,ctx)+quickAccess(s,ctx)+snapshot(s)+
+    (window.ARQUIVO_COMBOS?.render?.(s,ctx)||'')+
     (ctx.history?'<section class="ae-ficha-history">'+ctx.history+'</section>':'')+
    '</div>';
  }
