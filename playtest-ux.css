@@ -241,3 +241,105 @@
   grid-template-columns:minmax(0,1fr);gap:1px;padding:9px 3px
  }
 }
+
+
+/* Recursos de classe: capacidade legível e opções agrupadas em Extras.
+   O número é a capacidade de referência, não um contador editável ao vivo. */
+#page .ae-cbb-resource{
+ display:flex;align-items:center;flex-wrap:wrap;gap:8px 13px;
+ min-width:0;padding:11px 13px;margin:7px 0 9px;
+ border:1px solid color-mix(in srgb,var(--theme-cold) 46%,var(--theme-structure));
+ border-left:3px solid var(--theme-cold);border-radius:6px;
+ background:color-mix(in srgb,var(--theme-cold) 8%,var(--theme-panel))
+}
+#page .ae-cbb-resource-label{
+ color:var(--theme-cold);
+ font:900 calc(10px * var(--ae-reading-scale,1))/1.35 Manrope,system-ui,sans-serif;
+ letter-spacing:.095em
+}
+#page .ae-cbb-resource-name{
+ flex:1 1 120px;min-width:0;overflow-wrap:anywhere;
+ color:var(--theme-text);
+ font:900 calc(17px * var(--ae-reading-scale,1))/1.25 'Barlow Condensed',Impact,system-ui,sans-serif
+}
+#page .ae-cbb-resource-capacity{
+ display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto
+}
+#page .ae-cbb-resource-capacity small{
+ color:var(--theme-text);opacity:.8;font-size:calc(10px * var(--ae-reading-scale,1));font-weight:750
+}
+#page .ae-cbb-resource-capacity b{
+ display:inline-flex;align-items:center;min-height:32px;padding:6px 10px;
+ border:1px solid var(--theme-accent);border-radius:5px;
+ color:var(--theme-text);background:color-mix(in srgb,var(--theme-accent) 15%,var(--theme-panel));
+ font:900 calc(14px * var(--ae-reading-scale,1))/1.2 Manrope,system-ui,sans-serif;
+ white-space:nowrap
+}
+#page .ae-cbb-extras{
+ min-width:0;margin:12px 0 4px;border:1px solid var(--theme-structure);
+ border-radius:7px;background:color-mix(in srgb,var(--theme-raised) 18%,var(--theme-panel));
+ overflow:hidden
+}
+#page .ae-cbb-extras>summary{
+ display:flex;align-items:center;flex-wrap:wrap;gap:8px 13px;
+ box-sizing:border-box;width:100%;min-height:44px;padding:10px 13px;
+ cursor:pointer;list-style:none;
+ background:color-mix(in srgb,var(--theme-raised) 52%,var(--theme-panel));
+ color:var(--theme-text)
+}
+#page .ae-cbb-extras>summary::-webkit-details-marker{display:none}
+#page .ae-cbb-extras>summary::marker{content:""}
+#page .ae-cbb-extras>summary:hover{
+ background:color-mix(in srgb,var(--theme-cold) 14%,var(--theme-panel))
+}
+#page .ae-cbb-extras>summary:focus-visible{outline:2px solid var(--theme-accent);outline-offset:-3px}
+#page .ae-cbb-extras>summary strong{
+ color:var(--theme-cold);font:900 calc(12px * var(--ae-reading-scale,1))/1.35 Manrope,system-ui,sans-serif;
+ letter-spacing:.065em
+}
+#page .ae-cbb-extras>summary small{
+ color:var(--theme-text);opacity:.85;font-size:calc(11px * var(--ae-reading-scale,1))
+}
+#page .ae-cbb-extras-arrow{
+ margin-left:auto;color:var(--theme-cold);font-size:20px;line-height:1;
+ transition:transform .15s ease
+}
+#page .ae-cbb-extras[open] .ae-cbb-extras-arrow{transform:rotate(180deg)}
+#page .ae-cbb-extra-list{display:grid;padding:4px 12px 10px;gap:0}
+#page .ae-cbb-extra-row{
+ display:grid;grid-template-columns:minmax(76px,112px) minmax(0,1fr);
+ align-items:start;gap:12px;min-width:0;padding:11px 2px;
+ border-bottom:1px solid var(--theme-structure)
+}
+#page .ae-cbb-extra-row:last-child{border-bottom:0}
+#page .ae-cbb-extra-amount{
+ display:inline-flex;justify-content:center;align-items:center;
+ min-height:30px;padding:5px 8px;border:1px solid var(--theme-cold);border-radius:4px;
+ background:color-mix(in srgb,var(--theme-cold) 13%,var(--theme-panel));
+ color:var(--theme-text);
+ font:900 calc(11px * var(--ae-reading-scale,1))/1.25 Manrope,system-ui,sans-serif;
+ white-space:nowrap
+}
+#page .ae-cbb-extra-rule{display:grid;gap:5px;min-width:0}
+#page .ae-cbb-extra-title{
+ display:block;color:var(--theme-text);
+ font:900 calc(14px * var(--ae-reading-scale,1))/1.4 Manrope,system-ui,sans-serif
+}
+#page .ae-cbb-extra-effect{
+ min-width:0;color:var(--theme-text);
+ font-size:calc(12px * var(--ae-reading-scale,1));line-height:1.65;
+ overflow-wrap:anywhere
+}
+#page .ae-cbb-extra-effect .book-paragraph,
+#page .ae-cbb-extra-effect p{margin:0 0 6px;line-height:inherit;font-size:inherit}
+#page .ae-cbb-extra-effect :last-child{margin-bottom:0}
+@media(max-width:550px){
+ #page .ae-cbb-resource{padding:10px;gap:7px 10px}
+ #page .ae-cbb-resource-capacity{flex-basis:100%;margin-left:0;justify-content:space-between}
+ #page .ae-cbb-extra-list{padding-inline:9px}
+ #page .ae-cbb-extra-row{grid-template-columns:1fr;gap:6px}
+ #page .ae-cbb-extra-amount{justify-self:start}
+}
+@media(prefers-reduced-motion:reduce){
+ #page .ae-cbb-extras-arrow{transition:none}
+}
