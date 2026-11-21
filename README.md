@@ -9,7 +9,8 @@ Aplicação web estática do sistema CBB, publicada pelo GitHub Pages. O código
 | Rotas, interface, preferências, editores e fichas | `arquivo-app.js` |
 | Componentes e abas da ficha | `ficha-visual.js` e `ficha-visual.css` |
 | Regras e prévias do CBB | `cbb-engine.js` |
-| Mesa e rolagens | `cbb-interativo.js` e `cbb-interativo.css` |
+| Mesa, testes e rolagens vinculadas à ficha | `cbb-interativo.js` e `cbb-interativo.css` |
+| Calculadora de rolagens livres e atalhos do navegador | `rolagem-livre.js` e `rolagem-livre.css`; integração em `arquivo-app.js` |
 | Sincronização, autenticação e RPC | `online.js` |
 | Sessão de voz, vídeo, HUD e fases | `sala-ao-vivo.js` |
 | Biblioteca | `biblioteca-secoes.js`, `biblioteca-editor.js` |
@@ -31,6 +32,12 @@ node --test discord-bot/test.mjs
 Para testar com Chrome, instale `puppeteer-core@24.26.0` localmente (o workflow já instala a dependência) e execute `node --test e2e/mesa-browser.test.mjs`. O teste real de WebRTC usa `e2e/rtc-browser.test.mjs`.
 
 O workflow **Verificação de integridade** valida todos os arquivos JavaScript da raiz, a ordem e existência dos recursos estáticos, a suíte do bot e os testes do site. Os workflows de navegador exercitam a Mesa e o WebRTC.
+
+## Rolagem livre
+
+Na aba **Rolagens**, escreva fórmulas como `1d4 + 1d6*2`, `(2d8+4)/2` ou `3d6-2`. O interpretador respeita parênteses e a precedência de multiplicação/divisão, sem executar JavaScript. Atalhos de clique são editáveis e persistem via `localStorage` **somente no navegador atual**. A rolagem aceita até 30 dados por expressão, dados de 2 a 1.000 faces e cálculos sem dados.
+
+Quando conectado, os grupos de dados são rolados e registrados pelo servidor, agrupados por número de faces. A expressão matemática completa é avaliada no cliente, não é uma rolagem de teste do CBB, e seu resultado composto fica no histórico da sessão deste navegador, claramente identificado como **TOTAL LOCAL**. Sem conexão, tanto os dados quanto o total são locais. A rolagem de Escudo mantém seu fluxo separado, com regras próprias.
 
 ## Fluxo seguro de alterações
 
