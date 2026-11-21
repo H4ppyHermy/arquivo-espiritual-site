@@ -191,6 +191,16 @@ async function cbbAction(args){
  if(result?.revision)state.revision=Math.max(state.revision,Number(result.revision)||0);
  return result;
 }
+async function liveCombatPhase(action,sheetId=null,phase=null){
+ if(!state.enabled||state.identity?.kind!=='master')throw Error('Somente o mestre pode sincronizar as fases.');
+ if(!['enable','disable','set','advance'].includes(action))throw Error('Ação de fase inválida.');
+ await state.pending.catch(()=>{});
+ if(state.lastPushError)throw Error('Existem alterações da ficha pendentes: '+state.lastPushError);
+ const result=await rpc('ae_live_cbb_phase',{p_action:action,p_sheet_id:sheetId,p_phase:phase});
+ if(!result?.ok)throw Error('O servidor não confirmou a atualização da sessão.');
+ if(result?.revision)state.revision=Math.max(Number(state.revision)||0,Number(result.revision)||0);
+ return result;
+}
 async function rollHistory(limit=10,offset=0,sheetId=null){
  if(!state.enabled||!state.identity?.id)return {rows:[],total:0};
  const size=Math.max(1,Math.min(30,Math.trunc(Number(limit)||10)));
@@ -252,5 +262,5 @@ async function mediaSignedUrl(ref){
  return data.signedUrl;
 }
 
-window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,moveAbility,moveWarehousePost,rollFree,cbbRoll,cbbAction,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
+window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,moveAbility,moveWarehousePost,rollFree,cbbRoll,cbbAction,liveCombatPhase,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
 })();
