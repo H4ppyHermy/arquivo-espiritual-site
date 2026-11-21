@@ -127,11 +127,15 @@
      phase:document.getElementById('warehousePhaseInput')?.value||''};
     const model=present.model(entry,{warehouse:true});
     preview.innerHTML='<div class="ae-wh-preview-ability">'+present.meta(model,{warehouse:true})+
-     present.dice(model)+api.formatBook(model.description)+'</div>';
+     present.dice(model)+present.resourceInfo(model)+api.formatBook(model.description)+
+     present.extrasPanel(model,part=>api.formatBook(part))+'</div>';
    }else{
-    const body=category==='Classes'||category==='Raças'?present?.standardizeRuleSections?.(area.value||''):
-     category==='Itens'?present?.standardizeItem?.(area.value||''):(area.value||'');
-    preview.innerHTML=api.formatBook(body||area.value||'');
+    if(present?.renderRuleSections&&['Classes','Raças'].includes(category)){
+     preview.innerHTML=present.renderRuleSections(area.value||'',part=>api.formatBook(part));
+    }else{
+     const body=category==='Itens'?present?.standardizeItem?.(area.value||''):(area.value||'');
+     preview.innerHTML=api.formatBook(body||area.value||'');
+    }
    }
   }
   const stats=document.getElementById('warehouseEditorStats');
