@@ -32,6 +32,25 @@
  }
  const safePrefix=prefix=>String(prefix||'').replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,85);
  const headingId=(prefix,index)=>'ae-read-'+safePrefix(prefix)+'-'+Number(index);
+ const glossaryCache=new WeakMap();
+ // O mesmo índice é reutilizado por todos os capítulos abertos neste render.
+ // O Grimório recria seu Map quando é editado, invalidando o cache naturalmente.
+ function glossaryIndex(glossary){
+  if(!glossary||typeof glossary!=='object'||typeof glossary.keys!=='function')return null;
+  const cached=glossaryCache.get(glossary);
+  if(cached&&cached.size===glossary.size)return cached;
+  const names=[...glossary.keys()].filter(Boolean).sort((a,b)=>b.length-a.length);
+  const byInitial=new Map();
+  for(const name of names){
+   const first=name[0];
+   if(!byInitial.has(first))byInitial.set(first,[]);
+   byInitial.get(first).push(name);
+  }
+  const index={names,byInitial,size:glossary.size};
+  glossaryCache.set(glossary,index);
+  return index;
+ }
+
  const removeMarkdownHeading=x=>String(x||'').replace(/^#{1,6}\s+/,'').replace(/^[✱✦✧❖▸▹►]\s*/,'').trim();
  function headings(source,chapterTitle=''){
   const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
@@ -69,5 +88,5 @@
     '<span>'+escape(item.title)+'</span></a>').join('')+
    '</nav></details>';
  }
- global.ARQUIVO_BIBLIOTECA_LEITURA=Object.freeze({category,marker,headings,outline,headingId});
+ global.ARQUIVO_BIBLIOTECA_LEITURA=Object.freeze({category,marker,headings,outline,headingId,glossaryIndex});
 })(window);
