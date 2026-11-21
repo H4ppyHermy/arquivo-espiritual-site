@@ -92,3 +92,24 @@ test('a UI só reconstrói a ficha quando há alteração visível e agrega cach
  assert.match(app,/db=\{\.\.\.snap,keys:window\.ARQUIVO_SYNC\.state\.keys\}/);
  assert.doesNotMatch(app,/db=\{\.\.\.clone\(snap\)/);
 });
+
+test('troca de chave em uma leitura pendente descarta snapshot antigo e força nova leitura',async()=>{
+ const {api,events}=setup(),waiters=[];
+ api.state.identity={id:'chave-antiga',kind:'player'};
+ api.state.client={rpc:async()=>{
+  return new Promise(resolve=>waiters.push(resolve));
+ }};
+ const older=api.refresh(false);
+ await Promise.resolve();
+ assert.equal(waiters.length,1);
+ api.state.identity={id:'chave-nova',kind:'player'};
+ const recent=api.refresh(true);
+ waiters[0]({data:{revision:4,data:{site:{title:'Antigo'},sheets:[],rules:[]}},error:null});
+ await older;
+ for(let i=0;i<5&&waiters.length<2;i++)await Promise.resolve();
+ assert.equal(waiters.length,2,'a nova conta deve ler um novo documento');
+ waiters[1]({data:{revision:5,data:{site:{title:'Novo'},sheets:[],rules:[]}},error:null});
+ await recent;
+ assert.equal(api.state.revision,5);
+ assert.equal(events.filter(x=>x==='arquivo-online-snapshot').length,1);
+});
