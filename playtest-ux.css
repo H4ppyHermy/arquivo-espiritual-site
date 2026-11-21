@@ -253,7 +253,7 @@
  background:color-mix(in srgb,var(--theme-cold) 8%,var(--theme-panel))
 }
 #page .ae-cbb-resource-label{
- color:var(--theme-cold);
+ color:var(--theme-text);
  font:900 calc(10px * var(--ae-reading-scale,1))/1.35 Manrope,system-ui,sans-serif;
  letter-spacing:.095em
 }
@@ -294,14 +294,14 @@
 }
 #page .ae-cbb-extras>summary:focus-visible{outline:2px solid var(--theme-accent);outline-offset:-3px}
 #page .ae-cbb-extras>summary strong{
- color:var(--theme-cold);font:900 calc(12px * var(--ae-reading-scale,1))/1.35 Manrope,system-ui,sans-serif;
+ color:var(--theme-text);font:900 calc(12px * var(--ae-reading-scale,1))/1.35 Manrope,system-ui,sans-serif;
  letter-spacing:.065em
 }
 #page .ae-cbb-extras>summary small{
  color:var(--theme-text);opacity:.85;font-size:calc(11px * var(--ae-reading-scale,1))
 }
 #page .ae-cbb-extras-arrow{
- margin-left:auto;color:var(--theme-cold);font-size:20px;line-height:1;
+ margin-left:auto;color:var(--theme-text);font-size:20px;line-height:1;
  transition:transform .15s ease
 }
 #page .ae-cbb-extras[open] .ae-cbb-extras-arrow{transform:rotate(180deg)}
