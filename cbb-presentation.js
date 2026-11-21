@@ -225,7 +225,7 @@
   const after=header.slice(header.indexOf(item[0])+item[0].length);
   const named=after.match(/^\s+de\s+(?:\*\*)?([^\n.;]+?)(?:\*\*)?(?:[.;]|$)/i);
   const name=(named?named[1].replace(/\*\*/g,'').replace(/\s+e\s+(?:começa|inicia|ganha|recebe|permite)\b.*$/i,'').replace(/\s+por\s+(?:cena|rodada)$/i,'').trim():String(fallbackName||'').trim())||'Recurso';
-  const resource={name,kind,capacity:max,label:max+' '+resourceUnit(kind,max)};
+  const resource={name,kind,initial:Number(item[2]),capacity:max,label:max+' '+resourceUnit(kind,max)};
   const main=[],extras=[];
   let current=null;
   for(let i=0;i<lines.length;i++){
@@ -263,13 +263,23 @@
     ...o,description:o.description.replace(/\n{3,}/g,'\n\n').trim()
   }))};
  }
+ // Reutilizar os marcadores originais (segmentos, losangos, fichas, sequência).
+ // As quantidades escritas complementam o desenho, jamais o substituem.
+ function resourceSymbol(kind,filled,total){
+  const render=global.ARQUIVO_BARRAS_INLINE?.render;
+  if(typeof render!=='function')return '';
+  return render({kind,filled,total});
+ }
  function resourceInfo(m){
   const r=m?.resource;
   if(!r)return '';
   return '<div class="ae-cbb-resource" role="group" aria-label="Capacidade do recurso">'+
    '<span class="ae-cbb-resource-label">RECURSO</span>'+
    '<strong class="ae-cbb-resource-name">'+escape(r.name)+'</strong>'+
-   '<span class="ae-cbb-resource-capacity"><small>CAPACIDADE</small><b>'+escape(r.label)+'</b></span>'+
+   '<div class="ae-cbb-resource-capacity"><small>CAPACIDADE</small>'+
+    '<span class="ae-cbb-resource-glyph" title="Representação visual de referência, não saldo atual">'+
+     resourceSymbol(r.kind,r.initial,r.capacity)+'</span>'+
+    '<b>'+escape(r.label)+'</b></div>'+
    '</div>';
  }
  function extrasPanel(m,format){
@@ -283,7 +293,9 @@
      entry.amount+' '+resourceUnit(entry.kind,entry.amount).toLocaleUpperCase('pt-BR');
     const title=entry.title?'<strong class="ae-cbb-extra-title">'+escape(entry.title)+'</strong>':'';
     return '<div class="ae-cbb-extra-row" role="group" aria-label="'+escape(label+(entry.title?' · '+entry.title:''))+'">'+
-     '<span class="ae-cbb-extra-amount">'+escape(label)+'</span>'+
+     '<div class="ae-cbb-extra-markers">'+
+      '<span class="ae-cbb-extra-glyph">'+resourceSymbol(entry.kind,entry.amount,entry.total)+'</span>'+
+      '<span class="ae-cbb-extra-amount">'+escape(label)+'</span></div>'+
      '<div class="ae-cbb-extra-rule">'+title+
       (entry.description?'<div class="ae-cbb-extra-effect">'+format(entry.description)+'</div>':'')+
      '</div></div>';
