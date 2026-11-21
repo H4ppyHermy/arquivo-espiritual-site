@@ -102,7 +102,7 @@
   return '<div class="ae-wh-detail-text">'+
    '<div class="ae-wh-detail-eyebrow">DESCRIÇÃO & FUNCIONAMENTO</div>'+
    '<div class="book-text ae-library-reading ae-warehouse-reading">'+
-   api.formatBook(post.content||'',post.title||'Registro')+'</div></div>';
+   api.formatBook(['Classes','Raças'].includes(post.category)?(window.ARQUIVO_CBB_PRESENTATION?.standardizeRuleSections?.(post.content||'')||post.content||''):(post.category==='Itens'?(window.ARQUIVO_CBB_PRESENTATION?.standardizeItem?.(post.content||'')||post.content||''):(post.content||'')),post.title||'Registro')+'</div></div>';
  }
  function visible(){
   const terms=fold(search).split(/\s+/).filter(Boolean);
@@ -388,7 +388,10 @@
    entry.phase=newPhase;
    const parseGrants=value=>value.split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean).slice(0,15);
    entry.grants={race:parseGrants(get('warehouseGrantRaces')),class:parseGrants(get('warehouseGrantClasses'))};
-  }else{delete entry.grants;delete entry.phase;}
+  }else{delete entry.grants;delete entry.phase;
+   if(['Classes','Raças'].includes(entry.category))entry.content=window.ARQUIVO_CBB_PRESENTATION?.standardizeRuleSections?.(entry.content)||entry.content;
+   if(entry.category==='Itens')entry.content=window.ARQUIVO_CBB_PRESENTATION?.standardizeItem?.(entry.content)||entry.content;
+  }
   entry=alignLegacyPortaVoz(entry);
   // Não levar o esquema aposentado do HUD para publicações editadas.
   delete entry.bars;
