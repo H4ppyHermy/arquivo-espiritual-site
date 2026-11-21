@@ -25,7 +25,7 @@ function setup(){
   glossaryKey:fold,
   GRIMORIO_CATEGORIES:['Recursos','Testes','Combate','Condições','Recuperação','Outros'],
   grimorioQuery:'',grimorioCategory:'Todos',grimorioLetter:'Todas',grimorioFavoritesOnly:false,grimorioSelectedTerm:'',
-  esc,master:()=>false,btn:()=>'',el:()=>null,grimorioRefreshResults:()=>{}
+  esc,master:()=>false,btn:()=>'',el:()=>null,requestAnimationFrame:fn=>fn(),grimorioRefreshResults:()=>{}
  });
  vm.runInContext(snippet,ctx);
  const run=code=>vm.runInContext(code,ctx);
