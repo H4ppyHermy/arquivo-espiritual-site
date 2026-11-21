@@ -276,7 +276,7 @@
 
        (ctx.master?'<button class="btn small quiet" type="button" data-cbb-command="scene"'+lock+'>NOVA CENA</button>':'')+
      '</div>'+
-     '<h4>Pressão e exposições</h4><div class="ae-cbb-pills">'+
+     '<details class="ae-cbb-advanced ae-cbb-optional-turn"><summary>PRESSÃO E EXPOSIÇÕES <small>· REGRAS AVANÇADAS</small></summary><div class="ae-cbb-advanced-content"><div class="ae-cbb-pills">'+
       pill('PRESSIONADO',c.cbb?.pressured?'sim':'não')+pill('ACERTOS',c.pressureHits||0)+'</div>'+
      '<div class="ae-cbb-buttons"><button class="btn small" data-cbb-command="hit" type="button"'+lock+'>REGISTRAR ACERTO SOFRIDO</button></div>'+
      '<div class="ae-cbb-pills">'+
@@ -285,7 +285,7 @@
       '<label>Comprometer<select data-cbb-field="commitResource">'+opts([['main','Ação principal extra'],['reaction','Reação extra']],'main')+'</select></label></div>'+
      '<div class="ae-cbb-buttons"><button type="button" class="btn small" data-cbb-command="commit"'+lock+'>COMPROMETER</button>'+
       '<button type="button" class="btn small" data-cbb-command="expose" data-cbb-delta="1"'+lock+'>+ EXPOSIÇÃO</button>'+
-      '<button type="button" class="btn small" data-cbb-command="contain"'+lock+'>CONTENÇÃO</button></div>'+
+      '<button type="button" class="btn small" data-cbb-command="contain"'+lock+'>CONTENÇÃO</button></div></div></details>'+
      ''+
     '</section>'+
     '<section class="ae-cbb-panel" data-cbb-panel="recursos"'+(selectedMode==='recursos'?'':' hidden')+'><h3>Vida, Estabilidade e Alma</h3>'+
