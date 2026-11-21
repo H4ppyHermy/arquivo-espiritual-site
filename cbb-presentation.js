@@ -53,6 +53,80 @@
   }
   return output||original;
  }
+
+ // O mesmo padrão editorial vale para conteúdos oficiais, personalizados e novos.
+ // Não interpreta valores, não altera mecânicas e não remove ressalvas do texto.
+ const STANDARD_LINE=/^(?:Requisito|Gatilho|Ativação|Efeito|Recurso|Consumo|Condição|Consequência|Limite|Restrição|Duração|Observação|Amplificação|Encantamento)\s+—\s+/im;
+ function standardize(source){
+  const original=String(source??'').replace(/\r\n?/g,'\n').trim();
+  if(!original||STANDARD_LINE.test(original))return original;
+  const segments=[];
+  const limits=[];
+  const sentenceSplit=/(?<=[.!?])\s+(?=(?:[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ]|[>]|(?:\[(?:barra|contador|marca|sequencia):)))/u;
+  const capitalize=t=>String(t||'').trim().replace(/^([a-zà-ÿ])/u,ch=>ch.toLocaleUpperCase('pt-BR'));
+  const push=(type,text)=>{
+   const value=capitalize(text);
+   if(value)segments.push(type+' — '+value);
+  };
+  function process(text,depth=0,first=false){
+   let s=String(text||'').trim();
+   if(!s||depth>7)return;
+   // Linhas de dados, encantamentos e opções não são reescritas.
+   if(/^(?:>|[-*]\s|\[(?:barra|contador|marca|sequencia):|[IVX]{1,4}\s+[—-])/i.test(s)){
+    segments.push(s);return;
+   }
+   const existing=s.match(/^(?:\*\*)?(Amplificação|Encantamento|Comando de liberação|Arte escolhida)(?:\*\*)?\s*:\s*(.+)$/i);
+   if(existing){
+    push(existing[1]==='Amplificação'?'Amplificação':'Observação',existing[2]);return;
+   }
+   const limit=s.match(/^(Uma vez por (?:rodada|cena|sessão|turno|fase|Hollowficação)|Uma vez a cada [^,]{2,35})\s*,\s*(.+)$/i);
+   if(limit){
+    limits.push(capitalize(limit[1])+'.');
+    process(limit[2],depth+1,first);return;
+   }
+   const requires=s.match(/^((?:Com\s+[^,]{2,110}|Somente se\s+[^,]{2,110}|Durante a Hollowficação|Durante o Descontrole))\s*,\s*(.+)$/i);
+   if(requires&&/^(?:com|somente se|durante)/i.test(requires[1])){
+    push('Requisito',requires[1]+'.');
+    process(requires[2],depth+1,first);return;
+   }
+   if(/^(?:Caso|Se|Em caso)\b/i.test(s)){push('Condição',s);return}
+   if(/^(?:Após|Depois|Ao término|Ao fim|Ao final|Quando terminar)\b/i.test(s)){push('Consequência',s);return}
+   if(/^(?:Limite de|No máximo|Máximo de|Não gaste mais)\b/i.test(s)){push('Limite',s);return}
+   if(/^(?:Não pode|Não causa|Bloquead[oa]|Recurso narrativo indisponível|Somente o mestre|Não impede|Não ignora)\b/i.test(s)){push('Restrição',s);return}
+   if(/^(?:Esse dado|Esses valores|As relações|A sequência|Os benefícios|Isso não)\b/i.test(s)){push('Observação',s);return}
+   if(/^(?:Possui\s+\[(?:barra|contador|marca|sequencia):|Cada adversário pode acumular)\b/i.test(s)){
+    push('Recurso',s);return;
+   }
+   if(/^(?:Ao|Quando|Sempre que|No início|No começo|Na abertura)\b/i.test(s)){
+    const comma=s.indexOf(',');
+    if(comma>8&&comma<210&&s.length-comma>10){
+     push('Gatilho',s.slice(0,comma).replace(/[.,;:]$/,'')+'.');
+     process(s.slice(comma+1),depth+1,false);
+    }else push('Gatilho',s);
+    return;
+   }
+   if(/^(?:Utilize sua (?:ação principal|reação)|Na fase de (?:Preparação|Distância|Duelo|Desfecho)|Gaste \d+|Apague os espaços)\b/i.test(s)){
+    push(/^Gaste|^Apague/i.test(s)?'Consumo':'Ativação',s);return;
+   }
+   if(/^(?:Enquanto|Durante esse período|Durante a manifestação)\b/i.test(s)){push('Efeito',s);return}
+   push('Efeito',s);
+  }
+  const paragraphs=original.split(/\n\s*\n/);
+  for(const [i,paragraph] of paragraphs.entries()){
+   const lines=paragraph.split('\n').map(l=>l.trim()).filter(Boolean);
+   if(i&&segments.length&&segments[segments.length-1]!=='')segments.push('');
+   for(const line of lines){
+    const parts=line.split(sentenceSplit);
+    for(const part of parts)process(part,0,i===0);
+   }
+  }
+  if(limits.length){
+   if(segments.length&&segments[segments.length-1]!=='')segments.push('');
+   for(const l of limits)push('Limite',l);
+  }
+  return segments.join('\n').replace(/\n{3,}/g,'\n\n').trim()||original;
+ }
+
  function model(entry,{warehouse=false}={}){
   const body=String((warehouse?entry?.content:entry?.description)||'');
   const pool=poolOf(body);
@@ -65,7 +139,7 @@
    usage, pool,
    dice:pool?(pool.kind==='dano'?'RA + ':'')+
     (pool.count===1?'1':pool.count)+'d'+pool.faces:'',
-   description:compact(body,usage,pool)
+   description:standardize(compact(body,usage,pool))
   };
  }
  function meta(m,{warehouse=false}={}){
@@ -82,5 +156,5 @@
    '<span aria-hidden="true">⚄</span><strong>'+escape(m.dice)+'</strong>'+
    '<small>'+label+(m.pool.kind==='dano'?' adicional':'')+'</small></div>';
  }
- global.ARQUIVO_CBB_PRESENTATION=Object.freeze({model,meta,dice,compact,phaseOf});
+ global.ARQUIVO_CBB_PRESENTATION=Object.freeze({model,meta,dice,compact,standardize,phaseOf});
 })(typeof window!=='undefined'?window:globalThis);
