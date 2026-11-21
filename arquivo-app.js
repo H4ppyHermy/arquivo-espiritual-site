@@ -2337,7 +2337,7 @@ function updateDraft(target){
    return;
   }
   if(key==='abilityPhase'){
-   if(!['','preparacao','distancia','duelo'].includes(target.value))return;
+   if(!['','preparacao','distancia','duelo','desfecho'].includes(target.value))return;
    ab.costConfig={...(ab.costConfig&&typeof ab.costConfig==='object'?ab.costConfig:{}),phase:target.value};
    return;
   }
