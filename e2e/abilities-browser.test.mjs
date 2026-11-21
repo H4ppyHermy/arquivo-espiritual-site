@@ -125,7 +125,8 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
    extraCount:card?.querySelectorAll('.ae-cbb-extra-row')?.length,
    expanded:details?.open,collapsedBefore:before,
    titles:[...(card?.querySelectorAll('.ae-cbb-extra-title')||[])].map(e=>e.textContent),
-   firstValue:card?.querySelector('.ae-cbb-extra-amount')?.textContent,
+   firstLabel:card?.querySelector('.ae-cbb-extra-row')?.getAttribute('aria-label'),
+   visibleQuantityLabels:card?.querySelectorAll('.ae-cbb-extra-amount').length,
    resourceSymbols:card?.querySelectorAll('.ae-cbb-resource-glyph .ae-inline-resource-segment').length,
    extraSymbols:[...(card?.querySelectorAll('.ae-cbb-extra-row')||[])].map(row=>({
     total:row.querySelectorAll('.ae-inline-resource-segment').length,
@@ -135,12 +136,13 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
  });
  assert.equal(resource.found,true,'Têmpera deve aparecer na mesma ficha');
  assert.match(resource.resource,/Têmpera/);
- assert.match(resource.resource,/3 marcas/);
+ assert.doesNotMatch(resource.resource,/3 marcas/,'a quantidade não precisa ser repetida em texto');
  assert.equal(resource.extraCount,3);
  assert.equal(resource.collapsedBefore,false,'Extras começa recolhida para reduzir confusão');
  assert.equal(resource.expanded,true,'Extras deve abrir ao clicar');
  assert.equal(resource.summaryVisible,true);
- assert.equal(resource.firstValue,'1 MARCA');
+ assert.equal(resource.firstLabel,'1 MARCA','a quantidade continua acessível por descrição');
+ assert.equal(resource.visibleQuantityLabels,0,'os rótulos numéricos não devem duplicar os símbolos');
  assert.equal(resource.resourceSymbols,3,'as três barras originais continuam visíveis no cabeçalho');
  assert.deepEqual(resource.extraSymbols,[{total:3,active:1},{total:3,active:2},{total:3,active:3}],
   'cada Extra mantém o número correto de segmentos visuais');
@@ -159,7 +161,7 @@ test('ficha, inventário e armazém apresentam efeitos e metadados no mesmo padr
    firstExtraSymbols:expanded?.querySelectorAll('.ae-cbb-extra-row:first-child .ae-inline-resource-segment').length};
  });
  assert.equal(classEntry.opened,true);
- assert.match(classEntry.resource,/3 marcas/);
+ assert.doesNotMatch(classEntry.resource,/3 marcas/);
  assert.equal(classEntry.extras,3);
  assert.equal(classEntry.symbols,3);
  assert.equal(classEntry.firstExtraSymbols,3);
