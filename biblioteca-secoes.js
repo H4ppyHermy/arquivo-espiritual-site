@@ -162,7 +162,7 @@
   const presenter=window.ARQUIVO_CBB_PRESENTATION;
   const display=presenter?.model?.(post,{warehouse:true});
   const source=text(post.content||'Sem descrição cadastrada.');
-  const effect=display?.description||source;
+  const effect=display?display.description:source;
   const fallbackCost=text(post.cost||'').trim()||'NÃO INFORMADO';
   const category=text(post.category)==='Técnicas'?'TÉCNICA':'HABILIDADE';
   return '<article class="ae-warehouse-post ae-wh-ability-post" id="warehousePost-'+esc(id)+'"'+dragPostAttrs(post)+'>'+
@@ -174,7 +174,7 @@
      '<span class="ae-ability-phase">Fase: Conforme efeito</span></div>')+
     (display?presenter.dice(display):'')+
     (display?presenter.resourceInfo(display):'')+
-    '<div class="book-text ae-library-reading ae-wh-ability-description">'+api.formatBook(effect,title)+'</div>'+
+    '<div class="book-text ae-library-reading ae-wh-ability-description">'+(effect?api.formatBook(effect,title):'')+'</div>'+
     (display?presenter.extrasPanel(display,body=>api.formatBook(body,title)):'')+
    '</div>'+
    (tags.length?'<div class="ae-warehouse-tags ae-wh-ability-tags" aria-label="Tags">'+tags.map(tag=>
