@@ -1,5 +1,7 @@
 name: Teste Mesa interativa no navegador
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -18,6 +20,8 @@ on:
       - 'habilidades-armazem.js'
       - 'cbb-presentation.js'
       - 'e2e/abilities-browser.test.mjs'
+      - 'e2e/biblioteca-browser.test.mjs'
+      - 'biblioteca-redesign.css'
       - 'cbb-engine.js'
       - 'cbb-interativo.js'
       - 'cbb-interativo.css'
@@ -38,4 +42,4 @@ jobs:
       - name: Testar interface com Chrome
         env:
           CHROME_PATH: /usr/bin/google-chrome
-        run: node --test --test-concurrency=1 e2e/mesa-browser.test.mjs e2e/performance-browser.test.mjs e2e/abilities-browser.test.mjs
+        run: node --test --test-concurrency=1 e2e/mesa-browser.test.mjs e2e/performance-browser.test.mjs e2e/abilities-browser.test.mjs e2e/biblioteca-browser.test.mjs

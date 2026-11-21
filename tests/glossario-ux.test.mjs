@@ -24,19 +24,25 @@ function setup(){
   grimorioCatalogEntries:()=>items,
   glossaryKey:fold,
   GRIMORIO_CATEGORIES:['Recursos','Testes','Combate','Condições','Recuperação','Outros'],
-  grimorioQuery:'',grimorioCategory:'Todos',grimorioLetter:'Todas',grimorioFavoritesOnly:false,
-  esc,master:()=>false,btn:()=>'',grimorioRefreshResults:()=>{}
+  grimorioQuery:'',grimorioCategory:'Todos',grimorioLetter:'Todas',grimorioFavoritesOnly:false,grimorioSelectedTerm:'',
+  esc,master:()=>false,btn:()=>'',el:()=>null,requestAnimationFrame:fn=>fn(),grimorioRefreshResults:()=>{}
  });
  vm.runInContext(snippet,ctx);
  const run=code=>vm.runInContext(code,ctx);
  return {run,storage,items};
 }
-test('Glossário é apresentado antes do conteúdo dos capítulos e carrega estilo próprio',()=>{
+test('Glossário abre como consulta principal, sem busca de capítulos duplicada',()=>{
  assert.ok(start>0&&end>start);
- assert.ok(app.indexOf('id="libraryGrimorioArea"')<app.indexOf('id="ruleResults"'));
+ assert.match(app,/libraryMode='glossary'/);
+ assert.match(app,/if\(libraryMode==='glossary'\)return headline/);
+ assert.match(app,/data-action="libraryMode:chapters"/);
+ assert.match(app,/data-action="libraryMode:glossary"/);
+ const glossaryBranch=app.slice(app.indexOf("if(libraryMode==='glossary')return headline"),app.indexOf("return headline(",app.indexOf("if(libraryMode==='glossary')return headline")+38));
+ assert.doesNotMatch(glossaryBranch,/id="ruleSearch"|id="ruleResults"/);
  const html=read('index.html');
  assert.match(html,/glossario-ux\.css\?v=1/);
- assert.ok(html.indexOf('biblioteca-grimorio.css')<html.indexOf('glossario-ux.css'));
+ assert.match(html,/biblioteca-redesign\.css\?v=1/);
+ assert.ok(html.indexOf('glossario-ux.css')<html.indexOf('biblioteca-redesign.css'));
 });
 test('categorias e índice A-Z refinam os resultados sem alterar os verbetes',()=>{
  const {run,items}=setup(),before=JSON.stringify(items);
@@ -80,5 +86,35 @@ test('nome e prévia de verbete são escapados em ambos os modos',()=>{
  assert.doesNotMatch(html,/<script>/);
  assert.match(html,/Teste de &lt;script&gt;/);
  assert.match(html,/data-action="grimorioFavorite:/);
- assert.match(html,/data-action="explainRule:/);
+ assert.match(html,/data-action="grimorioSelect:/);
+});
+
+test('Consulta rápida mostra resposta inteira na mesma página e permite abrir o capítulo',()=>{
+ const {run}=setup();
+ const markup=run('grimorioPanel()');
+ assert.match(markup,/id="grimorioSearch"/);
+ assert.match(markup,/id="grimorioDetail"/);
+ assert.match(markup,/class="ae-glossary-answer-layout"/);
+ assert.match(markup,/<details class="ae-glossary-advanced">/);
+ assert.ok(markup.indexOf('id="grimorioResults"')>markup.indexOf('id="grimorioSearch"'));
+ const detail=run('grimorioDetailMarkup()');
+ assert.match(detail,/Alma é o recurso utilizado/);
+ assert.match(detail,/DEFINIÇÃO/);
+});
+test('Clique em outro termo mostra a definição sem modal e busca privilegia título',()=>{
+ const {run}=setup();
+ run('selectGrimorioEntry("Rea%C3%A7%C3%A3o")');
+ const detail=run('grimorioDetailMarkup()');
+ assert.match(detail,/Uma reação se utiliza/);
+ assert.doesNotMatch(detail,/Alma é o recurso/);
+ run('grimorioQuery="dano"');
+ const order=run('grimorioFilteredEntries().map(item=>item.name)');
+ assert.equal(order[0],'Dano-base');
+});
+test('Conteúdo do glossário é escapado na leitura detalhada',()=>{
+ const {run}=setup();
+ run('selectGrimorioEntry("Teste%20de%20%3Cscript%3E")');
+ const detail=run('grimorioDetailMarkup()');
+ assert.match(detail,/Teste de &lt;script&gt;/);
+ assert.doesNotMatch(detail,/<script>/);
 });
