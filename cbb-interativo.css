@@ -387,3 +387,20 @@ html.reduce-motion #page .ae-cbb-result-shell{
  #page .ae-cbb-mesa .ae-cbb-modes>button>strong{font-size:11px}
  #page .ae-cbb-phase-pick{width:100%;justify-content:space-between}
 }
+
+/* Ação Completa: opção de combate distinta, sem abrir uma nova barra. */
+#page .ae-cbb-mesa .ae-cbb-complete{
+ border:1px solid var(--theme-accent);
+ background:color-mix(in srgb,var(--theme-accent) 16%,var(--theme-panel));
+ color:var(--theme-text);
+ font-weight:900;min-height:36px
+}
+#page .ae-cbb-mesa .ae-cbb-complete:hover:not(:disabled){
+ background:color-mix(in srgb,var(--theme-accent) 28%,var(--theme-panel))
+}
+#page .ae-cbb-mesa .ae-cbb-complete:disabled{opacity:.5;cursor:not-allowed}
+#page .ae-cbb-complete-hint{
+ border-left:3px solid var(--theme-accent);
+ padding:8px 10px;
+ background:color-mix(in srgb,var(--theme-accent) 10%,var(--theme-panel))
+}
