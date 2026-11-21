@@ -1471,7 +1471,7 @@ function inventoryItemRow(s,it,i,can){
    '<div class="ae-item-meta"><span class="ae-item-type">'+esc(type)+'</span>'+count+
     (status?'<span class="ae-item-state'+(isActive?' is-active':'')+'">'+status+'</span>':'')+'</div>'+
    effect+
-   (it.description?'<div class="inventory-item-description sheet-rich">'+sheetRich(String(it.description))+'</div>':'')+
+   (it.description?'<div class="inventory-item-description sheet-rich">'+sheetRich(window.ARQUIVO_CBB_PRESENTATION?.standardizeItem?.(it.description)||String(it.description))+'</div>':'')+
   '</div>'+
   (can?'<div class="actions ae-item-actions">'+
    (tracked?btn(equipped?'GUARDAR':'EQUIPAR','inventoryToggleEquipped:'+i,'small'):'')+
