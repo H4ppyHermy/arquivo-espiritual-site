@@ -1199,45 +1199,10 @@ function libraryTermTone(name){
 function formatBook(source,chapterTitle='',options={}){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
  const searchText=options.highlight===false?'':query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
- const sharedIndex=window.ARQUIVO_BIBLIOTECA_LEITURA?.glossaryIndex?.(libraryGlossary);
- const names=sharedIndex?.names||[...libraryGlossary.keys()].filter(Boolean).sort((a,b)=>b.length-a.length);
- const namesByInitial=sharedIndex?.byInitial||new Map();
- if(!sharedIndex)for(const name of names){
-  const initial=name[0];
-  if(!namesByInitial.has(initial))namesByInitial.set(initial,[]);
-  namesByInitial.get(initial).push(name);
- }
- const letterOrNumber=/[\p{L}\p{N}]/u;
- // Correspondência literal: jamais normalizar acentos, caixa ou grafia na leitura.
- function insertGlossaryReferences(source,markers){
-  const original=String(source||'');
-  if(!names.length)return original;
-  let output='',position=0;
-  while(position<original.length){
-   let title=null;
-   if(position===0||!letterOrNumber.test(original[position-1])){
-    for(const candidate of namesByInitial.get(original[position])||[]){
-     if(!original.startsWith(candidate,position))continue;
-     const next=original[position+candidate.length]||'';
-     if(!next||!letterOrNumber.test(next)){title=candidate;break}
-    }
-   }
-   if(title){
-    const id=markers.push({name:title,display:title})-1;
-    output+='@@AEGLOSS'+id+'@@';
-    position+=title.length;
-   }else{
-    output+=original[position];
-    position++;
-   }
-  }
-  return output;
- }
  function inline(text){
   const markers=[];
   let raw=window.ARQUIVO_BARRAS_INLINE?.mark(text,markers)??String(text||'');
-  raw=insertGlossaryReferences(raw,markers);
-  raw=markInlineDice(raw,markers,'@@AEGLOSS');
+  raw=markInlineDice(raw,markers,'@@AEDIE');
   let t=esc(raw)
     .replace(/\[cor=(#[0-9a-f]{6})\]([\s\S]*?)\[\/cor\]/gi,(_,color,content)=>'<span class="ae-manual-color" style="color:'+color+'">'+content+'</span>')
     .replace(/\\([*_~`])/g,'$1')
@@ -1247,12 +1212,12 @@ function formatBook(source,chapterTitle='',options={}){
     .replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>')
     .replace(/`([^`]+)`/g,'<code>$1</code>');
   if(search)t=t.split(/(<[^>]*>)/g).map(segment=>segment.startsWith('<')?segment:segment.replace(search,match=>'<mark>'+match+'</mark>')).join('');
-  return t.replace(/@@(?:AEGLOSS|AEBAR)(\d+)@@/g,(_,index)=>{
+  return t.replace(/@@(?:AEDIE|AEBAR)(\d+)@@/g,(_,index)=>{
    const marker=markers[Number(index)];
    if(!marker)return '';
    if(marker.inlineBar)return window.ARQUIVO_BARRAS_INLINE?.render(marker)||'';
    if(marker.sides)return dieShape(marker.sides,'ae-inline-die',marker.count);
-   return '<span class="ae-glossary-link" role="link" tabindex="0" data-action="explainRule:'+encodeURIComponent(marker.name)+'" aria-label="Consultar '+esc(marker.name)+' no glossário">'+esc(marker.display)+'</span>';
+   return '';
   });
  }
  const reader=window.ARQUIVO_BIBLIOTECA_LEITURA;
