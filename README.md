@@ -53,6 +53,14 @@ Na Biblioteca → Armazém, **somente o mestre** pode ativar **Selecionar / Gere
 
 No glossário (Grimório) do Livro 1 ou 2, a entrada fica acima dos capítulos. Além de buscar por nome e texto, há categorias com contagem, índice por letra, atalhos de busca e cartões com prévia da definição e referência ao capítulo. O botão estrela salva favoritos no `localStorage` do navegador (`ae_grimorio_favoritos_v1`); favoritos **não** mudam os dados globais. Edição de verbetes, conexões e configuração do mestre permanecem nos controles existentes.
 
+## Consulta Rápida e Guia de Combate
+
+A Biblioteca possui três modos: **Consulta Rápida**, **Ler capítulos** e **Guia de Combate**. Após o reset do acervo de consultas, o Guia de Combate é a tela inicial para não apresentar uma busca vazia aos jogadores.
+
+A **Consulta Rápida agora é 100% manual**: não analisa os livros, não gera verbetes a partir de linhas de texto e não converte palavras dos capítulos automaticamente em links. O banco de dados utiliza `site.grimorio.schemaVersion=2` e `glossary:[]` no marco inicial, descartando os 72 verbetes da versão antiga. Qualquer documento local da versão anterior é interpretado como acervo vazio, de modo que o conteúdo legado não seja ressuscitado. Somente o mestre cria, edita, oculta ou elimina verbetes. O gerenciamento também permite **Apagar todos os verbetes** mediante confirmação. Os favoritos antigos foram descontinuados e os novos são locais ao navegador.
+
+O **Guia de Combate** é um tutorial editorial separado das regras, com oito aulas sobre objetivos, fases, ataques, defesa, Ação Completa, Exposições, apoio entre aliados e uma rodada exemplificada. Ele usa as regras existentes como referência sem alterar o motor do sistema. Cada aula aponta ao capítulo oficial correspondente. Somente o mestre pode editar seus textos; as alterações são salvas em `site.combatGuide.overrides`, sem sobrescrever os capítulos ou as mecânicas. Arquivos: `guia-combate.js`, `guia-combate.css` e `tests/guia-combate.test.mjs`.
+
 ## Fluxo seguro de alterações
 
 1. Faça uma branch de desenvolvimento, modifique somente os módulos relevantes e abra um pull request. Não altere manualmente dados reais de personagens em migrações.
