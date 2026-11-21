@@ -76,7 +76,12 @@
    tip:'Se o ataque do aliado é a jogada-chave da rodada, talvez seja melhor ajudá-lo.',
    risk:'Auxílio consome a sua ação principal, não é uma ação gratuita.',
    topic:'testes',keywords:'auxiliar ajudar aliado equipe pericia aumento passo'},
-  {id:'exemplo',group:'Equipe',tag:'15 · NA PRÁTICA',title:'O que fazer numa rodada difícil?',lead:'Escolha uma prioridade e deixe cada aliado cumprir sua parte.',
+  {id:'critico',group:'Agir',tag:'15 · DADOS',title:'Deu crítico. O que acontece?',lead:'Crítico máximo: dois dados iguais em 6 ou mais. Duplique só esses resultados.',
+   text:'- Crítico máximo garante sucesso, salvo impossibilidade ou regra específica.\\n- Num Teste-Clash, um crítico máximo supera resultados comuns.\\n- Falha crítica: dois ou mais dados com 1; RT, RA e RB viram 1.\\n- Se ambos tiverem crítico máximo, compare o valor usado no Clash.',
+   tip:'Rolou 6 e 6? Os dois viram 12. Rolou 1 e 1? Todos os resultados do teste viram 1.',
+   risk:'Se vários críticos ocorrerem, prevalece o dos dados maiores; em igualdade, o resultado repetido mais alto.',
+   topic:'testes',keywords:'critico critica crítico máximo falha sucesso dados 6 1 clash'},
+  {id:'exemplo',group:'Equipe',tag:'16 · NA PRÁTICA',title:'O que fazer numa rodada difícil?',lead:'Escolha uma prioridade e deixe cada aliado cumprir sua parte.',
    text:'- O suporte usa sua principal na Preparação para proteger alguém.\n- Quem ataca de longe usa a sua principal na Distância.\n- Quem luta perto usa a sua principal no Duelo.\n- Cada um decide quando vale gastar a reação para usar RT na defesa.',
    tip:'Antes de jogar: “Qual é meu alvo? Qual fase? Quanto custa? E minha reação?”',
    risk:'Essas ações são de personagens diferentes. Não são quatro ações normais de uma pessoa.',
@@ -137,7 +142,7 @@
    '<div class="ae-field-banner"><div class="ae-field-banner-copy"><span class="ae-field-stamp">CBB <b>/</b> CONSULTA DE MESA</span>'+
     '<h2>COLA DE<br>COMBATE<span class="ae-field-period">.</span></h2>'+
     '<p>Travou numa regra? Ache a resposta e volte pra luta.</p></div>'+
-    '<div class="ae-field-badge" aria-hidden="true"><span>15</span><small>RESPOSTAS<br>DE BOLSO</small></div></div>'+
+    '<div class="ae-field-badge" aria-hidden="true"><span>16</span><small>RESPOSTAS<br>DE BOLSO</small></div></div>'+
    '<div class="ae-field-toolbar"><div class="ae-field-search"><label for="aeGuideSearch">QUAL É A DÚVIDA?</label>'+
     '<input id="aeGuideSearch" type="search" autocomplete="off" spellcheck="false" value="'+safe(term)+'" placeholder="Reação, dano, Ação Completa, Pressionado…" aria-controls="aeGuideResults">'+
     '<span class="ae-field-search-symbol" aria-hidden="true">/</span></div>'+
