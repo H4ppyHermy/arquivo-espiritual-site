@@ -4,6 +4,11 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const file=name=>fs.readFileSync(new URL('../'+name,import.meta.url),'utf8');
+const editorialWindow={};
+vm.runInNewContext(file('cbb-engine.js'),{window:editorialWindow});
+vm.runInNewContext(file('cbb-presentation.js'),{window:editorialWindow});
+const canonical=entry=>editorialWindow.ARQUIVO_CBB_PRESENTATION.standardize(entry);
+
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function setup(master=true){
@@ -431,7 +436,7 @@ test('habilidades e técnicas oficiais constam do Armazém sem imagens',()=>{
   assert.ok(post,title);
   assert.equal(post.category,category);
   assert.equal(post.cost,cost);
-  assert.equal(post.content,description);
+  assert.equal(post.content,canonical(description));
   assert.equal(post.summary,'');
   assert.equal(post.image,'');
   assert.equal(post.published,true);
@@ -509,7 +514,7 @@ test('novas técnicas de Duelo e habilidades preservam integralmente o texto e o
   const post=posts.find(p=>p.id===id);
   assert.ok(post,id);assert.ok(!seen.has(post.id));seen.add(post.id);
   assert.equal(post.title,title);assert.equal(post.category,category);
-  assert.equal(post.cost,cost);assert.equal(post.content,description);
+  assert.equal(post.cost,cost);assert.equal(post.content,canonical(description));
   assert.equal(post.summary,'');assert.equal(post.image,'');
   assert.equal(post.published,true);
   assert.deepEqual(Array.from(post.grants.race),[]);
@@ -519,7 +524,7 @@ test('novas técnicas de Duelo e habilidades preservam integralmente o texto e o
   assert.ok(markup.includes('id="warehousePost-'+id+'"'),id);
  }
  assert.match(posts.find(x=>x.id==='tecnica-soco-soco-bate-bate').content,/\n\n> Dano: \+1d8/);
- assert.match(posts.find(x=>x.id==='habilidade-ressonancia-material').content,/\n\n> Dano: \+1d6\n\nCaso/);
+ assert.match(posts.find(x=>x.id==='habilidade-ressonancia-material').content,/\n\n> Dano: \+1d6\n\nCondição — Caso/);
 });
 
 
