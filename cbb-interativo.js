@@ -166,13 +166,15 @@
  function bossPanel(s,ctx){
   const b=s.boss;if(!b||!ctx.master)return '';
   const party=b.party||{},current=Number(party.current??party.base??7),scenario=b.scenario||{};
+  const duel=b.encounterType==='duel'||(Number(party.min)===1&&Number(party.max)===1);
   const extra=Number(b.tempo?.extraMain||0);
   return '<section class="ae-cbb-boss" aria-label="Confronto de chefe">'+
-   '<div class="ae-cbb-boss-head"><span class="ae-cbb-overline">ANDAR '+enc(b.floor||'?')+' · CONFRONTO</span>'+
+   '<div class="ae-cbb-boss-head"><span class="ae-cbb-overline">'+(duel?'DUELO 1V1':'ANDAR '+enc(b.floor||'?')+' · CONFRONTO')+'</span>'+
     '<strong>'+enc(b.title||s.name)+'</strong>'+
     '<span class="ae-cbb-mini">'+(extra?'+'+extra+' ação principal/rodada':'Ação principal padrão')+'</span></div>'+
-   '<div class="ae-cbb-boss-bar"><div><span class="ae-cbb-micro">JOGADORES</span><div class="ae-cbb-party">'+
-     [6,7,8].map(n=>'<button type="button" data-cbb-command="party" data-cbb-party="'+n+'" class="'+(n===current?'is-active':'')+'" aria-pressed="'+(n===current)+'"'+(!on()?' disabled':'')+'>'+n+'</button>').join('')+
+   '<div class="ae-cbb-boss-bar"><div><span class="ae-cbb-micro">'+(duel?'FORMATO':'JOGADORES')+'</span><div class="ae-cbb-party">'+
+     (duel?'<span class="ae-cbb-duel-indicator" aria-label="Um contra um">1 × 1</span>':
+      [6,7,8].map(n=>'<button type="button" data-cbb-command="party" data-cbb-party="'+n+'" class="'+(n===current?'is-active':'')+'" aria-pressed="'+(n===current)+'"'+(!on()?' disabled':'')+'>'+n+'</button>').join(''))+
     '</div></div><div class="ae-cbb-boss-status"><span class="ae-cbb-micro">VIDA DO CHEFE</span><strong>'+enc(s.resources?.vida?.current)+' / '+enc(s.resources?.vida?.max)+'</strong></div></div>'+
    (scenario.name?'<details class="ae-cbb-boss-scenario"><summary>'+enc(scenario.name)+
     (scenario.trigger?' <small>· '+enc(scenario.trigger)+'</small>':'')+'</summary><p>'+enc(scenario.description||'')+'</p></details>':'')+
