@@ -14,7 +14,11 @@
  const number=(root,name,otherwise=0)=>Number(read(root,name,otherwise));
  const opts=(entries,value)=>entries.map(([id,label])=>'<option value="'+enc(id)+'"'+(String(id)===String(value)?' selected':'')+'>'+enc(label)+'</option>').join('');
  const on=()=>!!global.ARQUIVO_SYNC?.state?.enabled&&!!global.ARQUIVO_SYNC?.state?.identity?.id;
- const stateText=s=>statusBySheet.get(s.id)||'Pronto para a próxima ação.';
+ const stateText=s=>statusBySheet.get(s.id)||'';
+ const mainMode=mode=>['dano','resistencia','recuperacao'].includes(mode)?'dados':['turno','recursos'].includes(mode)?'personagem':'teste';
+ const liveCombat=()=>api.db?.site?.liveCombat||null;
+ const sharedPhase=()=>liveCombat()?.enabled===true;
+ const sessionPhase=s=>sharedPhase()?(liveCombat().phase||s.combat?.phase||'preparacao'):(s.combat?.phase||'preparacao');
  const safeSteps=value=>Math.max(-5,Math.min(5,Number(value)||0));
  const testMemory=s=>{
   const m=testBySheet.get(s.id)||{};
@@ -175,7 +179,9 @@
  }
  function pill(label,value){return '<span class="ae-cbb-pill">'+enc(label)+' <b>'+enc(value)+'</b></span>'}
  function render(s,ctx={}){
-  const c=s.combat||{},ex=s.exposures||{},phase=c.phase||'preparacao',res=s.resources||{},selectedMode=modeBySheet.get(s.id)||'teste';
+  const c=s.combat||{},ex=s.exposures||{},phase=sessionPhase(s),res=s.resources||{},selectedMode=modeBySheet.get(s.id)||'teste';
+  const linked=sharedPhase(),master=!!ctx.master;
+  const phaseLocked=linked&&!master;
   const disabled=!ctx.canEdit||!on()||s.automationEnabled===false;
   const test=testMemory(s),conditions=engine.normalizedConditions(s);
   const stunned=conditions.has('atordoado');
@@ -189,22 +195,38 @@
   return '<section class="ae-cbb-mesa" aria-label="Mesa universal CBB" data-cbb-sheet="'+enc(s.id)+'">'+
    '<div class="ae-ficha-section-heading"><div class="ae-ficha-section-title"><h2>Mesa</h2></div><span class="ae-cbb-mode">CBB</span></div>'+
    bossPanel(s,ctx)+
-   '<div class="ae-cbb-turnbar">'+pill('CENA',c.scene||1)+pill('RODADA',c.round||1)+pill('FASE',phaseName[phase]||phase)+
-    '<button type="button" class="btn small" data-cbb-command="'+(phase==='desfecho'?'round':'phase')+'"'+lock+'>'+(phase==='desfecho'?'PRÓXIMA RODADA':'AVANÇAR FASE')+'</button></div>'+
-   '<nav class="ae-cbb-modes" role="group" aria-label="Escolher modo da mesa">'+
-    [['teste','TESTE'],['dano','DANO'],['resistencia','DEFESA'],['recuperacao','CURA'],['turno','TURNO'],['recursos','RECURSOS']].map(([mode,label])=>
-     '<button type="button" data-cbb-mode="'+mode+'" aria-pressed="'+(selectedMode===mode)+'" class="'+(selectedMode===mode?'is-active':'')+'">'+label+'</button>').join('')+'</nav>'+
+   '<div class="ae-cbb-turnbar" aria-label="Andamento do combate">'+
+     '<div class="ae-cbb-phase-summary">'+pill('CENA',linked?liveCombat().scene||c.scene||1:c.scene||1)+
+      pill('RODADA',linked?liveCombat().round||c.round||1:c.round||1)+pill('FASE',phaseName[phase]||phase)+'</div>'+
+     (linked?
+      '<span class="ae-cbb-synced" role="status">FASE CONTROLADA PELO MESTRE</span>':
+      '')+
+     (phaseLocked?'':
+      '<button type="button" class="btn small ae-cbb-phase-next" data-cbb-command="'+
+       (linked?'liveAdvance':phase==='desfecho'?'round':'phase')+'"'+lock+'>'+
+       (phase==='desfecho'?'PRÓXIMA RODADA':'AVANÇAR FASE')+'</button>')+
+     (master&&on()?'<button type="button" class="ae-cbb-sync-toggle" data-cbb-command="'+
+       (linked?'liveDisable':'liveEnable')+'" aria-pressed="'+linked+'">'+
+       (linked?'DESVINCULAR SESSÃO':'SINCRONIZAR COM SESSÃO')+'</button>':'')+
+    '</div>'+
+   '<nav class="ae-cbb-modes" role="group" aria-label="O que deseja fazer?">'+
+    [['teste','1 · TESTE DE PERÍCIA','Rolar atributo + perícia'],['dano','2 · DADOS','Dano, defesa e cura'],['turno','3 · PERSONAGEM','Ações, condições e recursos']].map(([mode,label,description])=>
+     '<button type="button" data-cbb-mode="'+mode+'" aria-pressed="'+(mainMode(selectedMode)===mainMode(mode))+'" class="'+
+      (mainMode(selectedMode)===mainMode(mode)?'is-active':'')+'"><strong>'+label+'</strong><small>'+description+'</small></button>').join('')+'</nav>'+
    (!ctx.canEdit?'<p class="ae-cbb-hint">Somente leitura: esta ficha não está vinculada à sua chave.</p>':!on()?'<p class="ae-cbb-hint">Conecte uma chave de jogador ou mestre para rolar e alterar a ficha.</p>':s.automationEnabled===false?'<p class="ae-cbb-hint">Automação desativada. Reative no Resumo para usar esta Mesa.</p>':'')+
-   '<div class="ae-cbb-status" role="status" aria-live="polite">'+enc(stateText(s))+'</div>'+
-   '<div class="ae-cbb-result" role="status" aria-live="polite">'+(result?resultMarkup(result):'<p>Escolha uma ação para começar.</p>')+'</div>'+
+   '<div class="ae-cbb-feedback">'+
+    '<div class="ae-cbb-status" role="status" aria-live="polite">'+enc(stateText(s))+'</div>'+
+    '<div class="ae-cbb-result" role="status" aria-live="polite">'+(result?resultMarkup(result):'')+'</div></div>'+
    '<div class="ae-cbb-grid">'+
     '<section class="ae-cbb-panel" data-cbb-panel="teste"'+(selectedMode==='teste'?'':' hidden')+'><h3>Teste de perícia</h3>'+
+     '<p class="ae-cbb-onboarding">Escolha a perícia e o tipo de teste. Condições da ficha são aplicadas automaticamente.</p>'+
      '<label>Perícia<select data-cbb-field="skill">'+opts(choices,test.skill)+'</select></label>'+
      '<div class="ae-cbb-pair"><label>Contexto<select data-cbb-field="context">'+opts([['geral','Geral'],['ataque','Ataque'],['defesa','Defesa']], test.context)+'</select></label>'+
       '<label>DT (opcional)<input type="number" data-cbb-field="dt" min="1" max="200" placeholder="DT"></label></div>'+
-     '<div class="ae-cbb-step-row">'+stepper('groupSteps','PASSOS DO GRUPO',test.groupSteps,disabled)+
-      stepper('skillSteps','PASSOS DA PERÍCIA',test.skillSteps,disabled)+'</div>'+
      '<div class="ae-cbb-live-preview" data-cbb-preview aria-live="polite">'+previewMarkup(s,test)+'</div>'+
+     '<details class="ae-cbb-advanced"><summary>AJUSTAR PASSOS DO TESTE</summary><div class="ae-cbb-advanced-content">'+
+      '<div class="ae-cbb-step-row">'+stepper('groupSteps','PASSOS DO GRUPO',test.groupSteps,disabled)+
+      stepper('skillSteps','PASSOS DA PERÍCIA',test.skillSteps,disabled)+'</div></div></details>'+
      '<div data-cbb-conditional-host>'+contextualFlags(s,{disabled})+'</div>'+
      '<details class="ae-cbb-advanced"><summary>DADOS EXTRAS E EFEITOS</summary><div class="ae-cbb-advanced-content">'+
      '<div class="ae-cbb-pair"><label>Dado extra<select data-cbb-field="bonusFaces">'+opts([['0','Nenhum'],...engine.DIE_FACES.map(n=>[n,'d'+n])],0)+'</select></label>'+
@@ -225,6 +247,7 @@
      ''+
     '</section>'+
     '<section class="ae-cbb-panel" data-cbb-panel="pool"'+(['dano','resistencia','recuperacao'].includes(selectedMode)?'':' hidden')+'><h3>Dados de combate</h3>'+
+     '<p class="ae-cbb-onboarding">Selecione Dano, Defesa ou Cura. Bônus de equipamento e condições entram na rolagem.</p>'+
      '<label>Tipo<select data-cbb-field="poolMode">'+opts([['dano','Dano-base'],['resistencia','Resistência'],['recuperacao','Recuperação']],(['dano','resistencia','recuperacao'].includes(selectedMode)?selectedMode:'dano'))+'</select></label>'+
      '<label>Habilidade com dados explícitos<select data-cbb-field="source">'+opts(abilityChoices,'')+'</select></label>'+
      '<div class="ae-cbb-pair"><label>Quantidade<input type="number" min="0" max="20" data-cbb-field="poolCount" value="1"></label>'+
@@ -240,14 +263,14 @@
      '<button class="btn main ae-cbb-action" type="button" data-cbb-command="pool"'+lock+'>ROLAR DADOS</button>'+
      ''+
     '</section>'+
-    '<section class="ae-cbb-panel" data-cbb-panel="turno"'+(selectedMode==='turno'?'':' hidden')+'><h3>Turno e exposições</h3>'+
-     '<div class="ae-cbb-pills">'+pill('CENA',c.scene||1)+pill('RODADA',c.round||1)+pill('FASE',phaseName[phase]||phase)+'</div>'+
+    '<section class="ae-cbb-panel" data-cbb-panel="turno"'+(selectedMode==='turno'?'':' hidden')+'><h3>Seu personagem</h3>'+
+     '<label class="ae-cbb-view-select">O que deseja gerenciar?<select data-cbb-field="manageMode">'+opts([['turno','Ações, reações e exposições'],['recursos','Vida, Estabilidade e Alma']],'turno')+'</select></label>'+
      '<div class="ae-cbb-pills">'+pill('PRINCIPAL',c.mainUsed?(c.cbb?.extraMain?'extra':'usada'):'livre')+pill('REAÇÃO',stunned?'bloqueada':c.reactionUsed?(c.cbb?.extraReaction?'extra':'usada'):'livre')+'</div>'+
      (c.cbb?.movementBlocked?'<p class="ae-cbb-hint">Exposição Rítmica: movimentação indisponível nesta rodada.</p>':'')+
      '<div class="ae-cbb-buttons">'+
        '<button class="btn small" type="button" data-cbb-command="main"'+(disabled||(c.mainUsed&&!c.cbb?.extraMain)?' disabled':'')+'>USAR PRINCIPAL</button>'+
        '<button class="btn small" type="button" data-cbb-command="reaction"'+(disabled||stunned||(c.reactionUsed&&!c.cbb?.extraReaction)?' disabled':'')+'>USAR REAÇÃO</button>'+
-       '<button class="btn small" type="button" data-cbb-command="'+(phase==='desfecho'?'round':'phase')+'"'+lock+'>'+(phase==='desfecho'?'PRÓXIMA RODADA':'PRÓXIMA FASE')+'</button>'+
+
        (ctx.master?'<button class="btn small quiet" type="button" data-cbb-command="scene"'+lock+'>NOVA CENA</button>':'')+
      '</div>'+
      '<h4>Pressão e exposições</h4><div class="ae-cbb-pills">'+
@@ -263,6 +286,7 @@
      ''+
     '</section>'+
     '<section class="ae-cbb-panel" data-cbb-panel="recursos"'+(selectedMode==='recursos'?'':' hidden')+'><h3>Vida, Estabilidade e Alma</h3>'+
+     '<label class="ae-cbb-view-select">O que deseja gerenciar?<select data-cbb-field="manageMode">'+opts([['turno','Ações, reações e exposições'],['recursos','Vida, Estabilidade e Alma']],'recursos')+'</select></label>'+
      '<div class="ae-cbb-pills">'+resourceChoices.map(([k,t])=>pill(t,String(res[k]?.current??0)+' / '+String(res[k]?.max??0))).join('')+'</div>'+
      '<label>Recurso<select data-cbb-field="adjustResource">'+opts(resourceChoices,'vida')+'</select></label>'+
      '<label>Variação (+ recuperação, − dano)<input data-cbb-field="adjustDelta" type="number" value="-1" min="-100000" max="100000"></label>'+
@@ -453,7 +477,7 @@
   const panelMode=['dano','resistencia','recuperacao'].includes(mode)?'pool':mode;
   for(const item of root.querySelectorAll('[data-cbb-panel]'))item.hidden=item.dataset.cbbPanel!==panelMode;
   for(const item of root.querySelectorAll('[data-cbb-mode]')){
-   const active=item.dataset.cbbMode===mode;
+   const active=mainMode(item.dataset.cbbMode)===mainMode(mode);
    item.classList.toggle('is-active',active);item.setAttribute('aria-pressed',String(active));
   }
   if(panelMode==='pool'){
@@ -466,6 +490,29 @@
    }
    refreshResistance(root,s);
   }
+  if(mode==='recursos'||mode==='turno'){
+   const picker=field(root,'manageMode');
+   if(picker)picker.value=mode;
+  }
+ }
+ async function executeLivePhase(cmd,root){
+  const sync=global.ARQUIVO_SYNC,s=sheet();
+  if(!s||!sync?.liveCombatPhase||!api.master?.())throw Error('Somente o mestre controla a fase global.');
+  if(!on())throw Error('Conecte-se para sincronizar a sessão.');
+  const mapping={liveEnable:'enable',liveDisable:'disable',liveAdvance:'advance'};
+  const action=mapping[cmd];
+  if(!action)throw Error('Ação de sessão inválida.');
+  const response=await sync.liveCombatPhase(action,s.id);
+  if(!response?.ok)throw Error('A sessão não confirmou a mudança de fase.');
+  if(response.liveCombat)api.db.site.liveCombat=response.liveCombat;
+  else if(api.db.site)delete api.db.site.liveCombat;
+  if(response.combat)s.combat=response.combat;
+  lastAttacks.delete(s.id);
+  statusBySheet.set(s.id,action==='enable'?'Fases sincronizadas com a Sessão ao Vivo.':
+   action==='disable'?'Controle individual da fase restaurado.':'Nova fase enviada às fichas da sessão.');
+  api.render();
+  // Receba o snapshot completo; outras fichas são sempre atualizadas pelo servidor.
+  sync.refresh?.(true)?.catch?.(()=>{});
  }
  async function onClick(event){
   const selectSkill=event.target?.closest?.('[data-cbb-pick-skill]');
@@ -502,7 +549,7 @@
   event.preventDefault();event.stopPropagation();
   if(busy)return;
   const cmd=b.dataset.cbbCommand,sh=sheet();if(!sh)return;
-  if(sh.automationEnabled===false&&!['toggleAutomation','reset','pin'].includes(cmd)){
+  if(sh.automationEnabled===false&&!['toggleAutomation','reset','pin','liveEnable','liveDisable','liveAdvance'].includes(cmd)){
    api.toast('Automação desativada','Reative a automação no Resumo para usar a Mesa.',true);
    return;
   }
@@ -546,7 +593,8 @@
   }
   busy=true;lockResult(b,true);
   try{
-   if(cmd==='skill'||cmd==='pool')await executeRoll(root,cmd);
+   if(['liveEnable','liveDisable','liveAdvance'].includes(cmd))await executeLivePhase(cmd,root);
+   else if(cmd==='skill'||cmd==='pool')await executeRoll(root,cmd);
    else await executeAction(root,b,cmd);
   }catch(error){api.toast('Ação não realizada',String(error?.message||error),true)}
   finally{busy=false;lockResult(b,false)}
@@ -576,6 +624,10 @@
   if(['groupSteps','skillSteps','resistSteps'].includes(key)&&event.type==='change'){
    const numeric=Number(target.value);
    target.value=String(target.value===''||!Number.isInteger(numeric)?0:safeSteps(numeric));
+  }
+  if(key==='manageMode'&&['turno','recursos'].includes(target.value)){switchMode(s,target.value,root);return}
+  if(key==='poolMode'&&['dano','resistencia','recuperacao'].includes(target.value)){
+   modeBySheet.set(s.id,target.value);
   }
   if(key==='poolMode'){
    const resist=root.querySelector?.('[data-cbb-resist-controls]');
