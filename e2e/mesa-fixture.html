@@ -23,11 +23,30 @@ window.ARQUIVO_INTERNAL=api;
 window.ARQUIVO_SYNC={state:{enabled:true,identity:{id:'test-master'}},
  async cbbRoll(args){
   window.__rolls.push(args);
+  const completeAttack=args.p_kind==='teste'&&args.p_context==='ataque'&&!!s.combat.cbb?.completePending;
+  const completeDamage=args.p_kind==='dano'&&!!args.p_attack_id&&!!s.combat.cbb?.completeAttackId;
+  if(completeAttack){s.combat.cbb.completePending=false;s.combat.cbb.completeAttackId=window.__rolls.length;}
+  if(completeDamage)s.combat.cbb.completeDamageUsed=true;
   return {id:window.__rolls.length,rt:8,ra:5,rb:3,groupDie:6,skillDie:6,
+   complete_attack:completeAttack,complete_damage:completeDamage,damage_basis:completeDamage?'RT':'RA',
+   attack_ra:completeDamage?8:args.p_attack_id?5:0,
    dice:[{sides:6,value:3},{sides:6,value:5}],colors:['#F06D45','#43A8F0'],
    autoGroupSteps:0,autoSkillSteps:-2,special:''};
  },
- async cbbAction(){return {ok:true}}
+ async cbbAction(args){
+  if(args.p_action==='complete'){
+   s.combat.mainUsed=true;s.combat.reactionUsed=true;
+   s.combat.cbb={...(s.combat.cbb||{}),completePending:true,completeDamageUsed:false};
+   return {ok:true,combat:s.combat,exposures:s.exposures,resources:s.resources,info:{completePending:true}};
+  }
+  if(args.p_action==='commit'&&args.p_exposure==='espiritual'){
+   s.exposures.espiritual=Math.min(3,Number(s.exposures.espiritual||0)+1);
+   s.resources.alma.current=Math.min(s.resources.alma.max,s.resources.alma.current+2);
+   s.combat.committedUsed=true;
+   return {ok:true,combat:s.combat,exposures:s.exposures,resources:s.resources,info:{recoveredAlma:2}};
+  }
+  return {ok:true}
+ }
 };
 window.__sheet=s;
 </script>
