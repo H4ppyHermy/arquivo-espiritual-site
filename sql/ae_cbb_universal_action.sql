@@ -247,6 +247,9 @@ BEGIN
   combat=jsonb_set(combat,'{cbb,pendingDefensive}','false'::jsonb,true);
  ELSIF p_action='party' THEN
   IF key_kind<>'master' OR sh->'boss' IS NULL THEN RAISE EXCEPTION 'Somente o mestre ajusta confrontos de chefes.';END IF;
+  IF sh#>>'{boss,encounterType}'='duel' THEN
+   RAISE EXCEPTION 'Duelo 1v1 não permite alterar o número de participantes.';
+  END IF;
   IF p_value IS NULL OR p_value NOT BETWEEN 6 AND 8 THEN RAISE EXCEPTION 'Selecione 6, 7 ou 8 jogadores.';END IF;
   boss_party=sh->'boss'->'party';
   party_old=coalesce((boss_party->>'current')::integer,(boss_party->>'base')::integer,7);
