@@ -148,6 +148,52 @@
   return segments.join('\n').replace(/\n{3,}/g,'\n\n').trim()||original;
  }
 
+
+ // Conjuntos de regras de classes/raças: somente o bloco da técnica recebe
+ // o modelo editorial; identidade e modificadores de grupos não são reescritos.
+ function standardizeRuleSections(content){
+  const source=String(content||'').replace(/\r\n?/g,'\n');
+  const lines=source.split('\n'),out=[];
+  let i=0,insideIdentity=false;
+  while(i<lines.length){
+   const head=lines[i].match(/^(#{2,3})\s+(.+)$/);
+   if(!head){out.push(lines[i++]);continue}
+   const heading=head[2].trim();
+   out.push(lines[i++]);
+   if(/^identidade$/i.test(heading)){insideIdentity=true;continue}
+   insideIdentity=false;
+   const parts=[];
+   while(i<lines.length&&!/^#{2,3}\s+/.test(lines[i])&&!/^(?:Corpo|Mente|Espírito)\s+—\s+/i.test(lines[i]))parts.push(lines[i++]);
+   const raw=parts.join('\n').trim();
+   const cleaned=raw?standardize(raw):'';
+   if(cleaned){out.push('',cleaned,'')}
+  }
+  return out.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+ }
+ // Itens usam o mesmo padrão de consequência/efeito, com estados da arma
+ // explícitos quando fornecidos pelo texto original.
+ function standardizeItem(content){
+  const original=String(content||'').trim();
+  if(!original||STANDARD_LINE.test(original)||/^(?:Descrição|Forma selada|Shikai|Bankai)\s+—\s+/im.test(original))return original;
+  const base=standardize(original);
+  return base.split('\n').flatMap(line=>{
+   const match=line.match(/^Efeito — (.*)$/);
+   if(!match)return [line];
+   const text=match[1];
+   if(/^(?:Os bônus não|Esses bônus não|Bônus não|Não acumulam|Os bônus se substituem|Não se acumulam)/i.test(text))
+    return ['Restrição — '+text];
+   if(/^(?:Forma selada|Em (?:sua )?forma selada|Em estado selado|Espada selada|Espadas seladas|Lâminas seladas)/i.test(text))
+    return ['Forma selada — '+text];
+   if(/^(?:Com a Shikai|Com Shikai|Shikai\b|Durante a Shikai)/i.test(text))
+    return ['Shikai — '+text];
+   if(/^(?:Com a Bankai|Com Bankai|Bankai\b|Durante a Bankai)/i.test(text))
+    return ['Bankai — '+text];
+   if(/^(?:Traje |Vestuário|Camisa |Sua própria|Objeto de afeto|Zanpakutō de |Espada de |Vestuário de |Quatro usos|Um traje)/i.test(text))
+    return [(text.startsWith('Quatro usos')?'Recurso':'Descrição')+' — '+text];
+   return [line];
+  }).join('\n').trim();
+ }
+
  function model(entry,{warehouse=false}={}){
   const body=String((warehouse?entry?.content:entry?.description)||'');
   const pool=poolOf(body);
@@ -177,5 +223,5 @@
    '<span aria-hidden="true">⚄</span><strong>'+escape(m.dice)+'</strong>'+
    '<small>'+label+(m.pool.kind==='dano'?' adicional':'')+'</small></div>';
  }
- global.ARQUIVO_CBB_PRESENTATION=Object.freeze({model,meta,dice,compact,standardize,phaseOf});
+ global.ARQUIVO_CBB_PRESENTATION=Object.freeze({model,meta,dice,compact,standardize,standardizeRuleSections,standardizeItem,phaseOf});
 })(typeof window!=='undefined'?window:globalThis);
