@@ -835,16 +835,16 @@ function toggleGrimorioFavorite(raw){
  try{DATASTORE.local?.setItem(GRIMORIO_FAVORITES_KEY,JSON.stringify([...grimorioFavorites]))}catch(e){}
  grimorioRefreshResults();
 }
-function grimorioFilteredEntries(){
+function grimorioFilteredEntries(catalog=grimorioCatalogEntries()){
  const term=glossaryKey(grimorioQuery);
- return grimorioCatalogEntries().filter(item=>
+ return catalog.filter(item=>
   (grimorioCategory==='Todos'||item.category===grimorioCategory)&&
   (grimorioLetter==='Todas'||glossaryKey(item.name).charAt(0).toLocaleUpperCase('pt-BR')===grimorioLetter)&&
   (!grimorioFavoritesOnly||grimorioFavorites.has(glossaryKey(item.name)))&&
   (!term||glossaryKey([item.name,item.description,item.chapterTitle,item.category].join(' ')).includes(term)));
 }
-function grimorioFilterChips(){
- const items=grimorioCatalogEntries(),all=[['Todos','TODOS'],...GRIMORIO_CATEGORIES.map(c=>[c,c.toUpperCase()])];
+function grimorioFilterChips(items=grimorioCatalogEntries()){
+ const all=[['Todos','TODOS'],...GRIMORIO_CATEGORIES.map(c=>[c,c.toUpperCase()])];
  return '<div class="ae-glossary-filter-label"><strong>EXPLORAR POR ASSUNTO</strong><span>Escolha o tipo de regra</span></div>'+
   '<div class="ae-glossary-categories" role="group" aria-label="Assuntos do glossário">'+all.map(([category,label])=>{
    const n=category==='Todos'?items.length:items.filter(item=>item.category===category).length;
@@ -853,8 +853,8 @@ function grimorioFilterChips(){
     ' aria-pressed="'+(grimorioCategory===category)+'">'+esc(label)+' <small>'+n+'</small></button>';
   }).join('')+'</div>';
 }
-function grimorioLettersMarkup(){
- const all=grimorioCatalogEntries().filter(item=>grimorioCategory==='Todos'||item.category===grimorioCategory);
+function grimorioLettersMarkup(catalog=grimorioCatalogEntries()){
+ const all=catalog.filter(item=>grimorioCategory==='Todos'||item.category===grimorioCategory);
  const letters=[...new Set(all.map(item=>glossaryKey(item.name).charAt(0).toLocaleUpperCase('pt-BR')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
  const values=['Todas',...letters];
  return '<div class="ae-glossary-letters" role="group" aria-label="Filtrar por letra inicial">'+
@@ -864,8 +864,7 @@ function grimorioLettersMarkup(){
    ' aria-label="'+(letter==='Todas'?'Todas as letras':'Letra '+esc(letter))+'">'+(letter==='Todas'?'TODAS':esc(letter))+'</button>'
   ).join('')+'</div></div>';
 }
-function grimorioResultsMarkup(){
- const items=grimorioFilteredEntries();
+function grimorioResultsMarkup(items=grimorioFilteredEntries()){
  if(!items.length)return '<div class="ae-grimorio-empty" role="status"><strong>Nenhum verbete encontrado.</strong>'+
   '<span>Tente um termo mais amplo ou remova os filtros.</span>'+
   '<button type="button" data-action="grimorioReset">LIMPAR BUSCA E FILTROS</button></div>';
@@ -886,7 +885,7 @@ function grimorioResultsMarkup(){
  }).join('');
 }
 function grimorioPanel(){
- const count=grimorioCatalogEntries().length,favoriteCount=grimorioCatalogEntries().filter(item=>grimorioFavorites.has(glossaryKey(item.name))).length;
+ const catalog=grimorioCatalogEntries(),count=catalog.length,favoriteCount=catalog.filter(item=>grimorioFavorites.has(glossaryKey(item.name))).length;
  return '<section class="ae-grimorio-panel ae-glossary-workspace" aria-label="Catálogo do Grimório">'+
   '<div class="ae-grimorio-toolbar"><div><span class="ae-grimorio-kicker">GLOSSÁRIO DO SISTEMA · GUIAS E DEFINIÇÕES</span>'+
   '<h3>ENCONTRE A REGRA QUE PROCURA</h3><p>'+count+' '+(count===1?'verbete':'verbetes')+' para consultar · '+favoriteCount+' salvo(s) neste navegador</p></div>'+
@@ -899,12 +898,12 @@ function grimorioPanel(){
   '<div class="ae-glossary-suggestions" aria-label="Buscas rápidas"><span>CONSULTAR:</span>'+
   [['Alma','ALMA'],['Resistência','RESISTÊNCIA'],['Ação','AÇÕES'],['Condições','CONDIÇÕES']].map(([term,label])=>
    '<button type="button" data-action="grimorioQuick:'+encodeURIComponent(term)+'">'+label+'</button>').join('')+'</div>'+
-  '<div id="grimorioFilters">'+grimorioFilterChips()+'</div>'+
-  '<div id="grimorioLetters">'+grimorioLettersMarkup()+'</div>'+
-  '<div class="ae-glossary-result-heading"><p class="ae-grimorio-count" id="grimorioCount" aria-live="polite">'+grimorioFilteredEntries().length+' resultado(s)</p>'+
+  '<div id="grimorioFilters">'+grimorioFilterChips(catalog)+'</div>'+
+  '<div id="grimorioLetters">'+grimorioLettersMarkup(catalog)+'</div>'+
+  '<div class="ae-glossary-result-heading"><p class="ae-grimorio-count" id="grimorioCount" aria-live="polite">'+grimorioFilteredEntries(catalog).length+' resultado(s)</p>'+
   '<button type="button" class="ae-glossary-fav-filter'+(grimorioFavoritesOnly?' is-active':'')+'" data-action="grimorioOnlyFavorites" aria-pressed="'+grimorioFavoritesOnly+'">'+
   '☆ '+(grimorioFavoritesOnly?'MOSTRANDO FAVORITOS':'SOMENTE FAVORITOS')+'</button></div>'+
-  '<div class="ae-grimorio-results" id="grimorioResults">'+grimorioResultsMarkup()+'</div></section>';
+  '<div class="ae-grimorio-results" id="grimorioResults">'+grimorioResultsMarkup(grimorioFilteredEntries(catalog))+'</div></section>';
 }
 function grimorioBanner(){
  const opts=grimorioSettings(),total=grimorioCatalogEntries().length;
@@ -927,10 +926,11 @@ function toggleGrimorio(){
  if(grimorioOpen){requestAnimationFrame(()=>{el('libraryGrimorioMount')?.scrollIntoView({behavior:motionOff()?'auto':'smooth',block:'start'});el('grimorioSearch')?.focus({preventScroll:true})})}
 }
 function grimorioRefreshResults(){
- const root=el('grimorioResults');if(root)root.innerHTML=grimorioResultsMarkup();
- const count=el('grimorioCount');if(count)count.textContent=grimorioFilteredEntries().length+' resultado(s)';
- const category=el('grimorioFilters');if(category)category.innerHTML=grimorioFilterChips();
- const letters=el('grimorioLetters');if(letters)letters.innerHTML=grimorioLettersMarkup();
+ const catalog=grimorioCatalogEntries(),filtered=grimorioFilteredEntries(catalog);
+ const root=el('grimorioResults');if(root)root.innerHTML=grimorioResultsMarkup(filtered);
+ const count=el('grimorioCount');if(count)count.textContent=filtered.length+' resultado(s)';
+ const category=el('grimorioFilters');if(category)category.innerHTML=grimorioFilterChips(catalog);
+ const letters=el('grimorioLetters');if(letters)letters.innerHTML=grimorioLettersMarkup(catalog);
  const fav=el('libraryGrimorioMount')?.querySelector('.ae-glossary-fav-filter');
  if(fav){fav.classList.toggle('is-active',grimorioFavoritesOnly);fav.setAttribute('aria-pressed',String(grimorioFavoritesOnly));fav.textContent='☆ '+(grimorioFavoritesOnly?'MOSTRANDO FAVORITOS':'SOMENTE FAVORITOS')}
 }
@@ -2634,7 +2634,10 @@ function bindEvents(){document.addEventListener('keydown',event=>{
  }
  if(page!=='library'||event.altKey||event.ctrlKey||event.metaKey)return;
  if(event.key==='/'&&!event.target.closest('input,textarea,select,[contenteditable="true"],[role="dialog"]')){
-  const search=el('ruleSearch')||el('warehouseSearch');if(search){event.preventDefault();search.focus();search.select()}
+  const search=grimorioOpen&&libraryVolume()!=='warehouse'&&el('grimorioSearch')?el('grimorioSearch'):(el('ruleSearch')||el('warehouseSearch'));if(search){event.preventDefault();search.focus();search.select()}
+ }
+ if(event.key==='Escape'&&document.activeElement?.id==='grimorioSearch'&&grimorioQuery){
+  event.preventDefault();grimorioQuery='';document.activeElement.value='';grimorioRefreshResults();
  }
  if(event.key==='Escape'&&document.activeElement?.id==='ruleSearch'&&query){
   event.preventDefault();libraryClearSearch();
