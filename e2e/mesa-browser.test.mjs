@@ -40,6 +40,8 @@ test('Mesa: passos e condições atualizam a rolagem sem recarregar a ficha',{ti
  await page.select('[data-cbb-field="skill"]','Raciocínio');
  assert.deepEqual(await previewData(),['d6','d6']); // d8 -1 por Confuso
  assert.match(await preview(),/Confuso/);
+ // A personalização fica recolhida para jogadores novos; abra-a antes de alterar passos.
+ await page.click('details.ae-cbb-advanced:has([data-cbb-field="skillSteps"]) > summary');
  await page.click('[data-cbb-step="skillSteps"][data-cbb-delta="1"]');
  assert.deepEqual(await previewData(),['d6','d8']);
  assert.equal(await page.$eval('[data-cbb-field="skillSteps"]',e=>e.value),'1');
