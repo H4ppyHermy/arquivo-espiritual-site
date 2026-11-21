@@ -88,6 +88,14 @@
     add(context==='ataque'?'Exposição Ofensiva':'Exposição Defensiva',-exposure);
    }
   }
+  // Exposição Espiritual compromete todos os testes do grupo Espírito.
+  const espiritual=group==='Espírito'?clamp(Number(ex.espiritual)||0,0,3):0;
+  if(espiritual){
+   if(baseSkill===4){
+    automaticGroup-=espiritual;
+    reasons.push({name:'Exposição Espiritual',steps:-espiritual,target:'grupo'});
+   }else add('Exposição Espiritual',-espiritual);
+  }
   if(flags.vision){
    if(conditions.has('cego')){conditionalSkill-=2;reasons.push({name:'Cego · visão',steps:-2,target:'pericia'})}
    if(conditions.has('ofuscado')){conditionalSkill--;reasons.push({name:'Ofuscado · visão',steps:-1,target:'pericia'})}
