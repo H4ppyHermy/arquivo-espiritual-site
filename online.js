@@ -178,6 +178,9 @@ async function rollFree(count,faces,hidden=false,colors=[]){
 }
 async function cbbRoll(args){
  if(!state.enabled||!state.identity?.id)throw Error('Entre com a chave do personagem para rolar.');
+ // A rolagem verificada nunca pode ultrapassar uma condição ou item ainda pendente de sincronização.
+ await state.pending.catch(()=>{});
+ if(state.lastPushError)throw Error('A última alteração da ficha não foi sincronizada: '+state.lastPushError);
  return withDiscordRoll(rpc('ae_cbb_roll',args));
 }
 async function cbbAction(args){
