@@ -243,8 +243,8 @@
 }
 
 
-/* Recursos de classe: capacidade legível e opções agrupadas em Extras.
-   O número é a capacidade de referência, não um contador editável ao vivo. */
+/* Recursos de classe: capacidade ilustrada pelos símbolos originais, com Extras.
+   Marcadores representam valores de referência; não editam saldo ao vivo. */
 #page .ae-cbb-resource{
  display:flex;align-items:center;flex-wrap:wrap;gap:8px 13px;
  min-width:0;padding:11px 13px;margin:7px 0 9px;
@@ -267,13 +267,6 @@
 }
 #page .ae-cbb-resource-capacity small{
  color:var(--theme-text);opacity:.8;font-size:calc(10px * var(--ae-reading-scale,1));font-weight:750
-}
-#page .ae-cbb-resource-capacity b{
- display:inline-flex;align-items:center;min-height:32px;padding:6px 10px;
- border:1px solid var(--theme-accent);border-radius:5px;
- color:var(--theme-text);background:color-mix(in srgb,var(--theme-accent) 15%,var(--theme-panel));
- font:900 calc(14px * var(--ae-reading-scale,1))/1.2 Manrope,system-ui,sans-serif;
- white-space:nowrap
 }
 #page .ae-cbb-extras{
  min-width:0;margin:12px 0 4px;border:1px solid var(--theme-structure);
@@ -312,14 +305,6 @@
  border-bottom:1px solid var(--theme-structure)
 }
 #page .ae-cbb-extra-row:last-child{border-bottom:0}
-#page .ae-cbb-extra-amount{
- display:inline-flex;justify-content:center;align-items:center;
- min-height:30px;padding:5px 8px;border:1px solid var(--theme-cold);border-radius:4px;
- background:color-mix(in srgb,var(--theme-cold) 13%,var(--theme-panel));
- color:var(--theme-text);
- font:900 calc(11px * var(--ae-reading-scale,1))/1.25 Manrope,system-ui,sans-serif;
- white-space:nowrap
-}
 #page .ae-cbb-extra-rule{display:grid;gap:5px;min-width:0}
 #page .ae-cbb-extra-title{
  display:block;color:var(--theme-text);
@@ -338,14 +323,12 @@
  #page .ae-cbb-resource-capacity{flex-basis:100%;margin-left:0;justify-content:space-between}
  #page .ae-cbb-extra-list{padding-inline:9px}
  #page .ae-cbb-extra-row{grid-template-columns:1fr;gap:6px}
- #page .ae-cbb-extra-amount{justify-self:start}
 }
 @media(prefers-reduced-motion:reduce){
  #page .ae-cbb-extras-arrow{transition:none}
 }
 
-/* Símbolos originais dos recursos: barras, marcas, contadores e sequências.
-   O número acompanha os símbolos e não os substitui. */
+/* Marcadores visuais originais: barras, marcas, contadores e sequências. */
 #page .ae-cbb-resource-glyph,
 #page .ae-cbb-extra-glyph{
  display:inline-flex;align-items:center;justify-content:center;flex:none;
@@ -358,15 +341,12 @@
  font-size:calc(18px * var(--ae-reading-scale,1))
 }
 #page .ae-cbb-extra-markers{
- display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
- gap:6px;min-width:0
+ display:flex;align-items:center;justify-content:center;
+ min-width:0
 }
 #page .ae-cbb-extra-glyph{
  min-height:25px;max-width:100%;
  font-size:calc(17px * var(--ae-reading-scale,1))
-}
-#page .ae-cbb-extra-markers .ae-cbb-extra-amount{
- width:100%;box-sizing:border-box
 }
 #page .ae-cbb-resource-glyph .ae-inline-resource-bar,
 #page .ae-cbb-extra-glyph .ae-inline-resource-bar{
@@ -374,6 +354,5 @@
 }
 @media(max-width:550px){
  #page .ae-cbb-extra-markers{flex-direction:row;justify-content:flex-start;gap:10px;flex-wrap:wrap}
- #page .ae-cbb-extra-markers .ae-cbb-extra-amount{width:auto}
  #page .ae-cbb-resource-glyph{font-size:calc(17px * var(--ae-reading-scale,1))}
 }
