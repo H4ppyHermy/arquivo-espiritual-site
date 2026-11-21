@@ -343,3 +343,37 @@
 @media(prefers-reduced-motion:reduce){
  #page .ae-cbb-extras-arrow{transition:none}
 }
+
+/* Símbolos originais dos recursos: barras, marcas, contadores e sequências.
+   O número acompanha os símbolos e não os substitui. */
+#page .ae-cbb-resource-glyph,
+#page .ae-cbb-extra-glyph{
+ display:inline-flex;align-items:center;justify-content:center;flex:none;
+ min-width:0;vertical-align:middle;color:var(--theme-cold)
+}
+#page .ae-cbb-resource-glyph{
+ padding:5px 7px;min-height:32px;
+ border:1px solid color-mix(in srgb,var(--theme-cold) 40%,var(--theme-structure));
+ border-radius:5px;background:color-mix(in srgb,var(--theme-cold) 9%,var(--theme-panel));
+ font-size:calc(18px * var(--ae-reading-scale,1))
+}
+#page .ae-cbb-extra-markers{
+ display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+ gap:6px;min-width:0
+}
+#page .ae-cbb-extra-glyph{
+ min-height:25px;max-width:100%;
+ font-size:calc(17px * var(--ae-reading-scale,1))
+}
+#page .ae-cbb-extra-markers .ae-cbb-extra-amount{
+ width:100%;box-sizing:border-box
+}
+#page .ae-cbb-resource-glyph .ae-inline-resource-bar,
+#page .ae-cbb-extra-glyph .ae-inline-resource-bar{
+ max-width:100%;margin:0
+}
+@media(max-width:550px){
+ #page .ae-cbb-extra-markers{flex-direction:row;justify-content:flex-start;gap:10px;flex-wrap:wrap}
+ #page .ae-cbb-extra-markers .ae-cbb-extra-amount{width:auto}
+ #page .ae-cbb-resource-glyph{font-size:calc(17px * var(--ae-reading-scale,1))}
+}
