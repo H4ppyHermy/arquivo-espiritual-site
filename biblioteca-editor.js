@@ -11,7 +11,7 @@
   hiddenDraft=new Set((Array.isArray(post.hiddenTags)?post.hiddenTags:[]).map(fold));
   imageDraft=String(post.image||'');
   imageBusy=false;
-  updateTagPreview();updateImagePreview();updateCategoryForm();
+  updateTagPreview();updateImagePreview();updateCategoryForm();editorUpdatePreview();
  }
  function readHiddenTags(tags){
   if(!editActive)return undefined;
@@ -94,24 +94,42 @@
   if(field)field.hidden=single;
   const grants=document.getElementById('warehouseGrantFields');
   if(grants)grants.hidden=!single;
+  for(const id of ['warehousePhaseField','warehousePhaseHelp']){
+   const node=document.getElementById(id);if(node)node.hidden=!single;
+  }
+  const summaryField=document.getElementById('warehouseSummaryField');
+  if(summaryField)summaryField.hidden=single;
+  const advanced=document.getElementById('warehouseAdvancedSection');
+  if(advanced&&single)advanced.open=true;
   const change=(id,value)=>{const element=document.getElementById(id);if(element)element.textContent=value};
-  change('warehouseSummaryLabel',single?'Prévia curta (opcional)':'Resumo para o cartão');
+  change('warehouseSummaryLabel',single?'Resumo (não utilizado nas habilidades)':'Resumo para o cartão');
   change('warehouseContentHeading',single?(technique?'DESCRIÇÃO DA TÉCNICA':'DESCRIÇÃO DA HABILIDADE'):'CONTEÚDO DA PUBLICAÇÃO');
   change('warehouseContentLabel',single?(technique?'Descrição da técnica':'Descrição da habilidade'):'Texto completo');
   change('warehousePreviewHeading',single?(technique?'EFEITO DA TÉCNICA':'EFEITO DA HABILIDADE'):'COMO SERÁ EXIBIDO');
-  change('warehouseAdvancedHint',single?'Opcional · custo':'Opcional · custo e imagem');
+  change('warehouseAdvancedHint',single?'Custo e fase':'Opcional · custo e imagem');
   const summary=document.getElementById('warehouseSummaryInput');
-  if(summary)summary.placeholder=single?'Usada apenas quando a descrição precisar ser expandida':'O que esta publicação faz?';
+  if(summary)summary.placeholder=single?'A descrição já aparece inteira no cartão':'O que esta publicação faz?';
   const area=document.getElementById('warehouseContentInput');
   if(area)area.placeholder=single?
-   'Descreva a ativação, os custos, o teste e o efeito desta única '+(technique?'técnica':'habilidade')+'.':
+   'Descreva apenas como funciona a '+(technique?'técnica':'habilidade')+'. Custo e fase têm campos próprios.':
    '## Descrição\n\nExplique o funcionamento da publicação.';
  }
 
  function editorUpdatePreview(){
   const area=document.getElementById('warehouseContentInput');if(!area)return;
   const preview=document.getElementById('aeWarehouseEditorPreview');
-  if(preview)preview.innerHTML=api.formatBook(area.value||'');
+  const category=document.getElementById('warehouseCategoryInput')?.value;
+  const present=window.ARQUIVO_CBB_PRESENTATION;
+  if(preview){
+   if(present&&['Habilidades','Técnicas'].includes(category)){
+    const entry={content:area.value||'',category,
+     cost:document.getElementById('warehouseCostInput')?.value||'',
+     phase:document.getElementById('warehousePhaseInput')?.value||''};
+    const model=present.model(entry,{warehouse:true});
+    preview.innerHTML='<div class="ae-wh-preview-ability">'+present.meta(model,{warehouse:true})+
+     present.dice(model)+api.formatBook(model.description)+'</div>';
+   }else preview.innerHTML=api.formatBook(area.value||'');
+  }
   const stats=document.getElementById('warehouseEditorStats');
   if(stats)stats.textContent=area.value.length+' caracteres · '+area.value.trim().split(/\s+/).filter(Boolean).length+' palavras';
  }
@@ -217,12 +235,13 @@
   }
  });
  document.addEventListener('input',event=>{
-  if(event.target?.id==='warehouseContentInput')editorUpdatePreview();
+  if(['warehouseContentInput','warehouseCostInput'].includes(event.target?.id))editorUpdatePreview();
   if(event.target?.id==='warehouseTagsInput')updateTagPreview();
   if(event.target?.id==='warehouseImageInput')updateImagePreview();
  });
  document.addEventListener('change',event=>{
-  if(event.target?.id==='warehouseCategoryInput')updateCategoryForm();
+  if(event.target?.id==='warehouseCategoryInput'){updateCategoryForm();editorUpdatePreview()}
+  if(event.target?.id==='warehousePhaseInput')editorUpdatePreview();
   if(event.target?.id==='warehouseImageFile')setPhotoFile(event.target.files?.[0]);
   if(event.target?.id==='warehouseEditorResourceKind'&&['marca','sequencia'].includes(event.target.value)){
    const total=document.getElementById('warehouseEditorBarTotal');
