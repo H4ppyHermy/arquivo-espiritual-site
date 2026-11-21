@@ -537,3 +537,35 @@ test('mestre vê alças de arraste nos cartões editáveis e categorias de desti
   content:'Cria proteção.',published:true});
  assert.doesNotMatch(guest.window.ARQUIVO_SECOES.warehousePage(),/data-drag-handle="warehouse"/);
 });
+
+test('editar a fase do registro não modifica o texto, custo ou cria habilidades adicionais',()=>{
+ const ctx=setup(true);
+ const original=ctx.db.sheets[0].catalogEntries.length;
+ Object.assign(ctx.elements,{
+  warehouseTitleInput:{value:'Corte Controlado'},
+  warehouseContentInput:{value:'Utilize sua ação principal para atacar um alvo.'},
+  warehouseCategoryInput:{value:'Técnicas'},
+  warehouseVisibilityInput:{value:'published'},
+  warehouseSummaryInput:{value:'Não deve repetir no cartão'},
+  warehouseTagsInput:{value:'Duelo'},
+  warehouseCostInput:{value:'2 ALMA'},
+  warehousePhaseInput:{value:'duelo'},
+  warehouseImageInput:{value:'https://example.org/nao-deve-existir.png'},
+  warehouseGrantRaces:{value:''},warehouseGrantClasses:{value:''}
+ });
+ ctx.elements.dialogRoot.dataset.warehouseId='';
+ ctx.dispatch('click','','warehouse-save',{kind:'modal'});
+ const entry=ctx.db.site.warehouse.posts.find(p=>p.title==='Corte Controlado');
+ assert.ok(entry);
+ assert.equal(entry.phase,'duelo');
+ assert.equal(entry.cost,'2 ALMA');
+ assert.equal(entry.content,'Utilize sua ação principal para atacar um alvo.');
+ assert.equal(entry.image,'');
+ assert.equal(ctx.db.sheets[0].catalogEntries.length,original);
+ vm.runInNewContext(file('cbb-engine.js'),ctx.sandbox);
+ vm.runInNewContext(file('cbb-presentation.js'),ctx.sandbox);
+ const markup=ctx.window.ARQUIVO_SECOES.warehousePage();
+ assert.match(markup,/Fase: Duelo/);
+ assert.match(markup,/2 ALMA/);
+ assert.doesNotMatch(markup,/Não deve repetir no cartão/);
+});
