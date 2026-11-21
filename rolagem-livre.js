@@ -15,7 +15,7 @@
  function persist(){try{const s=safeStorage();if(!s)return false;s.setItem(KEY,JSON.stringify(shortcuts));return true}catch(e){return false}}
  function fail(message){throw Error(message)}
  function parse(raw){
-  const source=String(raw??'').trim().replace(/(\d),(\d)/g,'$1.$2');
+  const source=String(raw??'').trim().replace(/[×]/g,'*').replace(/[÷]/g,'/').replace(/[−]/g,'-').replace(/(\d),(\d)/g,'$1.$2');
   if(!source)fail('Escreva uma fórmula antes de rolar.');
   if(source.length>MAX_LENGTH)fail('A fórmula aceita até '+MAX_LENGTH+' caracteres.');
   const tokens=[];let i=0;
@@ -142,7 +142,7 @@
   try{
    const shortcut={name,formula};if(!validShortcut(shortcut))fail('Nome e fórmula são obrigatórios (nome com até 24 caracteres).');parse(formula);
    if(editing<0){if(shortcuts.length>=16)fail('O limite é de 16 atalhos.');shortcuts.push(shortcut)}else shortcuts[editing]=shortcut;
-   const persisted=persist();redraw();closeEditor();if(!persisted&&error){error.textContent='Armazenamento bloqueado: o atalho não será mantido após atualizar.';root.document.getElementById('freeShortcutEditor').hidden=false;}
+   const persisted=persist();redraw();if(persisted)closeEditor();else if(error){error.textContent='Armazenamento bloqueado: o atalho não será mantido após atualizar.';if(editing<0)editing=shortcuts.length-1;}
   }catch(e){if(error)error.textContent=e.message}
  }
  function remove(){if(editing<0)return;shortcuts.splice(editing,1);persist();redraw();closeEditor()}
