@@ -86,8 +86,11 @@ test('uma falha libera a consulta em andamento para nova tentativa',async()=>{
 test('a UI só reconstrói a ficha quando há alteração visível e agrega cache local',()=>{
  const app=fs.readFileSync(new URL('../arquivo-app.js',import.meta.url),'utf8');
  assert.match(app,/const sameVisibleSheet=/);
- assert.match(app,/if\(sameVisibleSheet\)\{onlineStatus\(\);return\}/);
+ assert.match(app,/if\(sameVisiblePage\)\{onlineStatus\(\);return\}/);
  assert.match(app,/scheduleOnlineCache\(\)/);
+ assert.match(app,/page==='library'&&sameSite&&sameRules\(\)/);
+ assert.match(app,/page==='home'&&sameSite/);
+ assert.match(app,/page==='rolls'&&sameSite/);
  assert.match(app,/window\.addEventListener\('pagehide',flushOnlineCache\)/);
  assert.match(app,/db=\{\.\.\.snap,keys:window\.ARQUIVO_SYNC\.state\.keys\}/);
  assert.doesNotMatch(app,/db=\{\.\.\.clone\(snap\)/);
