@@ -77,10 +77,18 @@ test('uma alteração de outra ficha não reconstrói a ficha aberta e agrupa gr
    {detail:{data:updated,identity:null,revision:26,keys:[]}}));
   const changed=before!==document.getElementById('sheetBody');
   await new Promise(resolve=>setTimeout(resolve,650));
-  return {unchanged,changed,writes,ms};
+  window.ARQUIVO_INTERNAL.setPage('library');
+  const libraryNode=document.getElementById('page').firstElementChild;
+  const librarySnapshot=JSON.parse(JSON.stringify(window.ARQUIVO_INTERNAL.db));
+  librarySnapshot.sheets[0].combat.round=2;
+  window.dispatchEvent(new CustomEvent('arquivo-online-snapshot',
+   {detail:{data:librarySnapshot,identity:null,revision:27,keys:[]}}));
+  const libraryUnchanged=libraryNode===document.getElementById('page').firstElementChild;
+  return {unchanged,changed,libraryUnchanged,writes,ms};
  });
  console.log('25 snapshots de ficha não relacionada em Chrome: '+result.ms.toFixed(2)+' ms');
  assert.equal(result.unchanged,true,'o DOM da ficha aberta deve ser preservado');
  assert.equal(result.changed,true,'a ficha aberta deve mudar se seus próprios dados mudarem');
+ assert.equal(result.libraryUnchanged,true,'a Biblioteca não deve saltar ao receber alterações de combate');
  assert.ok(result.writes<=2,'persistência síncrona deve ser agrupada: '+result.writes);
 });
