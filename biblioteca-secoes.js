@@ -276,9 +276,9 @@
      '<option value="'+esc(c)+'"'+(p.category===c?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label>'+
     '<label>Visibilidade<select id="warehouseVisibilityInput"><option value="published"'+(p.published===false?'':' selected')+'>Publicado para jogadores</option>'+
     '<option value="draft"'+(p.published===false?' selected':'')+'>Rascunho do mestre</option></select></label></div>'+
-    '<label><span id="warehouseSummaryLabel">'+(single?'Prévia curta (opcional)':'Resumo para o cartão')+'</span>'+
+    '<label id="warehouseSummaryField"'+(single?' hidden':'')+'><span id="warehouseSummaryLabel">'+(single?'Resumo (não utilizado nas habilidades)':'Resumo para o cartão')+'</span>'+
      '<input id="warehouseSummaryInput" maxlength="280" value="'+esc(p.summary||'')+'" placeholder="'+
-     (single?'Usada apenas quando a descrição precisar ser expandida':'O que esta publicação faz?')+'"></label>'+
+     (single?'A descrição já aparece inteira no cartão':'O que esta publicação faz?')+'"></label>'+
     '<div class="ae-wh-editor-grants" id="warehouseGrantFields"'+(single?'':' hidden')+'>'+
      '<strong>CONCESSÃO AUTOMÁTICA</strong><p>Indique quais raças ou classes recebem esta habilidade automaticamente. Separe múltiplos nomes por vírgula.</p>'+
      '<div class="ae-wh-editor-grants-grid"><label>Raças contempladas<input id="warehouseGrantRaces" maxlength="300" value="'+
@@ -320,7 +320,7 @@
      '<label for="warehouseContentInput"><span id="warehouseContentLabel">'+
       (single?(technique?'Descrição da técnica':'Descrição da habilidade'):'Texto completo')+'</span>'+
       '<textarea id="warehouseContentInput" rows="14" maxlength="20000" spellcheck="false" aria-describedby="warehouseEditorHint" placeholder="'+
-      (single?'Descreva a ativação, os custos, o teste e o efeito desta única '+(technique?'técnica':'habilidade')+'.':
+      (single?'Descreva apenas como funciona a '+(technique?'técnica':'habilidade')+'. Custo e fase têm campos próprios.':
        '## Descrição\n\nExplique o funcionamento da publicação.')+'">'+esc(p.content||'')+'</textarea></label>'+
      '<p id="warehouseEditorHint" class="ae-cat-help">Selecione o texto para aplicar formatação. Ctrl+B e Ctrl+I também funcionam.</p></div>'+
      '<div class="ae-warehouse-compose-preview"><strong id="warehousePreviewHeading">'+
@@ -328,11 +328,17 @@
      '<div class="book-text ae-library-reading" id="aeWarehouseEditorPreview" aria-live="polite">'+api.formatBook(p.content||'')+'</div></div></div>'+
      '<p class="ae-warehouse-editor-status" id="warehouseEditorStats" role="status">'+text(p.content||'').length+' caracteres · '+
       text(p.content||'').trim().split(/\s+/).filter(Boolean).length+' palavras</p></div></section>'+
-    '<details class="ae-wh-editor-advanced"'+((p.cost||p.image)?' open':'')+'><summary><span class="ae-wh-adv-number">03</span>'+
+    '<details id="warehouseAdvancedSection" class="ae-wh-editor-advanced"'+((single||p.cost||p.image)?' open':'')+'><summary><span class="ae-wh-adv-number">03</span>'+
      '<span><strong>DETALHES ADICIONAIS</strong><small id="warehouseAdvancedHint">'+
-      (single?'Opcional · custo':'Opcional · custo e imagem')+'</small></span>'+
+      (single?'Custo e fase':'Opcional · custo e imagem')+'</small></span>'+
      '<span class="ae-wh-advanced-chevron" aria-hidden="true">⌄</span></summary>'+
-     '<div class="ae-wh-editor-advanced-body"><label>Custo ou referência (opcional)<input id="warehouseCostInput" maxlength="45" value="'+esc(p.cost||'')+'" placeholder="Ex.: 2 Alma ou Sem custo"></label>'+
+     '<div class="ae-wh-editor-advanced-body"><label>Custo ou referência<input id="warehouseCostInput" maxlength="45" value="'+esc(p.cost||'')+'" placeholder="Ex.: 2 ALMA · Sem custo"></label>'+
+     '<label id="warehousePhaseField"'+(single?'':' hidden')+'>Fase de utilização<select id="warehousePhaseInput">'+
+      '<option value=""'+(!p.phase?' selected':'')+'>Automática (conforme descrição)</option>'+
+      [['preparacao','Preparação'],['distancia','Distância'],['duelo','Duelo'],['desfecho','Desfecho']].map(([id,name])=>
+       '<option value="'+id+'"'+(p.phase===id?' selected':'')+'>'+name+'</option>').join('')+
+      '</select></label>'+
+     '<p id="warehousePhaseHelp" class="ae-wh-editor-phase-hint"'+(single?'':' hidden')+'>Selecione a fase quando ela for fixa. Efeitos condicionais podem continuar automáticos.</p>'+
      '<div class="ae-warehouse-image-field" id="warehouseImageField"'+(single?' hidden':'')+'>'+
       '<div class="ae-wh-image-editor"><div class="ae-wh-image-thumbnail" id="warehouseImagePreview" aria-live="polite">'+
        (safeImage(p.image)?'<img src="'+esc(safeImage(p.image))+'" alt="Miniatura atual" loading="lazy">':'<span>CL</span>')+
@@ -369,15 +375,20 @@
   const hiddenTags=window.ARQUIVO_EDITOR_ARMAZEM?.readHiddenTags?.(tags)||
    (Array.isArray(previous?.hiddenTags)?previous.hiddenTags:[]).filter(x=>tags.some(t=>fold(t)===fold(x)));
   if(joinedTags.length>200){api.toast('Tags extensas','Reduza os nomes ou o número de tags.',true);return}
+  const newPhase=get('warehousePhaseInput');
+  if(isAbilityPost({category})&&!['','preparacao','distancia','duelo','desfecho'].includes(newPhase)){
+   api.toast('Fase inválida','Selecione uma das fases oficiais.',true);return;
+  }
   const selectedVisibility=document.getElementById('warehouseVisibilityInput')?.value;
   const published=selectedVisibility?selectedVisibility==='published':!!document.getElementById('warehousePublishedInput')?.checked;
   let entry={...(defaultPost||{}),...(previous||{}),id:previous?.id||defaultPost?.id||api.uid(),title,category,
    summary:get('warehouseSummaryInput').slice(0,280),image,cost:get('warehouseCostInput').slice(0,45),
    tags:joinedTags,hiddenTags,content:content.slice(0,20000),published};
   if(isAbilityPost(entry)){
+   entry.phase=newPhase;
    const parseGrants=value=>value.split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean).slice(0,15);
    entry.grants={race:parseGrants(get('warehouseGrantRaces')),class:parseGrants(get('warehouseGrantClasses'))};
-  }else delete entry.grants;
+  }else{delete entry.grants;delete entry.phase;}
   entry=alignLegacyPortaVoz(entry);
   // Não levar o esquema aposentado do HUD para publicações editadas.
   delete entry.bars;
