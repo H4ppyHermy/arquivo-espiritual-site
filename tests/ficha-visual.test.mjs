@@ -215,17 +215,16 @@ test('Identificação exibe textos integrais de classe e raça, sem misturar hab
  const readonly=view.render(sheet,settings('summary',false));
  assert.doesNotMatch(readonly,/data-action="originMeter:/);
 });
-test('um controle compacto alterna + e − sem repetir a descrição da habilidade',()=>{
+test('a categoria substitui os controles individuais e preserva as descrições',()=>{
  const {view}=setup(),sheet=example(),html=view.render(sheet,settings('abilities'));
- assert.equal((html.match(/class="ae-ficha-ability-details"/g)||[]).length,3);
- assert.equal((html.match(/class="ae-ficha-expand-plus"/g)||[]).length,3);
- assert.equal((html.match(/class="ae-ficha-expand-minus"/g)||[]).length,3);
- assert.match(html,/Mostrar ou ocultar a descrição de Corte Crescente/);
- assert.match(html,/Mostrar ou ocultar a descrição de Bankai/);
+ assert.equal((html.match(/class="ae-ficha-ability-details"/g)||[]).length,0);
+ assert.equal((html.match(/class="ae-ficha-ability-group"/g)||[]).length,1);
+ assert.match(html,/data-group-collapse="__general__"/);
+ assert.match(html,/aria-label="Expandir ou recolher GERAIS"/);
  assert.match(html,/ae-ficha-ability-full sheet-rich/);
- assert.doesNotMatch(html,/LER DESCRIÇÃO COMPLETA|LER TÉCNICA COMPLETA|ae-ficha-ability-teaser/);
- assert.doesNotMatch(read('ficha-visual.js'),/LER DESCRIÇÃO COMPLETA/);
- assert.match(read('ficha-visual.css'),/ae-ficha-ability-details\[open\] \.ae-ficha-expand-minus/);
+ for(const name of ['Corte Crescente','Instinto Espiritual','Bankai'])assert.match(html,new RegExp(name));
+ assert.doesNotMatch(html,/data-ability-remember|ae-ficha-expand-plus|ae-ficha-expand-minus/);
+ assert.match(read('playtest-ux.css'),/ae-ficha-ability-group\[data-group-collapse\]/);
 });
 
 test('expandir uma habilidade não estica o cartão vizinho',()=>{
@@ -236,7 +235,8 @@ test('expandir uma habilidade não estica o cartão vizinho',()=>{
  assert.doesNotMatch(css,/#page \.ae-ficha-ability-entry>\.ae-ficha-ability-card\{flex:1\}/);
  const {view}=setup(),sheet=example(),html=view.render(sheet,settings('abilities'));
  assert.equal((html.match(/class="ae-ficha-ability-entry"/g)||[]).length,3);
- assert.equal((html.match(/class="ae-ficha-ability-details"/g)||[]).length,3);
+ assert.match(html,/data-group-collapse="__general__"/);
+ assert.doesNotMatch(html,/class="ae-ficha-ability-details"/);
 });
 
 test('mestre cria grupos e organiza técnicas em Ressurreição sem alterar seus tipos',()=>{
@@ -253,7 +253,7 @@ test('mestre cria grupos e organiza técnicas em Ressurreição sem alterar seus
  assert.equal((html.match(/id="ability-0"/g)||[]).length,1);
  assert.equal((html.match(/id="ability-1"/g)||[]).length,1);
  assert.equal((html.match(/id="ability-2"/g)||[]).length,1);
- const group=html.match(/<section class="ae-ficha-ability-group ae-ficha-ability-group--custom"[^>]*>[\s\S]*?<\/section>/)?.[0];
+ const group=html.match(/<details class="ae-ficha-ability-group ae-ficha-ability-group--custom"[^>]*>[\s\S]*?<\/details>/)?.[0];
  assert.ok(group);
  assert.match(group,/Corte Crescente/);
  assert.match(group,/Bankai/);
@@ -298,7 +298,7 @@ test('uso e custo são curtos, sem tipos antigos, e categorias antigas não muda
  sheet.abilities[0].category='passive';
  sheet.abilities[0].passive=true;
  const html=view.render(sheet,settings('abilities'));
- assert.match(html,/>2 ALMA<\/span>/);
+ assert.match(html,/<strong class="ae-ability-cost">2 ALMA<\/strong>/);
  assert.match(html,/Uma vez por fase/);
  assert.match(html,/GERAIS/);
  assert.doesNotMatch(html,/ATIVA|PASSIVA|MECÂNICA|LIBERAÇÃO|TRANSFORMAÇÃO|ULTIMATE|CUSTO INDICADO/);
@@ -358,29 +358,26 @@ test('Resumo oferece automação para o editor e reinício somente para mestre',
 });
 
 
-test('descrição fixa utiliza armazenamento local e reaparece aberta ao voltar à ficha',()=>{
+test('categoria recolhida guarda a preferência local e reaparece recolhida ao retornar',()=>{
  const ctx=setup(),sheet=example(),data=new Map();
  ctx.context.window.localStorage={
   getItem:key=>data.get(key)||null,
   setItem:(key,val)=>data.set(key,val)
  };
- const markup=ctx.view.render(sheet,settings('abilities'));
- assert.match(markup,/data-ability-remember=/);
- assert.match(markup,/ae-ficha-ability-details/);
- const key=markup.match(/data-ability-remember="([^"]+)"/)?.[1];
- assert.ok(key);
- const button={dataset:{abilityRemember:key,abilitySheet:sheet.id},
-  closest(sel){return sel==='[data-ability-remember]'?this:null}};
- const event={target:button,preventDefault(){}};
- for(const handler of ctx.listeners.click||[])handler(event);
- const stored=JSON.parse(data.get('ae_ability_expanded_v1:'+sheet.id));
- assert.ok(stored.includes(key));
+ const first=ctx.view.render(sheet,settings('abilities'));
+ assert.match(first,/data-group-collapse="__general__"/);
+ assert.match(first,/data-group-collapse="__general__" data-category-sheet="ficha-01" open/);
+ const node={open:false,dataset:{groupCollapse:'__general__',categorySheet:sheet.id},
+  matches(sel){return sel==='details[data-group-collapse][data-category-sheet]'}};
+ for(const handler of ctx.listeners.toggle||[])handler({target:node});
+ const stored=JSON.parse(data.get('ae_collapsed_categories_v1:'+sheet.id));
+ assert.ok(stored.includes('__general__'));
  const revisited=ctx.view.render(sheet,settings('abilities'));
- assert.match(revisited,/<details class="ae-ficha-ability-details" open>/);
- assert.match(revisited,/ae-ficha-ability-remember is-saved/);
+ assert.match(revisited,/data-group-collapse="__general__" data-category-sheet="ficha-01" data-drop-ability-group=""/);
+ assert.doesNotMatch(revisited,/data-group-collapse="__general__" data-category-sheet="ficha-01" open/);
  const ctx2=setup();ctx2.context.window.localStorage=ctx.context.window.localStorage;
  const afterReload=ctx2.view.render(sheet,settings('abilities'));
- assert.match(afterReload,/<details class="ae-ficha-ability-details" open>/);
+ assert.doesNotMatch(afterReload,/data-group-collapse="__general__" data-category-sheet="ficha-01" open/);
 });
 
 test('Resumo mostra barras de raça e classe antes das habilidades fixadas',()=>{
