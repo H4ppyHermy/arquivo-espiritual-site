@@ -71,3 +71,8 @@
  #page .ae-ficha-skill-row .ae-ficha-skill-roll{min-height:36px}
  #page .ae-ficha-ability-meta .ae-ability-cost{font-size:11px}
 }
+
+.ae-ability-mechanics-editor{display:grid;gap:9px;margin:12px 0;padding:12px;
+ border:1px solid var(--theme-cold);background:color-mix(in srgb,var(--theme-cold) 6%,var(--theme-panel))}
+.ae-ability-mechanics-editor label{min-width:0}
+.ae-ability-mechanics-editor .color-hint{margin:2px 0 0}
