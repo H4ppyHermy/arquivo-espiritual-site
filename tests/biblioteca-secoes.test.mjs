@@ -70,9 +70,9 @@ test('integração mantém os capítulos originais e carrega recursos em ordem',
  assert.match(app,/chapterReadingMarkup\(r\)/);
  assert.match(html,/habilidades-armazem\.js\?v=5/);
  assert.match(html,/racas-armazem\.js\?v=1/);
- assert.ok(html.indexOf('racas-armazem.js?v=1')<html.indexOf('biblioteca-secoes.js?v=23'));
+ assert.ok(html.indexOf('racas-armazem.js?v=1')<html.indexOf('biblioteca-secoes.js?v=24'));
  assert.ok(html.indexOf('classes-armazem.js?v=6')<html.indexOf('habilidades-armazem.js?v=5'));
- assert.ok(html.indexOf('habilidades-armazem.js?v=5')<html.indexOf('biblioteca-secoes.js?v=23'));
+ assert.ok(html.indexOf('habilidades-armazem.js?v=5')<html.indexOf('biblioteca-secoes.js?v=24'));
 
- assert.ok(html.indexOf('arquivo-app.js?')<html.indexOf('biblioteca-secoes.js?v=23'));
+ assert.ok(html.indexOf('arquivo-app.js?')<html.indexOf('biblioteca-secoes.js?v=24'));
 });
