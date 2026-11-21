@@ -232,7 +232,8 @@
     pinButton(ab,index,ctx,pinned)+moveHandle(ab,index,ctx)+'</div>'+
     (details?presentation.meta(details):'<div class="ae-ficha-ability-meta"><span>'+esc(kind.toUpperCase())+'</span>'+
      '<strong class="ae-ability-cost">'+(Number(ab.cost)>0?esc(ab.cost)+' ALMA':'SEM CUSTO')+'</strong>'+
-     '<span class="ae-ability-phase">Fase: '+esc(window.ARQUIVO_CBB_ENGINE?.abilityPhase?.(ab)||'Conforme efeito')+'</span></div>')+
+     '<span class="ae-ability-phase">Fase: '+esc(window.ARQUIVO_CBB_ENGINE?.abilityPhase?.(ab)||'Conforme efeito')+'</span>'+
+     (ab.usage?'<span class="ae-ability-usage">Uso: '+esc(ab.usage)+'</span>':'')+'</div>')+
     (window.ARQUIVO_CBB_UI?.abilitySummary?.(api.db?.sheets?.find(x=>x.id===sheetId)||{},ab,index)||'')+
     '<div class="ae-ficha-ability-full sheet-rich">'+
        (image?'<img alt="Ilustração da habilidade '+name+'" src="'+esc(image)+'" loading="lazy">':'')+
