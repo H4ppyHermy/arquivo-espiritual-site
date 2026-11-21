@@ -5,8 +5,8 @@ import vm from 'node:vm';
 
 const read=name=>fs.readFileSync(new URL('../'+name,import.meta.url),'utf8');
 const app=read('arquivo-app.js');
-const start=app.indexOf('/* Navegação do glossário: filtros combináveis');
-const end=app.indexOf('function grimorioBanner(){',start);
+const start=app.indexOf('/* Consulta manual: filtros combináveis');
+const end=app.indexOf('function grimorioRefreshResults(){',start);
 const snippet=app.slice(start,end);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fold=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLocaleLowerCase('pt-BR').replace(/\s+/g,' ');
@@ -33,15 +33,17 @@ function setup(){
 }
 test('Glossário abre como consulta principal, sem busca de capítulos duplicada',()=>{
  assert.ok(start>0&&end>start);
- assert.match(app,/libraryMode='glossary'/);
+ assert.match(app,/libraryMode='guide'/);
  assert.match(app,/if\(libraryMode==='glossary'\)return headline/);
  assert.match(app,/data-action="libraryMode:chapters"/);
  assert.match(app,/data-action="libraryMode:glossary"/);
+ assert.match(app,/data-action="libraryMode:guide"/);
  const glossaryBranch=app.slice(app.indexOf("if(libraryMode==='glossary')return headline"),app.indexOf("return headline(",app.indexOf("if(libraryMode==='glossary')return headline")+38));
  assert.doesNotMatch(glossaryBranch,/id="ruleSearch"|id="ruleResults"/);
  const html=read('index.html');
  assert.match(html,/glossario-ux\.css\?v=1/);
  assert.match(html,/biblioteca-redesign\.css\?v=1/);
+ assert.match(html,/guia-combate\.css\?v=1/);
  assert.ok(html.indexOf('glossario-ux.css')<html.indexOf('biblioteca-redesign.css'));
 });
 test('categorias e índice A-Z refinam os resultados sem alterar os verbetes',()=>{
@@ -71,7 +73,7 @@ test('busca encontra termos no texto e nomes com e sem acento',()=>{
 test('favoritos são persistidos no navegador e não alteram as regras',()=>{
  const {run,storage,items}=setup(),before=JSON.stringify(items);
  run('toggleGrimorioFavorite("Alma")');
- assert.match(storage.get('ae_grimorio_favoritos_v1'),/alma/);
+ assert.match(storage.get('ae_consulta_favoritos_v2'),/alma/);
  run('grimorioFavoritesOnly=true');
  let html=run('grimorioResultsMarkup()');
  assert.match(html,/Alma/);
@@ -117,4 +119,29 @@ test('Conteúdo do glossário é escapado na leitura detalhada',()=>{
  const detail=run('grimorioDetailMarkup()');
  assert.match(detail,/Teste de &lt;script&gt;/);
  assert.doesNotMatch(detail,/<script>/);
+});
+
+test('acervo manual ignora termos e configuração herdados da extração automática',()=>{
+ const from=app.indexOf('const GRIMORIO_DEFAULTS='),to=app.indexOf('/* Consulta manual: filtros combináveis',from);
+ assert.ok(from>0&&to>from);
+ const db={site:{grimorio:{autoGlossary:true,disabledTerms:[],
+  title:'CONSULTAR GRIMÓRIO',glossary:[{name:'RA',description:'Termo antigo',enabled:true}]}},
+  rules:[{id:'cap5',title:'Combate',text:'Dano-base — Texto do capítulo'}]};
+ const ctx=vm.createContext({db,GRIMORIO_CATEGORIES:['Recursos','Testes','Combate','Condições','Recuperação','Outros']});
+ vm.runInContext(app.slice(from,to),ctx);
+ const before=vm.runInContext('grimorioCatalogEntries()',ctx);
+ assert.equal(before.length,0,'verbetes da versão anterior não devem voltar');
+ assert.equal(vm.runInContext('grimorioSettings().schemaVersion',ctx),2);
+ vm.runInContext('grimorioStored()',ctx);
+ assert.equal(db.site.grimorio.autoGlossary,undefined);
+ assert.equal(db.site.grimorio.disabledTerms,undefined);
+ db.site.grimorio.glossary.push({id:'new',name:'Nova Regra',description:'Texto criado pelo mestre',enabled:true,category:'Combate',chapterId:'cap5'});
+ const after=vm.runInContext('grimorioCatalogEntries()',ctx);
+ assert.equal(after.length,1);
+ assert.equal(after[0].name,'Nova Regra');
+ assert.equal(after[0].source,'manual');
+ assert.match(app,/schemaVersion:2/);
+ assert.doesNotMatch(app,/function glossarySuggestions\(/);
+ assert.doesNotMatch(app,/insertGlossaryReferences\(/);
+ assert.doesNotMatch(app,/const LIBRARY_HELP_TERMS=/);
 });

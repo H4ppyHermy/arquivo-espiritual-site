@@ -10,7 +10,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const clone=x=>JSON.parse(JSON.stringify(x));const el=id=>document.getElementById(id),uid=()=>('arquivo-'+Math.random().toString(36).slice(2,10)),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function safeStore(kind){try{const s=window[kind];const k='__arquivo_probe__';s.setItem(k,'ok');s.removeItem(k);return s}catch(e){return null}}
 const DATASTORE={local:safeStore('localStorage'),session:safeStore('sessionStorage'),blocked:false,load(){const base=clone(window.ARQUIVO_PUBLICADO||DEFAULT);if(!this.local){this.blocked=true;return base}try{const raw=this.local.getItem('arquivo_data')||this.local.getItem('c'+'bb_data');if(!raw)return base;const saved=JSON.parse(raw);if(!saved.site||!Array.isArray(saved.sheets)||!Array.isArray(saved.rules))return base;if(!this.local.getItem('arquivo_data'))this.local.setItem('arquivo_data',raw);if(!Array.isArray(saved.keys)){this.local.setItem('arquivo_owner_device','sim');return saved}if(this.getRole()==='master'||this.local.getItem('arquivo_owner_device')==='sim')return saved;for(const s of base.sheets){const local=saved.sheets.find(x=>x.id===s.id);if(!local)continue;for(const k of ['vida','estabilidade','alma'])if(local.resources?.[k])s.resources[k].current=clamp(local.resources[k].current,0,s.resources[k].max);s.conditions=local.conditions||[];s.notes=local.notes??s.notes;s.restCount=local.restCount||0;s.desgaste=local.desgaste||0;s.exposures=local.exposures||{}}return base}catch(e){this.blocked=true;return base}},save(data){if(!this.local){this.blocked=true;storageWarning();return false}try{this.local.setItem('arquivo_data',JSON.stringify(data));return true}catch(e){this.blocked=true;storageWarning();return false}},getRole(){try{return this.session?.getItem('arquivo_role')||'guest'}catch(e){return 'guest'}},getKeyId(){try{return this.session?.getItem('arquivo_key_id')||''}catch(e){return ''}},setRole(r,id=''){try{this.session?.setItem('arquivo_role',r);this.session?.setItem('arquivo_key_id',id);if(r==='master')this.local?.setItem('arquivo_owner_device','sim')}catch(e){this.blocked=true;storageWarning()}},clearRole(){try{this.session?.removeItem('arquivo_role');this.session?.removeItem('arquivo_key_id')}catch(e){}}};
-let db=DATASTORE.load(),role=DATASTORE.getRole(),page='home',currentSheet=null,tab='summary',query='',rollHistory=[],lastRoll=null,musicOn=false,soundOn=true,musicMuted=false,audioContext=null,noticeShown=false,pendingAction=null,keyOwnerId=DATASTORE.getKeyId(),adminSection='content',editorDraft=null,libraryExpandedChapters=new Set(),libraryActiveChapterId=null,grimorioOpen=false,grimorioQuery='',grimorioCategory='Todos',grimorioLetter='Todas',grimorioFavoritesOnly=false,grimorioSelectedTerm='',libraryMode='glossary',playerPreviewActive=false,brandPressCount=0,brandPressTime=0;
+let db=DATASTORE.load(),role=DATASTORE.getRole(),page='home',currentSheet=null,tab='summary',query='',rollHistory=[],lastRoll=null,musicOn=false,soundOn=true,musicMuted=false,audioContext=null,noticeShown=false,pendingAction=null,keyOwnerId=DATASTORE.getKeyId(),adminSection='content',editorDraft=null,libraryExpandedChapters=new Set(),libraryActiveChapterId=null,grimorioQuery='',grimorioCategory='Todos',grimorioLetter='Todas',grimorioFavoritesOnly=false,grimorioSelectedTerm='',libraryMode='guide',playerPreviewActive=false,brandPressCount=0,brandPressTime=0;
 /* Catálogo central das cores. O seletor e o editor usam os mesmos identificadores. */
 const PALETTES={
  padrao:{bg:'#090708',panel:'#17100F',raised:'#291A15',structure:'#99522F',cold:'#F1E2D2',text:'#FFF8F1',accent:'#FF791B',pressed:'#C6510D',outline:'#030202'},
@@ -665,24 +665,27 @@ function libraryMobileOptions(){
 function libraryModeSwitcher(){
  return '<div class="ae-library-mode-switch" role="group" aria-label="Modo de consulta da Biblioteca">'+
   '<button type="button" data-action="libraryMode:glossary" class="ae-library-mode'+(libraryMode==='glossary'?' is-active':'')+'" aria-pressed="'+(libraryMode==='glossary')+'">'+
-  '<span class="ae-library-mode-symbol" aria-hidden="true">◇</span><span><strong>CONSULTA RÁPIDA</strong><small>Definições completas, links e respostas diretas</small></span></button>'+
+  '<span class="ae-library-mode-symbol" aria-hidden="true">◇</span><span><strong>CONSULTA RÁPIDA</strong><small>Verbetes escritos pelo mestre</small></span></button>'+
   '<button type="button" data-action="libraryMode:chapters" class="ae-library-mode'+(libraryMode==='chapters'?' is-active':'')+'" aria-pressed="'+(libraryMode==='chapters')+'">'+
-  '<span class="ae-library-mode-symbol" aria-hidden="true">☰</span><span><strong>LER CAPÍTULOS</strong><small>Texto integral das regras, em ordem</small></span></button></div>';
+  '<span class="ae-library-mode-symbol" aria-hidden="true">☰</span><span><strong>LER CAPÍTULOS</strong><small>Regras completas do Livro 1 ou 2</small></span></button>'+ 
+  '<button type="button" data-action="libraryMode:guide" class="ae-library-mode'+(libraryMode==='guide'?' is-active':'')+'" aria-pressed="'+(libraryMode==='guide')+'">'+
+  '<span class="ae-library-mode-symbol" aria-hidden="true">⚔</span><span><strong>GUIA DE COMBATE</strong><small>Táticas, escolhas e exemplos práticos</small></span></button></div>';
 }
 function setLibraryMode(mode){
- if(!['glossary','chapters'].includes(mode)||libraryMode===mode)return;
- libraryMode=mode;grimorioOpen=mode==='glossary';render();
+ if(!['glossary','chapters','guide'].includes(mode)||libraryMode===mode)return;
+ libraryMode=mode;render();
  if(mode==='glossary')requestAnimationFrame(()=>el('grimorioSearch')?.focus({preventScroll:true}));
 }
 function library(){
- rebuildLibraryGlossary();
  if(libraryVolume()==='warehouse')return window.ARQUIVO_SECOES.warehousePage();
  const visible=libraryVisibleRules();
  const number=libraryRules().length;
  const second=libraryVolume()==='book2';
  if(libraryMode==='glossary'&&grimorioSettings().visible===false&&!master())libraryMode='chapters';
  const modeToolbar=libraryModeSwitcher();
- if(libraryMode==='glossary')return headline('CONHECIMENTO','GLOSSÁRIO', 'Encontre a definição de um conceito sem percorrer capítulos.',master()?btn('GERENCIAR GLOSSÁRIO','manageGrimorio','small'):'')+
+ if(libraryMode==='guide')return headline('APRENDIZADO','GUIA DE COMBATE', 'Aprenda a agir com eficiência dentro das regras do CBB.')+
+  modeToolbar+'<div class="ae-library-guide-layout"><div class="ae-library-guide-content">'+(window.ARQUIVO_GUIA_COMBATE?.render?.()||'<p>Guia indisponível.</p>')+'</div>'+(window.ARQUIVO_SECOES?.shelf()||'')+'</div>';
+ if(libraryMode==='glossary')return headline('CONHECIMENTO','CONSULTA RÁPIDA', 'Somente verbetes cadastrados pelo mestre; sem catalogação automática.',master()?btn('GERENCIAR CONSULTA','manageGrimorio','small'):'')+
   modeToolbar+'<div class="ae-library-reference-layout"><div class="ae-library-reference-main" id="libraryGrimorioMount">'+grimorioPanel()+'</div>'+
   (window.ARQUIVO_SECOES?.shelf()||'')+'</div>';
  return headline('CONHECIMENTO',second?'LIVRO 2':'BIBLIOTECA',second?'Criação de personagem · novos capítulos do CBB.':'Livro 1 · fundamentos e regras do sistema.',master()?btn('+ NOVO CAPÍTULO','newRule','main'):'')+modeToolbar+
@@ -701,13 +704,13 @@ function library(){
  ' autocomplete="off" spellcheck="false" placeholder="Buscar no sistema" aria-keyshortcuts="/ Escape" aria-describedby="ruleMatches">'+
  '<button class="ae-library-clear" id="libraryClearSearch" data-action="clearLibrarySearch" type="button" aria-label="Limpar pesquisa"'+(!query?' hidden':'')+'>LIMPAR</button></div>'+
  '<p id="ruleMatches" class="ae-library-search-count" role="status" aria-live="polite">'+librarySearchSummary(visible)+'</p>'+
- '<div class="ae-library-toolbar"><span>Clique nas palavras do glossário para ver a definição. Os símbolos distinguem os tipos de regra.</span>'+
+ '<div class="ae-library-toolbar"><span>Abra os capítulos para ler o texto completo. Os símbolos distinguem recursos, ações, testes, efeitos e riscos.</span>'+
  '<details class="ae-book-key"><summary>LEGENDA VISUAL</summary>'+
  '<div class="ae-book-key-items"><span><b aria-hidden="true">◆</b> Conceito</span><span><b aria-hidden="true">▸</b> Ação</span>'+
  '<span><b aria-hidden="true">◈</b> Recurso</span><span><b aria-hidden="true">◇</b> Teste</span>'+
  '<span><b aria-hidden="true">✦</b> Efeito</span><span><b aria-hidden="true">⚑</b> Risco</span>'+
  '<span><b aria-hidden="true">!</b> Limite</span></div></details>'+
- '<div class="actions">'+btn('FECHAR TODOS','closeAllChapters','small')+btn('ABRIR TODOS','openAllChapters','small')+(master()?btn('GERENCIAR GLOSSÁRIO','manageGrimorio','small'):'')+'</div></div>'+
+ '<div class="actions">'+btn('FECHAR TODOS','closeAllChapters','small')+btn('ABRIR TODOS','openAllChapters','small')+(master()?btn('GERENCIAR CONSULTA','manageGrimorio','small'):'')+'</div></div>'+
  '<div class="mobile-chapter"><label for="chapterJump">Ir ao capítulo</label>'+
  '<select id="chapterJump"><option value="">Selecione um capítulo</option>'+libraryMobileOptions()+'</select></div>'+
  '</div>'+
@@ -738,20 +741,19 @@ function librarySyncActiveIndex(){
  });
  const jump=el('chapterJump');if(jump)jump.value=libraryActiveChapterId||'';
 }
-/* GRIMÓRIO: dados editáveis persistidos em db.site e sincronizados pelo documento do mestre. */
+/* CONSULTA RÁPIDA: apenas verbetes escritos pelo mestre, sem extração do livro. */
 const GRIMORIO_CATEGORIES=['Recursos','Testes','Combate','Condições','Recuperação','Outros'];
-const GRIMORIO_DEFAULTS={visible:true,title:'CONSULTAR GRIMÓRIO',subtitle:'Explore as mecânicas e encontre rapidamente o que procura.',autoGlossary:true,glossary:[],disabledTerms:[]};
+const GRIMORIO_DEFAULTS={schemaVersion:2,visible:true,title:'CONSULTA RÁPIDA',subtitle:'Verbetes criados e revisados pelo mestre.',glossary:[]};
 function grimorioSettings(){
  const saved=db.site?.grimorio;
- if(!saved||typeof saved!=='object'||Array.isArray(saved))return {...GRIMORIO_DEFAULTS};
- const {showIcons,showDiceIcons,diceEmoji,...rest}=saved;
- return {...GRIMORIO_DEFAULTS,...rest,
-  glossary:Array.isArray(saved.glossary)?saved.glossary.map(item=>{
-   if(!item||typeof item!=='object'||Array.isArray(item))return item;
-   const {icon,...clean}=item;
-   return clean;
-  }):[],
-  disabledTerms:Array.isArray(saved.disabledTerms)?saved.disabledTerms:[]};
+ if(!saved||typeof saved!=='object'||Array.isArray(saved))return {...GRIMORIO_DEFAULTS,glossary:[]};
+ const {autoGlossary,disabledTerms,showIcons,showDiceIcons,diceEmoji,glossary,schemaVersion,...rest}=saved;
+ // Os verbetes anteriores ao acervo manual são descontinuados; o scanner não os recria.
+ const manual=Number(schemaVersion)===2&&Array.isArray(glossary)?
+  glossary.filter(item=>item&&typeof item==='object'&&!Array.isArray(item)).map(item=>{
+   const {icon,...clean}=item;return clean;
+  }):[];
+ return {...GRIMORIO_DEFAULTS,...rest,schemaVersion:2,glossary:manual};
 }
 function grimorioStored(){
  db.site??={};
@@ -761,82 +763,21 @@ function grimorioStored(){
  return settings;
 }
 function glossaryKey(name){return String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLocaleLowerCase('pt-BR').replace(/\s+/g,' ')}
-function glossaryCategory(name){
- const term=glossaryKey(name);
- if(/vida|alma|estabilidade|energia/.test(term))return 'Recursos';
- if(/dado|pericia|grupo|teste|dificuldade|modificador/.test(term))return 'Testes';
- if(/recuper|descanso|tratamento|meditac|recompos/.test(term))return 'Recuperação';
- if(/estado|condic|morto|desmaiado|acorrentado|pressionado/.test(term))return 'Condições';
- if(/acao|reacao|combate|movimenta|dano|resistencia|cobertura|posicionamento|terreno/.test(term))return 'Combate';
- return 'Outros';
-}
-function glossarySuggestions(){
- const results=new Map();
- for(const chapter of db.rules||[]){
-  for(const line of String(chapter.text||'').split(/\r?\n/)){
-   const found=line.trim().match(/^([^—\n]{2,55})\s+—\s+(.{15,})$/);
-   if(!found)continue;
-   const name=found[1].trim(),key=glossaryKey(name);
-   if(!key||results.has(key))continue;
-   results.set(key,{name,description:found[2].trim(),chapterId:chapter.id,chapterTitle:chapter.title,category:glossaryCategory(name),icon:'',source:'automatic'});
-  }
- }
- return results;
-}
-function glossaryAllEntries(){
- const options=grimorioSettings(),disabled=new Set(options.disabledTerms.map(glossaryKey));
- const suggestions=glossarySuggestions(),entries=new Map();
- if(options.autoGlossary!==false){
-  for(const [key,item] of suggestions){
-   if(LIBRARY_HELP_TERMS.some(term=>glossaryKey(term)===key)&&!disabled.has(key)){
-    const canonical=LIBRARY_HELP_TERMS.find(term=>glossaryKey(term)===key);
-    entries.set(key,{...item,name:canonical||item.name});
-   }
-  }
- }
- for(const item of options.glossary){
-  if(!item||typeof item!=='object')continue;
-  const name=String(item.name||'').trim(),key=glossaryKey(name);
-  if(!key)continue;
-  if(item.enabled===false){entries.delete(key);continue}
-  const chapter=db.rules.find(r=>r.id===item.chapterId);
-  entries.set(key,{
-   id:String(item.id||''),name:name.slice(0,75),description:String(item.description||'').slice(0,6000),related:Array.isArray(item.related)?item.related:[],
-   chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',
-   category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:glossaryCategory(name),
-   source:'manual'
-  });
- }
- for(const key of disabled)if(!options.glossary.some(i=>glossaryKey(i.name)===key&&i.enabled!==false))entries.delete(key);
- return [...entries.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
-}
-/* O catálogo mostra definições detectadas e verbetes ativos criam links discretos. */
+/* Consulta Rápida: catálogo exclusivamente manual, sem varrer capítulos. */
 function grimorioCatalogEntries(){
- const cfg=grimorioSettings(),hidden=new Set(cfg.disabledTerms.map(glossaryKey)),items=new Map();
- for(const item of cfg.autoGlossary!==false?glossarySuggestions().values():[]){
-  const key=glossaryKey(item.name);
-  if(!hidden.has(key)){
-   const canonical=LIBRARY_HELP_TERMS.find(term=>glossaryKey(term)===key);
-   items.set(key,{...item,name:canonical||item.name});
-  }
- }
- for(const item of cfg.glossary){
-  if(!item||typeof item!=='object')continue;
-  const key=glossaryKey(item.name);if(!key)continue;
-  if(item.enabled===false){items.delete(key);continue}
+ const cfg=grimorioSettings();
+ return cfg.glossary.filter(item=>item&&item.enabled!==false&&String(item.name||'').trim()).map(item=>{
   const chapter=db.rules.find(r=>r.id===item.chapterId);
-  items.set(key,{
-   id:item.id,name:String(item.name||'').slice(0,75),related:Array.isArray(item.related)?item.related:[],
+  return {id:String(item.id||''),name:String(item.name||'').slice(0,75),
+   related:Array.isArray(item.related)?item.related:[],
    description:String(item.description||'').slice(0,6000),
-   category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:glossaryCategory(item.name),
-   chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',
-   source:'manual'
-  });
- }
- return [...items.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+   category:GRIMORIO_CATEGORIES.includes(item.category)?item.category:'Outros',
+   chapterId:chapter?.id||'',chapterTitle:chapter?.title||'',source:'manual'};
+ }).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
 }
-/* Navegação do glossário: filtros combináveis e favoritos exclusivamente locais. */
-const GRIMORIO_FAVORITES_KEY='ae_grimorio_favoritos_v1';
+/* Consulta manual: filtros combináveis e favoritos exclusivamente locais. */
+const GRIMORIO_FAVORITES_KEY='ae_consulta_favoritos_v2';
+try{DATASTORE.local?.removeItem('ae_grimorio_favoritos_v1')}catch(e){}
 function grimorioFavoritesLoad(){
  try{
   const saved=JSON.parse(DATASTORE.local?.getItem(GRIMORIO_FAVORITES_KEY)||'[]');
@@ -948,10 +889,20 @@ function grimorioDetailMarkup(items=grimorioFilteredEntries()){
 }
 function grimorioPanel(){
  const catalog=grimorioCatalogEntries(),count=catalog.length,favoriteCount=catalog.filter(item=>grimorioFavorites.has(glossaryKey(item.name))).length;
- return '<section class="ae-grimorio-panel ae-glossary-workspace" aria-label="Catálogo do Grimório">'+
-  '<div class="ae-grimorio-toolbar"><div><span class="ae-grimorio-kicker">GLOSSÁRIO DO SISTEMA · GUIAS E DEFINIÇÕES</span>'+
-  '<h3>ENCONTRE A REGRA QUE PROCURA</h3><p>'+count+' '+(count===1?'verbete':'verbetes')+' para consultar · '+favoriteCount+' salvo(s) neste navegador</p></div>'+
-  (master()?'<div class="actions ae-grimorio-quick-actions">'+btn('+ NOVA PÁGINA','editGlossary:new','small')+btn('GERENCIAR PÁGINAS','manageGrimorio','small')+'</div>':'')+'</div>'+
+ if(!count)return '<section class="ae-grimorio-panel ae-glossary-workspace ae-consulta-empty" aria-label="Consulta Rápida vazia">'+
+  '<span class="ae-grimorio-kicker">CONSULTA RÁPIDA · ACERVO MANUAL</span>'+
+  '<h3>NENHUM VERBETE CADASTRADO</h3>'+
+  '<p>O acervo antigo foi esvaziado. As definições só aparecerão aqui quando o mestre criar páginas manualmente. Os capítulos originais continuam disponíveis.</p>'+
+  '<div class="ae-consulta-empty-actions">'+
+  (master()?btn('+ CRIAR VERBETE','editGlossary:new','main'):'')+
+  btn('EXPLORAR GUIA DE COMBATE','libraryMode:guide','small')+
+  btn('LER CAPÍTULOS','libraryMode:chapters','small')+
+  '</div></section>';
+
+ return '<section class="ae-grimorio-panel ae-glossary-workspace" aria-label="Catálogo da Consulta Rápida">'+
+  '<div class="ae-grimorio-toolbar"><div><span class="ae-grimorio-kicker">CONSULTA RÁPIDA · CATÁLOGO MANUAL</span>'+
+  '<h3>ENCONTRE UM VERBETE</h3><p>'+count+' '+(count===1?'página criada':'páginas criadas')+' pelo mestre · '+favoriteCount+' favorito(s) neste navegador</p></div>'+
+  (master()?'<div class="actions ae-grimorio-quick-actions">'+btn('+ NOVA PÁGINA','editGlossary:new','small')+btn('GERENCIAR CONSULTA','manageGrimorio','small')+'</div>':'')+'</div>'+
   '<p class="ae-library-search-hint">Escolha um termo na lista para ler a definição inteira; use os filtros quando quiser explorar por assunto.</p>'+
   '<div class="ae-grimorio-search" role="search" aria-label="Buscar verbetes">'+
   '<label for="grimorioSearch">Pesquise uma palavra ou regra</label>'+
@@ -969,27 +920,6 @@ function grimorioPanel(){
   '<div class="ae-glossary-answer-layout"><div class="ae-grimorio-results" id="grimorioResults" aria-label="Resultados de verbetes">'+grimorioResultsMarkup(grimorioFilteredEntries(catalog))+'</div>'+ 
   '<div class="ae-glossary-detail" id="grimorioDetail" role="region" tabindex="-1" aria-label="Definição selecionada" aria-live="polite">'+grimorioDetailMarkup(grimorioFilteredEntries(catalog))+'</div></div></section>';
 }
-function grimorioBanner(){
- const opts=grimorioSettings(),total=grimorioCatalogEntries().length;
- if(opts.visible===false&&!master())return '';
- return '<section class="ae-grimorio-portal" aria-label="Entrada do Grimório">'+
-  '<div class="ae-grimorio-portal-symbol" aria-hidden="true">✧</div>'+
-  '<div class="ae-grimorio-portal-copy"><span class="ae-grimorio-kicker">ARQUIVO DE CONHECIMENTO</span>'+
-  '<h2>'+esc(String(opts.title||GRIMORIO_DEFAULTS.title).slice(0,75))+'</h2>'+
-  '<p>'+esc(String(opts.subtitle||GRIMORIO_DEFAULTS.subtitle).slice(0,180))+'</p>'+
-  '<small>'+total+' '+(total===1?'mecânica catalogada':'mecânicas catalogadas')+(opts.visible===false?' · OCULTO PARA JOGADORES':'')+'</small></div>'+
-  '<div class="ae-grimorio-portal-actions"><button type="button" class="ae-grimorio-portal-button" data-action="toggleGrimorio" aria-expanded="'+grimorioOpen+'" aria-controls="libraryGrimorioMount">'+
-  (grimorioOpen?'FECHAR GRIMÓRIO':'CONSULTAR GRIMÓRIO')+' <span aria-hidden="true">↗</span></button>'+
-  (master()?'<button type="button" class="ae-grimorio-edit-button" data-action="manageGrimorio">CONFIGURAR</button>':'')+'</div></section>'+
-  '<div id="libraryGrimorioMount">'+(grimorioOpen?grimorioPanel():'')+'</div>';
-}
-function toggleGrimorio(){
- if(libraryMode!=='glossary'){setLibraryMode('glossary');return}
- grimorioOpen=!grimorioOpen;
- const area=el('libraryGrimorioArea');if(!area)return;
- area.innerHTML=grimorioBanner();
- if(grimorioOpen){requestAnimationFrame(()=>{el('libraryGrimorioMount')?.scrollIntoView({behavior:motionOff()?'auto':'smooth',block:'start'});el('grimorioSearch')?.focus({preventScroll:true})})}
-}
 function grimorioRefreshResults(){
  const catalog=grimorioCatalogEntries(),filtered=grimorioFilteredEntries(catalog);
  const root=el('grimorioResults');if(root)root.innerHTML=grimorioResultsMarkup(filtered);
@@ -1004,42 +934,50 @@ function saveGrimorioOptions(){
  if(!requireMaster())return;
  const opts=grimorioStored();
  const title=String(el('grimorioTitleInput')?.value||'').trim(),subtitle=String(el('grimorioSubtitleInput')?.value||'').trim();
- if(!title){toast('Título obrigatório','Informe o título do Grimório.',true);return}
+ if(!title){toast('Título obrigatório','Informe o título da Consulta Rápida.',true);return}
  opts.title=title.slice(0,75);
  opts.subtitle=subtitle.slice(0,180);
  opts.visible=!!el('grimorioVisibleInput')?.checked;
- opts.autoGlossary=!!el('grimorioAutoInput')?.checked;
- save();rebuildLibraryGlossary();closeModal();render();toast('Grimório atualizado');
+ save();closeModal();render();toast('Consulta Rápida atualizada');
 }
 function manageGrimorio(){
  if(!requireMaster())return;
- rebuildLibraryGlossary();
- const opts=grimorioSettings(),suggestions=glossarySuggestions();
- const known=new Set(opts.glossary.map(i=>glossaryKey(i.name)));
- const hidden=new Set(opts.disabledTerms.map(glossaryKey));
- const entries=[
-  ...opts.glossary.filter(i=>i&&i.name).map(item=>({...item,source:'manual'})),
-  ...[...suggestions.values()].filter(item=>!known.has(glossaryKey(item.name))).map(item=>({...item,enabled:!hidden.has(glossaryKey(item.name))&&opts.autoGlossary!==false&&LIBRARY_HELP_TERMS.some(t=>glossaryKey(t)===glossaryKey(item.name)),source:'automatic'}))
- ].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+ const opts=grimorioSettings();
+ const entries=[...opts.glossary].filter(i=>i&&i.name).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
  const row=item=>{
   const key=encodeURIComponent(item.name),enabled=item.enabled!==false;
   return '<div class="ae-grimorio-manage-row"><div><strong>'+esc(item.name)+'</strong><small>'+
-   (item.source==='manual'?'PERSONALIZADO':'DETECTADO NO SISTEMA')+' · '+(enabled?'ATIVO':'INATIVO')+'</small></div>'+
+   (enabled?'PUBLICADO':'DESATIVADO')+' · VERBETE MANUAL</small></div>'+
    '<div class="ae-grimorio-manage-actions"><button type="button" data-action="editGlossary:'+key+'">EDITAR</button>'+
    '<button type="button" data-action="toggleGlossaryTerm:'+key+'">'+(enabled?'DESATIVAR':'ATIVAR')+'</button></div></div>';
  };
- modal('GERENCIAR GRIMÓRIO','<div class="ae-grimorio-manager">'+
-  '<p class="subtitle">Personalize o catálogo e os termos clicáveis da Biblioteca. Somente o mestre pode salvar.</p>'+
+ modal('GERENCIAR CONSULTA RÁPIDA','<div class="ae-grimorio-manager">'+
+  '<p class="subtitle">Somente verbetes criados pelo mestre aparecem aqui. Capítulos não são importados automaticamente.</p>'+
   '<div class="ae-grimorio-config-grid">'+
-   '<label>Título do botão<input id="grimorioTitleInput" maxlength="75" value="'+esc(opts.title)+'"></label>'+
+   '<label>Título da consulta<input id="grimorioTitleInput" maxlength="75" value="'+esc(opts.title)+'"></label>'+
    '<label>Descrição<textarea id="grimorioSubtitleInput" maxlength="180" rows="2">'+esc(opts.subtitle)+'</textarea></label></div>'+
   '<div class="ae-grimorio-toggles">'+
-   '<label><input id="grimorioVisibleInput" type="checkbox"'+(opts.visible?' checked':'')+'> Mostrar Grimório aos jogadores</label>'+
-   '<label><input id="grimorioAutoInput" type="checkbox"'+(opts.autoGlossary?' checked':'')+'> Catalogar definições encontradas nos capítulos</label></div>'+
-  '<div class="ae-grimorio-manager-head"><h3>VERBETES E GUIAS</h3>'+
+   '<label><input id="grimorioVisibleInput" type="checkbox"'+(opts.visible?' checked':'')+'> Mostrar Consulta Rápida aos jogadores</label></div>'+
+  '<div class="ae-grimorio-manager-head"><h3>VERBETES PERSONALIZADOS · '+entries.length+'</h3>'+
    '<button type="button" data-action="editGlossary:new">+ NOVO VERBETE</button></div>'+
-  '<div class="ae-grimorio-manage-list">'+entries.map(row).join('')+'</div></div>',
+  '<div class="ae-grimorio-manage-list">'+(entries.map(row).join('')||
+   '<p class="subtitle">Consulta vazia. Use + Novo verbete para começar do zero.</p>')+'</div>'+
+  (entries.length?'<div class="ae-consulta-danger-zone"><button type="button" class="btn danger" data-action="clearGlossaryEntries">APAGAR TODOS OS VERBETES</button></div>':'')+
+  '</div>',
   [['SALVAR CONFIGURAÇÕES','saveGrimorioOptions','main'],['FECHAR','closeModal','small']]);
+}
+function clearGlossaryEntries(){
+ if(!requireMaster())return;
+ const count=grimorioSettings().glossary.length;
+ if(!count)return;
+ confirmSite('ESVAZIAR CONSULTA RÁPIDA','Apagar permanentemente '+count+' verbete(s) personalizados? Os capítulos não serão afetados.',()=>{
+  if(!master())return;
+  const opts=grimorioStored();opts.glossary=[];
+  grimorioSelectedTerm='';grimorioQuery='';grimorioCategory='Todos';grimorioLetter='Todas';
+  grimorioFavorites=new Set();
+  try{DATASTORE.local?.removeItem(GRIMORIO_FAVORITES_KEY)}catch(e){}
+  save();render();manageGrimorio();toast('Consulta Rápida esvaziada');
+ });
 }
 function confirmGrimorioNavigation(action,message){
  if(!hasModalChanges()){action();return}
@@ -1058,7 +996,7 @@ function confirmGrimorioNavigationAction(){
 function cancelGrimorioNavigation(){pendingAction=null;returnModal()}
 function openGlossaryEditor(key){
  if(el('grimorioTitleInput')){
-  confirmGrimorioNavigation(()=>editGlossaryEntry(key),'As configurações do Grimório ainda não foram salvas.');
+  confirmGrimorioNavigation(()=>editGlossaryEntry(key),'As configurações da Consulta Rápida ainda não foram salvas.');
   return;
  }
  editGlossaryEntry(key);
@@ -1074,8 +1012,7 @@ function editGlossaryEntry(key){
  if(!requireMaster())return;
  let name='';try{name=key==='new'?'':decodeURIComponent(key)}catch(e){return}
  const settings=grimorioSettings(),previous=settings.glossary.find(i=>glossaryKey(i.name)===glossaryKey(name));
- const auto=glossarySuggestions().get(glossaryKey(name));
- const item=previous||auto||{name:'',description:'',chapterId:'',category:'Outros',enabled:true};
+ const item=previous||{name:'',description:'',chapterId:'',category:'Outros',enabled:true};
  const options=db.rules.map(r=>'<option value="'+esc(r.id)+'"'+(r.id===item.chapterId?' selected':'')+'>'+esc(r.title)+'</option>').join('');
  const category=GRIMORIO_CATEGORIES.map(c=>'<option value="'+esc(c)+'"'+(c===item.category?' selected':'')+'>'+esc(c)+'</option>').join('');
  const relatedTitles=Array.isArray(item.related)?item.related.filter(x=>typeof x==='string'):[];
@@ -1085,14 +1022,14 @@ function editGlossaryEntry(key){
  const connectionsHtml=connections.map(entry=>'<label class="ae-glossary-connection" data-connection-title="'+esc(entry.name)+'">'+
   '<input type="checkbox" data-glossary-connection value="'+esc(entry.name)+'"'+(relatedTitles.includes(entry.name)?' checked':'')+'>'+
   '<span><strong>'+esc(entry.name)+'</strong><small>'+esc(entry.category)+'</small></span></label>').join('');
- modal(name?'EDITAR GUIA DO GLOSSÁRIO':'NOVO GUIA DO GLOSSÁRIO','<div class="ae-glossary-editor">'+
+ modal(name?'EDITAR VERBETE':'NOVO VERBETE','<div class="ae-glossary-editor">'+
  '<p class="subtitle">Crie uma página independente e conecte-a a outras usando os títulos exatos.</p>'+
  '<label>Palavra ou expressão<input id="glossaryTermInput" maxlength="75" value="'+esc(item.name||'')+'" required></label>'+
  '<label>Conteúdo da página<textarea id="glossaryDescriptionInput" maxlength="6000" rows="7" required>'+esc(item.description||'')+'</textarea></label>'+
  '<label>Categoria<select id="glossaryCategoryInput">'+category+'</select></label>'+ 
  '<section class="ae-glossary-relations" aria-label="Relacionar páginas"><div class="ae-glossary-relations-header"><strong>CONEXÕES DIRETAS</strong><small>Selecione as páginas relacionadas. Os títulos devem corresponder exatamente.</small></div>'+
  '<input type="search" id="glossaryConnectionsSearch" autocomplete="off" placeholder="Buscar página para conectar" aria-label="Buscar páginas para conectar">'+
- '<div class="ae-glossary-relations-list" id="glossaryConnectionList">'+(connectionsHtml||'<p class="subtitle">Crie mais páginas no Grimório para adicionar conexões.</p>')+'</div></section>'+
+ '<div class="ae-glossary-relations-list" id="glossaryConnectionList">'+(connectionsHtml||'<p class="subtitle">Crie mais verbetes na Consulta Rápida para adicionar conexões.</p>')+'</div></section>'+
  '<label>Capítulo vinculado<select id="glossaryChapterInput"><option value="">Sem capítulo vinculado</option>'+options+'</select></label>'+
  '<label class="ae-grimorio-editor-check"><input type="checkbox" id="glossaryEnabledInput"'+(item.enabled===false?'':' checked')+'> Verbete ativo</label>'+
  '</div>',
@@ -1117,64 +1054,49 @@ function saveGlossaryEntry(){
  };
  opts.glossary=opts.glossary.filter(i=>glossaryKey(i.name)!==glossaryKey(old));
  opts.glossary.push(item);
- opts.disabledTerms=opts.disabledTerms.filter(t=>glossaryKey(t)!==glossaryKey(name));
- save();rebuildLibraryGlossary();closeModal();render();toast('Verbete salvo',name);
+ save();closeModal();render();toast('Verbete salvo',name);
 }
 function toggleGlossaryTerm(key){
  if(!requireMaster())return;
- if(el('grimorioTitleInput')){
-  if(hasModalChanges()){confirmGrimorioNavigation(()=>toggleGlossaryTerm(key),'Salve as configurações antes de alterar a disponibilidade dos verbetes.');return}
+ if(el('grimorioTitleInput')&&hasModalChanges()){
+  confirmGrimorioNavigation(()=>toggleGlossaryTerm(key),'Salve as configurações antes de alterar os verbetes.');return;
  }
  let name='';try{name=decodeURIComponent(key)}catch(e){return}
- const opts=grimorioStored(),term=glossaryKey(name),manual=opts.glossary.find(item=>glossaryKey(item.name)===term);
- if(manual)manual.enabled=manual.enabled===false;
- else{
-  const suggestion=glossarySuggestions().get(term);
-  const classical=opts.autoGlossary!==false&&LIBRARY_HELP_TERMS.some(t=>glossaryKey(t)===term);
-  if(suggestion&&!classical){
-   opts.glossary.push({
-    id:uid(),name:suggestion.name,description:suggestion.description,
-    chapterId:suggestion.chapterId,category:suggestion.category,enabled:true
-   });
-   opts.disabledTerms=opts.disabledTerms.filter(t=>glossaryKey(t)!==term);
-  }else{
-   const has=opts.disabledTerms.some(t=>glossaryKey(t)===term);
-   if(has)opts.disabledTerms=opts.disabledTerms.filter(t=>glossaryKey(t)!==term);
-   else opts.disabledTerms.push(name);
-  }
- }
- save();rebuildLibraryGlossary();render();manageGrimorio();
+ const opts=grimorioStored(),item=opts.glossary.find(row=>glossaryKey(row.name)===glossaryKey(name));
+ if(!item)return;
+ item.enabled=item.enabled===false;
+ save();render();manageGrimorio();
 }
 function deleteGlossaryEntry(){
  if(!requireMaster())return;
  const name=el('dialogRoot').dataset.glossaryOldName||'';
- confirmSite('APAGAR VERBETE','Remover a explicação personalizada? Uma definição automática poderá voltar a aparecer.',()=>{
+ confirmSite('APAGAR VERBETE','Remover esta página personalizada da Consulta Rápida? Ela não será recriada automaticamente.',()=>{
   const opts=grimorioStored();
   opts.glossary=opts.glossary.filter(item=>glossaryKey(item.name)!==glossaryKey(name));
-  save();rebuildLibraryGlossary();render();manageGrimorio();
+  save();render();manageGrimorio();
  });
 }
 
-const LIBRARY_HELP_TERMS=['Vida','Estabilidade','Alma','Desmaiado','Acorrentado','Morto','Pressionado','Grupos','Perícias','Dificuldade','Modificadores','Rodada','Fases','Ação Principal','Reação','Movimentação','Dano-base','Resistência','Estados','Condições','Recuperação Natural','Recuperação Especializada','Descanso Breve','Descanso Completo','Tratamento','Recomposição','Meditação','Cobertura','Ocultação','Posicionamento','Terreno','Conjuração Completa','Conjuração Abreviada','Ruptura da Máscara','Resistência Hollow','Domínio'];
-let libraryGlossary=new Map();
-function rebuildLibraryGlossary(){
- libraryGlossary=new Map();
- for(const entry of glossaryAllEntries())if(entry.enabled!==false)libraryGlossary.set(entry.name,entry);
-}
 function showLibraryMechanic(key){
  let decoded='';try{decoded=decodeURIComponent(key)}catch(e){return}
- rebuildLibraryGlossary();
- const item=libraryGlossary.get(decoded)||grimorioCatalogEntries().find(entry=>entry.name===decoded);
+ const item=grimorioCatalogEntries().find(entry=>entry.name===decoded);
  if(!item)return;
- const source=item.source==='manual'?'Guia personalizado pelo mestre.':'Definição extraída das próprias regras do sistema.';
+ const source='Verbete escrito manualmente pelo mestre.';
  const chapter=db.rules.find(r=>r.id===item.chapterId);
  const linked=(item.related||[]).map(name=>grimorioCatalogEntries().find(entry=>entry.name===name)).filter(Boolean);
  modal('O QUE É '+item.name.toLocaleUpperCase('pt-BR')+'?',
-  '<div class="ae-mechanic-explanation"><div class="eyebrow">GLOSSÁRIO · '+esc(chapter?.title||item.category||'GRIMÓRIO')+'</div>'+
+  '<div class="ae-mechanic-explanation"><div class="eyebrow">CONSULTA RÁPIDA · '+esc(chapter?.title||item.category||'VERBETE')+'</div>'+
   '<p>'+esc(item.description)+'</p>'+(linked.length?'<div class="ae-glossary-related"><strong>PÁGINAS RELACIONADAS</strong><div>'+linked.map(entry=>'<button type="button" data-action="explainRule:'+encodeURIComponent(entry.name)+'">'+esc(entry.name)+'</button>').join('')+'</div></div>':'')+'<p class="subtitle">'+source+'</p></div>',
   [...(chapter?[['VER CAPÍTULO','goMechanicChapter:'+encodeURIComponent(chapter.id),'main']]:[]),
    ...(master()?[['EDITAR VERBETE','editGlossary:'+encodeURIComponent(item.name),'small']]:[]),
    ['FECHAR','closeModal','small']]);
+}
+function openGuideChapter(id){
+ const chapter=db.rules.find(r=>r.id===id&&r.book!=='book2');
+ if(!chapter)return;
+ libraryMode='chapters';
+ if(window.ARQUIVO_SECOES?.active!=='book1')window.ARQUIVO_SECOES?.select?.('book1');
+ openLibraryChapter(chapter.id);
 }
 function goLibraryMechanicChapter(code){
  let id='';try{id=decodeURIComponent(code)}catch(e){return}
@@ -1268,45 +1190,10 @@ function libraryTermTone(name){
 function formatBook(source,chapterTitle='',options={}){
  const rows=String(source||'').replace(/\r\n?/g,'\n').split('\n');
  const searchText=options.highlight===false?'':query.trim(),search=searchText?new RegExp(searchText.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'):null;
- const sharedIndex=window.ARQUIVO_BIBLIOTECA_LEITURA?.glossaryIndex?.(libraryGlossary);
- const names=sharedIndex?.names||[...libraryGlossary.keys()].filter(Boolean).sort((a,b)=>b.length-a.length);
- const namesByInitial=sharedIndex?.byInitial||new Map();
- if(!sharedIndex)for(const name of names){
-  const initial=name[0];
-  if(!namesByInitial.has(initial))namesByInitial.set(initial,[]);
-  namesByInitial.get(initial).push(name);
- }
- const letterOrNumber=/[\p{L}\p{N}]/u;
- // Correspondência literal: jamais normalizar acentos, caixa ou grafia na leitura.
- function insertGlossaryReferences(source,markers){
-  const original=String(source||'');
-  if(!names.length)return original;
-  let output='',position=0;
-  while(position<original.length){
-   let title=null;
-   if(position===0||!letterOrNumber.test(original[position-1])){
-    for(const candidate of namesByInitial.get(original[position])||[]){
-     if(!original.startsWith(candidate,position))continue;
-     const next=original[position+candidate.length]||'';
-     if(!next||!letterOrNumber.test(next)){title=candidate;break}
-    }
-   }
-   if(title){
-    const id=markers.push({name:title,display:title})-1;
-    output+='@@AEGLOSS'+id+'@@';
-    position+=title.length;
-   }else{
-    output+=original[position];
-    position++;
-   }
-  }
-  return output;
- }
  function inline(text){
   const markers=[];
   let raw=window.ARQUIVO_BARRAS_INLINE?.mark(text,markers)??String(text||'');
-  raw=insertGlossaryReferences(raw,markers);
-  raw=markInlineDice(raw,markers,'@@AEGLOSS');
+  raw=markInlineDice(raw,markers,'@@AEDIE');
   let t=esc(raw)
     .replace(/\[cor=(#[0-9a-f]{6})\]([\s\S]*?)\[\/cor\]/gi,(_,color,content)=>'<span class="ae-manual-color" style="color:'+color+'">'+content+'</span>')
     .replace(/\\([*_~`])/g,'$1')
@@ -1316,12 +1203,12 @@ function formatBook(source,chapterTitle='',options={}){
     .replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>')
     .replace(/`([^`]+)`/g,'<code>$1</code>');
   if(search)t=t.split(/(<[^>]*>)/g).map(segment=>segment.startsWith('<')?segment:segment.replace(search,match=>'<mark>'+match+'</mark>')).join('');
-  return t.replace(/@@(?:AEGLOSS|AEBAR)(\d+)@@/g,(_,index)=>{
+  return t.replace(/@@(?:AEDIE|AEBAR)(\d+)@@/g,(_,index)=>{
    const marker=markers[Number(index)];
    if(!marker)return '';
    if(marker.inlineBar)return window.ARQUIVO_BARRAS_INLINE?.render(marker)||'';
    if(marker.sides)return dieShape(marker.sides,'ae-inline-die',marker.count);
-   return '<span class="ae-glossary-link" role="link" tabindex="0" data-action="explainRule:'+encodeURIComponent(marker.name)+'" aria-label="Consultar '+esc(marker.name)+' no glossário">'+esc(marker.display)+'</span>';
+   return '';
   });
  }
  const reader=window.ARQUIVO_BIBLIOTECA_LEITURA;
@@ -2725,7 +2612,7 @@ function bindEvents(){document.addEventListener('keydown',event=>{
   return;
  }
  render();return
-}const b=e.target.closest('[data-action]');if(!b)return;const parts=b.dataset.action.split(':'),a=parts[0];if(a==='previewMasterKey'){previewMasterKey();return}if(['freeRoll','shieldRoll','testSound'].includes(a))prepareRollAudio();if(['freeRoll','shieldRoll'].includes(a)&&!rollingBusy)beginRollFeedback(b);if(!['resource','skill','freeRoll','shieldRoll','useAbility','rerollVerifiedSkill','rollConfiguredSkill','abilityRoll'].includes(a))sound();switch(a){case'mobileMoreToggle':setMobileMore(el('mobileMoreMenu')?.hidden);break;case'hudToggle':{const m=el('music'),small=m.classList.toggle('compact-hud');const t=el('hudToggle'),side=el('sidebarAudio');t.textContent=small?'▴':'▾';t.setAttribute('aria-expanded',String(!small));t.title=small?'Expandir player':'Minimizar player';if(side){side.setAttribute('aria-expanded',String(!small));side.title=small?'Abrir música':'Minimizar música'}prefs.hudMinimized=small;PREFSSTORE.save();const mobileAudio=el('mobileAudioButton');if(mobileAudio)mobileAudio.setAttribute('aria-expanded',String(!small));setMobileMore(false);break}case'resetSheetColor':resetSheetColor();break;case'importOldSheetColors':importOldSheetColors();break;case'colorNote':wrapColoredSelection('notesField','noteColorPicker');break;case'removeAbilityImage':removeAbilityImage(Number(parts[1]));break;case'removeNoteImage':removeNoteImage(Number(parts[1]));break;case'noteImageUrlDialog':noteImageUrlDialog();break;case'noteImageUrlSave':noteImageUrlSave();break;case'conditionInfo':conditionInfo(Number(parts[1]));break;case'forceSync':forceOnlineSync();break;case'toggleEditText':if(!master())break;editMode=!editMode;syncEditModeExit();render();toast(editMode?'Edição ativada · botão fixo para encerrar':'Edição desativada');break;case'saveEditedText':saveEditedText();break;case'restoreEditedText':restoreEditedText();break;case'onlineBootstrapDialog':onlineBootstrapDialog();break;case'onlineBootstrapSave':onlineBootstrapSave();break;case'resetSettings':resetSettings(parts[1]);break;case'paletteEditor':paletteEditor();break;case'testSound':prepareRollAudio();sound('critical');break;case'speechSample':window.ARQUIVO_SPEECH?.sample();break;case'speechRead':window.ARQUIVO_SPEECH?.readSelection();break;case'speechReadDialog':window.ARQUIVO_SPEECH?.readDialog();break;case'speechStop':window.ARQUIVO_SPEECH?.stop();break;case'speechResetPanel':window.ARQUIVO_SPEECH?.reset();break;case'access':showAccess();break;case'logout':logoutSite();break;case'submitKey':submitKey();break;case'toggleLoginKey':toggleLoginKeyVisibility();break;case'closeModal':requestModalClose();break;case'discardModal':discardModal();break;case'returnModal':returnModal();break;case'confirmPending':confirmPending();break;case'firstKeys':firstKeys();break;case'adminTab':adminTab(parts[1]);break;case'newKey':newKey(parts[1]);break;case'createKey':createKey(parts[1]);break;case'copyGenerated':copyGenerated();break;case'manageKey':manageKey(parts[1]);break;case'saveManagedKey':saveManagedKey(parts[1]);break;case'rotateManagedKey':rotateManagedKey(parts[1]);break;case'toggleKey':toggleKey(parts[1]);break;case'removeKey':removeKey(parts[1]);break;case'removeAccount':removeAccountSite(parts[1]);break;case'publishData':publishData();break;case'saveKeys':saveKeys();break;case'navSheets':setPage('sheets');break;case'navRolls':setPage('rolls');break;case'newSheet':newSheet();break;case'editSheetSection':editSheetSection(parts[1]);break;case'abilityGroups':abilityGroupsDialog();break;case'abilityGroupCreate':abilityGroupCreate();break;case'abilityGroupRename':abilityGroupRename(parts[1]);break;case'abilityGroupDelete':abilityGroupDelete(parts[1]);break;case'editAbilityDirect':editAbilityDirect(Number(parts[1]));break;case'newAbilityDirect':newAbilityDirect();break;case'inventoryAddItem':inventoryItemDialog(-1);break;case'inventoryEditItem':inventoryItemDialog(Number(parts[1]));break;case'inventoryToggleEquipped':inventoryToggleEquipped(Number(parts[1]));break;case'inventorySaveItem':inventorySaveItem();break;case'inventoryDeleteItem':inventoryDeleteItem(Number(parts[1]));break;case'inventoryRemoveImage':inventoryRemoveImage();break;case'inventoryAddCurrency':inventoryCurrencyDialog(-1);break;case'inventoryEditCurrency':inventoryCurrencyDialog(Number(parts[1]));break;case'inventorySaveCurrency':inventorySaveCurrency();break;case'inventoryDeleteCurrency':inventoryDeleteCurrency(Number(parts[1]));break;case'newMasterSheet':newMasterSheet();break;case'editSheetForm':editSheetForm();break;case'sheetLinks':sheetLinks();break;case'claimSheet':changeSheetLink('claim');break;case'leaveSheet':changeSheetLink('leave');break;case'addSheetLink':changeSheetLink('add');break;case'removeSheetLink':changeSheetLink('remove');break;case'saveSheetForm':saveSheetForm();break;case'cancelSheetForm':cancelSheetForm();break;case'applyGroup':applyGroup(parts[1]);break;case'addAbility':addAbility();break;case'removeAbility':removeAbility(+parts[1]);break;case'moveAbility':moveAbility(+parts[1],+parts[2]);break;case'moveRule':moveRule(+parts[1]);break;case'toggleChapter':toggleLibraryChapter(parts[1]);break;case'openChapter':openLibraryChapter(parts[1]);break;case'openAllChapters':setAllLibraryChapters(true);break;case'closeAllChapters':setAllLibraryChapters(false);break;case'clearLibrarySearch':libraryClearSearch();break;case'toggleGrimorio':toggleGrimorio();break;case'libraryMode':setLibraryMode(parts[1]);break;case'grimorioCategoryFilter':{let category='';try{category=decodeURIComponent(parts.slice(1).join(':'))}catch{}if(['Todos',...GRIMORIO_CATEGORIES].includes(category)){grimorioCategory=category;grimorioLetter='Todas';const field=el('grimorioCategory');if(field)field.value=category;grimorioRefreshResults()}break}case'grimorioLetter':{let letter='';try{letter=decodeURIComponent(parts.slice(1).join(':'))}catch{}if(letter==='Todas'||/^[A-Z0-9]$/.test(letter)){grimorioLetter=letter;grimorioRefreshResults()}break}case'grimorioSelect':selectGrimorioEntry(parts.slice(1).join(':'));break;case'grimorioFavorite':toggleGrimorioFavorite(parts.slice(1).join(':'));break;case'grimorioOnlyFavorites':grimorioFavoritesOnly=!grimorioFavoritesOnly;grimorioRefreshResults();break;case'grimorioQuick':{let value='';try{value=decodeURIComponent(parts.slice(1).join(':'))}catch{}grimorioQuery=value;grimorioCategory='Todos';grimorioLetter='Todas';const field=el('grimorioSearch');if(field)field.value=value;const cat=el('grimorioCategory');if(cat)cat.value='Todos';grimorioRefreshResults();el('grimorioSearch')?.focus();break}case'grimorioReset':grimorioQuery='';grimorioCategory='Todos';grimorioLetter='Todas';grimorioFavoritesOnly=false;{const f=el('grimorioSearch');if(f){f.value='';f.focus()}const cat=el('grimorioCategory');if(cat)cat.value='Todos'}grimorioRefreshResults();break;case'manageGrimorio':manageGrimorio();break;case'saveGrimorioOptions':saveGrimorioOptions();break;case'editGlossary':openGlossaryEditor(parts.slice(1).join(':'));break;case'backGrimorioManager':backToGrimorioManager();break;case'confirmGrimorioNavigation':confirmGrimorioNavigationAction();break;case'cancelGrimorioNavigation':cancelGrimorioNavigation();break;case'saveGlossaryEntry':saveGlossaryEntry();break;case'toggleGlossaryTerm':toggleGlossaryTerm(parts.slice(1).join(':'));break;case'deleteGlossaryEntry':deleteGlossaryEntry();break;case'explainRule':showLibraryMechanic(parts[1]);break;case'goMechanicChapter':goLibraryMechanicChapter(parts[1]);break;case'navLibrary':setPage('library');break;case'newRule':ruleEditor();break;case'editRule':ruleEditor(parts.slice(1).join(':'));break;case'libraryFormat':libraryInsertFormat(parts[1]);break;case'libraryInsertTemplate':libraryInsertTemplate();break;case'libraryInsertDie':libraryInsertDie();break;case'libraryInsertBar':libraryInsertBar();break;case'duplicateRuleDraft':duplicateRuleDraft();break;case'saveRule':saveRule();break;case'deleteRule':deleteRule();break;case'import':importDialog();break;case'saveImport':saveImport();break;case'copyInstruction':copyInstruction();break;case'backSheets':currentSheet=null;render();break;case'copySheetId':copySheetId();break;case'exportSheet':sheetExport();break;case'editSheet':editSheet();break;case'deleteSheet':deleteSheet();break;case'deleteSheetFinalStep':deleteSheetFinalStep();break;case'returnSheetEditor':returnSheetEditor();break;case'confirmSheetDeletion':void confirmSheetDeletion();break;case'sheetImage':imageDialog();break;case'freeRoll':freeRoll();break;case'freeFaces':if(el('diceFaces')){el('diceFaces').value=String(Number(parts[1]));updateFreeDicePreview()}break;case'shieldRoll':freeRoll(true);break;case'historyNav':historyNavigate(decodeURIComponent(parts[1]),parts[2]);break;case'chooseMusic':chooseMusic();break;case'musicMasterPlay':musicMasterCommand('play');break;case'musicMasterPause':musicMasterCommand('pause');break;case'musicMasterLoop':musicMasterCommand('loop');break;case'musicMasterSeek':musicMasterCommand('seek');break;case'playUpload':{const path=decodeURIComponent(parts.slice(1).join(':'));const st=window.ARQUIVO_SYNC;const u=st.state.client.storage.from('musica').getPublicUrl(path).data.publicUrl;sharedMusicCommand('file',u,path,true,0,false);break}case'deleteUpload':deleteUploaded(decodeURIComponent(parts.slice(1).join(':')));break;case'musicAccess':musicSoundUnlocked=true;el('music').classList.remove('requires-gesture');syncSharedMusic(true);break;case'clearRolls':clearRollHistory();break;case'originMeter':adjustOriginMeter(parts[1],Number(parts[2]));break;case'editResource':editResource(parts[1]);break;case'setResource':setResource();break;case'conditionAdd':addCondition();break;case'confirmCondition':confirmCondition();break;case'conditionRemove':removeCondition(Number(parts[1]));break;case'editNotes':editNotes();break;case'saveNotes':saveNotes();break;case'saveSite':saveSite();break;case'backup':exportBackup();break;case'restore':restoreDialog();break;case'restoreCheck':restoreCheck();break;case'saveMusic':saveMusic();break;case'musicToggle':musicToggle();break;case'mute':prefs.musicMuted=!prefs.musicMuted;PREFSSTORE.save();applyPrefs();break;case'soundToggle':prefs.effectsMuted=!prefs.effectsMuted;PREFSSTORE.save();applyPrefs();break;}});document.addEventListener('input',e=>{if(e.target.id==='confirmSheetName'){const pending=pendingSheetDeletion;const button=el('dialogRoot')?.querySelector('[data-action="confirmSheetDeletion"]');if(button)button.disabled=!pending||pending.step!==2||e.target.value!==pending.name;const error=el('deleteSheetError');if(error)error.textContent='';return}if(['diceCount','diceFaces'].includes(e.target.id))updateFreeDicePreview();if(e.target.id==='invImageUrl')inventoryLinkImage(e.target.value);if(e.target.closest('#dialogRoot')&&!modalGuard&&!e.target.closest('.ae-palette-dialog'))modalDirty=true;if(e.target.id==='ruleSearch'){query=e.target.value;libraryRefreshResults()}if(e.target.id==='grimorioSearch'){grimorioQuery=e.target.value;grimorioRefreshResults()}if(e.target.id==='glossaryConnectionsSearch'){const needle=glossaryKey(e.target.value);el('glossaryConnectionList')?.querySelectorAll('[data-connection-title]').forEach(row=>{row.hidden=!glossaryKey(row.dataset.connectionTitle).includes(needle)})}if(['settingsMaster','settingsMusic','settingsEffects'].includes(e.target.id)){changeSetting(e.target.id,e.target.value)}if(e.target.dataset.palette)changeCustomPaletteColor(e.target.dataset.palette,e.target.value);if((e.target.dataset.edit||e.target.dataset.ability||e.target.dataset.abilityDie)&&editorDraft)updateDraft(e.target);if(e.target.id==='ruleText')libraryEditorRefresh();if(e.target.id==='ruleTitle'&&el('ruleEditorState'))el('ruleEditorState').textContent='Alterações não salvas';if(e.target.dataset.sheetPalette)setSheetPalette(e.target.dataset.sheetPalette,e.target.value);if(e.target.id==='globalGradientEnd')changeCustomGradient('end',e.target.value);if(e.target.dataset.sheetGradient==='end')setSheetGradient('gradientEnd',e.target.value);if(e.target.matches('input[type=range]'))updateRangeTrack(e.target);if(e.target.id==='musicVolume'){try{changeSetting('musicVolume',e.target.value)}catch(e){}}});document.addEventListener('change',e=>{if(e.target.id==='libraryEditorResourceKind'&&['marca','sequencia'].includes(e.target.value)){
+}const b=e.target.closest('[data-action]');if(!b)return;const parts=b.dataset.action.split(':'),a=parts[0];if(a==='previewMasterKey'){previewMasterKey();return}if(['freeRoll','shieldRoll','testSound'].includes(a))prepareRollAudio();if(['freeRoll','shieldRoll'].includes(a)&&!rollingBusy)beginRollFeedback(b);if(!['resource','skill','freeRoll','shieldRoll','useAbility','rerollVerifiedSkill','rollConfiguredSkill','abilityRoll'].includes(a))sound();switch(a){case'mobileMoreToggle':setMobileMore(el('mobileMoreMenu')?.hidden);break;case'hudToggle':{const m=el('music'),small=m.classList.toggle('compact-hud');const t=el('hudToggle'),side=el('sidebarAudio');t.textContent=small?'▴':'▾';t.setAttribute('aria-expanded',String(!small));t.title=small?'Expandir player':'Minimizar player';if(side){side.setAttribute('aria-expanded',String(!small));side.title=small?'Abrir música':'Minimizar música'}prefs.hudMinimized=small;PREFSSTORE.save();const mobileAudio=el('mobileAudioButton');if(mobileAudio)mobileAudio.setAttribute('aria-expanded',String(!small));setMobileMore(false);break}case'resetSheetColor':resetSheetColor();break;case'importOldSheetColors':importOldSheetColors();break;case'colorNote':wrapColoredSelection('notesField','noteColorPicker');break;case'removeAbilityImage':removeAbilityImage(Number(parts[1]));break;case'removeNoteImage':removeNoteImage(Number(parts[1]));break;case'noteImageUrlDialog':noteImageUrlDialog();break;case'noteImageUrlSave':noteImageUrlSave();break;case'conditionInfo':conditionInfo(Number(parts[1]));break;case'forceSync':forceOnlineSync();break;case'toggleEditText':if(!master())break;editMode=!editMode;syncEditModeExit();render();toast(editMode?'Edição ativada · botão fixo para encerrar':'Edição desativada');break;case'saveEditedText':saveEditedText();break;case'restoreEditedText':restoreEditedText();break;case'onlineBootstrapDialog':onlineBootstrapDialog();break;case'onlineBootstrapSave':onlineBootstrapSave();break;case'resetSettings':resetSettings(parts[1]);break;case'paletteEditor':paletteEditor();break;case'testSound':prepareRollAudio();sound('critical');break;case'speechSample':window.ARQUIVO_SPEECH?.sample();break;case'speechRead':window.ARQUIVO_SPEECH?.readSelection();break;case'speechReadDialog':window.ARQUIVO_SPEECH?.readDialog();break;case'speechStop':window.ARQUIVO_SPEECH?.stop();break;case'speechResetPanel':window.ARQUIVO_SPEECH?.reset();break;case'access':showAccess();break;case'logout':logoutSite();break;case'submitKey':submitKey();break;case'toggleLoginKey':toggleLoginKeyVisibility();break;case'closeModal':requestModalClose();break;case'discardModal':discardModal();break;case'returnModal':returnModal();break;case'confirmPending':confirmPending();break;case'firstKeys':firstKeys();break;case'adminTab':adminTab(parts[1]);break;case'newKey':newKey(parts[1]);break;case'createKey':createKey(parts[1]);break;case'copyGenerated':copyGenerated();break;case'manageKey':manageKey(parts[1]);break;case'saveManagedKey':saveManagedKey(parts[1]);break;case'rotateManagedKey':rotateManagedKey(parts[1]);break;case'toggleKey':toggleKey(parts[1]);break;case'removeKey':removeKey(parts[1]);break;case'removeAccount':removeAccountSite(parts[1]);break;case'publishData':publishData();break;case'saveKeys':saveKeys();break;case'navSheets':setPage('sheets');break;case'navRolls':setPage('rolls');break;case'newSheet':newSheet();break;case'editSheetSection':editSheetSection(parts[1]);break;case'abilityGroups':abilityGroupsDialog();break;case'abilityGroupCreate':abilityGroupCreate();break;case'abilityGroupRename':abilityGroupRename(parts[1]);break;case'abilityGroupDelete':abilityGroupDelete(parts[1]);break;case'editAbilityDirect':editAbilityDirect(Number(parts[1]));break;case'newAbilityDirect':newAbilityDirect();break;case'inventoryAddItem':inventoryItemDialog(-1);break;case'inventoryEditItem':inventoryItemDialog(Number(parts[1]));break;case'inventoryToggleEquipped':inventoryToggleEquipped(Number(parts[1]));break;case'inventorySaveItem':inventorySaveItem();break;case'inventoryDeleteItem':inventoryDeleteItem(Number(parts[1]));break;case'inventoryRemoveImage':inventoryRemoveImage();break;case'inventoryAddCurrency':inventoryCurrencyDialog(-1);break;case'inventoryEditCurrency':inventoryCurrencyDialog(Number(parts[1]));break;case'inventorySaveCurrency':inventorySaveCurrency();break;case'inventoryDeleteCurrency':inventoryDeleteCurrency(Number(parts[1]));break;case'newMasterSheet':newMasterSheet();break;case'editSheetForm':editSheetForm();break;case'sheetLinks':sheetLinks();break;case'claimSheet':changeSheetLink('claim');break;case'leaveSheet':changeSheetLink('leave');break;case'addSheetLink':changeSheetLink('add');break;case'removeSheetLink':changeSheetLink('remove');break;case'saveSheetForm':saveSheetForm();break;case'cancelSheetForm':cancelSheetForm();break;case'applyGroup':applyGroup(parts[1]);break;case'addAbility':addAbility();break;case'removeAbility':removeAbility(+parts[1]);break;case'moveAbility':moveAbility(+parts[1],+parts[2]);break;case'moveRule':moveRule(+parts[1]);break;case'toggleChapter':toggleLibraryChapter(parts[1]);break;case'openChapter':openLibraryChapter(parts[1]);break;case'openAllChapters':setAllLibraryChapters(true);break;case'closeAllChapters':setAllLibraryChapters(false);break;case'clearLibrarySearch':libraryClearSearch();break;case'libraryMode':setLibraryMode(parts[1]);break;case'grimorioCategoryFilter':{let category='';try{category=decodeURIComponent(parts.slice(1).join(':'))}catch{}if(['Todos',...GRIMORIO_CATEGORIES].includes(category)){grimorioCategory=category;grimorioLetter='Todas';const field=el('grimorioCategory');if(field)field.value=category;grimorioRefreshResults()}break}case'grimorioLetter':{let letter='';try{letter=decodeURIComponent(parts.slice(1).join(':'))}catch{}if(letter==='Todas'||/^[A-Z0-9]$/.test(letter)){grimorioLetter=letter;grimorioRefreshResults()}break}case'grimorioSelect':selectGrimorioEntry(parts.slice(1).join(':'));break;case'grimorioFavorite':toggleGrimorioFavorite(parts.slice(1).join(':'));break;case'grimorioOnlyFavorites':grimorioFavoritesOnly=!grimorioFavoritesOnly;grimorioRefreshResults();break;case'grimorioQuick':{let value='';try{value=decodeURIComponent(parts.slice(1).join(':'))}catch{}grimorioQuery=value;grimorioCategory='Todos';grimorioLetter='Todas';const field=el('grimorioSearch');if(field)field.value=value;const cat=el('grimorioCategory');if(cat)cat.value='Todos';grimorioRefreshResults();el('grimorioSearch')?.focus();break}case'grimorioReset':grimorioQuery='';grimorioCategory='Todos';grimorioLetter='Todas';grimorioFavoritesOnly=false;{const f=el('grimorioSearch');if(f){f.value='';f.focus()}const cat=el('grimorioCategory');if(cat)cat.value='Todos'}grimorioRefreshResults();break;case'manageGrimorio':manageGrimorio();break;case'clearGlossaryEntries':clearGlossaryEntries();break;case'saveGrimorioOptions':saveGrimorioOptions();break;case'editGlossary':openGlossaryEditor(parts.slice(1).join(':'));break;case'backGrimorioManager':backToGrimorioManager();break;case'confirmGrimorioNavigation':confirmGrimorioNavigationAction();break;case'cancelGrimorioNavigation':cancelGrimorioNavigation();break;case'saveGlossaryEntry':saveGlossaryEntry();break;case'toggleGlossaryTerm':toggleGlossaryTerm(parts.slice(1).join(':'));break;case'deleteGlossaryEntry':deleteGlossaryEntry();break;case'explainRule':showLibraryMechanic(parts[1]);break;case'goMechanicChapter':goLibraryMechanicChapter(parts[1]);break;case'navLibrary':setPage('library');break;case'newRule':ruleEditor();break;case'editRule':ruleEditor(parts.slice(1).join(':'));break;case'libraryFormat':libraryInsertFormat(parts[1]);break;case'libraryInsertTemplate':libraryInsertTemplate();break;case'libraryInsertDie':libraryInsertDie();break;case'libraryInsertBar':libraryInsertBar();break;case'duplicateRuleDraft':duplicateRuleDraft();break;case'saveRule':saveRule();break;case'deleteRule':deleteRule();break;case'import':importDialog();break;case'saveImport':saveImport();break;case'copyInstruction':copyInstruction();break;case'backSheets':currentSheet=null;render();break;case'copySheetId':copySheetId();break;case'exportSheet':sheetExport();break;case'editSheet':editSheet();break;case'deleteSheet':deleteSheet();break;case'deleteSheetFinalStep':deleteSheetFinalStep();break;case'returnSheetEditor':returnSheetEditor();break;case'confirmSheetDeletion':void confirmSheetDeletion();break;case'sheetImage':imageDialog();break;case'freeRoll':freeRoll();break;case'freeFaces':if(el('diceFaces')){el('diceFaces').value=String(Number(parts[1]));updateFreeDicePreview()}break;case'shieldRoll':freeRoll(true);break;case'historyNav':historyNavigate(decodeURIComponent(parts[1]),parts[2]);break;case'chooseMusic':chooseMusic();break;case'musicMasterPlay':musicMasterCommand('play');break;case'musicMasterPause':musicMasterCommand('pause');break;case'musicMasterLoop':musicMasterCommand('loop');break;case'musicMasterSeek':musicMasterCommand('seek');break;case'playUpload':{const path=decodeURIComponent(parts.slice(1).join(':'));const st=window.ARQUIVO_SYNC;const u=st.state.client.storage.from('musica').getPublicUrl(path).data.publicUrl;sharedMusicCommand('file',u,path,true,0,false);break}case'deleteUpload':deleteUploaded(decodeURIComponent(parts.slice(1).join(':')));break;case'musicAccess':musicSoundUnlocked=true;el('music').classList.remove('requires-gesture');syncSharedMusic(true);break;case'clearRolls':clearRollHistory();break;case'originMeter':adjustOriginMeter(parts[1],Number(parts[2]));break;case'editResource':editResource(parts[1]);break;case'setResource':setResource();break;case'conditionAdd':addCondition();break;case'confirmCondition':confirmCondition();break;case'conditionRemove':removeCondition(Number(parts[1]));break;case'editNotes':editNotes();break;case'saveNotes':saveNotes();break;case'saveSite':saveSite();break;case'backup':exportBackup();break;case'restore':restoreDialog();break;case'restoreCheck':restoreCheck();break;case'saveMusic':saveMusic();break;case'musicToggle':musicToggle();break;case'mute':prefs.musicMuted=!prefs.musicMuted;PREFSSTORE.save();applyPrefs();break;case'soundToggle':prefs.effectsMuted=!prefs.effectsMuted;PREFSSTORE.save();applyPrefs();break;}});document.addEventListener('input',e=>{if(e.target.id==='confirmSheetName'){const pending=pendingSheetDeletion;const button=el('dialogRoot')?.querySelector('[data-action="confirmSheetDeletion"]');if(button)button.disabled=!pending||pending.step!==2||e.target.value!==pending.name;const error=el('deleteSheetError');if(error)error.textContent='';return}if(['diceCount','diceFaces'].includes(e.target.id))updateFreeDicePreview();if(e.target.id==='invImageUrl')inventoryLinkImage(e.target.value);if(e.target.closest('#dialogRoot')&&!modalGuard&&!e.target.closest('.ae-palette-dialog'))modalDirty=true;if(e.target.id==='ruleSearch'){query=e.target.value;libraryRefreshResults()}if(e.target.id==='grimorioSearch'){grimorioQuery=e.target.value;grimorioRefreshResults()}if(e.target.id==='glossaryConnectionsSearch'){const needle=glossaryKey(e.target.value);el('glossaryConnectionList')?.querySelectorAll('[data-connection-title]').forEach(row=>{row.hidden=!glossaryKey(row.dataset.connectionTitle).includes(needle)})}if(['settingsMaster','settingsMusic','settingsEffects'].includes(e.target.id)){changeSetting(e.target.id,e.target.value)}if(e.target.dataset.palette)changeCustomPaletteColor(e.target.dataset.palette,e.target.value);if((e.target.dataset.edit||e.target.dataset.ability||e.target.dataset.abilityDie)&&editorDraft)updateDraft(e.target);if(e.target.id==='ruleText')libraryEditorRefresh();if(e.target.id==='ruleTitle'&&el('ruleEditorState'))el('ruleEditorState').textContent='Alterações não salvas';if(e.target.dataset.sheetPalette)setSheetPalette(e.target.dataset.sheetPalette,e.target.value);if(e.target.id==='globalGradientEnd')changeCustomGradient('end',e.target.value);if(e.target.dataset.sheetGradient==='end')setSheetGradient('gradientEnd',e.target.value);if(e.target.matches('input[type=range]'))updateRangeTrack(e.target);if(e.target.id==='musicVolume'){try{changeSetting('musicVolume',e.target.value)}catch(e){}}});document.addEventListener('change',e=>{if(e.target.id==='libraryEditorResourceKind'&&['marca','sequencia'].includes(e.target.value)){
  const count=el('libraryEditorBarTotal'),filled=el('libraryEditorBarFilled');
  const max=e.target.value==='marca'?1:3;
  if(count)count.value=String(max);
@@ -2814,6 +2701,6 @@ function background(){
  resize();refresh();
 }
 async function init(){await migrateLegacyKeys();db.site??={};db.site.defaultPalette??='zangetsu';db.rules??=[];db.sheets??=[];db.sheets.forEach(s=>{s.conditions??=[];s.abilities??=[];s.inventory??={items:[],currencies:[]}});if(role!=='guest'&&!db.keys.some(k=>k.id===keyOwnerId&&k.active)){role='guest';keyOwnerId='';DATASTORE.clearRole()}soundOn=effectiveEffectsVolume()>0;musicMuted=!!(prefs.musicMuted||prefs.masterMuted);applyPrefs();try{setMusicSource()}catch(e){}if(prefs.hudMinimized){el('music').classList.add('compact-hud');const b=el('hudToggle');b.textContent='▴';b.setAttribute('aria-expanded','false')}const audioTab=el('sidebarAudio');if(audioTab)audioTab.setAttribute('aria-expanded',String(!prefs.hudMinimized));bindEvents();render();background();if(DATASTORE.blocked)storageWarning();el('audio').addEventListener('ended',()=>{musicOn=false;updateMusicUi()});el('audio').addEventListener('error',()=>{if(musicOn){musicOn=false;updateMusicUi()}})}
-window.ARQUIVO_INTERNAL={setPage,get page(){return page},get db(){return db},get prefs(){return prefs},get currentSheet(){return currentSheet},get role(){return isPlayerPreview()?'player':role},get editorDraft(){return editorDraft},canEditSheet,master,save,cacheOnly:()=>DATASTORE.save(db),render,toast,redrawSheetForm:drawSheetForm,modal,historyHtml,dataUrlOk,mediaSrc,sheetRich,formatBook,esc,btn,headline,closeModal,confirmSite,uid,resetLibraryState:()=>{query='';libraryActiveChapterId=null},conditionsCatalog:CONDITIONS_CATALOG};
+window.ARQUIVO_INTERNAL={setPage,openGuideChapter,get page(){return page},get db(){return db},get prefs(){return prefs},get currentSheet(){return currentSheet},get role(){return isPlayerPreview()?'player':role},get editorDraft(){return editorDraft},canEditSheet,master,save,cacheOnly:()=>DATASTORE.save(db),render,toast,redrawSheetForm:drawSheetForm,modal,historyHtml,dataUrlOk,mediaSrc,sheetRich,formatBook,esc,btn,headline,closeModal,confirmSite,uid,resetLibraryState:()=>{query='';libraryActiveChapterId=null},conditionsCatalog:CONDITIONS_CATALOG};
 init();
 if(window.ARQUIVO_SYNC?.state.configured)window.ARQUIVO_SYNC.init();

@@ -66,7 +66,7 @@ test('integração mantém os capítulos originais e carrega recursos em ordem',
  assert.match(html,/biblioteca-secoes\.css\?v=10/);
  assert.match(html,/biblioteca-leitura\.css\?v=\d+/);
  assert.match(html,/biblioteca-leitura\.js\?v=\d+/);
- assert.ok(html.indexOf('biblioteca-leitura.js?v=3')<html.indexOf('arquivo-app.js?'));
+ assert.ok(html.indexOf('biblioteca-leitura.js?v=4')<html.indexOf('arquivo-app.js?'));
  assert.match(app,/chapterReadingMarkup\(r\)/);
  assert.match(html,/habilidades-armazem\.js\?v=5/);
  assert.match(html,/racas-armazem\.js\?v=1/);

@@ -10,7 +10,7 @@ const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8')
  .replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>','');
 
-test('Biblioteca para jogador: glossário direto, resposta legível, capítulos independentes e celular',
+test('Biblioteca para jogador: consulta manual vazia, guia de combate, livros e celular',
  {timeout:65000},async t=>{
  const server=http.createServer((req,res)=>{
   const route=decodeURIComponent((req.url||'/').split('?')[0]);
@@ -35,51 +35,77 @@ test('Biblioteca para jogador: glossário direto, resposta legível, capítulos 
  await page.setRequestInterception(true);
  page.on('request',request=>request.url().startsWith('http://127.0.0.1:')?request.continue():request.abort());
  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
- const first=await page.evaluate(()=>{
+ const initial=await page.evaluate(()=>{
   window.ARQUIVO_INTERNAL.setPage('library');
-  const sheet=document.querySelector('.shell'),detail=document.querySelector('#grimorioDetail');
-  const result=document.querySelector('.ae-glossary-entry-open');
   return {
-   glossary:!!document.querySelector('#grimorioSearch'),
-   chapterSearch:!!document.querySelector('#ruleSearch'),
-   answer:!!detail?.textContent?.trim(),
-   selected:!!result,
    tabs:document.querySelectorAll('.ae-library-mode').length,
-   width:Math.round(sheet?.getBoundingClientRect().width||0),
-   answerTop:Math.round(detail?.getBoundingClientRect().top||0)
+   guide:!!document.querySelector('.ae-guide-root'),
+   lesson:document.querySelector('.ae-guide-lesson h3')?.textContent?.trim(),
+   steps:document.querySelectorAll('.ae-guide-step').length,
+   chapterSearch:!!document.querySelector('#ruleSearch'),
+   glossarySearch:!!document.querySelector('#grimorioSearch'),
+   width:Math.round(document.querySelector('.shell').getBoundingClientRect().width)
   };
  });
- assert.equal(first.glossary,true,'o glossário deve abrir por padrão');
- assert.equal(first.chapterSearch,false,'não devem existir duas buscas concorrentes');
- assert.equal(first.answer,true,'a definição completa deve aparecer sem modal');
- assert.equal(first.selected,true);
- assert.equal(first.tabs,2);
- assert.ok(first.width>=1020,'desktop deve usar a largura disponível');
- assert.ok(first.answerTop<900,'definição precisa aparecer sem rolagem inicial em desktop');
- await page.keyboard.press('/');
- assert.equal(await page.evaluate(()=>document.activeElement?.id),'grimorioSearch','atalho / deve buscar termos');
- const chosen=await page.$eval('.ae-glossary-entry-open strong',el=>el.textContent.trim());
- await page.$eval('#grimorioSearch',(el,value)=>{el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}))},chosen);
- assert.ok((await page.$$('[data-action^="grimorioSelect:"]')).length>=1,'busca deve encontrar o termo');
- await page.click('[data-action^="grimorioSelect:"]');
- const selected=await page.$eval('.ae-glossary-detail-heading h3',el=>el.textContent.trim());
- assert.equal(selected,chosen,'o clique deve abrir a definição no mesmo painel');
- await page.click('[data-action="libraryMode:chapters"]');
- assert.ok(await page.$('#ruleSearch'),'capítulos devem ter pesquisa própria');
- assert.ok(await page.$('.ae-library-chapter'),'capítulos devem existir sem esconder regras');
- assert.equal(await page.$('#grimorioSearch'),null,'busca do glossário deve sair no modo capítulos');
+ assert.equal(initial.tabs,3,'Biblioteca precisa ter três caminhos');
+ assert.equal(initial.guide,true,'guia de combate deve ser o acesso inicial enquanto consulta está vazia');
+ assert.equal(initial.steps,8);
+ assert.match(initial.lesson,/Ganhe a cena/);
+ assert.equal(initial.chapterSearch,false);
+ assert.equal(initial.glossarySearch,false);
+ assert.ok(initial.width>=1020);
+ await page.click('[data-guide-action="next"]');
+ assert.match(await page.$eval('.ae-guide-lesson h3',el=>el.textContent),/Aja na fase certa/);
+ assert.ok(await page.$('.ae-guide-reference [data-guide-action^="chapter:"]'));
+ await page.click('.ae-guide-reference [data-guide-action^="chapter:"]');
+ assert.ok(await page.$('.ae-library-chapter.is-open'),'referência deve abrir o capítulo oficial');
+
  await page.click('[data-action="libraryMode:glossary"]');
- assert.ok(await page.$('#grimorioSearch'));
+ const blank=await page.evaluate(()=>({
+  empty:!!document.querySelector('.ae-consulta-empty'),
+  hasTerms:!!document.querySelector('.ae-glossary-entry-open'),
+  autoDisabled:!document.querySelector('#grimorioAutoInput'),
+  text:document.querySelector('.ae-consulta-empty')?.innerText||''
+ }));
+ assert.equal(blank.empty,true,'glossário deve ser realmente vazio');
+ assert.equal(blank.hasTerms,false);
+ assert.equal(blank.autoDisabled,true);
+ assert.match(blank.text,/nenhum verbete cadastrado/i);
+
+ await page.evaluate(()=>{
+  window.ARQUIVO_INTERNAL.db.site.grimorio={schemaVersion:2,visible:true,title:'CONSULTA RÁPIDA',glossary:[
+   {id:'manual-test',name:'Exemplo do Mestre',description:'Definição pessoal para uma regra de teste.',
+    category:'Testes',chapterId:'cap3',enabled:true}]};
+  window.ARQUIVO_INTERNAL.render();
+ });
+ assert.ok(await page.$('#grimorioSearch'),'verbetes manuais devem permitir busca');
+ assert.equal((await page.$$('.ae-grimorio-entry')).length,1);
+ assert.match(await page.$eval('#grimorioDetail',el=>el.innerText),/Definição pessoal/);
+ await page.$eval('#grimorioSearch',el=>{
+  el.value='Exemplo';el.dispatchEvent(new Event('input',{bubbles:true}));
+ });
+ assert.equal((await page.$$('.ae-grimorio-entry')).length,1);
+ await page.$eval('#grimorioSearch',el=>{
+  el.value='Reação';el.dispatchEvent(new Event('input',{bubbles:true}));
+ });
+ assert.equal((await page.$$('.ae-grimorio-entry')).length,0,'capítulos não devem regenerar a busca');
+
+ await page.click('[data-action="libraryMode:chapters"]');
+ assert.ok(await page.$('#ruleSearch'),'capítulos continuam separados e intactos');
+ assert.ok(await page.$('.ae-library-chapter'));
+ await page.click('[data-action="libraryMode:guide"]');
+
  await page.setViewport({width:390,height:780});
  const mobile=await page.evaluate(()=>{
-  const search=document.querySelector('#grimorioSearch'),detail=document.querySelector('#grimorioDetail');
-  return {searchVisible:!!search&&search.getBoundingClientRect().width>120,
-   detail:!!detail&&getComputedStyle(detail).display!=='none',
+  const guide=document.querySelector('.ae-guide-root'),lesson=document.querySelector('.ae-guide-lesson');
+  return {guide:!!guide,lesson:!!lesson,stepCount:document.querySelectorAll('.ae-guide-step').length,
    noOverflow:document.documentElement.scrollWidth<=document.documentElement.clientWidth+3,
-   responsive:getComputedStyle(document.querySelector('.ae-glossary-answer-layout')).gridTemplateColumns.split(/\s+/).length===1};
+   columns:getComputedStyle(document.querySelector('.ae-guide-layout')).gridTemplateColumns.split(/\s+/).length};
  });
- assert.equal(mobile.searchVisible,true);
- assert.equal(mobile.detail,true,'o painel de definição deve continuar acessível no celular');
- assert.equal(mobile.noOverflow,true,'sem rolagem horizontal');
- assert.equal(mobile.responsive,true,'lista e definição empilhadas em tela estreita');
+ assert.equal(mobile.guide,true);
+ assert.equal(mobile.lesson,true);
+ assert.equal(mobile.stepCount,8);
+ assert.equal(mobile.noOverflow,true,'guia não pode causar rolagem horizontal');
+ assert.equal(mobile.columns,1,'guia deve empilhar a navegação no celular');
+
 });
