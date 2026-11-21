@@ -6,7 +6,8 @@
  const api=window.ARQUIVO_INTERNAL;
  if(!api)return;
  const BASE_CATEGORIES=['Raças','Classes','Habilidades','Técnicas','Itens','Outros'];
- let active='book1',selectedCategory='Todas',selectedTag='',search='',openedPost=null;
+ let active='book1',selectedCategory='Todas',selectedTag='',search='',openedPost=null,statusFilter='all',bulkMode=false;
+ const bulkSelected=new Set();
  const text=x=>String(x??'');
  const esc=x=>api.esc(x);
  const action=(label,key,style='small')=>'<button type="button" class="btn '+style+'" data-warehouse-action="'+key+'">'+label+'</button>';
@@ -61,6 +62,7 @@
  }
  function warehouseAllowsImage(){return true;}
  function isPublished(p){return p.published!==false||api.master()}
+ function isVisibleStatus(p){return !api.master()||statusFilter==='all'||(statusFilter==='draft'?p.published===false:p.published!==false)}
  function safeImage(v){
   v=text(v).trim();
   return ((v.length<=1200&&/^https:\/\/[^\s"'<>]+$/i.test(v))||
@@ -109,7 +111,7 @@
  }
  function visible(){
   const terms=fold(search).split(/\s+/).filter(Boolean);
-  return posts().filter(p=>isPublished(p)&&(selectedCategory==='Todas'||p.category===selectedCategory)&&
+  return posts().filter(p=>isPublished(p)&&isVisibleStatus(p)&&(selectedCategory==='Todas'||p.category===selectedCategory)&&
    (!selectedTag||visibleTags(p).some(t=>fold(t)===fold(selectedTag)))&&
    (!terms.length||terms.every(term=>fold([p.title,p.summary,p.content,p.category,...visibleTags(p)].join(' ')).includes(term))));
  }
@@ -131,7 +133,8 @@
  }
  function select(section){
   if(!['book1','book2','warehouse'].includes(section)||active===section)return;
-  active=section;search='';selectedCategory='Todas';selectedTag='';openedPost=null;
+  active=section;search='';selectedCategory='Todas';selectedTag='';openedPost=null;statusFilter='all';
+  bulkMode=false;bulkSelected.clear();
   api.resetLibraryState();
   api.render();
  }
@@ -157,6 +160,73 @@
    '" data-drop-warehouse-category="'+esc(post.category||'Outros')+'"';
  }
  function isAbilityPost(post){return post.category==='Habilidades'||post.category==='Técnicas'}
+ function selectionButton(post){
+  if(!api.master()||!bulkMode)return '';
+  const checked=bulkSelected.has(post.id);
+  return '<button type="button" class="ae-wh-select'+(checked?' is-selected':'')+
+   '" data-warehouse-action="select:'+encodeURIComponent(post.id)+'" aria-pressed="'+checked+
+   '" aria-label="'+(checked?'Remover ':'Selecionar ')+esc(post.title||'registro')+
+   '" title="'+(checked?'Remover da seleção':'Selecionar publicação')+'">'+
+   '<span class="ae-wh-select-box" aria-hidden="true">'+(checked?'✓':'')+'</span>'+
+   '<span>'+(checked?'SELECIONADO':'SELECIONAR')+'</span></button>';
+ }
+ function bulkToolbar(){
+  if(!api.master())return '';
+  const inView=visible(),selected=[...bulkSelected].filter(id=>posts().some(p=>p.id===id));
+  const allVisible=inView.length>0&&inView.every(p=>bulkSelected.has(p.id));
+  const all=posts(),published=all.filter(p=>p.published!==false).length,drafts=all.length-published;
+  const filter=([id,label,count])=>'<button type="button" data-warehouse-action="status:'+id+
+   '" class="ae-wh-status-filter'+(statusFilter===id?' is-active':'')+'" aria-pressed="'+(statusFilter===id)+
+   '">'+label+' <small>'+count+'</small></button>';
+  return '<div class="ae-wh-management" aria-label="Manutenção do acervo">'+
+   '<div class="ae-wh-status-heading"><span>VISIBILIDADE</span><span>Selecione uma situação para filtrar</span></div>'+
+   '<div class="ae-wh-status-filters" role="group" aria-label="Filtrar visibilidade">'+
+   [['all','TODOS',all.length],['published','PÚBLICOS',published],['draft','RASCUNHOS',drafts]].map(filter).join('')+'</div>'+
+   (bulkMode?'<div class="ae-wh-bulk-panel"><div class="ae-wh-bulk-top"><strong>'+selected.length+' '+(selected.length===1?'ITEM SELECIONADO':'ITENS SELECIONADOS')+'</strong>'+
+    '<div><button type="button" data-warehouse-action="bulk-visible">'+(allVisible?'DESMARCAR VISÍVEIS':'SELECIONAR VISÍVEIS')+'</button>'+
+    '<button type="button" data-warehouse-action="bulk-clear">LIMPAR SELEÇÃO</button></div></div>'+
+    '<p>Seleção inclui itens de outras categorias e filtros. Nenhuma alteração ocorre antes da confirmação.</p>'+
+    '<div class="ae-wh-bulk-actions">'+
+    '<button type="button" data-warehouse-action="bulk-publish"'+(!selected.length?' disabled':'')+'>TORNAR PÚBLICOS</button>'+
+    '<button type="button" data-warehouse-action="bulk-draft"'+(!selected.length?' disabled':'')+'>TORNAR RASCUNHOS</button>'+
+    '<button type="button" class="ae-wh-bulk-danger" data-warehouse-action="bulk-delete"'+(!selected.length?' disabled':'')+'>EXCLUIR SELECIONADOS</button>'+
+    '<button type="button" data-warehouse-action="bulk-mode">SAIR DA SELEÇÃO</button></div></div>':'')+
+   '</div>';
+ }
+ function runBulk(actionType){
+  if(!api.master()||!bulkMode||!['publish','draft','delete'].includes(actionType))return;
+  const current=posts(),entries=current.filter(p=>bulkSelected.has(p.id));
+  if(!entries.length){api.toast('Nenhum item selecionado','Selecione as publicações antes de continuar.',true);return}
+  const title=actionType==='delete'?'EXCLUIR PUBLICAÇÕES':actionType==='draft'?'TORNAR RASCUNHOS':'PUBLICAR ITENS';
+  const message=(actionType==='delete'?'Excluir permanentemente ou ocultar do acervo padrão ':'Alterar a visibilidade de ')+
+   entries.length+' '+(entries.length===1?'publicação':'publicações')+'? '+entries.slice(0,5).map(p=>p.title).join(', ')+
+   (entries.length>5?' e mais '+(entries.length-5)+'.':'.')+
+   (actionType==='draft'?' Os jogadores deixarão de vê-las.':actionType==='publish'?' Os jogadores poderão consultá-las.':' A exclusão não poderá ser desfeita.');
+  api.confirmSite(title,message,()=>{
+   if(!api.master())return;
+   const target=entries.filter(p=>bulkSelected.has(p.id)),w=writable();
+   const ids=new Set(target.map(p=>p.id));
+   if(actionType==='delete'){
+    const defaults=[...(window.ARQUIVO_RACAS_CBB||[]),...(window.ARQUIVO_CLASSES_CBB||[]),...(window.ARQUIVO_HABILIDADES_CBB||[])];
+    const original=new Set(defaults.map(p=>p.id));
+    w.posts=w.posts.filter(p=>!ids.has(p.id));
+    w.hiddenPosts=[...new Set([...w.hiddenPosts,...[...ids].filter(id=>original.has(id))])];
+   }else{
+    // Materialize defaults only as overrides: never mutate the source registry.
+    const overrides=new Map(w.posts.map(p=>[p.id,p]));
+    for(const post of target){
+     const previous=overrides.get(post.id)||post;
+     overrides.set(post.id,{...previous,published:actionType==='publish'});
+    }
+    if(overrides.size>300){api.toast('Limite do Armazém','Máximo de 300 publicações personalizadas.',true);return}
+    w.posts=[...overrides.values()];
+   }
+   if(openedPost&&ids.has(openedPost)&&actionType==='delete')openedPost=null;
+   bulkSelected.clear();
+   api.save();api.render();
+   api.toast('Armazém atualizado',target.length+' '+(target.length===1?'publicação atualizada':'publicações atualizadas')+'.');
+  });
+ }
  function abilityCard(post){
   const id=text(post.id||''),title=text(post.title||'Sem título'),tags=visibleTags(post);
   const presenter=window.ARQUIVO_CBB_PRESENTATION;
