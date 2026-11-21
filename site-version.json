@@ -1,5 +1,0 @@
----
-layout: null
-permalink: /site-version.json
----
-{"version": {{ site.github.build_revision | default: site.time | jsonify }}}
