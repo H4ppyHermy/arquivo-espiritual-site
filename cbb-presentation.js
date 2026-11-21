@@ -116,7 +116,7 @@
    if(/^(?:Ao|Quando|Sempre que|No início|No começo|Na abertura)\b/i.test(s)){
     // Uma lista de recursos pode conter vírgulas: dividir apenas quando
     // a parte seguinte começa por um verbo de efeito, não no primeiro item.
-    const matches=[...s.matchAll(/,\s*(?=(?:aumente|reduza|role|ignore|imponha|receba|preencha|utilize|permita|escolha|realize|desloque|restaure|ganhe|perca|aplique|conceda|prolongue|encerre|dobre|acrescente|faça|sofra|mantenha|continue|pode|interrompa|consuma|marque|apague|torne|concentre|amplifique|atravesse|diminua|interponha|manifeste|libere|o alvo|os alvos)\b)/giu)];
+    const matches=[...s.matchAll(/,\s*(?=(?:aumente|reduza|role|ignore|imponha|receba|preencha|utilize|permita|escolha|realize|desloque|restaure|ganhe|perca|aplique|conceda|prolongue|encerre|dobre|acrescente|faça|sofra|mantenha|continue|pode|interrompa|consuma|marque|apague|torne|concentre|amplifique|atravesse|diminua|interponha|manifeste|libere|seu próximo ataque|seus ataques|o próximo ataque|o alvo|os alvos)\b)/giu)];
     const comma=matches.length?matches[matches.length-1].index:-1;
     if(comma>8&&comma<210&&s.length-comma>10){
      push('Gatilho',s.slice(0,comma).replace(/[.,;:]$/,'')+'.');
