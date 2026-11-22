@@ -597,6 +597,19 @@
    if(picker)picker.value=mode;
   }
  }
+ async function correctTurn(s,cmd){
+  const sync=global.ARQUIVO_SYNC;
+  if(!s||!api.canEditSheet(s.id)||!sync?.cbbCorrectTurn)throw Error('Correção não autorizada.');
+  const action={resetMain:'reset_main',resetReaction:'reset_reaction',cancelComplete:'cancel_complete'}[cmd];
+  if(!action)throw Error('Correção inválida.');
+  const response=await sync.cbbCorrectTurn(s.id,action);
+  if(!response?.ok||!response?.combat)throw Error('O servidor não confirmou a correção do turno.');
+  s.combat=response.combat;
+  if(cmd==='cancelComplete')lastAttacks.delete(s.id);
+  statusBySheet.set(s.id,cmd==='resetMain'?'Ação principal marcada como disponível.':
+   cmd==='resetReaction'?'Reação marcada como disponível.':'Declaração da Ação Completa cancelada.');
+  api.render();
+ }
  async function executeLivePhase(cmd,root){
   const sync=global.ARQUIVO_SYNC,s=sheet();
   if(!s||!sync?.liveCombatPhase||!api.master?.())throw Error('Somente o mestre controla a fase global.');
@@ -686,6 +699,22 @@
   }
   if(!on()){api.toast('Conexão necessária','Entre com uma chave para registrar ações e rolagens.',true);return;}
   const root=b.closest('.ae-cbb-mesa')||document.querySelector('.ae-cbb-mesa');
+  if(['resetMain','resetReaction','cancelComplete'].includes(cmd)){
+   if(typeof api.confirmSite!=='function'){
+    api.toast('Confirmação indisponível','Abra a ficha completa para corrigir o turno.',true);return;
+   }
+   const title=cmd==='cancelComplete'?'CANCELAR AÇÃO COMPLETA?':'CORRIGIR MARCAÇÃO?';
+   const message=cmd==='cancelComplete'?
+    'Cancelar a declaração ainda pendente? O servidor só permite o cancelamento antes da rolagem do ataque.':
+    'Marcar '+(cmd==='resetMain'?'a ação principal':'a reação')+' como disponível nesta rodada? Isto não devolve ALMA nem desfaz efeitos já realizados.';
+   api.confirmSite(title,message,()=>{
+    if(busy)return;
+    busy=true;lockResult(b,true);
+    correctTurn(sh,cmd).catch(error=>api.toast('Correção não realizada',String(error?.message||error),true))
+     .finally(()=>{busy=false;lockResult(b,false)});
+   });
+   return;
+  }
   if(cmd==='reset'){
    if(!api.master?.()){
     api.toast('Somente mestre','O reinício integral da ficha é reservado ao mestre.',true);
