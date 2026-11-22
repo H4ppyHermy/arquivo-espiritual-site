@@ -21,6 +21,9 @@ on:
       - 'cbb-presentation.js'
       - 'e2e/abilities-browser.test.mjs'
       - 'e2e/biblioteca-browser.test.mjs'
+      - 'e2e/rolagens-browser.test.mjs'
+      - 'rolagens-ao-vivo.js'
+      - 'rolagens-ao-vivo.css'
       - 'biblioteca-redesign.css'
       - 'biblioteca-leitura.js'
       - 'guia-combate.js'
@@ -47,4 +50,4 @@ jobs:
       - name: Testar interface com Chrome
         env:
           CHROME_PATH: /usr/bin/google-chrome
-        run: node --test --test-concurrency=1 e2e/mesa-browser.test.mjs e2e/performance-browser.test.mjs e2e/abilities-browser.test.mjs e2e/biblioteca-browser.test.mjs
+        run: node --test --test-concurrency=1 e2e/mesa-browser.test.mjs e2e/performance-browser.test.mjs e2e/abilities-browser.test.mjs e2e/biblioteca-browser.test.mjs e2e/rolagens-browser.test.mjs
