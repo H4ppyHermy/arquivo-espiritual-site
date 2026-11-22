@@ -41,7 +41,7 @@ function connectRollChannel(){
  });
 }
 function localVerifiedRoll(roll){
- if(!roll?.id||roll.hidden)return;
+ if(!roll?.id||roll.hidden||typeof CustomEvent!=='function'||typeof window.dispatchEvent!=='function')return;
  window.dispatchEvent(new CustomEvent('arquivo-roll-registered',{detail:{roll,source:'confirmed'}}));
 }
 function disconnectDocumentChannel(){
