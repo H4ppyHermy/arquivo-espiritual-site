@@ -15,7 +15,6 @@
  const opts=(entries,value)=>entries.map(([id,label])=>'<option value="'+enc(id)+'"'+(String(id)===String(value)?' selected':'')+'>'+enc(label)+'</option>').join('');
  const on=()=>!!global.ARQUIVO_SYNC?.state?.enabled&&!!global.ARQUIVO_SYNC?.state?.identity?.id;
  const stateText=s=>statusBySheet.get(s.id)||'';
- const mainMode=mode=>['dano','resistencia','recuperacao'].includes(mode)?'dados':['turno','recursos'].includes(mode)?'personagem':'teste';
  const liveCombat=()=>api.db?.site?.liveCombat||null;
  const sharedPhase=()=>liveCombat()?.enabled===true;
  const sessionPhase=s=>sharedPhase()?(liveCombat().phase||s.combat?.phase||'preparacao'):(s.combat?.phase||'preparacao');
@@ -181,6 +180,40 @@
    '</section>';
  }
  function pill(label,value){return '<span class="ae-cbb-pill">'+enc(label)+' <b>'+enc(value)+'</b></span>'}
+ function turnOverview(s,disabled){
+  const c=s.combat||{},bonus=c.cbb||{},stunned=engine.normalizedConditions(s).has('atordoado');
+  const mainUsed=!!c.mainUsed,reactionUsed=!!c.reactionUsed;
+  const mainAvailable=!mainUsed||Number(bonus.extraMain||0)>0;
+  const reactionAvailable=(!reactionUsed||Number(bonus.extraReaction||0)>0)&&!stunned;
+  const item=(name,code,used,available,extra,blocked)=>{
+   const state=blocked?'BLOQUEADA':extra?'EXTRA DISPONÍVEL':used?'USADA':'DISPONÍVEL';
+   const css=blocked?'blocked':available?'available':'spent';
+   return '<div class="ae-cbb-turn-slot is-'+css+'"><div class="ae-cbb-turn-slot-head">'+
+    '<span>'+name+'</span><strong>'+state+'</strong></div>'+
+    '<div class="ae-cbb-turn-slot-actions">'+
+    '<button type="button" data-cbb-command="'+code+'"'+
+      (!available||disabled?' disabled':'')+'>'+((used&&extra)?'GASTAR EXTRA':'MARCAR USADA')+'</button>'+
+    (used?'<button type="button" class="ae-cbb-turn-correct" data-cbb-command="'+(code==='main'?'resetMain':'resetReaction')+
+     '"'+(disabled?' disabled':'')+' title="Corrigir marcação feita por engano">CORRIGIR</button>':'')+
+    '</div></div>';
+  };
+  const tip={preparacao:'Prepare o personagem, ajuste seus recursos e declare efeitos de Preparação.',
+   distancia:'Use ataques à distância e habilidades que exigem esta fase.',
+   duelo:'Use testes de Duelo, defesas e ataques corpo a corpo.',
+   desfecho:'Confira os efeitos que terminam agora e prepare a próxima rodada.'};
+  const phase=sessionPhase(s),pending=!!bonus.completePending;
+  return '<section class="ae-cbb-turn-overview" aria-label="Ações disponíveis na rodada">'+
+   '<div class="ae-cbb-turn-overview-head"><strong>SEU TURNO</strong><span>'+
+   enc(phaseName[phase]||phase)+' · RODADA '+enc(c.round||1)+'</span></div>'+
+   '<div class="ae-cbb-turn-slots">'+
+    item('AÇÃO PRINCIPAL','main',mainUsed,mainAvailable,mainUsed&&Number(bonus.extraMain||0)>0,false)+
+    item('REAÇÃO','reaction',reactionUsed,reactionAvailable,reactionUsed&&Number(bonus.extraReaction||0)>0,stunned)+'</div>'+
+   (pending?'<div class="ae-cbb-pending-complete">AÇÃO COMPLETA DECLARADA · principal + reação reservadas. '+
+    '<button type="button" data-cbb-command="cancelComplete"'+(disabled?' disabled':'')+'>CANCELAR DECLARAÇÃO</button></div>':'')+
+   '<p class="ae-cbb-phase-explanation">'+enc(tip[phase]||'Consulte os efeitos da fase atual.')+'</p>'+
+   '<small class="ae-cbb-turn-help">Marcar usada apenas registra o gasto da ação. CORRIGIR desfaz uma marcação errada; não devolve ALMA nem desfaz um ataque.</small>'+
+   '</section>';
+ }
  function render(s,ctx={}){
   const c=s.combat||{},ex=s.exposures||{},phase=sessionPhase(s),res=s.resources||{},selectedMode=modeBySheet.get(s.id)||'teste';
   const linked=sharedPhase(),master=!!ctx.master;
@@ -215,17 +248,18 @@
        (linked?'liveDisable':'liveEnable')+'" aria-pressed="'+linked+'">'+
        (linked?'DESVINCULAR SESSÃO':'SINCRONIZAR COM SESSÃO')+'</button>':'')+
     '</div>'+
-   '<nav class="ae-cbb-modes" role="group" aria-label="O que deseja fazer?">'+
-    [['teste','1 · TESTE DE PERÍCIA','Rolar atributo + perícia'],['dano','2 · DADOS','Dano, defesa e cura'],['turno','3 · PERSONAGEM','Ações, condições e recursos']].map(([mode,label,description])=>
-     '<button type="button" data-cbb-mode="'+mode+'" aria-pressed="'+(mainMode(selectedMode)===mainMode(mode))+'" class="'+
-      (mainMode(selectedMode)===mainMode(mode)?'is-active':'')+'"><strong>'+label+'</strong><small>'+description+'</small></button>').join('')+'</nav>'+
+   turnOverview(s,disabled)+
+   '<nav class="ae-cbb-modes" role="group" aria-label="Escolha a ação da Mesa">'+
+    [['teste','TESTE / ATAQUE','Perícia + grupo'],['dano','DANO','Base de dano'],['resistencia','DEFESA','Resistência'],['recuperacao','CURA','Recuperação'],['turno','AÇÕES','Turno e exposições'],['recursos','RECURSOS','Vida, Estabilidade, Alma']].map(([mode,label,description])=>
+     '<button type="button" data-cbb-mode="'+mode+'" aria-pressed="'+(selectedMode===mode)+'" class="'+
+      (selectedMode===mode?'is-active':'')+'"><strong>'+label+'</strong><small>'+description+'</small></button>').join('')+'</nav>'+
    (!ctx.canEdit?'<p class="ae-cbb-hint">Somente leitura: esta ficha não está vinculada à sua chave.</p>':!on()?'<p class="ae-cbb-hint">Conecte uma chave de jogador ou mestre para rolar e alterar a ficha.</p>':s.automationEnabled===false?'<p class="ae-cbb-hint">Automação desativada. Reative no Resumo para usar esta Mesa.</p>':'')+
    '<div class="ae-cbb-feedback">'+
     '<div class="ae-cbb-status" role="status" aria-live="polite">'+enc(stateText(s))+'</div>'+
     '<div class="ae-cbb-result" role="status" aria-live="polite">'+(result?resultMarkup(result):'')+'</div></div>'+
    '<div class="ae-cbb-grid">'+
     '<section class="ae-cbb-panel" data-cbb-panel="teste"'+(selectedMode==='teste'?'':' hidden')+'><h3>Teste de perícia</h3>'+
-     '<p class="ae-cbb-onboarding">Escolha a perícia e o tipo de teste. Condições da ficha são aplicadas automaticamente.</p>'+
+     '<p class="ae-cbb-onboarding">Escolha a perícia e clique em ROLAR TESTE. A ficha aplica automaticamente condições e exposições; opções extras ficam abaixo, se precisar.</p>'+
      '<label>Perícia<select data-cbb-field="skill">'+opts(choices,test.skill)+'</select></label>'+
      '<div class="ae-cbb-pair"><label>Contexto<select data-cbb-field="context">'+opts([['geral','Geral'],['ataque','Ataque'],['defesa','Defesa']], test.context)+'</select></label>'+
       '<label>DT (opcional)<input type="number" data-cbb-field="dt" min="1" max="200" placeholder="DT"></label></div>'+
@@ -253,7 +287,7 @@
      ''+
     '</section>'+
     '<section class="ae-cbb-panel" data-cbb-panel="pool"'+(['dano','resistencia','recuperacao'].includes(selectedMode)?'':' hidden')+'><h3>Dados de combate</h3>'+
-     '<p class="ae-cbb-onboarding">Selecione Dano, Defesa ou Cura. Bônus de equipamento e condições entram na rolagem.</p>'+
+     '<p class="ae-cbb-onboarding">Confira os dados e clique em ROLAR. Dano, Defesa e Cura têm atalhos próprios acima; não é necessário procurar dentro do seletor.</p>'+
      '<label>Tipo<select data-cbb-field="poolMode">'+opts([['dano','Dano-base'],['resistencia','Resistência'],['recuperacao','Recuperação']],(['dano','resistencia','recuperacao'].includes(selectedMode)?selectedMode:'dano'))+'</select></label>'+
      '<label>Habilidade com dados explícitos<select data-cbb-field="source">'+opts(abilityChoices,'')+'</select></label>'+
      '<div class="ae-cbb-pair"><label>Quantidade<input type="number" min="0" max="20" data-cbb-field="poolCount" value="1"></label>'+
@@ -273,13 +307,12 @@
     '</section>'+
     '<section class="ae-cbb-panel" data-cbb-panel="turno"'+(selectedMode==='turno'?'':' hidden')+'><h3>Seu personagem</h3>'+
      '<label class="ae-cbb-view-select">O que deseja gerenciar?<select data-cbb-field="manageMode">'+opts([['turno','Ações, reações e exposições'],['recursos','Vida, Estabilidade e Alma']],'turno')+'</select></label>'+
-     '<div class="ae-cbb-pills">'+pill('PRINCIPAL',c.mainUsed?(c.cbb?.extraMain?'extra':'usada'):'livre')+pill('REAÇÃO',stunned?'bloqueada':c.reactionUsed?(c.cbb?.extraReaction?'extra':'usada'):'livre')+'</div>'+
+     '<p class="ae-cbb-hint">Acompanhe e corrija as ações no quadro SEU TURNO, sempre visível acima.</p>'+
      (c.cbb?.movementBlocked?'<p class="ae-cbb-hint">Exposição Rítmica: movimentação indisponível nesta rodada.</p>':'')+
      (c.cbb?.completePending?'<p class="ae-cbb-hint ae-cbb-complete-hint">Ação Completa declarada: role seu próximo ataque. No dano, use o RT do teste.</p>':'')+
      '<p class="ae-cbb-hint">Ação Completa consome a principal e a reação desta rodada para substituir RA por RT no dano-base de um ataque.</p>'+
      '<div class="ae-cbb-buttons">'+
-       '<button class="btn small" type="button" data-cbb-command="main"'+(disabled||(c.mainUsed&&!c.cbb?.extraMain)?' disabled':'')+'>USAR PRINCIPAL</button>'+
-       '<button class="btn small" type="button" data-cbb-command="reaction"'+(disabled||stunned||(c.reactionUsed&&!c.cbb?.extraReaction)?' disabled':'')+'>USAR REAÇÃO</button>'+
+
        '<button class="btn small ae-cbb-complete" type="button" data-cbb-command="complete"'+
         (disabled||stunned||c.mainUsed||c.reactionUsed?' disabled':'')+
         ' title="Gasta ação principal e reação antes do ataque para usar RT em vez de RA no dano-base.">AÇÃO COMPLETA · RT</button>'+
@@ -535,7 +568,7 @@
    if(comboStep&&Number(comboStep.dataset.comboStep)>=0)
     global.ARQUIVO_COMBOS?.completeStep?.(s.id,comboStep.dataset.comboId,Number(comboStep.dataset.comboStep));
   }
-  api.render();
+  refreshAfterAction(button||root);
   refreshDamageSummaries(s);
  }
  function switchMode(s,mode,root){
@@ -545,7 +578,7 @@
   const panelMode=['dano','resistencia','recuperacao'].includes(mode)?'pool':mode;
   for(const item of root.querySelectorAll('[data-cbb-panel]'))item.hidden=item.dataset.cbbPanel!==panelMode;
   for(const item of root.querySelectorAll('[data-cbb-mode]')){
-   const active=mainMode(item.dataset.cbbMode)===mainMode(mode);
+   const active=item.dataset.cbbMode===mode;
    item.classList.toggle('is-active',active);item.setAttribute('aria-pressed',String(active));
   }
   if(panelMode==='pool'){
@@ -562,6 +595,26 @@
    const picker=field(root,'manageMode');
    if(picker)picker.value=mode;
   }
+ }
+ const refreshAfterAction=source=>{
+  // Na Biblioteca e nas demais abas, atualizar SOMENTE o painel portátil:
+  // reconstruir #page faria o jogador perder o trecho de regra que estava lendo.
+  if(source?.closest?.('#aeQuickSheetRoot')&&global.ARQUIVO_QUICK_SHEET?.refresh){
+   global.ARQUIVO_QUICK_SHEET.refresh(true);
+  }else api.render();
+ };
+ async function correctTurn(s,cmd,source=null){
+  const sync=global.ARQUIVO_SYNC;
+  if(!s||!api.canEditSheet(s.id)||!sync?.cbbCorrectTurn)throw Error('Correção não autorizada.');
+  const action={resetMain:'reset_main',resetReaction:'reset_reaction',cancelComplete:'cancel_complete'}[cmd];
+  if(!action)throw Error('Correção inválida.');
+  const response=await sync.cbbCorrectTurn(s.id,action);
+  if(!response?.ok||!response?.combat)throw Error('O servidor não confirmou a correção do turno.');
+  s.combat=response.combat;
+  if(cmd==='cancelComplete')lastAttacks.delete(s.id);
+  statusBySheet.set(s.id,cmd==='resetMain'?'Ação principal marcada como disponível.':
+   cmd==='resetReaction'?'Reação marcada como disponível.':'Declaração da Ação Completa cancelada.');
+  refreshAfterAction(source);
  }
  async function executeLivePhase(cmd,root){
   const sync=global.ARQUIVO_SYNC,s=sheet();
@@ -637,9 +690,11 @@
    const index=Number(b.dataset.cbbIndex),ab=sh.abilities?.[index],pool=engine.abilityPool(ab);
    if(!pool)return;
    modeBySheet.set(sh.id,pool.kind);
-   const nav=document.querySelector('.ae-ficha-navigation [data-tab="mesa"]');
-   if(nav)nav.click();
-   const root=document.querySelector('.ae-cbb-mesa');
+   const compact=!!b.closest?.('#aeQuickSheetRoot');
+   if(compact)global.ARQUIVO_QUICK_SHEET?.navigate?.('mesa');
+   else document.querySelector('.ae-ficha-navigation [data-tab="mesa"]')?.click();
+   const root=compact?document.querySelector('#aeQuickSheetRoot .ae-cbb-mesa'):
+    document.querySelector('#page .ae-cbb-mesa');
    if(root){
     field(root,'poolMode').value=pool.kind;
     field(root,'poolCount').value=String(pool.count);
@@ -652,6 +707,22 @@
   }
   if(!on()){api.toast('Conexão necessária','Entre com uma chave para registrar ações e rolagens.',true);return;}
   const root=b.closest('.ae-cbb-mesa')||document.querySelector('.ae-cbb-mesa');
+  if(['resetMain','resetReaction','cancelComplete'].includes(cmd)){
+   if(typeof api.confirmSite!=='function'){
+    api.toast('Confirmação indisponível','Abra a ficha completa para corrigir o turno.',true);return;
+   }
+   const title=cmd==='cancelComplete'?'CANCELAR AÇÃO COMPLETA?':'CORRIGIR MARCAÇÃO?';
+   const message=cmd==='cancelComplete'?
+    'Cancelar a declaração ainda pendente? O servidor só permite o cancelamento antes da rolagem do ataque.':
+    'Marcar '+(cmd==='resetMain'?'a ação principal':'a reação')+' como disponível nesta rodada? Isto não devolve ALMA nem desfaz efeitos já realizados.';
+   api.confirmSite(title,message,()=>{
+    if(busy)return;
+    busy=true;lockResult(b,true);
+    correctTurn(sh,cmd,b).catch(error=>api.toast('Correção não realizada',String(error?.message||error),true))
+     .finally(()=>{busy=false;lockResult(b,false)});
+   });
+   return;
+  }
   if(cmd==='reset'){
    if(!api.master?.()){
     api.toast('Somente mestre','O reinício integral da ficha é reservado ao mestre.',true);
@@ -745,5 +816,5 @@
   if(root?.dataset?.cbbSheet===api.currentSheet){refreshPreview(root);refreshResistance(root)}
   refreshDamageSummaries();
  });
- global.ARQUIVO_CBB_UI=Object.freeze({render,renderSkillQuick,abilityActions,abilitySummary,engine,refreshPreview,refreshResistance,refreshDamageSummaries});
+ global.ARQUIVO_CBB_UI=Object.freeze({render,renderSkillQuick,abilityActions,abilitySummary,engine,refreshPreview,refreshResistance,refreshDamageSummaries,handleClick:onClick,handleChange:onChange,handleInput:onInput});
 })(window);

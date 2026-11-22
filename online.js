@@ -188,6 +188,31 @@ async function moveWarehousePost(args){
  return result;
 }
 async function playerDirectory(){return rpc('ae_player_directory')}
+async function joinableSheets(){
+ if(!state.enabled||state.identity?.kind!=='player')throw Error('Entre com uma chave de jogador.');
+ return rpc('ae_joinable_sheets');
+}
+async function selfLinkSheet(sheetId,action){
+ if(!state.enabled||!state.identity?.id)throw Error('Sem conexão.');
+ if(!['join','open','close'].includes(action))throw Error('Operação inválida.');
+ await state.pending.catch(()=>{});
+ const result=await rpc('ae_sheet_self_link',{p_sheet_id:sheetId,p_action:action});
+ if(!result?.ok||result.sheet?.id!==sheetId)throw Error('O servidor não confirmou o vínculo.');
+ state.revision=Math.max(Number(state.revision)||0,Number(result.revision)||0);
+ state.busyUntil=Date.now()+260;
+ return result;
+}
+async function cbbCorrectTurn(sheetId,action){
+ if(!state.enabled||!state.identity?.id)throw Error('Entre com a chave da ficha.');
+ if(!['reset_main','reset_reaction','cancel_complete'].includes(action))throw Error('Correção inválida.');
+ await state.pending.catch(()=>{});
+ if(state.lastPushError)throw Error('A ficha ainda tem alterações não sincronizadas: '+state.lastPushError);
+ const result=await rpc('ae_cbb_correct_turn',{p_sheet_id:sheetId,p_action:action});
+ if(!result?.ok||!result.combat)throw Error('O servidor não confirmou a correção.');
+ state.revision=Math.max(Number(state.revision)||0,Number(result.revision)||0);
+ state.busyUntil=Date.now()+260;
+ return result;
+}
 async function sheetLink(sheetId,action,targetKey=null){
  if(!state.enabled)throw Error('Conexão online indisponível.');
  // Não concorrer com gravações pendentes do mesmo documento.
@@ -351,5 +376,5 @@ async function mediaSignedUrl(ref){
  return data.signedUrl;
 }
 
-window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,moveAbility,moveWarehousePost,saveCombos,rollFree,cbbRoll,cbbAction,liveCombatPhase,rollLatest,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
+window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,joinableSheets,selfLinkSheet,cbbCorrectTurn,sheetLink,saveAppearance,moveAbility,moveWarehousePost,saveCombos,rollFree,cbbRoll,cbbAction,liveCombatPhase,rollLatest,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
 })();

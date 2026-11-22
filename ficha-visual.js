@@ -341,6 +341,7 @@
   const body=content(s,selected,ctx);
   const actions=api.btn('VOLTAR','backSheets','quiet')+
     (ctx.canEdit?api.btn('EDITAR FICHA','editSheetForm','main'):'')+
+    (ctx.master&&!s.masterOnly?api.btn(s.selfLinkEnabled?'AUTOVÍNCULO LIBERADO':'LIBERAR AUTOVÍNCULO','toggleSelfLink','small'):'')+
     (ctx.master?api.btn('IMAGEM','sheetImage','small')+api.btn('EDITAR JSON','editSheet','small'):'')+
     api.btn('EXPORTAR','exportSheet','small');
   return '<div class="sheet-personal ae-ficha-v2" style="'+esc(ctx.style||'')+'">'+

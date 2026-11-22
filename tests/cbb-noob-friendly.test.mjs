@@ -41,16 +41,17 @@ function fixture(){
  vm.runInNewContext(read('cbb-interativo.js'),context);
  return {s,db,ui:window.ARQUIVO_CBB_UI,window,calls,listeners};
 }
-test('Mesa concentra seis módulos em três ações principais sem duplicar avanço de fase',()=>{
+test('Mesa organiza seis ações explícitas sem duplicar avanço de fase',()=>{
  const f=fixture(),html=f.ui.render(f.s,{canEdit:true,master:true});
- assert.equal((html.match(/data-cbb-mode="/g)||[]).length,3);
- for(const label of ['TESTE DE PERÍCIA','DADOS','PERSONAGEM'])assert.match(html,new RegExp(label));
+ assert.equal((html.match(/data-cbb-mode="/g)||[]).length,6);
+ for(const label of ['TESTE / ATAQUE','DANO','DEFESA','CURA','AÇÕES','RECURSOS'])assert.match(html,new RegExp(label));
  assert.match(html,/data-cbb-field="poolMode"/);
  assert.match(html,/data-cbb-field="manageMode"/);
  assert.match(html,/data-cbb-command="liveEnable"/);
  assert.equal((html.match(/data-cbb-command="phase"/g)||[]).length,1);
  assert.match(html,/AJUSTAR PASSOS DO TESTE/);
- assert.match(html,/Condições da ficha são aplicadas automaticamente/);
+ assert.match(html,/SEU TURNO/);
+ assert.match(html,/A ficha aplica automaticamente condições e exposições/);
  assert.match(html,/ae-cbb-result" role="status" aria-live="polite"><\/div>/);
 });
 test('jogadores com fase sincronizada veem a fase mestre sem botão de avanço',()=>{
