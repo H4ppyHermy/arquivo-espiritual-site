@@ -79,6 +79,21 @@ test('ficha flutuante acompanha biblioteca, mantém rolagens e não revela chefe
  await page.click('[data-quick-tab="mesa"]');
  assert.equal(await page.$$eval('[data-cbb-mode]',els=>els.length),6);
  assert.match(await page.$eval('.ae-cbb-turn-overview',e=>e.innerText),/PRINCIPAL/);
+ await page.evaluate(()=>{
+  window.__hudClickTrace=[];
+  document.addEventListener('click',e=>{
+   const target=e.target?.closest?.('[data-cbb-command]')||e.target;
+   window.__hudClickTrace.push({
+    tag:e.target?.tagName,outer:e.target?.outerHTML?.slice(0,210),
+    cmd:target?.dataset?.cbbCommand,
+    root:!!e.target?.closest?.('#aeQuickSheetRoot'),
+    current:window.ARQUIVO_INTERNAL?.currentSheet,
+    hasHandler:typeof window.ARQUIVO_CBB_UI?.handleClick,
+    apiOnline:window.ARQUIVO_SYNC?.state?.enabled,
+    isTrusted:e.isTrusted
+   });
+  },true);
+ });
  await page.click('#aeQuickSheetRoot [data-cbb-command="main"]');
  await new Promise(resolve=>setTimeout(resolve,350));
  const diagnostics=await page.evaluate(()=>({
@@ -87,7 +102,7 @@ test('ficha flutuante acompanha biblioteca, mantém rolagens e não revela chefe
   nativeSheet:window.__hudSheet?.combat,
   visibleSheet:window.ARQUIVO_INTERNAL.db.sheets.find(s=>s.id==='hud-personagem')?.combat,
   hasCorrection:!!document.querySelector('#aeQuickSheetRoot [data-cbb-command="resetMain"]'),
-  actions:window.__hudActions,
+  actions:window.__hudActions,trace:window.__hudClickTrace,
   cbbButton:(()=>{const b=document.querySelector('#aeQuickSheetRoot [data-cbb-command="main"]');return {disabled:b?.disabled,
    ancestor:b?.closest('[data-quick-action],[data-quick-tab],[data-action],[data-page],[data-tab]')?.outerHTML?.slice(0,300),
    cbbSheet:b?.closest('.ae-cbb-mesa')?.dataset?.cbbSheet}})(),
