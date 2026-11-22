@@ -101,7 +101,7 @@ test('teste de perícia envia um pedido ao servidor e mostra RT RA RB',async()=>
 
 test('scripts e duas RPCs universais estão ligados sem reativar código por personagem',()=>{
  const html=read('index.html'),online=read('online.js'),visual=read('ficha-visual.js');
- for(const file of ['cbb-engine.js?v=2','cbb-interativo.js?v=12','cbb-interativo.css?v=7'])
+ for(const file of ['cbb-engine.js?v=2','cbb-interativo.js?v=13','cbb-interativo.css?v=8'])
   assert.ok(html.includes(file),file);
  assert.ok(visual.includes("mesa:'Mesa'"));
  assert.match(visual,/ARQUIVO_CBB_UI\?\.render/);
@@ -415,4 +415,43 @@ test('chefes normais conservam o seletor de participantes e o escalonamento ante
  assert.match(html,/ANDAR 1 · CONFRONTO/);
  for(const n of [6,7,8])assert.match(html,new RegExp('data-cbb-party="'+n+'"'));
  assert.doesNotMatch(html,/ae-cbb-duel-indicator/);
+});
+
+test('painel principal mostra seis funções distintas e status claro das ações',()=>{
+ const x=fixture(),ui=x.window.ARQUIVO_CBB_UI;
+ const html=ui.render(x.s,{canEdit:true,master:false});
+ for(const id of ['teste','dano','resistencia','recuperacao','turno','recursos'])
+  assert.ok(html.includes('data-cbb-mode="'+id+'"'),id);
+ assert.match(html,/SEU TURNO/);
+ assert.match(html,/AÇÃO PRINCIPAL/);
+ assert.match(html,/REAÇÃO/);
+ assert.match(html,/MARCAR USADA/);
+ assert.match(html,/DISPONÍVEL/);
+ assert.match(html,/data-cbb-command="main"/);
+ assert.match(html,/data-cbb-command="reaction"/);
+ x.s.combat.mainUsed=true;
+ x.s.combat.reactionUsed=true;
+ const used=ui.render(x.s,{canEdit:true,master:false});
+ assert.match(used,/data-cbb-command="resetMain"/);
+ assert.match(used,/data-cbb-command="resetReaction"/);
+ assert.match(used,/CORRIGIR/);
+ x.s.combat.cbb={completePending:true};
+ assert.match(ui.render(x.s,{canEdit:true,master:false}),/data-cbb-command="cancelComplete"/);
+});
+test('corrigir ação principal exige confirmação e devolve disponibilidade sem alterar recursos',async()=>{
+ const x=fixture();x.s.combat.mainUsed=true;
+ let confirm;
+ x.window.ARQUIVO_INTERNAL.confirmSite=(title,message,action)=>{confirm={title,message,action}};
+ x.window.ARQUIVO_SYNC.cbbCorrectTurn=async(id,action)=>{
+  assert.equal(id,x.s.id);assert.equal(action,'reset_main');
+  return {ok:true,combat:{...x.s.combat,mainUsed:false}};
+ };
+ const b={dataset:{cbbCommand:'resetMain'},disabled:false,closest(){return null},setAttribute(){}};
+ await x.listeners.click({target:{closest(){return b}},preventDefault(){},stopPropagation(){}});
+ assert.ok(confirm?.title.includes('CORRIGIR'));
+ assert.equal(x.s.combat.mainUsed,true,'não pode corrigir antes de confirmar');
+ confirm.action();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.s.combat.mainUsed,false);
+ assert.equal(x.s.resources.alma.current,16,'não se deve devolver ALMA');
+ assert.equal(x.state.rendered,1);
 });
