@@ -17,7 +17,7 @@ const fixture=[
  '<link rel="stylesheet" href="/rolagens-ao-vivo.css"></head><body style="margin:0;background:var(--theme-bg);color:var(--theme-text)">',
  '<main style="min-height:150vh;padding:24px"><h1>Teste da Mesa</h1></main>',
  '<script>',
- 'window.ARQUIVO_INTERNAL={db:{sheets:[{id:"jogador",masterOnly:false,locked:true},{id:"chefe",masterOnly:true,locked:true}]}};',
+ 'window.ARQUIVO_INTERNAL={db:{sheets:[{id:"jogador",masterOnly:false,locked:true},{id:"chefe",masterOnly:true,locked:true},{id:"outro",name:"FICHA DESCONHECIDA",masterOnly:false,locked:true,redacted:true}]}};',
  'window.ARQUIVO_SYNC={state:{enabled:true,identity:{id:"usuario",kind:"player"},rollRealtime:"connected"},rollLatest:async()=>[]};',
  'window.__seen=[];',
  'window.addEventListener("arquivo-roll-public",e=>window.__seen.push(e.detail.roll.id));',
@@ -55,14 +55,16 @@ test('rolagens públicas aparecem imediatamente no topo e respeitam privacidade'
  detail=await page.evaluate(()=>({text:document.getElementById('aeRollToast').innerText,ids:window.__seen}));
  assert.deepEqual(detail.ids,[10]);
  assert.doesNotMatch(detail.text,/SEGREDO DO CHEFE/);
- await page.evaluate(()=>window.__roll(12,{kind:'discord',sheet_id:null,account_name:'Discord · Jogador',label:'2d6'}));
+ await page.evaluate(()=>window.__roll(12,{sheet_id:'outro',character_name:'Outro jogador',label:'Teste aliado'}));
+ assert.match(await page.$eval('#aeRollToast',el=>el.innerText),/Teste aliado/);
+ await page.evaluate(()=>window.__roll(13,{kind:'discord',sheet_id:null,account_name:'Discord · Jogador',label:'2d6'}));
  detail=await page.evaluate(()=>({text:document.getElementById('aeRollToast').innerText,ids:window.__seen}));
- assert.deepEqual(detail.ids,[10,12]);
+ assert.deepEqual(detail.ids,[10,12,13]);
  assert.match(detail.text,/DISCORD/);
  assert.match(detail.text,/2d6/);
  await page.click('.ae-roll-live-close');
  assert.equal(await page.$eval('#aeRollToast',e=>e.hidden),true);
- await page.evaluate(()=>window.__roll(13));
+ await page.evaluate(()=>window.__roll(14));
  assert.equal(await page.$eval('#aeRollToast',e=>e.hidden),false,'novo dado deve reaparecer sem cooldown');
  await page.setViewport({width:390,height:780});
  const mobile=await page.evaluate(()=>{
