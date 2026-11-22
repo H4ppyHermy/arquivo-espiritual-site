@@ -357,12 +357,16 @@
  const lockResult=(button,locked)=>{
   if(!button)return;
   button.disabled=locked;button.setAttribute('aria-busy',String(locked));
-  const root=button.closest?.('.ae-cbb-mesa');
+  const isRoll=['skill','pool'].includes(button.dataset?.cbbCommand)||!!button.dataset?.cbbPickSkill;
+  if(!isRoll)return;
+  const root=button.closest?.('.ae-cbb-mesa')||
+   button.closest?.('.ae-ficha-skills')?.querySelector?.('.ae-cbb-quick');
   const result=root?.querySelector?.('.ae-cbb-result');
   if(result){
    result.classList.toggle('ae-cbb-rolling',locked);
    result.setAttribute('aria-busy',String(locked));
    if(locked)result.innerHTML='<div class="ae-cbb-roll-await"><span class="ae-cbb-roll-dot" aria-hidden="true"></span>ROLANDO DADOS · CONFIRMANDO NO SERVIDOR</div>';
+   else if(result.querySelector?.('.ae-cbb-roll-await'))result.innerHTML='';
   }
  };
  const normalize=(num,min,max,label)=>{if(!engine.positiveInt(num,min,max))throw Error('Valor inválido: '+label);return Number(num);};
