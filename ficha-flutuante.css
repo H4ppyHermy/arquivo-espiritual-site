@@ -2,7 +2,7 @@
 #aeQuickSheetRoot[hidden]{display:none!important}
 #aeQuickSheetRoot{
  position:fixed;right:clamp(10px,2vw,24px);bottom:clamp(78px,8vw,104px);
- z-index:88;width:min(620px,calc(100vw - 20px));pointer-events:none;
+ z-index:710;width:min(620px,calc(100vw - 20px));pointer-events:none;
  font-family:Manrope,system-ui,sans-serif;color:var(--theme-text);
 }
 #aeQuickSheetRoot :is(button,input,select,textarea){font-family:inherit}
@@ -130,3 +130,6 @@
  #aeQuickSheetRoot .ae-quick-skill-grid{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){#aeQuickSheetRoot *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* A ficha aberta fica à frente do leitor acessível (z=600), mas nunca de diálogos. */
+body:has(#dialogRoot .modal-backdrop) #aeQuickSheetRoot{z-index:70}
