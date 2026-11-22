@@ -38,3 +38,20 @@
  #aeRollToast .ae-roll-live-score b{font-size:29px}
 }
 @media(prefers-reduced-motion:reduce){#aeRollToast.ae-roll-live-appear{animation:none}}
+
+/* Resposta imediata de testes na ficha enquanto a verificação acontece. */
+.ae-cbb-mesa .ae-cbb-result.ae-cbb-rolling{
+ min-height:58px;display:grid;align-content:center;
+ border:1px solid var(--theme-structure);background:var(--theme-raised);
+}
+.ae-cbb-mesa .ae-cbb-roll-await{
+ display:flex;align-items:center;gap:10px;padding:12px 14px;
+ font-size:11px;font-weight:850;letter-spacing:.04em;color:var(--theme-cold);
+}
+.ae-cbb-mesa .ae-cbb-roll-dot{
+ display:inline-block;flex:none;width:11px;height:11px;
+ border:2px solid var(--theme-accent);border-right-color:transparent;border-radius:50%;
+ animation:ae-cbb-roll-spin .55s linear infinite;
+}
+@keyframes ae-cbb-roll-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.ae-cbb-mesa .ae-cbb-roll-dot{animation:none;border-right-color:var(--theme-accent)}}
