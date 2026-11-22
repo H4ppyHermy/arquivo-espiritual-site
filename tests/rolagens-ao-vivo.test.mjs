@@ -102,7 +102,7 @@ test('primeira consulta mostra apenas última rolagem permitida e reconcilia eve
  assert.equal(ctx.window.ARQUIVO_ROLL_LIVE.lastId,5);
  assert.equal(ctx.messages.length,0,'histórico inicial não deve se passar por evento novo');
  assert.match(ctx.toast.innerHTML,/ÚLTIMA ROLAGEM/);
- assert.match(ctx.toast.innerHTML,/Discord/);
+ assert.match(ctx.toast.innerHTML,/DISCORD/);
  await ctx.flush(24000);
  assert.equal(calls,2);
  assert.equal(ctx.messages.length,1);
