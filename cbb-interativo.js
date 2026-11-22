@@ -568,7 +568,7 @@
    if(comboStep&&Number(comboStep.dataset.comboStep)>=0)
     global.ARQUIVO_COMBOS?.completeStep?.(s.id,comboStep.dataset.comboId,Number(comboStep.dataset.comboStep));
   }
-  api.render();
+  refreshAfterAction(button||root);
   refreshDamageSummaries(s);
  }
  function switchMode(s,mode,root){
@@ -596,7 +596,14 @@
    if(picker)picker.value=mode;
   }
  }
- async function correctTurn(s,cmd){
+ const refreshAfterAction=source=>{
+  // Na Biblioteca e nas demais abas, atualizar SOMENTE o painel portátil:
+  // reconstruir #page faria o jogador perder o trecho de regra que estava lendo.
+  if(source?.closest?.('#aeQuickSheetRoot')&&global.ARQUIVO_QUICK_SHEET?.refresh){
+   global.ARQUIVO_QUICK_SHEET.refresh(true);
+  }else api.render();
+ };
+ async function correctTurn(s,cmd,source=null){
   const sync=global.ARQUIVO_SYNC;
   if(!s||!api.canEditSheet(s.id)||!sync?.cbbCorrectTurn)throw Error('Correção não autorizada.');
   const action={resetMain:'reset_main',resetReaction:'reset_reaction',cancelComplete:'cancel_complete'}[cmd];
@@ -607,7 +614,7 @@
   if(cmd==='cancelComplete')lastAttacks.delete(s.id);
   statusBySheet.set(s.id,cmd==='resetMain'?'Ação principal marcada como disponível.':
    cmd==='resetReaction'?'Reação marcada como disponível.':'Declaração da Ação Completa cancelada.');
-  api.render();
+  refreshAfterAction(source);
  }
  async function executeLivePhase(cmd,root){
   const sync=global.ARQUIVO_SYNC,s=sheet();
@@ -683,9 +690,11 @@
    const index=Number(b.dataset.cbbIndex),ab=sh.abilities?.[index],pool=engine.abilityPool(ab);
    if(!pool)return;
    modeBySheet.set(sh.id,pool.kind);
-   const nav=document.querySelector('.ae-ficha-navigation [data-tab="mesa"]');
-   if(nav)nav.click();
-   const root=document.querySelector('.ae-cbb-mesa');
+   const compact=!!b.closest?.('#aeQuickSheetRoot');
+   if(compact)global.ARQUIVO_QUICK_SHEET?.navigate?.('mesa');
+   else document.querySelector('.ae-ficha-navigation [data-tab="mesa"]')?.click();
+   const root=compact?document.querySelector('#aeQuickSheetRoot .ae-cbb-mesa'):
+    document.querySelector('#page .ae-cbb-mesa');
    if(root){
     field(root,'poolMode').value=pool.kind;
     field(root,'poolCount').value=String(pool.count);
@@ -709,7 +718,7 @@
    api.confirmSite(title,message,()=>{
     if(busy)return;
     busy=true;lockResult(b,true);
-    correctTurn(sh,cmd).catch(error=>api.toast('Correção não realizada',String(error?.message||error),true))
+    correctTurn(sh,cmd,b).catch(error=>api.toast('Correção não realizada',String(error?.message||error),true))
      .finally(()=>{busy=false;lockResult(b,false)});
    });
    return;
