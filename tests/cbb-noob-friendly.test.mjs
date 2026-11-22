@@ -43,7 +43,7 @@ function fixture(){
 }
 test('Mesa organiza seis ações explícitas sem duplicar avanço de fase',()=>{
  const f=fixture(),html=f.ui.render(f.s,{canEdit:true,master:true});
- assert.equal((html.match(/data-cbb-mode="/g)||[]).length,3);
+ assert.equal((html.match(/data-cbb-mode="/g)||[]).length,6);
  for(const label of ['TESTE / ATAQUE','DANO','DEFESA','CURA','AÇÕES','RECURSOS'])assert.match(html,new RegExp(label));
  assert.match(html,/data-cbb-field="poolMode"/);
  assert.match(html,/data-cbb-field="manageMode"/);
