@@ -24,8 +24,10 @@ AS $body$
   CROSS JOIN LATERAL jsonb_array_elements(coalesce(d.data->'sheets','[]'::jsonb)) x(sheet)
   WHERE d.id=1 AND x.sheet->>'id'=p_sheet_id
    AND NOT coalesce((x.sheet->>'masterOnly')::boolean,false)
+   AND NOT coalesce((x.sheet->>'redacted')::boolean,false)
+   AND NOT coalesce((x.sheet->>'private')::boolean,false)
  );
 $body$;
 
 COMMENT ON FUNCTION public.ae_roll_sheet_public(text) IS
-'Rolagens em ficha são públicas apenas se a ficha existir e não for exclusiva do mestre.';
+'Rolagens em ficha são públicas apenas se a ficha existir e não for exclusiva do mestre, privada ou censurada.';
