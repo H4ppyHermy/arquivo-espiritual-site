@@ -14,7 +14,9 @@ function fixture(){
  const window={
   ARQUIVO_INTERNAL:{db:{sheets:[
    {id:'jogador',name:'Jogador',locked:true,masterOnly:false},
-   {id:'chefe',name:'Chefe',locked:false,masterOnly:true}
+   {id:'chefe',name:'Chefe',locked:false,masterOnly:true},
+   {id:'outro',name:'FICHA DESCONHECIDA',locked:true,redacted:true,masterOnly:false},
+   {id:'privada',name:'Privada',locked:true,redacted:true,masterOnly:false}
   ]}},
   ARQUIVO_SYNC:{state:{enabled:true,identity:{id:'usuario',kind:'player'},rollRealtime:'connected'},
    rollLatest:async()=>[]},
@@ -77,6 +79,15 @@ test('fichas do mestre, rolagens ocultas e fichas desconhecidas não são divulg
  assert.doesNotMatch(ctx.toast.innerHTML,/chefe|nao-conhecida/i);
 });
 
+test('dados de outros jogadores com ficha censurada para leitura continuam públicos pela RLS',()=>{
+ const ctx=fixture();
+ ctx.window.dispatchEvent({type:'arquivo-online-ready'});
+ ctx.emit(roll(71,{sheet_id:'outro',character_name:'Personagem Aliado'}));
+ assert.equal(ctx.messages.length,1,'placeholder de outra ficha não é ficha do mestre');
+ ctx.emit(roll(72,{sheet_id:'privada',character_name:'SECRET'}));
+ assert.equal(ctx.messages.length,1,'ficha realmente redacted não pode escapar');
+ assert.doesNotMatch(ctx.toast.innerHTML,/SECRET/);
+});
 test('mensagens do Discord são escapadas antes de entrar no aviso',()=>{
  const ctx=fixture();
  ctx.window.dispatchEvent({type:'arquivo-online-ready'});
@@ -134,7 +145,7 @@ test('o canal Supabase escuta só inserts não ocultos, com fallback separado do
 });
 test('a página instala o feed antes do app e tem foco reduzido no uso em sessão',()=>{
  const html=read('index.html');
- assert.match(html,/rolagens-ao-vivo\.js\?v=1/);
+ assert.match(html,/rolagens-ao-vivo\.js\?v=2/);
  assert.match(html,/rolagens-ao-vivo\.css\?v=1/);
  assert.ok(html.indexOf('rolagens-ao-vivo.js')<html.indexOf('arquivo-app.js'));
  assert.match(read('rolagens-ao-vivo.css'),/prefers-reduced-motion:reduce/);
