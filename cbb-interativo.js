@@ -807,5 +807,5 @@
   if(root?.dataset?.cbbSheet===api.currentSheet){refreshPreview(root);refreshResistance(root)}
   refreshDamageSummaries();
  });
- global.ARQUIVO_CBB_UI=Object.freeze({render,renderSkillQuick,abilityActions,abilitySummary,engine,refreshPreview,refreshResistance,refreshDamageSummaries});
+ global.ARQUIVO_CBB_UI=Object.freeze({render,renderSkillQuick,abilityActions,abilitySummary,engine,refreshPreview,refreshResistance,refreshDamageSummaries,handleClick:onClick,handleChange:onChange,handleInput:onInput});
 })(window);
