@@ -220,6 +220,25 @@
   if(target.dataset.tab){selectTab(target.dataset.tab);return}
   full();
  },true);
+ // A janela é montada fora de #page: despachar comandos de combate diretamente
+ // ao mesmo controlador da ficha completa, sem depender de listeners globais.
+ d.addEventListener('click',event=>{
+  const root=d.getElementById('aeQuickSheetRoot');
+  const control=event.target.closest?.('[data-cbb-command],[data-cbb-mode],[data-cbb-step],[data-cbb-pick-skill]');
+  if(!control||!root?.contains(control))return;
+  event.preventDefault();event.stopPropagation();
+  void global.ARQUIVO_CBB_UI?.handleClick?.(event);
+ },true);
+ d.addEventListener('change',event=>{
+  if(d.getElementById('aeQuickSheetRoot')?.contains(event.target)){
+   event.stopPropagation();global.ARQUIVO_CBB_UI?.handleChange?.(event);
+  }
+ },true);
+ d.addEventListener('input',event=>{
+  if(d.getElementById('aeQuickSheetRoot')?.contains(event.target)){
+   event.stopPropagation();global.ARQUIVO_CBB_UI?.handleInput?.(event);
+  }
+ },true);
  d.addEventListener('keydown',event=>{
   if(event.key==='Escape'&&expanded&&!d.querySelector('#dialogRoot [role="dialog"]')){
    expanded=false;revision='';refresh(true);
