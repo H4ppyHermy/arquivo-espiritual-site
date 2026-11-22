@@ -97,7 +97,7 @@
  }
  function refresh(force=false){
   const root=host(),sheet=resolve(),role=api.role;
-  if(role!=='player'||!global.ARQUIVO_SYNC?.state?.identity?.id){
+  if(role!=='player'||global.ARQUIVO_SYNC?.state?.identity?.kind!=='player'||!global.ARQUIVO_SYNC?.state?.identity?.id||api.sheetOnPage){
    root.hidden=true;expanded=false;revision='';return;
   }
   root.hidden=false;
