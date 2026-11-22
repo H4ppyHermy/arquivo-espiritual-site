@@ -202,19 +202,34 @@ async function sheetLink(sheetId,action,targetKey=null){
 }
 async function saveOwnedSheet(sheet){if(!state.enabled||state.identity?.kind!=='player')throw Error('Entre com uma chave de jogador.');return rpc('ae_player_save_sheet',{p_sheet:sheet})}
 async function notifyDiscordRoll(result){
- // Desabilitado até o mestre concluir a configuração do bot.
  if(config.discordNotifications!==true||!state.enabled||!result?.id||result.hidden)return;
+ // O Discord nunca atrasa a confirmação do dado: entrega assíncrona com retries curtos.
  try{
   const {data:{session}}=await state.client.auth.getSession();
   if(!session?.access_token)return;
-  const response=await fetch(apiUrl+'/functions/v1/ae-discord-bot/notify',{
-   method:'POST',
-   headers:{'Content-Type':'application/json','apikey':apiKey,'Authorization':'Bearer '+session.access_token},
-   body:JSON.stringify({rollId:result.id})
-  });
-  // A indisponibilidade do Discord nunca cancela a rolagem verificada no site.
-  if(!response.ok)console.warn('Notificação Discord não entregue:',response.status);
- }catch(e){console.warn('Notificação Discord indisponível.')}
+  const url=apiUrl+'/functions/v1/ae-discord-bot/notify';
+  for(let attempt=0;attempt<3;attempt++){
+   let retry=false;
+   try{
+    const response=await fetch(url,{
+     method:'POST',
+     headers:{'Content-Type':'application/json','apikey':apiKey,'Authorization':'Bearer '+session.access_token},
+     body:JSON.stringify({rollId:result.id}),signal:AbortSignal.timeout(9000)
+    });
+    if(response.ok){
+     const outcome=await response.json().catch(()=>({ok:true}));
+     if(outcome?.ok||outcome?.privateSheet||outcome?.disabled||outcome?.duplicate)return;
+     retry=true;
+    }else{
+     retry=response.status===408||response.status===429||response.status>=500;
+     if(!retry)console.warn('Discord recusou a notificação:',response.status);
+    }
+   }catch(e){retry=true}
+   if(!retry)return;
+   if(attempt<2)await new Promise(resolve=>setTimeout(resolve,350*(attempt+1)));
+  }
+  console.warn('Notificação Discord indisponível após tentativas:',result.id);
+ }catch(e){console.warn('Não foi possível iniciar a notificação Discord.')}
 }
 function withDiscordRoll(promise){
  return promise.then(result=>{localVerifiedRoll(result);void notifyDiscordRoll(result);return result});
