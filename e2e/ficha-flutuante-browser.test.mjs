@@ -51,7 +51,9 @@ test('ficha flutuante acompanha biblioteca, mantém rolagens e não revela chefe
   const snapshot=JSON.parse(JSON.stringify(api.db));
   snapshot.sheets=[sheet,boss];snapshot.rules??=[];snapshot.site??={};
   window.__hudSheet=sheet;
+  window.__hudActions=[];
   sync.cbbAction=async args=>{
+   window.__hudActions.push(args);
    if(args.p_action==='main')sheet.combat.mainUsed=true;
    if(args.p_action==='reaction')sheet.combat.reactionUsed=true;
    return {ok:true,resources:sheet.resources,combat:sheet.combat,exposures:sheet.exposures,abilityRuntime:{},info:{}};
@@ -85,6 +87,10 @@ test('ficha flutuante acompanha biblioteca, mantém rolagens e não revela chefe
   nativeSheet:window.__hudSheet?.combat,
   visibleSheet:window.ARQUIVO_INTERNAL.db.sheets.find(s=>s.id==='hud-personagem')?.combat,
   hasCorrection:!!document.querySelector('#aeQuickSheetRoot [data-cbb-command="resetMain"]'),
+  actions:window.__hudActions,
+  cbbButton:(()=>{const b=document.querySelector('#aeQuickSheetRoot [data-cbb-command="main"]');return {disabled:b?.disabled,
+   ancestor:b?.closest('[data-quick-action],[data-quick-tab],[data-action],[data-page],[data-tab]')?.outerHTML?.slice(0,300),
+   cbbSheet:b?.closest('.ae-cbb-mesa')?.dataset?.cbbSheet}})(),
   notice:document.getElementById('toastRoot')?.innerText?.slice(-650),
   panel:document.querySelector('#aeQuickSheetRoot .ae-cbb-turn-overview')?.innerText
  }));
