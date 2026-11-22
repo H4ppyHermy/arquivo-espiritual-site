@@ -361,10 +361,10 @@ test('Atordoado bloqueia ação de reação também no turno e no servidor',()=>
  const ui=x.window.ARQUIVO_CBB_UI;
  const html=ui.render(x.s,{canEdit:true,master:true});
  assert.match(html,/data-cbb-command="reaction" disabled/);
- assert.match(html,/REAÇÃO[\s\S]*?bloqueada/);
+ assert.match(html,/REAÇÃO[\s\S]*?BLOQUEADA/);
  x.s.conditions=[];
  const free=ui.render(x.s,{canEdit:true,master:true});
- assert.match(free,/data-cbb-command="reaction">USAR REAÇÃO/);
+ assert.match(free,/data-cbb-command="reaction">MARCAR USADA/);
  assert.match(read('sql/ae_cbb_universal_action.sql'),/IF p_action='reaction' AND EXISTS\(/);
 });
 
