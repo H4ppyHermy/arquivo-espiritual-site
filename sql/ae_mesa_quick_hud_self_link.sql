@@ -76,7 +76,8 @@ BEGIN
   IF jsonb_array_length(v_members)>=12 THEN RAISE EXCEPTION 'Limite de jogadores vinculados.';END IF;
   v_owner=nullif(v_sheet->>'ownerKeyId','');
   v_members=v_members||jsonb_build_array(v_key.id::text);
-  IF v_owner IS NULL THEN v_owner=v_key.id::text;END IF;
+  IF v_owner IS NULL OR NOT (v_members @> jsonb_build_array(v_owner))
+  THEN v_owner=v_key.id::text;END IF;
   v_sheet=v_sheet||jsonb_build_object('linkedKeyIds',v_members,'ownerKeyId',v_owner);
  END IF;
  SELECT jsonb_agg(CASE WHEN x.value->>'id'=p_sheet_id THEN v_sheet ELSE x.value END ORDER BY x.ord)
