@@ -1,0 +1,40 @@
+/* Última rolagem pública: feed não modal, tema atual e atualização sem recarregar. */
+#aeRollToast[hidden]{display:none!important}
+#aeRollToast.ae-roll-live-toast{
+ position:fixed;z-index:85;top:clamp(63px,7.5vw,91px);right:clamp(9px,2vw,25px);
+ width:min(390px,calc(100vw - 18px));max-height:min(70dvh,380px);
+ overflow:hidden;box-sizing:border-box;
+ background:var(--theme-panel);border:1px solid var(--theme-structure);
+ border-left:4px solid var(--theme-accent);
+ color:var(--theme-text);box-shadow:0 11px 38px rgba(0,0,0,.26);
+ font-family:Manrope,system-ui,sans-serif;
+}
+#aeRollToast .ae-roll-live-head{
+ display:flex;align-items:center;gap:8px;padding:10px 12px 9px;
+ border-bottom:1px solid var(--theme-structure);
+ background:color-mix(in srgb,var(--theme-accent) 8%,var(--theme-panel));
+}
+#aeRollToast .ae-roll-live-pulse{display:inline-block;flex:none;width:8px;height:8px;border-radius:50%;background:var(--theme-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--theme-accent) 18%,transparent)}
+#aeRollToast .ae-roll-live-kicker{flex:1;min-width:0;font-size:calc(10px * var(--ae-reading-scale,1));letter-spacing:.06em;font-weight:900;line-height:1.3}
+#aeRollToast .ae-roll-live-kicker i{font-style:normal;color:var(--theme-cold);padding-inline:4px}
+#aeRollToast .ae-roll-live-clock{font-size:11px;opacity:.7;font-variant-numeric:tabular-nums}
+#aeRollToast .ae-roll-live-close{display:grid;place-items:center;flex:none;width:28px;height:28px;padding:0;border:1px solid transparent;background:transparent;color:var(--theme-text);font:25px/1 system-ui;cursor:pointer}
+#aeRollToast .ae-roll-live-close:hover,#aeRollToast .ae-roll-live-close:focus-visible{border-color:var(--theme-accent);outline-offset:2px}
+#aeRollToast .ae-roll-live-body{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px 15px}
+#aeRollToast .ae-roll-live-copy{display:grid;gap:5px;min-width:0}
+#aeRollToast .ae-roll-live-copy strong{font-size:calc(13px * var(--ae-reading-scale,1));font-weight:900;line-height:1.3;overflow-wrap:anywhere}
+#aeRollToast .ae-roll-live-label{font-size:calc(12px * var(--ae-reading-scale,1));line-height:1.5;color:var(--theme-cold);overflow-wrap:anywhere}
+#aeRollToast .ae-roll-live-dice{font-size:calc(10px * var(--ae-reading-scale,1));opacity:.72;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+#aeRollToast .ae-roll-live-score{display:grid;justify-items:center;align-content:center;gap:0;min-width:70px;min-height:70px;padding:7px 9px;background:var(--theme-raised);border:1px solid var(--theme-structure)}
+#aeRollToast .ae-roll-live-score small{font:900 11px/1.2 Manrope,sans-serif;letter-spacing:.09em;color:var(--theme-cold)}
+#aeRollToast .ae-roll-live-score b{font:900 35px/1.05 'Barlow Condensed',system-ui,sans-serif;color:var(--theme-accent);font-variant-numeric:tabular-nums}
+#aeRollToast .ae-roll-live-special{margin:0 14px 13px;padding:8px 12px;border:1px solid var(--theme-accent);font-weight:900;font-size:11px;letter-spacing:.04em;color:var(--theme-accent);background:color-mix(in srgb,var(--theme-accent) 8%,var(--theme-bg))}
+#aeRollToast.ae-roll-live-appear{animation:ae-roll-toast-in .18s ease-out both}
+@keyframes ae-roll-toast-in{from{opacity:.4;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:680px){
+ #aeRollToast.ae-roll-live-toast{width:min(350px,calc(100vw - 16px));top:61px;right:8px}
+ #aeRollToast .ae-roll-live-body{padding:10px 12px}
+ #aeRollToast .ae-roll-live-score{min-width:58px;min-height:58px}
+ #aeRollToast .ae-roll-live-score b{font-size:29px}
+}
+@media(prefers-reduced-motion:reduce){#aeRollToast.ae-roll-live-appear{animation:none}}
