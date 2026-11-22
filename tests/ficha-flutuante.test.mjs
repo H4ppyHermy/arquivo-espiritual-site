@@ -52,7 +52,7 @@ function fixture(options={}){
 }
 function click(ctx,dataset){
  const e={target:{closest(selector){
-  return selector.includes('data-quick-')?{dataset}:null
+  return selector.includes('data-quick-')?{dataset,setAttribute(){},removeAttribute(){},isConnected:false}:null
  }},preventDefault(){},stopPropagation(){}};
  ctx.listener('click')(e);
 }
