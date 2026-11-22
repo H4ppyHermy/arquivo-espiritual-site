@@ -249,7 +249,7 @@
  global.addEventListener('arquivo-logged-out',()=>{selected='';expanded=false;revision='';refresh(true)});
  global.ARQUIVO_QUICK_SHEET=Object.freeze({
   get activeId(){return resolve()?.id||null},
-  refresh,openPicker,toggleSelfLink,open:()=>{expanded=true;revision='';refresh(true)}
+  refresh,openPicker,toggleSelfLink,navigate:selectTab,open:()=>{expanded=true;revision='';refresh(true)}
  });
  refresh(true);
 })(window);
