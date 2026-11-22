@@ -5,12 +5,45 @@ const apiUrl=String(config.url||'').trim().replace(/\/rest\/v1\/?$/,'').replace(
 const apiKey=String(config.anonKey||'').replace(/\s/g,'');
 const isSecret=apiKey.startsWith('sb_secret_')||(/^[^.]+\.[^.]+\.[^.]+$/.test(apiKey)&&(()=>{try{return JSON.parse(atob(apiKey.split('.')[1])).role==='service_role'}catch(e){return false}})());
 const ready=/^https:\/\/[^ ]+\.supabase\.co$/.test(apiUrl) && !isSecret && /^(sb_publishable_|eyJ)/.test(apiKey);
-const state={configured:ready,enabled:false,connecting:false,error:isSecret?'Chave secreta recusada. Use a chave pública.':!apiUrl?'Configuração ausente: falta a URL.':!apiKey?'Configuração ausente: falta a chave pública.':!ready?'Chave pública inválida ou URL incorreta.':'',client:null,identity:null,revision:0,keys:[],pending:Promise.resolve(),saving:false,busyUntil:0,appliedOnce:false,lastPushError:null,documentRealtime:'disconnected'};
+const state={configured:ready,enabled:false,connecting:false,error:isSecret?'Chave secreta recusada. Use a chave pública.':!apiUrl?'Configuração ausente: falta a URL.':!apiKey?'Configuração ausente: falta a chave pública.':!ready?'Chave pública inválida ou URL incorreta.':'',client:null,identity:null,revision:0,keys:[],pending:Promise.resolve(),saving:false,busyUntil:0,appliedOnce:false,lastPushError:null,documentRealtime:'disconnected',rollRealtime:'disconnected'};
 function stripDoc(db){const c=JSON.parse(JSON.stringify(db));delete c.keys;delete c.keysChanged;return c}
 function assignments(db){return (db.keys||[]).filter(k=>k.kind==='player').map(k=>({id:k.id,sheetId:k.sheetId||''}))}
 function stateOnly(s){return {resources:Object.fromEntries(['vida','estabilidade','alma'].map(k=>[k,{current:s.resources[k].current}])),conditions:s.conditions||[],notes:s.notes||'',noteImages:s.noteImages||[],inventory:s.inventory||{items:[],currencies:[]},restCount:s.restCount||0,desgaste:s.desgaste||0,exposures:s.exposures||{},combat:s.combat||{},bonds:s.bonds||[],abilityRuntime:s.abilityRuntime||{}}}
 async function rpc(fn,args={}){const {data,error}=await state.client.rpc(fn,args);if(error)throw Error(error.message||'Erro de conexão');return data}
-let docChannel=null,docNoticeTimer=null;
+let docChannel=null,docNoticeTimer=null,rollChannel=null,rollIdentity=null;
+function rollConnectionStatus(status){
+ state.rollRealtime=status;
+ window.dispatchEvent(new CustomEvent('arquivo-roll-feed-state',{detail:{status}}));
+}
+function disconnectRollChannel(){
+ if(rollChannel){state.client?.removeChannel(rollChannel).catch(()=>{});rollChannel=null}
+ rollIdentity=null;
+ rollConnectionStatus('disconnected');
+}
+function connectRollChannel(){
+ if(!state.enabled||!state.identity?.id||!state.client)return;
+ const identity=String(state.identity.id);
+ if(rollChannel&&rollIdentity===identity)return;
+ disconnectRollChannel();
+ rollIdentity=identity;
+ const channel=state.client.channel('ae-roll-feed-'+identity);
+ rollChannel=channel;
+ rollConnectionStatus('connecting');
+ channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'ae_rolls',filter:'hidden=eq.false'},payload=>{
+  if(rollIdentity!==identity||state.identity?.id!==identity)return;
+  const roll=payload?.new;
+  if(!roll?.id||roll.hidden)return;
+  window.dispatchEvent(new CustomEvent('arquivo-roll-registered',{detail:{roll,source:'realtime'}}));
+ }).subscribe(status=>{
+  if(rollChannel!==channel)return;
+  const next=status==='SUBSCRIBED'?'connected':status==='CHANNEL_ERROR'||status==='TIMED_OUT'?'unavailable':'connecting';
+  rollConnectionStatus(next);
+ });
+}
+function localVerifiedRoll(roll){
+ if(!roll?.id||roll.hidden||typeof CustomEvent!=='function'||typeof window.dispatchEvent!=='function')return;
+ window.dispatchEvent(new CustomEvent('arquivo-roll-registered',{detail:{roll,source:'confirmed'}}));
+}
 function disconnectDocumentChannel(){
  if(docNoticeTimer){clearTimeout(docNoticeTimer);docNoticeTimer=null}
  if(docChannel){state.client?.removeChannel(docChannel).catch(()=>{});docChannel=null}
@@ -46,7 +79,7 @@ async function init(){if(!ready)return false;
   let {data:{session},error}=await state.client.auth.getSession();if(error)throw error;
   if(!session){const res=await state.client.auth.signInAnonymously();if(res.error)throw res.error}
   state.identity=await rpc('ae_session_info');if(!state.identity?.id)state.identity=null;
-  state.enabled=true;await refresh(true);connectDocumentChannel();
+  state.enabled=true;await refresh(true);connectDocumentChannel();connectRollChannel();
   // Fichas em uso: sincronização frequente. Demais páginas: consultas leves e espaçadas.
 let nextDocumentRefresh=0;
 setInterval(()=>{
@@ -97,9 +130,9 @@ async function refresh(force=false){
  try{return await task}
  finally{if(refreshInFlight===running)refreshInFlight=null}
 }
-async function login(name,code){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_login',{p_name:name,p_code:code});await keys();await refresh(true);connectDocumentChannel();return state.identity}
-async function bootstrap(token,code,name){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_bootstrap_master',{p_token:token,p_code:code,p_name:name});await keys();connectDocumentChannel();return state.identity}
-async function logout(){mediaSignedCache.clear();disconnectDocumentChannel();if(state.enabled)await rpc('ae_logout');state.identity=null;state.keys=[];await refresh(true);window.dispatchEvent(new Event('arquivo-logged-out'))}
+async function login(name,code){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_login',{p_name:name,p_code:code});await keys();await refresh(true);connectDocumentChannel();connectRollChannel();return state.identity}
+async function bootstrap(token,code,name){mediaSignedCache.clear();if(!state.enabled)throw Error('A conexão online não está ativa.');state.identity=await rpc('ae_bootstrap_master',{p_token:token,p_code:code,p_name:name});await keys();connectDocumentChannel();connectRollChannel();return state.identity}
+async function logout(){mediaSignedCache.clear();disconnectDocumentChannel();disconnectRollChannel();if(state.enabled)await rpc('ae_logout');state.identity=null;state.keys=[];await refresh(true);window.dispatchEvent(new Event('arquivo-logged-out'))}
 async function removeAccount(id){return rpc('ae_master_remove_account',{p_id:id})}
 async function keys(){if(state.identity?.kind==='master')state.keys=await rpc('ae_master_keys');else if(state.identity)state.keys=[state.identity];else state.keys=[];return state.keys}
 async function createKey(name,kind,sheetId){const created=await rpc('ae_master_create_key',{p_name:name,p_kind:kind,p_sheet_id:sheetId||null});await keys();return created}
@@ -169,22 +202,37 @@ async function sheetLink(sheetId,action,targetKey=null){
 }
 async function saveOwnedSheet(sheet){if(!state.enabled||state.identity?.kind!=='player')throw Error('Entre com uma chave de jogador.');return rpc('ae_player_save_sheet',{p_sheet:sheet})}
 async function notifyDiscordRoll(result){
- // Desabilitado até o mestre concluir a configuração do bot.
  if(config.discordNotifications!==true||!state.enabled||!result?.id||result.hidden)return;
+ // O Discord nunca atrasa a confirmação do dado: entrega assíncrona com retries curtos.
  try{
   const {data:{session}}=await state.client.auth.getSession();
   if(!session?.access_token)return;
-  const response=await fetch(apiUrl+'/functions/v1/ae-discord-bot/notify',{
-   method:'POST',
-   headers:{'Content-Type':'application/json','apikey':apiKey,'Authorization':'Bearer '+session.access_token},
-   body:JSON.stringify({rollId:result.id})
-  });
-  // A indisponibilidade do Discord nunca cancela a rolagem verificada no site.
-  if(!response.ok)console.warn('Notificação Discord não entregue:',response.status);
- }catch(e){console.warn('Notificação Discord indisponível.')}
+  const url=apiUrl+'/functions/v1/ae-discord-bot/notify';
+  for(let attempt=0;attempt<3;attempt++){
+   let retry=false;
+   try{
+    const response=await fetch(url,{
+     method:'POST',
+     headers:{'Content-Type':'application/json','apikey':apiKey,'Authorization':'Bearer '+session.access_token},
+     body:JSON.stringify({rollId:result.id}),signal:AbortSignal.timeout(9000)
+    });
+    if(response.ok){
+     const outcome=await response.json().catch(()=>({ok:true}));
+     if(outcome?.ok||outcome?.privateSheet||outcome?.disabled||outcome?.duplicate)return;
+     retry=true;
+    }else{
+     retry=response.status===408||response.status===429||response.status>=500;
+     if(!retry)console.warn('Discord recusou a notificação:',response.status);
+    }
+   }catch(e){retry=true}
+   if(!retry)return;
+   if(attempt<2)await new Promise(resolve=>setTimeout(resolve,350*(attempt+1)));
+  }
+  console.warn('Notificação Discord indisponível após tentativas:',result.id);
+ }catch(e){console.warn('Não foi possível iniciar a notificação Discord.')}
 }
 function withDiscordRoll(promise){
- return promise.then(result=>{notifyDiscordRoll(result);return result});
+ return promise.then(result=>{localVerifiedRoll(result);void notifyDiscordRoll(result);return result});
 }
 async function saveCombos(sheetId,combos){
  if(!state.enabled||!state.identity?.id)throw Error('Entre com sua chave antes de salvar combos.');
@@ -229,6 +277,18 @@ async function liveCombatPhase(action,sheetId=null,phase=null){
  if(!result?.ok)throw Error('O servidor não confirmou a atualização da sessão.');
  if(result?.revision)state.revision=Math.max(Number(state.revision)||0,Number(result.revision)||0);
  return result;
+}
+async function rollLatest(limit=24,afterId=0){
+ if(!state.enabled||!state.identity?.id)return [];
+ const count=Math.min(50,Math.max(1,Math.trunc(Number(limit)||24)));
+ const cursor=Math.max(0,Math.trunc(Number(afterId)||0));
+ let query=state.client.from('ae_rolls')
+  .select('id,account_name,character_name,sheet_id,kind,label,total,special,hidden,created_at,dice,colors')
+  .eq('hidden',false);
+ if(cursor)query=query.gt('id',cursor);
+ const {data,error}=await query.order('id',{ascending:!!cursor}).limit(count);
+ if(error)throw Error('Não foi possível consultar as rolagens recentes: '+error.message);
+ return data||[];
 }
 async function rollHistory(limit=10,offset=0,sheetId=null){
  if(!state.enabled||!state.identity?.id)return {rows:[],total:0};
@@ -291,5 +351,5 @@ async function mediaSignedUrl(ref){
  return data.signedUrl;
 }
 
-window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,moveAbility,moveWarehousePost,saveCombos,rollFree,cbbRoll,cbbAction,liveCombatPhase,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
+window.ARQUIVO_SYNC={state,init,refresh,login,logout,removeAccount,bootstrap,keys,createKey,changeKey,manageKey,push,stripDoc,saveOwnedSheet,playerDirectory,sheetLink,saveAppearance,moveAbility,moveWarehousePost,saveCombos,rollFree,cbbRoll,cbbAction,liveCombatPhase,rollLatest,rollHistory,clearRolls,musicNow,musicSet,uploadMusic,listMusic,deleteMusic,uploadSheetMedia,mediaSignedUrl};
 })();

@@ -349,8 +349,26 @@
    '<div class="ae-cbb-dice">'+tokens+'</div>'+
    (effect.length?'<p class="ae-cbb-result-message">'+enc(effect.join(' · '))+'</p>':'')+'</div>';
  }
- const responseField=(s,result,mode,dt,clash)=>{lastResults.set(s.id,{result,mode,dt,clash});const node=document.querySelector('.ae-cbb-mesa .ae-cbb-result');if(node)node.innerHTML=resultMarkup({result,mode,dt,clash});};
- const lockResult=(button,locked)=>{if(button){button.disabled=locked;button.setAttribute('aria-busy',String(locked));}};
+ const responseField=(s,result,mode,dt,clash,root=null)=>{
+  lastResults.set(s.id,{result,mode,dt,clash});
+  const node=root?.querySelector?.('.ae-cbb-result')||document.querySelector('.ae-cbb-mesa .ae-cbb-result');
+  if(node)node.innerHTML=resultMarkup({result,mode,dt,clash});
+ };
+ const lockResult=(button,locked)=>{
+  if(!button)return;
+  button.disabled=locked;button.setAttribute('aria-busy',String(locked));
+  const isRoll=['skill','pool'].includes(button.dataset?.cbbCommand)||!!button.dataset?.cbbPickSkill;
+  if(!isRoll)return;
+  const root=button.closest?.('.ae-cbb-mesa')||
+   button.closest?.('.ae-ficha-skills')?.querySelector?.('.ae-cbb-quick');
+  const result=root?.querySelector?.('.ae-cbb-result');
+  if(result){
+   result.classList.toggle('ae-cbb-rolling',locked);
+   result.setAttribute('aria-busy',String(locked));
+   if(locked)result.innerHTML='<div class="ae-cbb-roll-await"><span class="ae-cbb-roll-dot" aria-hidden="true"></span>ROLANDO DADOS · CONFIRMANDO NO SERVIDOR</div>';
+   else if(result.querySelector?.('.ae-cbb-roll-await'))result.innerHTML='';
+  }
+ };
  const normalize=(num,min,max,label)=>{if(!engine.positiveInt(num,min,max))throw Error('Valor inválido: '+label);return Number(num);};
  const currentPhase=s=>[Number(s.combat?.scene||1),Number(s.combat?.round||1),s.combat?.phase||'preparacao'].join(':');
  async function executeRoll(root,cmd){
@@ -389,7 +407,7 @@
     if(cached&&cached.signature===signature){
      if(cached.steps!==args.p_group_steps)throw Error('A resistência natural já foi rolada nesta fase; seus passos ficam fixos.');
      if(cached.count===count && (!count||cached.faces===faces)){
-      responseField(s,cached.current,'resistencia',null,null);
+      responseField(s,cached.current,'resistencia',null,null,root);
       statusBySheet.set(s.id,'Resistência da fase reaproveitada.');
       const node=document.querySelector('.ae-cbb-status');if(node)node.textContent=stateText(s);
       return;
@@ -407,7 +425,7 @@
        colors:[...(cached.natural.colors||[]),...(extra.colors||[])]};
      }
      cached.count=count;cached.faces=faces;cached.current=updated;
-     responseField(s,updated,'resistencia',null,null);
+     responseField(s,updated,'resistencia',null,null,root);
      statusBySheet.set(s.id,count?'Proteção adicional atualizada.':'Resistência natural reaproveitada.');
      const node=document.querySelector('.ae-cbb-status');if(node)node.textContent=stateText(s);
      return;
@@ -460,7 +478,7 @@
    const link=document.querySelector?.('[data-cbb-field="useAttackRa"]');
    if(link){link.checked=false;link.disabled=true}
   }
-  responseField(s,result,args.p_kind,dt,clash);
+  responseField(s,result,args.p_kind,dt,clash,root);
   refreshDamageSummaries(s);
   const hazard=s.boss?.scenario;
   if(hazard?.critical===result.special && hazard.skill===args.p_skill && args.p_kind==='teste'){
@@ -571,11 +589,22 @@
    event.preventDefault();event.stopPropagation();
    const sh=sheet(),root=selectSkill.closest?.('.ae-ficha-skills')?.querySelector('.ae-cbb-quick');
    const input=field(root,'skill'),name=selectSkill.dataset.cbbPickSkill;
-   if(!sh||!root||!input||!skillNames.includes(name))return;
+   if(!sh||!root||!input||!skillNames.includes(name)||busy)return;
+   if(!on()||!api.canEditSheet(sh.id)||sh.automationEnabled===false){
+    api.toast('Rolagem indisponível','Entre com a chave da ficha e ative a automação.',true);return;
+   }
+   // O botão ROLAR faz o teste, sem exigir um segundo clique ou gastar reação sem aviso.
    input.value=name;
-   const current=testMemory(sh);current.skill=name;testBySheet.set(sh.id,current);
-   refreshPreview(root,sh);root.scrollIntoView?.({block:'nearest',behavior:'smooth'});
-   input.focus?.({preventScroll:true});
+   const context=field(root,'context'),reaction=field(root,'reaction');
+   if(context)context.value='geral';
+   if(reaction)reaction.checked=false;
+   const current=testMemory(sh);current.skill=name;current.context='geral';current.reaction=false;
+   testBySheet.set(sh.id,current);
+   refreshPreview(root,sh);
+   busy=true;lockResult(selectSkill,true);
+   try{await executeRoll(root,'skill')}
+   catch(error){api.toast('Rolagem não registrada',String(error?.message||error),true)}
+   finally{busy=false;lockResult(selectSkill,false)}
    return;
   }
   const step=event.target?.closest?.('[data-cbb-step]');

@@ -1,8 +1,10 @@
 import test from "node:test";
+import fs from "node:fs";
 import assert from "node:assert/strict";
 import {parseDiceExpression,rollDiceExpression,evaluateRpgSpecial,evaluateCriticalRoll,parsePrefixMessage} from "./dice.mjs";
 import {rollCard,helpCard,classifyHighlightedDice} from "./card.mjs";
 import {COMMANDS} from "./commands.mjs";
+import {permittedSheet,publicRoll} from "./privacy.mjs";
 
 test("expressões de dados e modificadores",()=>{
  for(const expression of ["1d1","1d2","1d20","2d6+3","1d20-2","3d8+1d4+7"]){
@@ -103,4 +105,23 @@ test("críticos alteram apenas resultados prioritários nos cartões e no histó
 test("rolagens antigas continuam no histórico sem recalcular o valor salvo",()=>{
  const row={special:"CRÍTICO",total:24,dice:[{sides:6,value:6},{sides:6,value:6}]};
  assert.equal(rollCard(row).embeds[0].description.includes("CRÍTICO ANTIGO"),true);
+});
+
+test("fichas bloqueadas de jogador compartilham dados; fichas do mestre não",()=>{
+ const player={id:"jogador",locked:true,masterOnly:false,redacted:false};
+ const boss={id:"chefe",locked:false,masterOnly:true};
+ assert.equal(permittedSheet(player),true,"locked só restringe edição");
+ assert.equal(permittedSheet(boss),false);
+ assert.equal(permittedSheet({id:"oculta",redacted:true}),false);
+ assert.equal(publicRoll({id:1,sheet_id:"jogador",hidden:false},player),true);
+ assert.equal(publicRoll({id:2,sheet_id:"chefe",hidden:false},boss),false);
+ assert.equal(publicRoll({id:3,sheet_id:null,hidden:false},null),true);
+ assert.equal(publicRoll({id:4,sheet_id:"jogador",hidden:true},player),false);
+ assert.equal(publicRoll({id:5,sheet_id:"apagada",hidden:false},null),false);
+});
+test("o servidor Discord mantém idempotência e filtra fichas restritas",()=>{
+ const source=fs.readFileSync(new URL("./index.ts",import.meta.url),"utf8");
+ assert.match(source,/import \{permittedSheet\} from "\.\/privacy\.mjs"/);
+ assert.match(source,/nonce:"ae-roll-"\+String\(row\.id\),enforce_nonce:true/);
+ assert.match(source,/if\(!permittedSheet\(sheet\)\)/);
 });

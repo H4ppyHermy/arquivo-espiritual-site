@@ -61,6 +61,16 @@ A **Consulta Rápida agora é 100% manual**: não analisa os livros, não gera v
 
 O **Guia de Combate** é uma cola de consulta para a mesa: 16 perguntas e respostas curtas, com busca instantânea (atalho `/`), filtros por assunto, resposta aberta no mesmo painel, um exemplo por mecânica e acesso direto ao capítulo original. O visual próprio usa uma paleta de papel/âmbar de alto contraste, separada dos cartões comuns da Biblioteca. A busca prioriza títulos e sinônimos, recorrendo à descrição completa apenas quando necessário. O conteúdo é editorial, não modifica regras nem automatiza ações. O mestre continua podendo editar cada resposta; os textos são persistidos em `site.combatGuide.overrides`, com os IDs das oito seções anteriores preservados para compatibilidade. Arquivos: `guia-combate.js`, `guia-combate.css`, `tests/guia-combate.test.mjs` e `e2e/biblioteca-browser.test.mjs`.
 
+## Rolagens em tempo real — site, fichas e Discord
+
+Todas as rolagens verificadas (livres, testes e dados da Mesa) são gravadas em `public.ae_rolls`. Agora, `rolagens-ao-vivo.js` recebe a confirmação local imediatamente e escuta INSERTs via `postgres_changes` do Supabase, sem esperar a atualização completa do documento. O resultado público mais recente aparece em um aviso de sete segundos no topo, seguindo a paleta da pessoa. Uma mesma rolagem identificada por `id` não aparece duplicada em eco local/realtime. O histórico aberto é atualizado em memória; há conciliação periódica e recuperação quando a conexão oscila.
+
+**Privacidade:** fichas com `masterOnly`, `private` ou `redacted` não são anunciadas na UI pública. Rolagens com `hidden=true` ou `kind=shield` também ficam fora. A RLS do banco filtra registros para jogadores; `ae_roll_sheet_public` só considera públicas as fichas que existem e não são exclusivas do mestre. A tabela precisa estar em `supabase_realtime` (SQL: `sql/ae_rolls_realtime_public_only.sql`). O histórico original é preservado.
+
+**Discord:** o bot separa `locked` (proteção contra edição) de `masterOnly` (sigilo): jogadores com ficha bloqueada continuam tendo dados anunciados, mas chefes não. Mensagens de rolagem usam `nonce` para evitar duplicação durante tentativas repetidas. Notificações são enviadas em segundo plano, com poucas retentativas; uma falha no Discord não altera nem cancela a rolagem já confirmada. O comando de dados do Discord grava no mesmo banco e, por isso, também aparece no site em tempo real. Mudanças no bot exigem publicar a Edge Function `ae-discord-bot`, além do GitHub Pages.
+
+**Ficha:** o botão **ROLAR** da lista de perícias executa o teste imediatamente (contexto geral, sem gastar reação), exibindo estado de processamento enquanto aguarda a confirmação, em vez de apenas selecionar a perícia. Os controles de prevenção de cliques duplicados continuam ativos durante a operação — não existe pausa artificial após o retorno do servidor.
+
 ## Fluxo seguro de alterações
 
 1. Faça uma branch de desenvolvimento, modifique somente os módulos relevantes e abra um pull request. Não altere manualmente dados reais de personagens em migrações.
