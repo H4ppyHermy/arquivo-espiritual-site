@@ -1354,6 +1354,21 @@ async function loadHistoryScope(scope,force=false){
  }catch(e){if(epoch===historyEpoch){st.error=e.message;st.loaded=true;st.rows=[];toast('Histórico indisponível',e.message,true)}}
  finally{st.loading=false;if(epoch===historyEpoch)refreshHistoryPanels(scope)}
 }
+// A lista verificada recebe rolagens públicas imediatamente, sem esperar o próximo polling.
+window.addEventListener('arquivo-roll-public',event=>{
+ const roll=event.detail?.roll,id=Number(roll?.id);
+ if(!Number.isSafeInteger(id)||id<=0)return;
+ for(const [scope,st] of historyStates){
+  if(!st.loaded||st.loading||st.rows.some(row=>Number(row.id)===id))continue;
+  if(scope!=='all'&&scope!=='sheet:'+roll.sheet_id)continue;
+  st.total++;
+  if(st.page===1){
+   st.rows=[roll,...st.rows].sort((a,b)=>Number(b.id)-Number(a.id)).slice(0,HISTORY_PAGE_SIZE);
+   st.stamp=Date.now();
+   refreshHistoryPanels(scope);
+  }else st.loaded=false;
+ }
+});
 let rollHistoryRefreshPending=false;
 function refreshRollHistorySoon(){
  if(rollHistoryRefreshPending)return;
@@ -1368,13 +1383,16 @@ async function loadVerifiedHistory(force=false){
  const scopes=[...new Set([...document.querySelectorAll('[data-history-scope]')].map(box=>box.dataset.historyScope))];
  await Promise.all(scopes.filter(scope=>scope!=='local').map(scope=>loadHistoryScope(scope,force)));
 }
-// Histórico unificado: atualiza enquanto aberto, inclusive rolagens vindas do Discord.
-// Carregamento leve; não busca nada quando a aba ou o histórico estiverem ocultos.
+// Realtime atualiza imediatamente. O polling fica apenas como reconciliação/fallback.
+let lastHistoryReconcile=0;
 setInterval(()=>{
  if(document.hidden||!window.ARQUIVO_SYNC?.state.enabled)return;
  if(!document.querySelector('[data-history-scope]:not([data-history-scope="local"])'))return;
+ const period=window.ARQUIVO_SYNC.state.rollRealtime==='connected'?30000:5000;
+ if(Date.now()-lastHistoryReconcile<period)return;
+ lastHistoryReconcile=Date.now();
  loadVerifiedHistory(true).catch(()=>{});
-},8000);
+},5000);
 document.addEventListener('visibilitychange',()=>{
  if(!document.hidden&&window.ARQUIVO_SYNC?.state.enabled&&document.querySelector('[data-history-scope]:not([data-history-scope="local"])'))
   loadVerifiedHistory(true).catch(()=>{});
