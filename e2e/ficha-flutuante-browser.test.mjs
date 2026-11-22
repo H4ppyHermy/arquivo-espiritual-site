@@ -94,6 +94,7 @@ test('ficha flutuante acompanha biblioteca, mantém rolagens e não revela chefe
    });
   },true);
  });
+ await page.evaluate(()=>window.__libraryBeforeCombat=document.getElementById('page').firstElementChild);
  await page.click('#aeQuickSheetRoot [data-cbb-command="main"]');
  await new Promise(resolve=>setTimeout(resolve,350));
  const diagnostics=await page.evaluate(()=>({
@@ -110,6 +111,8 @@ test('ficha flutuante acompanha biblioteca, mantém rolagens e não revela chefe
   panel:document.querySelector('#aeQuickSheetRoot .ae-cbb-turn-overview')?.innerText
  }));
  assert.equal(diagnostics.hasCorrection,true,'a ação deve ficar marcada no painel: '+JSON.stringify(diagnostics));
+ const stillReading=await page.evaluate(()=>document.getElementById('page').firstElementChild===window.__libraryBeforeCombat);
+ assert.equal(stillReading,true,'a rolagem/ação no HUD não pode remontar a Biblioteca');
  text=await page.$eval('.ae-cbb-turn-overview',e=>e.innerText);
  assert.match(text,/USADA/);
  assert.match(text,/CORRIGIR/);
