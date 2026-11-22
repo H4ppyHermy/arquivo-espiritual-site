@@ -16,9 +16,13 @@
   if(!roll.sheet_id)return true;
   const sheets=global.ARQUIVO_INTERNAL?.db?.sheets;
   const sheet=Array.isArray(sheets)?sheets.find(s=>s.id===roll.sheet_id):null;
-  // Em especial para a chave de mestre: nunca anunciar uma ficha não identificada.
-  return !!sheet&&sheet.masterOnly!==true&&sheet.masterOnly!=='true'&&
-   sheet.redacted!==true&&sheet.private!==true;
+  // O documento do jogador substitui outras fichas locked por placeholders
+  // "FICHA DESCONHECIDA". Isso protege o conteúdo da ficha, mas a RLS
+  // de ae_rolls autoriza suas rolagens públicas; não as esconda da mesa.
+  if(!sheet||sheet.masterOnly===true||sheet.masterOnly==='true'||sheet.private===true)return false;
+  if(sheet.redacted!==true)return true;
+  return sheet.locked===true && sheet.name==='FICHA DESCONHECIDA' &&
+   global.ARQUIVO_SYNC?.state?.identity?.kind!=='master';
  }
  function remember(id){
   seen.add(id);
