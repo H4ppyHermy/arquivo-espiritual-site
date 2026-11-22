@@ -15,7 +15,6 @@
  const opts=(entries,value)=>entries.map(([id,label])=>'<option value="'+enc(id)+'"'+(String(id)===String(value)?' selected':'')+'>'+enc(label)+'</option>').join('');
  const on=()=>!!global.ARQUIVO_SYNC?.state?.enabled&&!!global.ARQUIVO_SYNC?.state?.identity?.id;
  const stateText=s=>statusBySheet.get(s.id)||'';
- const mainMode=mode=>['dano','resistencia','recuperacao'].includes(mode)?'dados':['turno','recursos'].includes(mode)?'personagem':'teste';
  const liveCombat=()=>api.db?.site?.liveCombat||null;
  const sharedPhase=()=>liveCombat()?.enabled===true;
  const sessionPhase=s=>sharedPhase()?(liveCombat().phase||s.combat?.phase||'preparacao'):(s.combat?.phase||'preparacao');
