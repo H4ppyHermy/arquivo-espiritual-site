@@ -86,7 +86,7 @@ test('uma falha libera a consulta em andamento para nova tentativa',async()=>{
 test('a UI só reconstrói a ficha quando há alteração visível e agrega cache local',()=>{
  const app=fs.readFileSync(new URL('../arquivo-app.js',import.meta.url),'utf8');
  assert.match(app,/const sameVisibleSheet=/);
- assert.match(app,/if\(sameVisiblePage\)\{onlineStatus\(\);return\}/);
+ assert.match(app,/if\(sameVisiblePage\)\{onlineStatus\(\);window\.ARQUIVO_QUICK_SHEET\?\.refresh\?\.\(\);return\}/);
  assert.match(app,/scheduleOnlineCache\(\)/);
  assert.match(app,/page==='library'&&sameSite&&sameRules\(\)/);
  assert.match(app,/page==='home'&&sameSite/);
