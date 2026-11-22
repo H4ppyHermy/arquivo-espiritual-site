@@ -1,6 +1,7 @@
 import {rollDiceExpression,parsePrefixMessage} from "./dice.mjs";
 import {rollCard,rollText,helpCard} from "./card.mjs";
 import {COMMANDS} from "./commands.mjs";
+import {permittedSheet} from "./privacy.mjs";
 
 // Discord application webhook + optional site notifications. No gateway process required.
 const env=k=>String(Deno.env.get(k)||"").trim();
@@ -43,7 +44,7 @@ async function sheets(){
  const document=await rest("ae_document?select=data&id=eq.1&limit=1");
  return Array.isArray(document?.[0]?.data?.sheets)?document[0].data.sheets:[];
 }
-const permittedSheet=s=>!!s&&!s.masterOnly&&!s.locked&&!s.redacted&&!s.private;
+// A regra de privacidade é compartilhada com os testes: locked restringe edição, não publicação.
 const rollReply=r=>({type:4,data:rollCard(r)});
 async function rollCmd(p,fromRoll=null){
  let rolled;
@@ -157,7 +158,7 @@ async function notify(req){
  if(!/^\d{17,22}$/.test(channel)||!bot)return j({ok:false,disabled:true},200,extra);
  const sent=await fetch("https://discord.com/api/v10/channels/"+channel+"/messages",{
   method:"POST",headers:{Authorization:"Bot "+bot,"Content-Type":"application/json"},
-  body:JSON.stringify({content:"🎲 **Rolagem feita no Arquivo Espiritual**",...rollCard(row,{reroll:false})})
+  body:JSON.stringify({content:"🎲 **Rolagem feita no Arquivo Espiritual**",...rollCard(row,{reroll:false}),nonce:"ae-roll-"+String(row.id),enforce_nonce:true,allowed_mentions:{parse:[]}})
  });
  if(!sent.ok){
   console.warn("Discord notificação falhou",sent.status,await sent.text().catch(()=>""));
@@ -165,7 +166,7 @@ async function notify(req){
   if(sent.status===400||sent.status===403){
    const backup=await fetch("https://discord.com/api/v10/channels/"+channel+"/messages",{
     method:"POST",headers:{Authorization:"Bot "+bot,"Content-Type":"application/json"},
-    body:JSON.stringify({content:"🎲 "+rollText(row),allowed_mentions:{parse:[]}})
+    body:JSON.stringify({content:"🎲 "+rollText(row),nonce:"ae-roll-"+String(row.id),enforce_nonce:true,allowed_mentions:{parse:[]}})
    });
    if(!backup.ok)return j({ok:false,reason:"Discord indisponível."},503,extra);
    const receipt=await backup.json();
