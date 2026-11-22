@@ -97,6 +97,7 @@ test('primeira consulta mostra apenas última rolagem permitida e reconcilia eve
  };
  ctx.window.dispatchEvent({type:'arquivo-online-ready'});
  await ctx.flush(0);
+ await ctx.flush(0);
  assert.equal(calls,1);
  assert.equal(ctx.window.ARQUIVO_ROLL_LIVE.lastId,5);
  assert.equal(ctx.messages.length,0,'histórico inicial não deve se passar por evento novo');
@@ -123,18 +124,18 @@ test('mudança de identidade apaga o último resultado e cancela a consulta da c
 });
 test('o canal Supabase escuta só inserts não ocultos, com fallback separado do documento',()=>{
  const source=read('online.js');
- assert.match(source,/\\bconnectRollChannel\\(\\)/);
+ assert.match(source,/\bconnectRollChannel\(\)/);
  assert.match(source,/event:'INSERT',schema:'public',table:'ae_rolls',filter:'hidden=eq.false'/);
  assert.match(source,/arquivo-roll-registered/);
  assert.match(source,/async function rollLatest/);
- assert.match(source,/function withDiscordRoll\\(promise\\)\\{/);
- assert.match(source,/localVerifiedRoll\\(result\\)/);
- assert.match(source,/notifyDiscordRoll\\(result\\)/);
+ assert.match(source,/function withDiscordRoll\(promise\)\{/);
+ assert.match(source,/localVerifiedRoll\(result\)/);
+ assert.match(source,/notifyDiscordRoll\(result\)/);
 });
 test('a página instala o feed antes do app e tem foco reduzido no uso em sessão',()=>{
  const html=read('index.html');
- assert.match(html,/rolagens-ao-vivo\\.js\\?v=1/);
- assert.match(html,/rolagens-ao-vivo\\.css\\?v=1/);
+ assert.match(html,/rolagens-ao-vivo\.js\?v=1/);
+ assert.match(html,/rolagens-ao-vivo\.css\?v=1/);
  assert.ok(html.indexOf('rolagens-ao-vivo.js')<html.indexOf('arquivo-app.js'));
  assert.match(read('rolagens-ao-vivo.css'),/prefers-reduced-motion:reduce/);
 });
