@@ -78,7 +78,17 @@ test('ficha flutuante acompanha biblioteca, mantém rolagens e não revela chefe
  assert.equal(await page.$$eval('[data-cbb-mode]',els=>els.length),6);
  assert.match(await page.$eval('.ae-cbb-turn-overview',e=>e.innerText),/PRINCIPAL/);
  await page.click('#aeQuickSheetRoot [data-cbb-command="main"]');
- await page.waitForFunction(()=>document.querySelector('#aeQuickSheetRoot [data-cbb-command="resetMain"]')!==null);
+ await new Promise(resolve=>setTimeout(resolve,350));
+ const diagnostics=await page.evaluate(()=>({
+  role:window.ARQUIVO_INTERNAL.role,
+  sheetId:window.ARQUIVO_INTERNAL.currentSheet,
+  nativeSheet:window.__hudSheet?.combat,
+  visibleSheet:window.ARQUIVO_INTERNAL.db.sheets.find(s=>s.id==='hud-personagem')?.combat,
+  hasCorrection:!!document.querySelector('#aeQuickSheetRoot [data-cbb-command="resetMain"]'),
+  notice:document.getElementById('toastRoot')?.innerText?.slice(-650),
+  panel:document.querySelector('#aeQuickSheetRoot .ae-cbb-turn-overview')?.innerText
+ }));
+ assert.equal(diagnostics.hasCorrection,true,'a ação deve ficar marcada no painel: '+JSON.stringify(diagnostics));
  text=await page.$eval('.ae-cbb-turn-overview',e=>e.innerText);
  assert.match(text,/USADA/);
  assert.match(text,/CORRIGIR/);
